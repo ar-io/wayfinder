@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR.IO WayFinder</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Rubik', sans-serif;
+            background-color: #010905;
+            color: #E0E0E0;
+            padding: 15px;
+            width: 325px;
+            max-height: calc(100vh - 40px); /* 100vh is the full viewport height. We subtract some pixels to give a little room. */
+            overflow: hidden;
+        }
+        /* Styling for the links in the body */
+        p a {
+            color: #EDEDED; /* Initial color */
+            text-decoration: none; /* Removes underline */
+            transition: color 0.3s; /* Smooth transition for hover effect */
+        }
+
+        p a:hover {
+            color: #FAFAFA; /* Lighter color when hovering over the link */
+        }
+
+        h2 {
+            color: #EDEDED;
+            font-size: 24px;
+            border-bottom: 1px solid #323232;
+            padding-bottom: 15px;
+            margin-bottom: 15px;
+            margin-top: 15px
+        }
+
+        p {
+            color: #9E9E9E;
+            font-size: 16px;
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+
+        button {
+            display: block;
+            width: 100%;
+            background-color: #010905;
+            border: 2px solid #EDEDED;
+            color: #EDEDED;
+            padding: 12px;
+            text-align: center;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s, color 0.3s;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+
+        #saveStaticGateway {
+            display: block;
+            width: 15%;
+            background-color: #010905;
+            border: 2px solid #EDEDED;
+            color: #EDEDED;
+            padding: 8px;
+            text-align: center;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background-color 0.3s, color 0.3s;
+            border-radius: 4px;
+            margin-bottom: 5px;
+        }
+
+        button:hover {
+            background-color: #1F1F1F;
+            color: #FAFAFA;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+            border: 1px solid #323232;
+            border-radius: 4px;
+            margin-top: 15px;
+            overflow: hidden;
+            transition: all 0.3s ease-in-out;
+            border-radius: 5px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .status-icon {
+            width: 24px;
+            height: 24px;
+            margin-left: 10px; /* Adds some spacing between the gateway name and the icon */
+        }
+        .online {
+            color: green;
+        }
+
+        .offline {
+            color: red;
+        }
+
+        ul::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ul::-webkit-scrollbar-thumb {
+            background-color: #9E9E9E;
+            border-radius: 5px;
+        }
+
+        ul::-webkit-scrollbar-track {
+            background-color: #171717;
+        }
+
+        li {
+            padding: 8px 16px;
+            border-bottom: 1px solid #9E9E9E;
+            background-color: #1F1F1F;
+            transition: background-color 0.3s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        li:hover {
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            background-color: #323232;
+        }
+
+        li:last-child {
+            border-bottom: none;
+        }
+
+        li:hover {
+            background-color: #323232;
+        }
+
+        li a {
+            text-decoration: none;
+            color: inherit;  /* This makes the link have the same color as the list item */
+            display: block;  /* Makes the entire list item area clickable */
+            padding: 8px 16px;
+            transition: background-color 0.3s;
+        }
+
+        li a:hover {
+            background-color: #323232;
+        }
+
+        button, li {
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        button:hover {
+          box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+          transform: scale(1.025);  /* Slight zoom effect on hover */
+        }
+
+        li:hover {
+          box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        #gatewayList {
+            transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: translateY(0);
+            opacity: 1;
+            max-height: 185px; /* The subtracted value here depends on the combined height of your other elements (like headers, paragraphs, buttons). You might need to adjust this value to fit your content perfectly. */
+            overflow-y: auto;
+            margin-bottom: 20px;  /* Adjust value as necessary */
+        }
+        .gatewayListHeader {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 20px;
+            background-color: #f1f1f1;
+            border-top-left-radius: 5px;
+            border-top-right-radius: 5px;
+        }
+
+        #historyList {
+            transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: translateY(0);
+            opacity: 1;
+            max-height: 250px; /* The subtracted value here depends on the combined height of your other elements (like headers, paragraphs, buttons). You might need to adjust this value to fit your content perfectly. */
+            overflow-y: auto;
+            margin-bottom: 20px;  /* Adjust value as necessary */
+        }
+        #aboutSection{
+            transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: translateY(0);
+            opacity: 1;
+            max-height: 400px; /* You can adjust this based on your needs */
+            overflow: hidden;
+        }
+        .setting {
+            display: flex;
+            justify-content: space-between; /* This will push content to the extremes */
+            align-items: center; /* This vertically aligns items in the middle */
+            padding: 15px 0;
+        }
+        select {
+            padding: 5px 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .setting label {
+            margin-right: 14px;
+            color: #E0E0E0;
+        }
+        .icon {
+            width: 24px;
+            height: 24px;
+            vertical-align: middle;
+            margin: 0 10px;
+        }
+        footer {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-top: 2px solid #323232;  /* Thin line separator */
+            margin-top: 15px;
+        }
+        footer a {
+            color: #9E9E9E;  /* Lighter grey color for footer text */
+            text-decoration: none; 
+            font-size: 16px; 
+            font-weight: 500;  /* Slightly bolder font */
+            transition: color 0.3s, transform 0.3s;  /* Added transform for hover effect */
+            padding: 5px;  /* Padding for a larger clickable area and spacing */
+            border-radius: 4px;  /* For the hover effect */
+            position: relative;  /* To place the icons if added later */
+        }
+        footer a:hover {
+            color: #EDEDED;  /* Change color on hover */
+            background-color: #323232;  /* Background change on hover */
+            transform: scale(1.05);  /* Slight zoom effect on hover */
+        }
+        .footer-icon {
+            position: absolute;
+            left: -30px;  /* Adjust based on actual icon size */
+            top: 50%;
+            transform: translateY(-50%);
+            width: 20px;  /* Adjust based on actual icon size */
+            height: auto;
+        }
+
+        .light-mode {
+            font-family: 'Rubik', sans-serif;
+            background-color: #FAFAFA;
+            color: #333333;
+            padding: 15px;
+            width: 325px;
+            max-height: calc(100vh - 40px);
+            overflow: hidden;
+        }
+
+        .light-mode p a {
+            color: #555555;
+            transition: color 0.3s;
+        }
+
+        .light-mode p a:hover {
+            color: #333333;
+        }
+
+        .light-mode h2 {
+            color: #555555;
+            border-bottom: 1px solid #DDDDDD;
+        }
+
+        .light-mode p {
+            color: #777777;
+        }
+
+        .light-mode button {
+            background-color: #EDEDED;
+            border: 2px solid #555555;
+            color: #333333;
+        }
+
+        .light-mode button:hover {
+            background-color: #DDDDDD;
+            color: #111111;
+        }
+
+        .light-mode ul {
+            border: 1px solid #DDDDDD;
+        }
+
+        .light-mode ul::-webkit-scrollbar-thumb {
+            background-color: #CCCCCC;
+        }
+
+        .light-mode ul::-webkit-scrollbar-track {
+            background-color: #EFEFEF;
+        }
+
+        .light-mode li {
+            background-color: #EFEFEF;
+        }
+
+        .light-mode li:hover {
+            background-color: #E0E0E0;
+        }
+
+        .light-mode li a:hover {
+            background-color: #E0E0E0;
+        }
+
+        .light-mode button, .light-mode li {
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .light-mode button:hover, .light-mode li:hover {
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.08);
+        }
+
+        .light-mode .setting label {
+            color: #333333;
+        }
+
+        .light-mode footer a {
+            color: #777777;
+        }
+
+        .light-mode footer a:hover {
+            color: #555555;
+            background-color: #EFEFEF;
+        }
+
+        .light-mode #gatewayList {
+            transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: translateY(0);
+            opacity: 1;
+            max-height: 185px; /* The subtracted value here depends on the combined height of your other elements (like headers, paragraphs, buttons). You might need to adjust this value to fit your content perfectly. */
+            overflow-y: auto;
+            margin-bottom: 20px;  /* Adjust value as necessary */
+        }
+    </style>
+    <script src="popup.js"></script>
+</head>
+<body>
+    <div id="aboutSection">
+      <h2>About the ar:// protocol</h2>
+      <p>
+          WayFinder uses the <code>ar://</code> protocol.  This is a unique web address schema powered by the <a href="https://ar.io" target="_blank" id="arioLink">AR.IO Network</a> and used to access content stored on the Arweave Permaweb. By using this protocol, users can directly navigate to and interact with decentralized web pages and applications via their <a href="https://ar.io/arns" target="_blank" id="arioLink">ArNS Name</a> or Arweave transaction ID.
+      </p>
+    </div>
+    <div id="gatewayAddressRegistrySection">
+      <h2 id="gatewayListTitle" style="display:none;">Gateway Address Registry</h2>
+      <div id="gatewayListHeader" style="display:none;">
+        <span class="online-gateways">Online: <span id="onlineGatewayCount">0</span></span>
+        <span class="total-gateways">Total: <span id="totalGatewayCount">0</span></span>
+      </div>
+      <ul id="gatewayList" style="display:none;"></ul>
+      <button id="refreshGateways" style="display:none;">Refresh Status</button>
+    </div>
+    <h2 id="historyListTitle" style="display:none;">Usage History</h2>
+    <ul id="historyList" style="display:none;"></ul>
+    <h2 id="settingsListTitle" style="display:none;">Settings</h2>
+    <ul id="settingsList" style="display:none;"></ul>
+    <div id="settingsSection" style="display:none;">
+      <div class="setting">
+        <label for="themeToggle">Toggle Theme:</label>
+        <select id="themeToggle">
+            <option value="dark">Dark Mode</option>
+            <option value="light">Light Mode</option>
+        </select>
+      </div>
+      <div class="setting">
+        <label for="staticGateway">Static Gateway:</label>
+        <input type="text" id="staticGateway" placeholder="Enter gateway host name...">
+        <button id="saveStaticGateway">Save</button>
+      </div>
+    </div>
+    <button id="showGateways">Gateway Address Registry</button>
+    <button id="showHistory">Usage History</button>
+    <button id="showSettings">Settings</button>
+    <footer>
+      <a href="https://discord.gg/zAZ8p9ARqC" target="_blank" id="discordLink">Discord</a>
+      <a href="https://github.com/ar-io" target="_blank" id="githubLink">GitHub</a>
+      <a href="https://viewblock.io/arweave/contract/bLAgYxAdX2Ry-nt6aH2ixgvJXbpsEYm28NgJgyqfs-U" target="_blank" id="contractLink">Contract</a>
+    </footer>
+</body>
+</html>
