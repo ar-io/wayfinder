@@ -1,4 +1,4 @@
-const GATEWAY_DOMAINS = ["ar-io.dev", "g8way.io", "arweave.dev", "vilenarios.com", "gatewaypie.com", "deployedtoosoonhowdoidelete.website", "not-real.xyz", "fakeway.io"]; // Replace this with the stake weighted GAR
+const GATEWAY_DOMAINS = ["ar-io.dev", "g8way.io", "arweave.dev", "vilenarios.com", "gatewaypie.com", "ideployedtoosoonhowdoidelete.website", "not-real.xyz", "fakeway.io"]; // Replace this with the stake weighted GAR
 let onlineGateways = [];
 let redirectedTabs = {};  // A dictionary to keep track of redirected tabs
 let notificationData = {}; // Data to pass around for notifications
