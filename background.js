@@ -45,6 +45,7 @@ chrome.webRequest.onHeadersReceived.addListener(
 
                   // Cleanup: Remove the tabId from redirectedTabs as we've captured the header
                   delete redirectedTabs[details.tabId];
+                  break;
               }
           }
       }
@@ -97,10 +98,11 @@ async function isGatewayOnline(gateway) {
 
 // Update the online gateways list
 async function refreshOnlineGateways() {
-  console.log ("Refreshing online gateways.  Current online gateways: ", onlineGateways)
+  console.log ("Refreshing online gateways.")
   const promises = GATEWAY_DOMAINS.map(gateway => isGatewayOnline(gateway));
   const results = await Promise.all(promises);
   onlineGateways = GATEWAY_DOMAINS.filter((gateway, index) => results[index]);
+  console.log ("Gateways refreshed.  Current online gateways: ", onlineGateways)
 }
 
 // Get a random online gateway or use the one selected via settings.
@@ -108,7 +110,7 @@ async function getRandomOnlineGateway() {
   const staticGateway = await getStaticGateway();
   if (!onlineGateways || !onlineGateways.length) {
     console.error('onlineGateways array is empty or not defined:', onlineGateways);
-    refreshOnlineGateways();
+    await refreshOnlineGateways();
   }
   const selectedGateway = onlineGateways[Math.floor(Math.random() * onlineGateways.length)];
   if (!selectedGateway && !staticGateway) {

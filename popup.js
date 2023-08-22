@@ -17,7 +17,6 @@ async function afterDOMLoaded(){
     const showHistoryBtn = document.getElementById("showHistory");
     const historyList = document.getElementById("historyList");
     const historyListTitle = document.getElementById("historyListTitle");
-    refreshOnlineGateways()
 
     showGatewaysBtn.addEventListener('click', async function() {
         if (gatewayList.style.display === 'block') {
