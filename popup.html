@@ -57,21 +57,6 @@
             margin-bottom: 20px;
         }
 
-        #saveStaticGateway {
-            display: block;
-            width: 15%;
-            background-color: #010905;
-            border: 2px solid #EDEDED;
-            color: #EDEDED;
-            padding: 8px;
-            text-align: center;
-            font-size: 12px;
-            cursor: pointer;
-            transition: background-color 0.3s, color 0.3s;
-            border-radius: 4px;
-            margin-bottom: 0px;
-        }
-
         button:hover {
             background-color: #1F1F1F;
             color: #FAFAFA;
@@ -209,6 +194,21 @@
             align-items: center;
         }
 
+        .setting button {
+            display: block;
+            width: 15%;
+            background-color: #010905;
+            border: 2px solid #EDEDED;
+            color: #EDEDED;
+            padding: 8px;
+            text-align: center;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background-color 0.3s, color 0.3s;
+            border-radius: 4px;
+            margin-bottom: 0px;
+        }
+
         .setting label {
             flex: 1;
             font-weight: bold;
@@ -220,20 +220,6 @@
             border: 1px solid #ccc;
             border-radius: 4px;
             margin-right: 12px;
-        }
-
-        .setting button {
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            padding: 8px 16px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-
-        .setting button:hover {
-            background-color: #0056b3;
         }
 
         select {
@@ -408,7 +394,7 @@
       </div>
       <div class="setting">
         <label for="staticGateway">Static Gateway:</label>
-        <input type="text" id="staticGateway" placeholder="Enter gateway host name e.g. arweave.net">
+        <input type="text" id="staticGateway" placeholder="Enter gateway e.g. ar-io.dev">
         <button id="saveStaticGateway">✔</button>
       </div>
     </div>
