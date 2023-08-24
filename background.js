@@ -74,7 +74,9 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 // Used if someone clicks the refresh gateways button
 chrome.runtime.onMessage.addListener(async function(request, sender, sendResponse) {
   if(request.message === "refreshOnlineGateways") {
-    await sendResponse({refreshOnlineGateways});
+    await refreshOnlineGateways()
+     // TO DO: send a correct response
+    sendResponse({});
   }
 });
 
@@ -138,36 +140,11 @@ function getStaticGateway() {
   });
 }
 
-// show a notification for an ar:// request
-/*function showNotification(resolvedId) {
-  chrome.notifications.create('arNotification', {
-      type: 'basic',
-      iconUrl: 'icon48.png', // Path to your extension's icon or another suitable image
-      title: 'ar:// Protocol Detected!',
-      message: `Resolved ArNS ID: ${trimToEightChars(resolvedId)}`
-  }, function(notificationId) {
-    if (chrome.runtime.lastError) {
-        console.error(chrome.runtime.lastError);
-    } else {
-        notificationData[notificationId] = resolvedId;
-        console.log(`Notification created with ID ${notificationId} and ArNS Resolved ID: ${resolvedId}`);
-    }
-  });
-}
-
-chrome.notifications.onClicked.addListener(function(notificationId) {
-  if (notificationId === 'arNotification') {
-      // Handle the notification click, e.g., open a new tab, show the popup, etc.
-      // Example: open a help page or settings of your extension:
-      chrome.tabs.create({url: `https://viewblock.io/arweave/tx/${notificationData[notificationId]}`});
-  }
-});*/
-
 function saveToHistory(url, resolvedId, timestamp) {
   chrome.storage.local.get("history", function(data) {
       let history = data.history || [];
       history.unshift({ url, resolvedId: resolvedId, timestamp }); // Adds to the start
-      history = history.slice(0, MAX_HISTORY_ITEMS); // Keep only the last 10 items
+      history = history.slice(0, MAX_HISTORY_ITEMS); // Keep only the last amount of items
       chrome.storage.local.set({ history });
   });
 }
