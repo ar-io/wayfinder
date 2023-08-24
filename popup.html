@@ -69,7 +69,7 @@
             cursor: pointer;
             transition: background-color 0.3s, color 0.3s;
             border-radius: 4px;
-            margin-bottom: 5px;
+            margin-bottom: 0px;
         }
 
         button:hover {
@@ -201,11 +201,41 @@
             overflow: hidden;
         }
         .setting {
+            padding: 16px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            margin-bottom: 12px;
             display: flex;
-            justify-content: space-between; /* This will push content to the extremes */
-            align-items: center; /* This vertically aligns items in the middle */
-            padding: 15px 0;
+            align-items: center;
         }
+
+        .setting label {
+            flex: 1;
+            font-weight: bold;
+        }
+
+        .setting input {
+            flex: 2;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin-right: 12px;
+        }
+
+        .setting button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .setting button:hover {
+            background-color: #0056b3;
+        }
+
         select {
             padding: 5px 10px;
             border: 1px solid #ccc;
@@ -378,8 +408,8 @@
       </div>
       <div class="setting">
         <label for="staticGateway">Static Gateway:</label>
-        <input type="text" id="staticGateway" placeholder="Enter gateway host name...">
-        <button id="saveStaticGateway">Save</button>
+        <input type="text" id="staticGateway" placeholder="Enter gateway host name e.g. arweave.net">
+        <button id="saveStaticGateway">✔</button>
       </div>
     </div>
     <button id="showGateways">Gateway Address Registry</button>
