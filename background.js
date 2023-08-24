@@ -1,4 +1,4 @@
-const GATEWAY_DOMAINS = ["ar-io.dev", "g8way.io", "arweave.dev", "vilenarios.com", "gatewaypie.com", "deployedtoosoonhowdoidelete.website", "not-real.xyz", "fakeway.io"]; // Replace this with the stake weighted GAR
+const GATEWAY_DOMAINS = ["ar-io.dev", "g8way.io", "arweave.dev", "vilenarios.com", "gatewaypie.com", "ideployedtoosoonhowdoidelete.website", "not-real.xyz", "fakeway.io"]; // Replace this with the stake weighted GAR
 let onlineGateways = [];
 let redirectedTabs = {};  // A dictionary to keep track of redirected tabs
 let notificationData = {}; // Data to pass around for notifications
@@ -45,6 +45,7 @@ chrome.webRequest.onHeadersReceived.addListener(
 
                   // Cleanup: Remove the tabId from redirectedTabs as we've captured the header
                   delete redirectedTabs[details.tabId];
+                  break;
               }
           }
       }
@@ -73,7 +74,9 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 // Used if someone clicks the refresh gateways button
 chrome.runtime.onMessage.addListener(async function(request, sender, sendResponse) {
   if(request.message === "refreshOnlineGateways") {
-    await sendResponse({refreshOnlineGateways});
+    await refreshOnlineGateways()
+     // TO DO: send a correct response
+    sendResponse({});
   }
 });
 
@@ -97,10 +100,11 @@ async function isGatewayOnline(gateway) {
 
 // Update the online gateways list
 async function refreshOnlineGateways() {
-  console.log ("Refreshing online gateways.  Current online gateways: ", onlineGateways)
+  console.log ("Refreshing online gateways.")
   const promises = GATEWAY_DOMAINS.map(gateway => isGatewayOnline(gateway));
   const results = await Promise.all(promises);
   onlineGateways = GATEWAY_DOMAINS.filter((gateway, index) => results[index]);
+  console.log ("Gateways refreshed.  Current online gateways: ", onlineGateways)
 }
 
 // Get a random online gateway or use the one selected via settings.
@@ -108,7 +112,7 @@ async function getRandomOnlineGateway() {
   const staticGateway = await getStaticGateway();
   if (!onlineGateways || !onlineGateways.length) {
     console.error('onlineGateways array is empty or not defined:', onlineGateways);
-    refreshOnlineGateways();
+    await refreshOnlineGateways();
   }
   const selectedGateway = onlineGateways[Math.floor(Math.random() * onlineGateways.length)];
   if (!selectedGateway && !staticGateway) {
@@ -136,36 +140,11 @@ function getStaticGateway() {
   });
 }
 
-// show a notification for an ar:// request
-/*function showNotification(resolvedId) {
-  chrome.notifications.create('arNotification', {
-      type: 'basic',
-      iconUrl: 'icon48.png', // Path to your extension's icon or another suitable image
-      title: 'ar:// Protocol Detected!',
-      message: `Resolved ArNS ID: ${trimToEightChars(resolvedId)}`
-  }, function(notificationId) {
-    if (chrome.runtime.lastError) {
-        console.error(chrome.runtime.lastError);
-    } else {
-        notificationData[notificationId] = resolvedId;
-        console.log(`Notification created with ID ${notificationId} and ArNS Resolved ID: ${resolvedId}`);
-    }
-  });
-}
-
-chrome.notifications.onClicked.addListener(function(notificationId) {
-  if (notificationId === 'arNotification') {
-      // Handle the notification click, e.g., open a new tab, show the popup, etc.
-      // Example: open a help page or settings of your extension:
-      chrome.tabs.create({url: `https://viewblock.io/arweave/tx/${notificationData[notificationId]}`});
-  }
-});*/
-
 function saveToHistory(url, resolvedId, timestamp) {
   chrome.storage.local.get("history", function(data) {
       let history = data.history || [];
       history.unshift({ url, resolvedId: resolvedId, timestamp }); // Adds to the start
-      history = history.slice(0, MAX_HISTORY_ITEMS); // Keep only the last 10 items
+      history = history.slice(0, MAX_HISTORY_ITEMS); // Keep only the last amount of items
       chrome.storage.local.set({ history });
   });
 }

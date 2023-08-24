@@ -17,7 +17,6 @@ async function afterDOMLoaded(){
     const showHistoryBtn = document.getElementById("showHistory");
     const historyList = document.getElementById("historyList");
     const historyListTitle = document.getElementById("historyListTitle");
-    refreshOnlineGateways()
 
     showGatewaysBtn.addEventListener('click', async function() {
         if (gatewayList.style.display === 'block') {
@@ -148,6 +147,12 @@ async function afterDOMLoaded(){
             alert('Static gateway saved.', gatewayValue);
         });
     });
+
+    chrome.storage.local.get('staticGateway', function(data) {
+        if (data.staticGateway) {
+            document.getElementById('staticGateway').value = data.staticGateway;
+        }
+    });
 }
 
 async function getOnlineGateways() {
@@ -164,12 +169,9 @@ async function getOnlineGateways() {
 
 async function refreshOnlineGateways() {
     return new Promise((resolve, reject) => {
+        // TO DO: fix this and handle rejects
         chrome.runtime.sendMessage({message: "refreshOnlineGateways"}, function(response) {
-            if (chrome.runtime.lastError) {
-                reject(new Error(chrome.runtime.lastError));
-            } else {
-                resolve(response.onlineGateways);
-            }
+                resolve(response);
         });
     });
 }
