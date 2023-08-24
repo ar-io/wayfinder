@@ -147,6 +147,12 @@ async function afterDOMLoaded(){
             alert('Static gateway saved.', gatewayValue);
         });
     });
+
+    chrome.storage.local.get('staticGateway', function(data) {
+        if (data.staticGateway) {
+            document.getElementById('staticGateway').value = data.staticGateway;
+        }
+    });
 }
 
 async function getOnlineGateways() {
