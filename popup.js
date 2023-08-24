@@ -163,12 +163,9 @@ async function getOnlineGateways() {
 
 async function refreshOnlineGateways() {
     return new Promise((resolve, reject) => {
+        // TO DO: fix this and handle rejects
         chrome.runtime.sendMessage({message: "refreshOnlineGateways"}, function(response) {
-            if (chrome.runtime.lastError) {
-                reject(new Error(chrome.runtime.lastError));
-            } else {
-                resolve(response.onlineGateways);
-            }
+                resolve(response);
         });
     });
 }
