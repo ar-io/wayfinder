@@ -1,13 +1,18 @@
 const GATEWAY_DOMAINS = ["ar-io.dev", "g8way.io", "arweave.dev", "vilenarios.com", "gatewaypie.com", "ideployedtoosoonhowdoidelete.website", "not-real.xyz", "fakeway.io"]; // Replace this with the stake weighted GAR
+let gar = {};
+let sortedGar = {};
 let onlineGateways = [];
 let redirectedTabs = {};  // A dictionary to keep track of redirected tabs
 let notificationData = {}; // Data to pass around for notifications
 const MAX_HISTORY_ITEMS = 20;
 
+const defaultGARCacheURL = "https://dev.arns.app/v1/contract/E-pRI1bokGWQBqHnbut9rsHSt9Ypbldos3bAtwg4JMc/gateways";
+
 chrome.storage.local.set({gateways: GATEWAY_DOMAINS});
 
 // Run the check initially when the background script starts
-refreshOnlineGateways();
+// syncGatewayAddressRegistry();
+syncGatewayAddressRegistry();
 
 // Finds requests for ar:// in the browser address bar
 chrome.webNavigation.onBeforeNavigate.addListener(async function(details) {
@@ -15,15 +20,13 @@ chrome.webNavigation.onBeforeNavigate.addListener(async function(details) {
   const arUrl = url.searchParams.get("q")
   if (arUrl && arUrl.includes("ar://")) {
       const name = arUrl.replace("ar://", "");
-      // if it is not an Arweave ID, redirect to permapages
-      const gatewayDomain = await getRandomOnlineGateway();
-
+      const gateway = await getRandomOnlineGateway();
       if (!/[a-z0-9_-]{43}/i.test(name)) {
-        const redirectTo = `https://${name}.${gatewayDomain}`;
+        const redirectTo = `${gateway.settings.protocol}://${name}.${gateway.settings.fqdn}:${gateway.settings.port}/`;
         redirectedTabs[details.tabId] = true;
         chrome.tabs.update(details.tabId, {url: redirectTo});
       } else {
-        const redirectTo = `https://${gatewayDomain}/${name}`;
+        const redirectTo = `${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}/${name}`;
         chrome.tabs.update(details.tabId, {url: redirectTo});
       }
   }
@@ -73,59 +76,83 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 
 // Used if someone clicks the refresh gateways button
 chrome.runtime.onMessage.addListener(async function(request, sender, sendResponse) {
-  if(request.message === "refreshOnlineGateways") {
-    await refreshOnlineGateways()
+  if(request.message === "syncGatewayAddressRegistry") {
+    await syncGatewayAddressRegistry()
      // TO DO: send a correct response
     sendResponse({});
   }
 });
 
-// Check if a gateway is online
 async function isGatewayOnline(gateway) {
-  const url = "https://" + gateway;
-  return fetch(url, {
-      method: 'HEAD', // HEAD is lightweight and just checks the headers
-      mode: 'no-cors' // For cross-origin requests
-  })
-  .then(response => {
-      if (response.ok) return true;
-      return false;
-  })
-  .catch(error => {
-    console.log ("Error fetching ", gateway)
-    console.log (error)
-      return false; // If there's an error (e.g., timeout), consider it offline
-  });
+  // Construct the gateway URL
+  const url = `${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}/`;
+  
+  try {
+    // Make a request to the gateway. A simple HEAD request might suffice.
+    const response = await fetch(url, { 
+      method: 'HEAD', 
+      mode: 'no-cors' // For cross-origin requests 
+    });
+    
+    // If the request succeeds without any exceptions, the gateway is online.
+    return response.ok;
+  } catch (error) {
+    // If any exceptions occur, assume the gateway is offline.
+    return false;
+  }
 }
 
-// Update the online gateways list
 async function refreshOnlineGateways() {
-  console.log ("Refreshing online gateways.")
-  const promises = GATEWAY_DOMAINS.map(gateway => isGatewayOnline(gateway));
-  const results = await Promise.all(promises);
-  onlineGateways = GATEWAY_DOMAINS.filter((gateway, index) => results[index]);
-  console.log ("Gateways refreshed.  Current online gateways: ", onlineGateways)
+  const { garCache } = await chrome.storage.local.get(["garCache"]);
+  // Iterate through each gateway in the GAR
+  for (const address in garCache) {
+    const gateway = garCache[address];
+    
+    // Check if the current gateway is online
+    const online = await isGatewayOnline(gateway);
+    
+    // Update the 'online' property of the gateway
+    garCache[address].online = online;
+  }
+  return garCache
+}
+
+async function fetchGatewayAddressRegistryCache(garCacheURL = defaultGARCacheURL) {
+  return fetch(garCacheURL)
+    .then(response => response.json())
+    .then(data => data.gateways);
+}
+
+async function syncGatewayAddressRegistry() {
+  console.log ("Fetching GAR Cache from ", defaultGARCacheURL)
+  const garCache = await fetchGatewayAddressRegistryCache(defaultGARCacheURL)
+  await chrome.storage.local.set({garCache: garCache});
+  console.log (garCache)
+  console.log ("Found %s gateways cached.  Syncing availability...", Object.keys(garCache).length)
+  const garLocal = await refreshOnlineGateways();
+  await chrome.storage.local.set({garLocal: garLocal});
+  console.log (garLocal)
+  console.log ("Finished syncing")
 }
 
 // Get a random online gateway or use the one selected via settings.
 async function getRandomOnlineGateway() {
-  const staticGateway = await getStaticGateway();
-  if (!onlineGateways || !onlineGateways.length) {
-    console.error('onlineGateways array is empty or not defined:', onlineGateways);
-    await refreshOnlineGateways();
-  }
-  const selectedGateway = onlineGateways[Math.floor(Math.random() * onlineGateways.length)];
-  if (!selectedGateway && !staticGateway) {
-    console.error('Selected gateway is not valid:', selectedGateway);
-    return null;  // Or return a default gateway or handle this situation as appropriate
-  }
-
+  const { staticGateway } = await chrome.storage.local.get(["staticGateway"]);
   if (staticGateway) {
     console.log ("Static gateway being used: ", staticGateway)
     return staticGateway
+  }
+
+  const { garLocal } = await chrome.storage.local.get(["garLocal"]);
+  const gateway = selectRandomGateway(garLocal);
+
+  // const gateway = onlineGateways[Math.floor(Math.random() * onlineGateways.length)];
+  if (!gateway) {
+    console.error('Selected gateway is not valid:', gateway);
+    return null;  // Or return a default gateway or handle this situation as appropriate
   } else {
-    console.log ("Dynamic gateway being used: ", selectedGateway)
-    return selectedGateway;
+    console.log ("Dynamic gateway being used: ", gateway)
+    return gateway;
   }
 }
 
@@ -149,10 +176,23 @@ function saveToHistory(url, resolvedId, timestamp) {
   });
 }
 
-function trimToEightChars(str) {
-  if (str && str.length > 8) {
-    return str.substring(0, 8) + "...";
-  } else {
-    return str; // return the original string if its length is <= 5
+/**
+ * Selects a random gateway from the GAR JSON.
+ * 
+ * @param {Object} gar- The GAR JSON object.
+ * @returns {Gateway | null} - A random Gateway object or null if there are no gateways.
+ */
+function selectRandomGateway(gar) {
+  // Filter out gateways that are offline
+  const onlineGateways = Object.values(gar).filter(gateway => gateway.online);
+
+  // If there are no online gateways, handle this case appropriately
+  if (onlineGateways.length === 0) {
+    console.error('No online gateways available.');
+    return null;
   }
+
+  // Select a random online gateway
+  const randomIndex = Math.floor(Math.random() * onlineGateways.length);
+  return onlineGateways[randomIndex];
 }

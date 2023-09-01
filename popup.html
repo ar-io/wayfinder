@@ -37,7 +37,7 @@
 
         p {
             color: #9E9E9E;
-            font-size: 16px;
+            font-size: 14px;
             margin-bottom: 15px;
             line-height: 1.6;
         }
@@ -67,6 +67,8 @@
         }
 
         ul {
+            display: flex;
+            flex-direction: column;
             list-style-type: none;
             padding: 0;
             border: 1px solid #323232;
@@ -157,18 +159,102 @@
             transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             transform: translateY(0);
             opacity: 1;
-            max-height: 185px; /* The subtracted value here depends on the combined height of your other elements (like headers, paragraphs, buttons). You might need to adjust this value to fit your content perfectly. */
+            max-height: 300px; /* The subtracted value here depends on the combined height of your other elements (like headers, paragraphs, buttons). You might need to adjust this value to fit your content perfectly. */
             overflow-y: auto;
             margin-bottom: 20px;  /* Adjust value as necessary */
+            border-radius: 4px;
         }
+
         .gatewayListHeader {
+            list-style-type: none;
+            padding: 0;
+            border: 1px solid #323232;
+            border-radius: 4px;
+            margin-top: 15px;
+            overflow: hidden;
+            transition: all 0.3s ease-in-out;
+            border-radius: 5px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .gateway {
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            border: 1px solid #323232;;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .gateway:hover {
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            background-color: #323232;
+        }
+
+        .gateway-header {
             display: flex;
             justify-content: space-between;
-            padding: 10px 20px;
-            background-color: #f1f1f1;
-            border-top-left-radius: 5px;
-            border-top-right-radius: 5px;
+            align-items: center;
+            margin-bottom: 5px;
         }
+
+        .gateway-url {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .gateway-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .gateway-address {
+            color: #0077b6;
+            text-decoration: none;
+        }
+
+        .operator-stake,
+        .online-status {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+
+        .modal-content {
+            background-color: #1F1F1F;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 400px;
+        }
+
+        .close-btn {
+            color: #aaaaaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close-btn:hover, .close-btn:focus {
+            color: #FAFAFA;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
 
         #historyList {
             transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -394,13 +480,26 @@
       </div>
       <div class="setting">
         <label for="staticGateway">Static Gateway:</label>
-        <input type="text" id="staticGateway" placeholder="Enter gateway e.g. ar-io.dev">
+        <input type="text" id="staticGateway" placeholder="e.g. https://ar-io.dev">
         <button id="saveStaticGateway">✔</button>
       </div>
     </div>
     <button id="showGateways">Gateway Address Registry</button>
     <button id="showHistory">Usage History</button>
     <button id="showSettings">Settings</button>
+    <div id="gatewayModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" tabindex="0" title="Close">&times;</span>
+            <h2>Gateway Details</h2>
+            <p><strong><a id="modal-gateway-url" href="#" target="_blank">url...</a></strong></p>
+            <p><strong>Gateway Address:</strong> <a id="modal-gateway-address" href="#" target="_blank">shortened_address...</a></p>
+            <p><strong>Stake:</strong> <span id="modal-stake">placeholder_stake_value</span></p>
+            <p><strong>Network Status:</strong> <span id="modal-status">placeholder_status</span></p>
+            <p><strong>Joined Since:</strong> <span id="modal-start">placeholder_start_date</span></p>
+            <p><strong>Gateway Properties:</strong> <a id="modal-properties" href="#" target="_blank">shortened_properties...</a></p>
+            <p id="modal-note">placeholder_note</p>
+        </div>
+    </div>
     <footer>
       <a href="https://discord.gg/zAZ8p9ARqC" target="_blank" id="discordLink">Discord</a>
       <a href="https://github.com/ar-io/wayfinder" target="_blank" id="githubLink">GitHub</a>

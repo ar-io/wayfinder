@@ -30,53 +30,93 @@ async function afterDOMLoaded(){
             showGatewaysBtn.innerText = 'Display Gateway Address Registry';
         } else {
             gatewayList.innerHTML = '';
-            chrome.storage.local.get('gateways', async function(result) {
-                const gateways = result.gateways;
-                const onlineGateways = await getOnlineGateways();
-                for (let i = 0; i < gateways.length; i++) {
-                    let statusIcon = '<span class="offline">✖</span>'
-                    if (onlineGateways.includes(gateways[i])){
-                        statusIcon = '<span class="online">✔</span>'
+            const { garLocal } = await chrome.storage.local.get(["garLocal"]);
+                for (const address in garLocal) {
+                    const gateway = garLocal[address];
+
+                    // Create a new element for each gateway
+                    const listItem = document.createElement('div');
+                    listItem.className = 'gateway';
+                    listItem.onclick = function() {
+                        console.log ("showing more gateway info")
+                        showMoreGatewayInfo(gateway, address);
+                    };
+
+                    let onlineStatus = '<span class="offline">✖</span>'
+                    if (gateway.online){
+                        onlineStatus = '<span class="online">✔</span>'
                     }
-                    const listItem = document.createElement('li');
-                    listItem.innerHTML = `<a href="https://${gateways[i]}" target="_blank">${gateways[i]}</a> ${statusIcon} `;
+
+                    listItem.innerHTML = `
+                        <div class="gateway-header">
+                            <span class="gateway-url">${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}</span>
+                            <span class="online-status">${onlineStatus}</span>
+                        </div>
+                        <div class="gateway-info">
+                            <span class="operator-stake">Stake: ${gateway.operatorStake}</span>
+                        </div>
+                    `;
                     gatewayList.appendChild(listItem);
                 }
-                document.getElementById('onlineGatewayCount').textContent = onlineGateways.length;
-                document.getElementById('totalGatewayCount').textContent = gateways.length;
+            document.getElementById('onlineGatewayCount').textContent = Object.keys((Object.values(garLocal).filter(gateway => gateway.online)).length);
+            document.getElementById('totalGatewayCount').textContent = Object.keys(garLocal).length;
+            // Close the modal when the close button is clicked
+            document.getElementsByClassName('close-btn')[0].onclick = function() {
+                document.getElementById('gatewayModal').style.display = "none";
+            }
 
-                showSettingsBtn.style.display = 'none';
-                aboutSection.style.display = 'none';  // hide the "about" section
-                showHistoryBtn.style.display = 'none';
-                showSettingsBtn.style.display = 'hide';
-                gatewayListHeader.style.display = 'block';
-                gatewayList.style.display = 'block';
-                gatewayListTitle.style.display = 'block';
-                refreshGatewaysBtn.style.display = 'block'
-                showGatewaysBtn.innerText = 'Hide Gateway Address Registry';
-            });
+            // Also close the modal if clicked outside the modal content
+            window.onclick = function(event) {
+                if (event.target == document.getElementById('gatewayModal')) {
+                    document.getElementById('gatewayModal').style.display = "none";
+                }
+            }
+            showSettingsBtn.style.display = 'none';
+            aboutSection.style.display = 'none';  // hide the "about" section
+            showHistoryBtn.style.display = 'none';
+            showSettingsBtn.style.display = 'hide';
+            gatewayListHeader.style.display = 'block';
+            gatewayList.style.display = 'block';
+            gatewayListTitle.style.display = 'block';
+            refreshGatewaysBtn.style.display = 'block'
+            showGatewaysBtn.innerText = 'Hide Gateway Address Registry';
         }
     });
 
     refreshGatewaysBtn.addEventListener("click", async function() {
         gatewayList.innerHTML = '';
-        await refreshOnlineGateways();
-        chrome.storage.local.get('gateways', async function(result) {
-            const gateways = result.gateways;
-            const onlineGateways = await getOnlineGateways();
-            for (let i = 0; i < gateways.length; i++) {
-                let statusIcon = '<span class="offline">✖</span>'
-                if (onlineGateways.includes(gateways[i])){
-                    statusIcon = '<span class="online">✔</span>'
-                } else {
+        const { garLocal } = await chrome.storage.local.get(["garLocal"]);
+            for (const address in garLocal) {
+                const gateway = garLocal[address];
+
+                // Create a new element for each gateway
+                const listItem = document.createElement('div');
+                listItem.className = 'gateway';
+                listItem.onclick = function() {
+                    console.log ("showing more gateway info")
+                    showMoreGatewayInfo(gateway, address);
+                };
+
+                let onlineStatus = '<span class="offline">✖</span>'
+                if (gateway.online){
+                    onlineStatus = '<span class="online">✔</span>'
                 }
-                const listItem = document.createElement('li');
-                listItem.innerHTML = `<a href="https://${gateways[i]}" target="_blank">${gateways[i]}</a> ${statusIcon} `;
+
+                listItem.innerHTML = `
+                    <div class="gateway-header">
+                        <span class="gateway-url">${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}</span>
+                        <span class="online-status">${onlineStatus}</span>
+                    </div>
+                    <div class="gateway-info">
+                        <span class="operator-stake">Stake: ${gateway.operatorStake}</span>
+                    </div>
+                `;
                 gatewayList.appendChild(listItem);
             }
-            document.getElementById('onlineGatewayCount').textContent = onlineGateways.length;
-            document.getElementById('totalGatewayCount').textContent = gateways.length;
-        });
+        document.getElementById('onlineGatewayCount').textContent = Object.keys((Object.values(garLocal).filter(gateway => gateway.online)).length);
+        document.getElementById('totalGatewayCount').textContent = Object.keys(garLocal).length;
+        document.getElementById('onlineGatewayCount').textContent = Object.keys((Object.values(garLocal).filter(gateway => gateway.online)).length);
+        document.getElementById('totalGatewayCount').textContent = Object.keys(garLocal).length;
     });
 
     showHistoryBtn.addEventListener("click", async function() {
@@ -142,36 +182,106 @@ async function afterDOMLoaded(){
     const saveButton = document.getElementById('saveStaticGateway');
     saveButton.addEventListener('click', function() {
         const gatewayValue = document.getElementById('staticGateway').value;
-        console.log ("Saving gateway: ",gatewayValue)
-        chrome.storage.local.set({ 'staticGateway': gatewayValue }, function(gatewayValue) {
-            alert('Static gateway saved.', gatewayValue);
-        });
+        const result = saveStaticGateway(gatewayValue);
+        if (!result) {
+            document.getElementById('staticGateway').value = ''
+        }
     });
 
     chrome.storage.local.get('staticGateway', function(data) {
         if (data.staticGateway) {
-            document.getElementById('staticGateway').value = data.staticGateway;
+            const staticGatewayUrl = `${data.staticGateway.settings.protocol}://${data.staticGateway.settings.fqdn}:${data.staticGateway.settings.port}/`
+            document.getElementById('staticGateway').value = staticGatewayUrl;
         }
     });
 }
 
-async function getOnlineGateways() {
+async function syncGatewayAddressRegistry() {
     return new Promise((resolve, reject) => {
-        chrome.runtime.sendMessage({message: "getOnlineGateways"}, function(response) {
-            if (chrome.runtime.lastError) {
-                reject(new Error(chrome.runtime.lastError));
-            } else {
-                resolve(response.onlineGateways);
-            }
+        // TO DO: fix this and handle rejects
+        chrome.runtime.sendMessage({message: "syncGatewayAddressRegistry"}, function(response) {
+                resolve(response);
         });
     });
 }
 
-async function refreshOnlineGateways() {
-    return new Promise((resolve, reject) => {
-        // TO DO: fix this and handle rejects
-        chrome.runtime.sendMessage({message: "refreshOnlineGateways"}, function(response) {
-                resolve(response);
-        });
-    });
+function saveStaticGateway(inputValue) {
+    try {
+        if (inputValue === '') {
+            chrome.storage.local.set({ staticGateway: null })
+            alert(`Static gateway removed.  Back to dynamic gateway selection.`);
+            return null;
+        } else {
+            const url = new URL(inputValue);
+            const protocol = url.protocol.replace(':', '');  // Removes the trailing colon
+            const fqdn = url.hostname;
+            let port = url.port;
+
+            if (!port) {
+                port = protocol === 'https' ? 443 : 80;  // Default port values based on protocol
+            }
+
+            const staticGateway = {
+                settings: {
+                    protocol,
+                    fqdn,
+                    port: parseInt(port, 10)
+                }
+            };
+
+            chrome.storage.local.set({ staticGateway: staticGateway }, function() {
+                alert(`Static gateway saved: ${inputValue}`);
+            });
+            return staticGateway;
+        }
+    } catch (error) {
+        alert(`Invalid URL entered: ${inputValue}`);
+    }
+}
+
+function showMoreGatewayInfo(gateway, address) {
+    const modal = document.getElementById('gatewayModal');
+    const propertiesLink = document.getElementById('modal-properties');
+    const noteElem = document.getElementById('modal-note');
+
+    propertiesLink.href = `https://viewblock.io/arweave/tx/${gateway.settings.properties}`;
+    propertiesLink.textContent = gateway.settings.properties;
+    noteElem.textContent = gateway.settings.note;
+
+    modal.style.display = "block";
+}
+
+function showMoreGatewayInfo(gateway, address) {
+    // Get modal elements
+    const modal = document.getElementById('gatewayModal');
+    const modalUrl = document.getElementById('modal-gateway-url')
+    const modalAddress = document.getElementById('modal-gateway-address');
+    const modalStake = document.getElementById('modal-stake');
+    const modalStatus = document.getElementById('modal-status');
+    const modalStart = document.getElementById('modal-start');
+    const modalProperties = document.getElementById('modal-properties');
+    const modalNote = document.getElementById('modal-note');
+
+    // Assign values from the gateway object to modal elements
+    modalUrl.textContent = `${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}`
+    modalUrl.href = `${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}`
+    modalAddress.textContent = address.slice(0, 6) + '...'
+    modalAddress.href = `https://viewblock.io/arweave/address/${address}`;
+
+    modalStake.textContent = gateway.operatorStake;
+    modalStatus.textContent = gateway.status;
+    modalStart.textContent = gateway.start; // start block height
+
+    if (gateway.settings.properties) {
+        modalProperties.textContent = gateway.settings.properties.slice(0, 6) + '...'
+        modalProperties.href = `https://viewblock.io/arweave/tx/${gateway.settings.properties}`;
+    } else {
+        modalProperties.textContent = 'No properties set';
+        modalProperties.removeAttribute('href');  // remove link if no properties
+    }
+
+    modalNote.textContent = gateway.settings.note || 'No note provided';
+
+    // Display the modal
+    modal.style.display = 'block';
 }
