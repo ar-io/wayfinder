@@ -177,8 +177,8 @@ async function afterDOMLoaded(){
         }
     });
 
-    const saveButton = document.getElementById('saveStaticGateway');
-    saveButton.addEventListener('click', function() {
+    const saveStaticGatewayButton = document.getElementById('saveStaticGateway');
+    saveStaticGatewayButton.addEventListener('click', function() {
         const gatewayValue = document.getElementById('staticGateway').value;
         const result = saveStaticGateway(gatewayValue);
         if (!result) {
@@ -190,6 +190,15 @@ async function afterDOMLoaded(){
         if (data.staticGateway) {
             const staticGatewayUrl = `${data.staticGateway.settings.protocol}://${data.staticGateway.settings.fqdn}:${data.staticGateway.settings.port}/`
             document.getElementById('staticGateway').value = staticGatewayUrl;
+        }
+    });
+
+    const saveGarCacheURLButton = document.getElementById('saveGarCacheURL');
+    saveGarCacheURLButton.addEventListener('click', function() {
+        const garCacheURL = document.getElementById('garCacheURL').value;
+        console.log (garCacheURL)
+        if (!result) {
+            document.getElementById('garCacheURL').value = ''
         }
     });
 }
