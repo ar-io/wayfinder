@@ -58,7 +58,7 @@ async function afterDOMLoaded(){
                     `;
                     gatewayList.appendChild(listItem);
                 }
-            document.getElementById('onlineGatewayCount').textContent = Object.keys((Object.values(garLocal).filter(gateway => gateway.online)).length);
+            document.getElementById('onlineGatewayCount').textContent = (Object.values(garLocal).filter(gateway => gateway.online)).length;
             document.getElementById('totalGatewayCount').textContent = Object.keys(garLocal).length;
             // Close the modal when the close button is clicked
             document.getElementsByClassName('close-btn')[0].onclick = function() {
@@ -113,9 +113,7 @@ async function afterDOMLoaded(){
                 `;
                 gatewayList.appendChild(listItem);
             }
-        document.getElementById('onlineGatewayCount').textContent = Object.keys((Object.values(garLocal).filter(gateway => gateway.online)).length);
-        document.getElementById('totalGatewayCount').textContent = Object.keys(garLocal).length;
-        document.getElementById('onlineGatewayCount').textContent = Object.keys((Object.values(garLocal).filter(gateway => gateway.online)).length);
+        document.getElementById('onlineGatewayCount').textContent = (Object.values(garLocal).filter(gateway => gateway.online)).length;
         document.getElementById('totalGatewayCount').textContent = Object.keys(garLocal).length;
     });
 
