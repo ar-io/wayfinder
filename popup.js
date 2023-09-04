@@ -31,33 +31,34 @@ async function afterDOMLoaded(){
         } else {
             gatewayList.innerHTML = '';
             const { garLocal } = await chrome.storage.local.get(["garLocal"]);
-                for (const address in garLocal) {
-                    const gateway = garLocal[address];
+            const sortedGateways = sortGatewaysByStake(garLocal);
+            sortedGateways.forEach(sortedGateway => {
+                const gateway = sortedGateway.data;
 
-                    // Create a new element for each gateway
-                    const listItem = document.createElement('div');
-                    listItem.className = 'gateway';
-                    listItem.onclick = function() {
-                        console.log ("showing more gateway info")
-                        showMoreGatewayInfo(gateway, address);
-                    };
+                // Create a new element for each gateway
+                const listItem = document.createElement('div');
+                listItem.className = 'gateway';
+                listItem.onclick = function() {
+                    console.log ("showing more gateway info")
+                    showMoreGatewayInfo(gateway, sortedGateway.address);
+                };
 
-                    let onlineStatus = '<span class="offline">✖</span>'
-                    if (gateway.online){
-                        onlineStatus = '<span class="online">✔</span>'
-                    }
-
-                    listItem.innerHTML = `
-                        <div class="gateway-header">
-                            <span class="gateway-url">${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}</span>
-                            <span class="online-status">${onlineStatus}</span>
-                        </div>
-                        <div class="gateway-info">
-                            <span class="operator-stake">Stake: ${gateway.operatorStake}</span>
-                        </div>
-                    `;
-                    gatewayList.appendChild(listItem);
+                let onlineStatus = '<span class="offline">✖</span>'
+                if (gateway.online){
+                    onlineStatus = '<span class="online">✔</span>'
                 }
+
+                listItem.innerHTML = `
+                    <div class="gateway-header">
+                        <span class="gateway-url">${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}</span>
+                        <span class="online-status">${onlineStatus}</span>
+                    </div>
+                    <div class="gateway-info">
+                        <span class="operator-stake">Stake: ${gateway.operatorStake}</span>
+                    </div>
+                `;
+                gatewayList.appendChild(listItem);
+            })
             document.getElementById('onlineGatewayCount').textContent = (Object.values(garLocal).filter(gateway => gateway.online)).length;
             document.getElementById('totalGatewayCount').textContent = Object.keys(garLocal).length;
             // Close the modal when the close button is clicked
@@ -86,38 +87,39 @@ async function afterDOMLoaded(){
     refreshGatewaysBtn.addEventListener("click", async function() {
         gatewayList.innerHTML = '';
         const { garLocal } = await chrome.storage.local.get(["garLocal"]);
-            for (const address in garLocal) {
-                const gateway = garLocal[address];
+        const sortedGateways = sortGatewaysByStake(garLocal);
+        sortedGateways.forEach(sortedGateway => {
+            const gateway = sortedGateway.data;
 
-                // Create a new element for each gateway
-                const listItem = document.createElement('div');
-                listItem.className = 'gateway';
-                listItem.onclick = function() {
-                    console.log ("showing more gateway info")
-                    showMoreGatewayInfo(gateway, address);
-                };
+            // Create a new element for each gateway
+            const listItem = document.createElement('div');
+            listItem.className = 'gateway';
+            listItem.onclick = function() {
 
-                let onlineStatus = '<span class="offline">✖</span>'
-                if (gateway.online){
-                    onlineStatus = '<span class="online">✔</span>'
-                }
+                showMoreGatewayInfo(gateway, sortedGateway.address);
+            };
 
-                listItem.innerHTML = `
-                    <div class="gateway-header">
-                        <span class="gateway-url">${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}</span>
-                        <span class="online-status">${onlineStatus}</span>
-                    </div>
-                    <div class="gateway-info">
-                        <span class="operator-stake">Stake: ${gateway.operatorStake}</span>
-                    </div>
-                `;
-                gatewayList.appendChild(listItem);
+            let onlineStatus = '<span class="offline">✖</span>'
+            if (gateway.online){
+                onlineStatus = '<span class="online">✔</span>'
             }
+
+            listItem.innerHTML = `
+                <div class="gateway-header">
+                    <span class="gateway-url">${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}</span>
+                    <span class="online-status">${onlineStatus}</span>
+                </div>
+                <div class="gateway-info">
+                    <span class="operator-stake">Stake: ${gateway.operatorStake}</span>
+                </div>
+            `;
+            gatewayList.appendChild(listItem);
+        })
         document.getElementById('onlineGatewayCount').textContent = (Object.values(garLocal).filter(gateway => gateway.online)).length;
         document.getElementById('totalGatewayCount').textContent = Object.keys(garLocal).length;
     });
 
-    showHistoryBtn.addEventListener("click", async function() {
+    showHistoryBtn.addEventListener("click", function() {
         if(historyList.style.display === "none") {
             chrome.storage.local.get("history", function(data) {
                 const history = data.history || [];
@@ -164,16 +166,41 @@ async function afterDOMLoaded(){
         }
     });
 
-    const themeToggle = document.getElementById("themeToggle");
     const body = document.body;
+    const themeToggle = document.getElementById("themeToggle");
     themeToggle.addEventListener("change", function() {
         const selectedTheme = this.value;
         if (selectedTheme === "dark") {
-            body.classList.add("body");
             body.classList.remove("light-mode");
+            body.classList.add("body");
         } else if (selectedTheme === "light") {
-            body.classList.add("light-mode");
             body.classList.remove("body");
+            body.classList.add("light-mode");
+        }
+        saveThemeChoice(selectedTheme)
+    });
+    chrome.storage.local.get('theme', function(data) {
+        if (data.theme) {
+            document.getElementById('themeToggle').value = data.theme;
+            if (data.theme === "dark") {
+                body.classList.remove("light-mode");
+                body.classList.add("body");
+            } else if (data.theme === "light") {
+                body.classList.remove("body");
+                body.classList.add("light-mode");
+            }
+        }
+    });
+
+    const routingToggle = document.getElementById("routingToggle");
+    routingToggle.addEventListener("change", function() {
+        const selectedRoutingMethod = this.value;
+        saveRoutingMethod(selectedRoutingMethod);
+    });
+
+    chrome.storage.local.get('routingMethod', function(data) {
+        if (data.routingMethod) {
+            document.getElementById('routingToggle').value = data.routingMethod;
         }
     });
 
@@ -194,11 +221,21 @@ async function afterDOMLoaded(){
     });
 
     const saveGarCacheURLButton = document.getElementById('saveGarCacheURL');
-    saveGarCacheURLButton.addEventListener('click', function() {
+    saveGarCacheURLButton.addEventListener('click',async function() {
         const garCacheURL = document.getElementById('garCacheURL').value;
-        console.log (garCacheURL)
-        if (!result) {
+        if (garCacheURL === '') {
+            const result = saveGarCacheURL(garCacheURL)
             document.getElementById('garCacheURL').value = ''
+        } else if (await isValidGarCacheURL(garCacheURL)) {
+            const result = saveGarCacheURL(garCacheURL)
+        } else {
+            document.getElementById('garCacheURL').value = ''
+        }
+    });
+
+    chrome.storage.local.get('garCacheURL', function(data) {
+        if (data.garCacheURL) {
+            document.getElementById('garCacheURL').value = data.garCacheURL;
         }
     });
 }
@@ -210,6 +247,20 @@ async function syncGatewayAddressRegistry() {
                 resolve(response);
         });
     });
+}
+
+function saveThemeChoice(inputValue) {
+    chrome.storage.local.set({ theme: inputValue }, function() {
+        alert(`Theme set to ${inputValue}`);
+});
+return true;
+}
+
+function saveRoutingMethod(inputValue) {
+    chrome.storage.local.set({ routingMethod: inputValue }, function() {
+        alert(`Routing method set to ${inputValue}`);
+    });
+    return true;
 }
 
 function saveStaticGateway(inputValue) {
@@ -247,18 +298,6 @@ function saveStaticGateway(inputValue) {
 }
 
 function showMoreGatewayInfo(gateway, address) {
-    const modal = document.getElementById('gatewayModal');
-    const propertiesLink = document.getElementById('modal-properties');
-    const noteElem = document.getElementById('modal-note');
-
-    propertiesLink.href = `https://viewblock.io/arweave/tx/${gateway.settings.properties}`;
-    propertiesLink.textContent = gateway.settings.properties;
-    noteElem.textContent = gateway.settings.note;
-
-    modal.style.display = "block";
-}
-
-function showMoreGatewayInfo(gateway, address) {
     // Get modal elements
     const modal = document.getElementById('gatewayModal');
     const modalUrl = document.getElementById('modal-gateway-url')
@@ -291,4 +330,53 @@ function showMoreGatewayInfo(gateway, address) {
 
     // Display the modal
     modal.style.display = 'block';
+}
+
+function sortGatewaysByStake(gateways) {
+    // Convert the object to an array of {address, data} pairs
+    const gatewayArray = Object.entries(gateways).map(([address, data]) => ({address, data}));
+
+    // Sort the array based on operatorStake
+    const sortedGateways = gatewayArray.sort((a, b) => b.data.operatorStake - a.data.operatorStake);
+
+    return sortedGateways;
+}
+
+async function isValidGarCacheURL(url) {
+    try {
+        // Fetch data from the URL
+        const response = await fetch(url);
+        // Check if the response is OK and content type is application/json
+        if (!response.ok || !response.headers.get("content-type")?.includes("application/json")) {
+            alert(`Error verifying Gateway Address Registry Cache URL: ${garCacheURL}`);
+            return false;
+        }
+
+        // Parse the JSON
+        const data = await response.json();
+
+        // Check if the JSON has a "gateways" property and it's an array
+        if (!data.gateways && !data.state.gateways) {
+            alert(`Cannot validate Gateways JSON within this Cache: ${garCacheURL}`);
+            return false;
+        }
+
+        // Further validation can be done here based on the expected structure of the GAR JSON object
+        return true; // URL is a valid GAR cache
+    } catch (error) {
+        console.error(`Error verifying Gateway Address Registry Cache URL: ${garCacheURL}`);
+        console.error(error);
+        return false; // URL is invalid or there was an error during verification
+    }
+}
+
+function saveGarCacheURL(url) {
+    if (url === '') {
+        chrome.storage.local.set({ garCacheURL: null })
+        alert(`GAR Cache URL removed.  Using default GAR Cache.`);
+    } else {
+        chrome.storage.local.set({ garCacheURL: url })
+        alert(`Gateway Address Registry Cache URL set to ${url}`);
+    }
+    return true;
 }

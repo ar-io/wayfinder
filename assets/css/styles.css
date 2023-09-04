@@ -1,0 +1,474 @@
+body {
+    font-family: 'Rubik', sans-serif;
+    background-color: #010905;
+    color: #E0E0E0;
+    padding: 15px;
+    width: 325px;
+    max-height: calc(100vh - 40px); /* 100vh is the full viewport height. We subtract some pixels to give a little room. */
+    overflow: hidden;
+}
+/* Styling for the links in the body */
+p a {
+    color: #EDEDED; /* Initial color */
+    text-decoration: none; /* Removes underline */
+    transition: color 0.3s; /* Smooth transition for hover effect */
+}
+
+p a:hover {
+    color: #FAFAFA; /* Lighter color when hovering over the link */
+}
+
+h2 {
+    color: #EDEDED;
+    font-size: 24px;
+    border-bottom: 1px solid #323232;
+    padding-bottom: 15px;
+    margin-bottom: 15px;
+    margin-top: 15px
+}
+
+p {
+    color: #9E9E9E;
+    font-size: 14px;
+    margin-bottom: 15px;
+    line-height: 1.6;
+}
+
+button {
+    display: block;
+    width: 100%;
+    background-color: #010905;
+    border: 2px solid #EDEDED;
+    color: #EDEDED;
+    padding: 12px;
+    text-align: center;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s, color 0.3s;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+button:hover {
+    background-color: #1F1F1F;
+    color: #FAFAFA;
+}
+
+button:active {
+    transform: scale(0.98);
+}
+
+ul {
+    display: flex;
+    flex-direction: column;
+    list-style-type: none;
+    padding: 0;
+    border: 1px solid #323232;
+    border-radius: 4px;
+    margin-top: 15px;
+    overflow: hidden;
+    transition: all 0.3s ease-in-out;
+    border-radius: 5px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.status-icon {
+    width: 24px;
+    height: 24px;
+    margin-left: 10px; /* Adds some spacing between the gateway name and the icon */
+}
+.online {
+    color: green;
+}
+
+.offline {
+    color: red;
+}
+
+ul::-webkit-scrollbar {
+    width: 10px;
+}
+
+ul::-webkit-scrollbar-thumb {
+    background-color: #9E9E9E;
+    border-radius: 5px;
+}
+
+ul::-webkit-scrollbar-track {
+    background-color: #171717;
+}
+
+li {
+    padding: 8px 16px;
+    border-bottom: 1px solid #9E9E9E;
+    background-color: #1F1F1F;
+    transition: background-color 0.3s;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+li:hover {
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    background-color: #323232;
+}
+
+li:last-child {
+    border-bottom: none;
+}
+
+li:hover {
+    background-color: #323232;
+}
+
+li a {
+    text-decoration: none;
+    color: inherit;  /* This makes the link have the same color as the list item */
+    display: block;  /* Makes the entire list item area clickable */
+    padding: 8px 16px;
+    transition: background-color 0.3s;
+}
+
+li a:hover {
+    background-color: #323232;
+}
+
+button, li {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+button:hover {
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  transform: scale(1.025);  /* Slight zoom effect on hover */
+}
+
+li:hover {
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+#gatewayList {
+    transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: translateY(0);
+    opacity: 1;
+    max-height: 300px; /* The subtracted value here depends on the combined height of your other elements (like headers, paragraphs, buttons). You might need to adjust this value to fit your content perfectly. */
+    overflow-y: auto;
+    margin-bottom: 20px;  /* Adjust value as necessary */
+    border-radius: 5px;
+}
+
+.gatewayListHeader {
+    list-style-type: none;
+    padding: 0;
+    border: 1px solid #323232;
+    border-radius: 5px;
+    margin-top: 15px;
+    overflow: hidden;
+    transition: all 0.3s ease-in-out;
+    border-radius: 5px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.gateway {
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    border: 1px solid #323232;
+    background-color:#1F1F1F;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.gateway:hover {
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    background-color: #323232;
+}
+
+.gateway-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.gateway-url {
+    font-size: 1.1em;
+}
+
+.gateway-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.gateway-address {
+    color: #0077b6;
+    text-decoration: none;
+}
+
+.operator-stake,
+.online-status {
+    font-size: 0.9em;
+    color: #666;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.4);
+}
+
+.modal-content {
+    background-color: #1F1F1F;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 400px;
+}
+
+.close-btn {
+    color: #aaaaaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.close-btn:hover, .close-btn:focus {
+    color: #FAFAFA;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+#historyList {
+    transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: translateY(0);
+    opacity: 1;
+    max-height: 310px; /* The subtracted value here depends on the combined height of your other elements (like headers, paragraphs, buttons). You might need to adjust this value to fit your content perfectly. */
+    overflow-y: auto;
+    margin-bottom: 20px;  /* Adjust value as necessary */
+}
+#aboutSection{
+    transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: translateY(0);
+    opacity: 1;
+    max-height: 400px; /* You can adjust this based on your needs */
+    overflow: hidden;
+}
+.setting {
+    padding: 16px;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+}
+
+.setting button {
+    display: block;
+    width: 30px;
+    background-color: #010905;
+    border: 2px solid #EDEDED;
+    color: #EDEDED;
+    padding: 8px;
+    text-align: center;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background-color 0.3s, color 0.3s;
+    border-radius: 4px;
+    margin-bottom: 0px;
+}
+
+.setting label {
+    flex: 1;
+    font-weight: bold;
+}
+
+.setting input {
+    flex: 2;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-right: 12px;
+}
+
+select {
+    width: 75%;
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 14px;
+}
+.setting label {
+    margin-right: 14px;
+    color: #E0E0E0;
+}
+.icon {
+    width: 24px;
+    height: 24px;
+    vertical-align: middle;
+    margin: 0 10px;
+}
+
+footer {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-top: 2px solid #323232;  /* Thin line separator */
+    margin-top: 15px;
+}
+footer a {
+    color: #9E9E9E;  /* Lighter grey color for footer text */
+    text-decoration: none; 
+    font-size: 16px; 
+    font-weight: 500;  /* Slightly bolder font */
+    transition: color 0.3s, transform 0.3s;  /* Added transform for hover effect */
+    padding: 5px;  /* Padding for a larger clickable area and spacing */
+    border-radius: 4px;  /* For the hover effect */
+    position: relative;  /* To place the icons if added later */
+}
+footer a:hover {
+    color: #EDEDED;  /* Change color on hover */
+    background-color: #323232;  /* Background change on hover */
+    transform: scale(1.05);  /* Slight zoom effect on hover */
+}
+.footer-icon {
+    position: absolute;
+    left: -30px;  /* Adjust based on actual icon size */
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;  /* Adjust based on actual icon size */
+    height: auto;
+}
+
+.light-mode {
+    /* Explicit custom properties for light mode */
+    color: #333333;
+    background-color: #FAFAFA;
+    --primary-bg: #FAFAFA;
+    --primary-text-color: #333333;
+    --secondary-text-color: #7D7D7D;
+    --link-color: #007BFF;
+    --link-hover-color: #0056b3;
+    --border-color: #EAEAEA;
+    --button-bg: #F7F7F7;
+    --button-border-color: #CCCCCC;
+    --button-hover-bg: #EAEAEA;
+    --button-hover-color: #333333;
+    --list-bg:  #FAFAFA;
+    --list-hover-bg: #F7F7F7;
+    --scrollbar-thumb: #7D7D7D;
+    --scrollbar-track: #F7F7F7;
+    --modal-bg:  #FAFAFA;
+}
+
+.light-mode p a {
+    color: #555555;
+    transition: color 0.3s;
+}
+
+.light-mode p a:hover {
+    color: #7D7D7D;
+}
+
+.light-mode h2 {
+    color: #555555;
+    border-bottom: 1px solid #DDDDDD;
+}
+
+.light-mode p {
+    color: #777777;
+}
+
+.light-mode button {
+    background-color: #EDEDED;
+    border: 2px solid #555555;
+    color: #333333;
+}
+
+.light-mode button:hover {
+    background-color: #DDDDDD;
+    color: #111111;
+}
+
+.light-mode ul {
+    border: 1px solid #DDDDDD;
+}
+
+.light-mode ul::-webkit-scrollbar-thumb {
+    background-color: #CCCCCC;
+}
+
+.light-mode ul::-webkit-scrollbar-track {
+    background-color: #EFEFEF;
+}
+
+.light-mode li, .gateway {
+    background-color: #EFEFEF;
+}
+
+.light-mode li:hover {
+    background-color: #E0E0E0;
+}
+
+.light-mode li a:hover, .gateway:hover {
+    background-color: #E0E0E0;
+}
+
+.light-mode button, .light-mode li {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.light-mode button:hover, .light-mode li:hover {
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.08);
+}
+
+.light-mode .setting label {
+    color: #333333;
+}
+
+.light-mode footer a {
+    color: #777777;
+}
+
+.light-mode footer a:hover {
+    color: #555555;
+    background-color: #EFEFEF;
+}
+
+.light-mode {
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    background-color:#EAEAEA;
+}
+
+.light-mode .modal-content {
+    background-color:#EAEAEA;
+    border: 1px solid #333333;
+}
+
+.refresh-container {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 1000;
+}
+
+#refreshIcon {
+    font-size: 18px; /* Adjust based on your design needs */
+    font-weight: bold;
+    color: #EDEDED; /* Choose a suitable color */
+    text-decoration: none;
+    cursor: pointer;
+    padding-left: 215px;
+}
+
+#refreshIcon:hover {
+    color: #555; /* Darker shade for hover effect, adjust as needed */
+}

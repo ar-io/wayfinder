@@ -1,17 +1,15 @@
-const GATEWAY_DOMAINS = ["ar-io.dev", "g8way.io", "arweave.dev", "vilenarios.com", "gatewaypie.com", "ideployedtoosoonhowdoidelete.website", "not-real.xyz", "fakeway.io"]; // Replace this with the stake weighted GAR
 let gar = {};
 let sortedGar = {};
-let onlineGateways = [];
 let redirectedTabs = {};  // A dictionary to keep track of redirected tabs
-let notificationData = {}; // Data to pass around for notifications
+const RANDOM_ROUTE_METHOD = 'random';
+const STAKE_RANDOM_ROUTE_METHOD = 'stakeRandom';
+const HIGHEST_STAKE_ROUTE_METHOD = 'highestStake';
 const MAX_HISTORY_ITEMS = 20;
 
 const defaultGARCacheURL = "https://dev.arns.app/v1/contract/E-pRI1bokGWQBqHnbut9rsHSt9Ypbldos3bAtwg4JMc/gateways";
-
-chrome.storage.local.set({gateways: GATEWAY_DOMAINS});
+chrome.storage.local.set({routingMethod: STAKE_RANDOM_ROUTE_METHOD }); // sets the default route method
 
 // Run the check initially when the background script starts
-// syncGatewayAddressRegistry();
 syncGatewayAddressRegistry();
 
 // Finds requests for ar:// in the browser address bar
@@ -20,7 +18,8 @@ chrome.webNavigation.onBeforeNavigate.addListener(async function(details) {
   const arUrl = url.searchParams.get("q")
   if (arUrl && arUrl.includes("ar://")) {
       const name = arUrl.replace("ar://", "");
-      const gateway = await getRandomOnlineGateway();
+      const gateway = await getOnlineGateway();
+      console.log (gateway)
       if (!/[a-z0-9_-]{43}/i.test(name)) {
         const redirectTo = `${gateway.settings.protocol}://${name}.${gateway.settings.fqdn}:${gateway.settings.port}/`;
         redirectedTabs[details.tabId] = true;
@@ -57,21 +56,6 @@ chrome.webRequest.onHeadersReceived.addListener(
       urls: ["<all_urls>"]
   },
   ["responseHeaders"]
-);
-
-// Provides the gateway list for display in the popup
-chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
-  if (request.type === "getGateways") {
-      sendResponse({gateways: GATEWAY_DOMAINS});
-  }
-});
-
-// Returns a list of the online gateways.
-chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
-      if(request.message === "getOnlineGateways") {
-          sendResponse({onlineGateways: onlineGateways});
-      }
-  }
 );
 
 // Used if someone clicks the refresh gateways button
@@ -124,47 +108,52 @@ async function fetchGatewayAddressRegistryCache(garCacheURL = defaultGARCacheURL
 }
 
 async function syncGatewayAddressRegistry() {
-  console.log ("Fetching GAR Cache from ", defaultGARCacheURL)
-  const garCache = await fetchGatewayAddressRegistryCache(defaultGARCacheURL)
+  const { garCacheUrl } = await chrome.storage.local.get(["garCacheUrl"]);
+  let garCache = {}
+  if (garCacheUrl) {
+    console.log ("Fetching User-defined GAR Cache from ", garCacheUrl)
+    garCache = await fetchGatewayAddressRegistryCache(defaultGARCacheURL)
+  } else {
+    console.log ("Fetching Default GAR Cache from ", defaultGARCacheURL)
+    garCache = await fetchGatewayAddressRegistryCache(defaultGARCacheURL)
+  }
+
   await chrome.storage.local.set({garCache: garCache});
-  console.log (garCache)
   console.log ("Found %s gateways cached.  Syncing availability...", Object.keys(garCache).length)
   const garLocal = await refreshOnlineGateways();
   await chrome.storage.local.set({garLocal: garLocal});
-  console.log (garLocal)
-  console.log ("Finished syncing")
+  console.log ("Finished syncing gateway availability.")
 }
 
 // Get a random online gateway or use the one selected via settings.
-async function getRandomOnlineGateway() {
+async function getOnlineGateway() {
   const { staticGateway } = await chrome.storage.local.get(["staticGateway"]);
   if (staticGateway) {
     console.log ("Static gateway being used: ", staticGateway)
     return staticGateway
   }
 
+  const { routingMethod } = await chrome.storage.local.get(["routingMethod"]);
   const { garLocal } = await chrome.storage.local.get(["garLocal"]);
-  const gateway = selectRandomGateway(garLocal);
-
-  // const gateway = onlineGateways[Math.floor(Math.random() * onlineGateways.length)];
+  let gateway = {}
+  if (routingMethod === STAKE_RANDOM_ROUTE_METHOD) {
+    gateway = selectWeightedGateway(garLocal);
+    console.log ("Stake-weighted random gateway being used: ", gateway.settings.fqdn)
+    return gateway;
+  } else if (routingMethod === RANDOM_ROUTE_METHOD) {
+    gateway = selectRandomGateway(garLocal);
+    console.log ("Random gateway being used: ", gateway.settings.fqdn)
+    return gateway;
+  } else if (routingMethod === HIGHEST_STAKE_ROUTE_METHOD) {
+    gateway = selectHighestStakeGateway(garLocal);
+    console.log ("Highest staked gateway being used: ", gateway.settings.fqdn)
+    return gateway;
+  }
+  
   if (!gateway) {
     console.error('Selected gateway is not valid:', gateway);
     return null;  // Or return a default gateway or handle this situation as appropriate
-  } else {
-    console.log ("Dynamic gateway being used: ", gateway)
-    return gateway;
   }
-}
-
-function getStaticGateway() {
-  return new Promise((resolve, reject) => {
-    chrome.storage.local.get("staticGateway", function(data) {
-      if (chrome.runtime.lastError) {
-        return reject(new Error(chrome.runtime.lastError));
-      }
-      resolve(data.staticGateway || null);
-    });
-  });
 }
 
 function saveToHistory(url, resolvedId, timestamp) {
@@ -188,11 +177,57 @@ function selectRandomGateway(gar) {
 
   // If there are no online gateways, handle this case appropriately
   if (onlineGateways.length === 0) {
-    console.error('No online gateways available.');
+    console.error('No online random gateways available.');
     return null;
   }
 
   // Select a random online gateway
   const randomIndex = Math.floor(Math.random() * onlineGateways.length);
   return onlineGateways[randomIndex];
+}
+
+function selectWeightedGateway(gar) {
+  const onlineGateways = Object.values(gar).filter(gateway => gateway.online);
+  
+  // Calculate the total stake among online gateways
+  const totalStake = onlineGateways.reduce((accum, gateway) => accum + gateway.operatorStake, 0);
+
+  // Generate a random number between 0 and totalStake
+  let randomNum = Math.random() * totalStake;
+
+  // Find the gateway that this random number falls into
+  for (const gateway of onlineGateways) {
+    randomNum -= gateway.operatorStake;
+    if (randomNum <= 0) {
+      return gateway;  // This is the selected gateway based on its weight
+    }
+  }
+
+  // This point should never be reached if there's at least one online gateway, but just in case:
+  console.error('No online gateways available.');
+  return null;
+}
+
+function selectHighestStakeGateway(gar) {
+  // Get the maximum stake value
+  const maxStake = Math.max(...Object.values(gar).map(gateway => gateway.operatorStake));
+
+  // Filter out all the gateways with this maximum stake value
+  const maxStakeGateways = Object.values(gar)
+                                 .filter(gateway => gateway.operatorStake === maxStake && gateway.online);
+
+  // If there's no online gateway with the maximum stake, handle this case
+  if (maxStakeGateways.length === 0) {
+    console.error('No online gateways available with the highest stake.');
+    return null;
+  }
+
+  // If there's only one online gateway with the maximum stake, return it
+  if (maxStakeGateways.length === 1) {
+    return maxStakeGateways[0];
+  }
+
+  // If there are multiple online gateways with the same highest stake, pick a random one and return it
+  const randomIndex = Math.floor(Math.random() * maxStakeGateways.length);
+  return maxStakeGateways[randomIndex];
 }
