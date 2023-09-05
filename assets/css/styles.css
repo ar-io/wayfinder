@@ -2,10 +2,11 @@ body {
     font-family: 'Rubik', sans-serif;
     background-color: #010905;
     color: #E0E0E0;
-    padding: 15px;
+    padding: 20px;
     width: 325px;
     max-height: calc(100vh - 40px); /* 100vh is the full viewport height. We subtract some pixels to give a little room. */
     overflow: hidden;
+    margin: 1px;
 }
 /* Styling for the links in the body */
 p a {
@@ -174,7 +175,7 @@ li:hover {
     display: flex;
     flex-direction: column;
     padding: 10px;
-    border: 1px solid #323232;
+    border-bottom: 1px solid #9E9E9E;
     background-color:#1F1F1F;
     cursor: pointer;
     transition: background-color 0.3s ease;
@@ -320,7 +321,7 @@ select {
 footer {
     display: flex;
     justify-content: space-between;
-    padding: 10px 0;
+    padding-top: 20px;
     border-top: 2px solid #323232;  /* Thin line separator */
     margin-top: 15px;
 }
@@ -398,7 +399,7 @@ footer a:hover {
     color: #111111;
 }
 
-.light-mode ul {
+.light-mode ul, #gatewayList {
     border: 1px solid #DDDDDD;
 }
 
@@ -445,7 +446,7 @@ footer a:hover {
 
 .light-mode {
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    background-color:#EAEAEA;
+    background-color:#FAFAFA;
 }
 
 .light-mode .modal-content {

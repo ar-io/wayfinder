@@ -19,7 +19,6 @@ chrome.webNavigation.onBeforeNavigate.addListener(async function(details) {
   if (arUrl && arUrl.includes("ar://")) {
       const name = arUrl.replace("ar://", "");
       const gateway = await getOnlineGateway();
-      console.log (gateway)
       if (!/[a-z0-9_-]{43}/i.test(name)) {
         const redirectTo = `${gateway.settings.protocol}://${name}.${gateway.settings.fqdn}:${gateway.settings.port}/`;
         redirectedTabs[details.tabId] = true;
