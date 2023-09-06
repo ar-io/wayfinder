@@ -37,7 +37,7 @@
         </select>
       </div>
       <div class="setting">
-        <label for="routingToggle">Routing Method:</label>
+        <label for="routingToggle" title="Switch the ar:// routing protocol Wayfinder uses.">Routing Method:</label>
         <select id="routingToggle">
             <option value="stakeRandom" title="Route to gateways based on a weighted list by stake.">Stake-weighted Random</option>
             <option value="highestStake" title="Route to the gateway with the highest stake.">Highest Stake</option>
@@ -45,12 +45,12 @@
         </select>
       </div>
       <div class="setting">
-        <label for="staticGateway">Static Gateway:</label>
+        <label for="staticGateway" title="Route all ar:// requests to a single, static gateway">Static Gateway:</label>
         <input type="text" id="staticGateway" placeholder="e.g. https://ar-io.dev">
         <button id="saveStaticGateway">✔</button>
       </div>
       <div class="setting">
-        <label for="garCacheURL">GAR Cache URL:</label>
+        <label for="garCacheURL" title="Configure a different URL that serves Gateway Address Registry cache.">GAR Cache URL:</label>
         <input type="text" id="garCacheURL" placeholder="e.g. https://dev.arns.app/v1/contract/E-pRI1bokGWQBqHnbut9rsHSt9Ypbldos3bAtwg4JMc/gateways">
         <button id="saveGarCacheURL">✔</button>
       </div>
