@@ -43,14 +43,14 @@ async function afterDOMLoaded(){
                     showMoreGatewayInfo(gateway, sortedGateway.address);
                 };
 
-                let onlineStatus = '<span class="offline">✖</span>'
+                let onlineStatus = '<span class="offline" title="Gateway is offline">✖</span>'
                 if (gateway.online){
-                    onlineStatus = '<span class="online">✔</span>'
+                    onlineStatus = '<span class="online" title="Gateway is online">✔</span>'
                 }
 
                 listItem.innerHTML = `
                     <div class="gateway-header">
-                        <span class="gateway-url">${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}</span>
+                        <span class="gateway-url" title="Click to see gateway details">${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}</span>
                         <span class="online-status">${onlineStatus}</span>
                     </div>
                     <div class="gateway-info">
@@ -86,6 +86,7 @@ async function afterDOMLoaded(){
 
     refreshGatewaysBtn.addEventListener("click", async function() {
         gatewayList.innerHTML = '';
+        await syncGatewayAddressRegistry();
         const { garLocal } = await chrome.storage.local.get(["garLocal"]);
         const sortedGateways = sortGatewaysByStake(garLocal);
         sortedGateways.forEach(sortedGateway => {
@@ -95,18 +96,17 @@ async function afterDOMLoaded(){
             const listItem = document.createElement('div');
             listItem.className = 'gateway';
             listItem.onclick = function() {
-
                 showMoreGatewayInfo(gateway, sortedGateway.address);
             };
 
-            let onlineStatus = '<span class="offline">✖</span>'
+            let onlineStatus = '<span class="offline" title="Gateway is offline">✖</span>'
             if (gateway.online){
-                onlineStatus = '<span class="online">✔</span>'
+                onlineStatus = '<span class="online" title="Gateway is online">✔</span>'
             }
 
             listItem.innerHTML = `
                 <div class="gateway-header">
-                    <span class="gateway-url">${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}</span>
+                    <span class="gateway-url" title="Click to see gateway details">${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}</span>
                     <span class="online-status">${onlineStatus}</span>
                 </div>
                 <div class="gateway-info">
@@ -242,9 +242,13 @@ async function afterDOMLoaded(){
 
 async function syncGatewayAddressRegistry() {
     return new Promise((resolve, reject) => {
-        // TO DO: fix this and handle rejects
         chrome.runtime.sendMessage({message: "syncGatewayAddressRegistry"}, function(response) {
+            if (chrome.runtime.lastError) {
+                // Handle any error that might occur while sending the message
+                reject(chrome.runtime.lastError);
+            } else {
                 resolve(response);
+            }
         });
     });
 }
