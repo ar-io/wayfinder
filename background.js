@@ -58,13 +58,21 @@ chrome.webRequest.onHeadersReceived.addListener(
 );
 
 // Used if someone clicks the refresh gateways button
-chrome.runtime.onMessage.addListener(async function(request, sender, sendResponse) {
+chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   if(request.message === "syncGatewayAddressRegistry") {
-    await syncGatewayAddressRegistry()
-     // TO DO: send a correct response
-    sendResponse({});
+      syncGatewayAddressRegistry().then(() => {
+          // send a response after async operation is done
+          sendResponse({});
+      }).catch(error => {
+          // handle error if you need to send error info to popup.js
+          console.error(error);
+          sendResponse({error: "Failed to sync gateway address registry."});
+      });
+      
+      return true; // this keeps the message channel open until `sendResponse` is invoked
   }
 });
+
 
 async function isGatewayOnline(gateway) {
   // Construct the gateway URL
@@ -121,7 +129,7 @@ async function syncGatewayAddressRegistry() {
   console.log ("Found %s gateways cached.  Syncing availability...", Object.keys(garCache).length)
   const garLocal = await refreshOnlineGateways();
   await chrome.storage.local.set({garLocal: garLocal});
-  console.log ("Finished syncing gateway availability.")
+  console.log ("Finished syncing gateway availability.  Found %s gateways online.", (Object.values(garLocal).filter(gateway => gateway.online)).length);
 }
 
 // Get a random online gateway or use the one selected via settings.
