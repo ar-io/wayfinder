@@ -119,10 +119,6 @@ li:last-child {
     border-bottom: none;
 }
 
-li:hover {
-    background-color: #323232;
-}
-
 li a {
     text-decoration: none;
     color: inherit;  /* This makes the link have the same color as the list item */
@@ -142,10 +138,6 @@ button, li {
 button:hover {
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
   transform: scale(1.025);  /* Slight zoom effect on hover */
-}
-
-li:hover {
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
 }
 
 #gatewayList {
@@ -399,7 +391,11 @@ footer a:hover {
     color: #111111;
 }
 
-.light-mode ul, #gatewayList {
+.light-mode ul {
+    border: 1px solid #DDDDDD;
+}
+
+.light-mode #gatewayList {
     border: 1px solid #DDDDDD;
 }
 
@@ -411,15 +407,23 @@ footer a:hover {
     background-color: #EFEFEF;
 }
 
-.light-mode li, .gateway {
+.light-mode li {
     background-color: #EFEFEF;
+}
+
+.light-mode .gateway {
+    background-color: #EFEFEF;
+}
+
+.light-mode a:hover {
+    background-color: #E0E0E0;
 }
 
 .light-mode li:hover {
     background-color: #E0E0E0;
 }
 
-.light-mode li a:hover, .gateway:hover {
+.light-mode .gateway:hover {
     background-color: #E0E0E0;
 }
 
