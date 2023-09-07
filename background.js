@@ -6,8 +6,11 @@ const STAKE_RANDOM_ROUTE_METHOD = 'stakeRandom';
 const HIGHEST_STAKE_ROUTE_METHOD = 'highestStake';
 const MAX_HISTORY_ITEMS = 20;
 
-const defaultGARCacheURL = "https://dev.arns.app/v1/contract/E-pRI1bokGWQBqHnbut9rsHSt9Ypbldos3bAtwg4JMc/gateways";
+const defaultTestGARCacheURL = "https://dev.arns.app/v1/contract/E-pRI1bokGWQBqHnbut9rsHSt9Ypbldos3bAtwg4JMc/gateways";
+const defaultGARCacheURL = "https://dev.arns.app/v1/contract/bLAgYxAdX2Ry-nt6aH2ixgvJXbpsEYm28NgJgyqfs-U/gateways";
 chrome.storage.local.set({routingMethod: STAKE_RANDOM_ROUTE_METHOD }); // sets the default route method
+chrome.storage.local.set({garCache: {}});
+chrome.storage.local.set({garLocal: {}});
 
 // Run the check initially when the background script starts
 syncGatewayAddressRegistry();
@@ -108,28 +111,36 @@ async function refreshOnlineGateways() {
   return garCache
 }
 
-async function fetchGatewayAddressRegistryCache(garCacheURL = defaultGARCacheURL) {
+async function fetchGatewayAddressRegistryCache(garCacheURL) {
   return fetch(garCacheURL)
     .then(response => response.json())
-    .then(data => data.gateways);
+    .then(data => (data.gateways ?? data.state.gateways));
 }
 
 async function syncGatewayAddressRegistry() {
-  const { garCacheUrl } = await chrome.storage.local.get(["garCacheUrl"]);
-  let garCache = {}
-  if (garCacheUrl) {
-    console.log ("Fetching User-defined GAR Cache from ", garCacheUrl)
-    garCache = await fetchGatewayAddressRegistryCache(defaultGARCacheURL)
-  } else {
-    console.log ("Fetching Default GAR Cache from ", defaultGARCacheURL)
-    garCache = await fetchGatewayAddressRegistryCache(defaultGARCacheURL)
-  }
+  try {
+      const { garCacheURL } = await chrome.storage.local.get(["garCacheURL"]);
+      let garCache = {};
 
-  await chrome.storage.local.set({garCache: garCache});
-  console.log ("Found %s gateways cached.  Syncing availability...", Object.keys(garCache).length)
-  const garLocal = await refreshOnlineGateways();
-  await chrome.storage.local.set({garLocal: garLocal});
-  console.log ("Finished syncing gateway availability.  Found %s gateways online.", (Object.values(garLocal).filter(gateway => gateway.online)).length);
+      if (garCacheURL) {
+          console.log("Fetching User-defined GAR Cache from ", garCacheURL);
+          garCache = await fetchGatewayAddressRegistryCache(garCacheURL);
+      } else {
+          console.log("Fetching Default GAR Cache from ", defaultGARCacheURL);
+          garCache = await fetchGatewayAddressRegistryCache(defaultGARCacheURL);
+      }
+
+      console.log ()
+      await chrome.storage.local.set({garCache: garCache});
+      console.log("Found %s gateways cached. Syncing availability...", Object.keys(garCache).length);
+      
+      const garLocal = await refreshOnlineGateways();
+      await chrome.storage.local.set({garLocal: garLocal});
+      console.log("Finished syncing gateway availability. Found %s gateways online.", (Object.values(garLocal).filter(gateway => gateway.online)).length);
+  
+  } catch (error) {
+      console.error("An error occurred while syncing the Gateway Address Registry:", error.message);
+  }
 }
 
 // Get a random online gateway or use the one selected via settings.
