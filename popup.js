@@ -8,7 +8,7 @@ async function afterDOMLoaded(){
     const gatewayList = document.getElementById('gatewayList');
     const gatewayListTitle = document.getElementById('gatewayListTitle');
     const gatewayListHeader = document.getElementById('gatewayListHeader');
-    const refreshGatewaysBtn = document.getElementById("refreshGateways");
+    const refreshGateways = document.getElementById("refreshGateways");
     const showGatewaysBtn = document.getElementById('showGateways');
     const showSettingsBtn = document.getElementById('showSettings');
     const aboutSection = document.getElementById('aboutSection');
@@ -26,8 +26,7 @@ async function afterDOMLoaded(){
             gatewayListHeader.style.display = 'none';
             gatewayListTitle.style.display = 'none';
             gatewayList.style.display = 'none';
-            refreshGatewaysBtn.style.display = 'none';
-            showGatewaysBtn.innerText = 'Display Gateway Address Registry';
+            showGatewaysBtn.innerText = 'Gateway Address Registry';
         } else {
             gatewayList.innerHTML = '';
             const { garLocal } = await chrome.storage.local.get(["garLocal"]);
@@ -39,7 +38,6 @@ async function afterDOMLoaded(){
                 const listItem = document.createElement('div');
                 listItem.className = 'gateway';
                 listItem.onclick = function() {
-                    console.log ("showing more gateway info")
                     showMoreGatewayInfo(gateway, sortedGateway.address);
                 };
 
@@ -79,12 +77,11 @@ async function afterDOMLoaded(){
             gatewayListHeader.style.display = 'block';
             gatewayList.style.display = 'block';
             gatewayListTitle.style.display = 'block';
-            refreshGatewaysBtn.style.display = 'block'
             showGatewaysBtn.innerText = 'Hide Gateway Address Registry';
         }
     });
 
-    refreshGatewaysBtn.addEventListener("click", async function() {
+    refreshGateways.addEventListener("click", async function() {
         gatewayList.innerHTML = '';
         await syncGatewayAddressRegistry();
         const { garLocal } = await chrome.storage.local.get(["garLocal"]);
@@ -155,7 +152,7 @@ async function afterDOMLoaded(){
             showHistoryBtn.style.display = 'none';
             settingsSection.style.display = "block"; // show the "settings" section
             settingsListTitle.style.display = 'block';
-            showSettingsBtn.innerText = 'Hide';
+            showSettingsBtn.innerText = 'Hide Settings';
         } else {
             aboutSection.style.display = 'block'; // show the "about" section
             showGatewaysBtn.style.display = 'block';

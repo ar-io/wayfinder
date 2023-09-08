@@ -290,6 +290,7 @@ button:hover {
     border: 1px solid #ccc;
     border-radius: 4px;
     margin-right: 12px;
+    width: 160px;
 }
 
 select {
@@ -345,6 +346,7 @@ footer a:hover {
     /* Explicit custom properties for light mode */
     color: #333333;
     background-color: #FAFAFA;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     --primary-bg: #FAFAFA;
     --primary-text-color: #333333;
     --secondary-text-color: #7D7D7D;
@@ -448,17 +450,12 @@ footer a:hover {
     background-color: #EFEFEF;
 }
 
-.light-mode {
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    background-color:#FAFAFA;
-}
-
 .light-mode .modal-content {
     background-color:#EAEAEA;
     border: 1px solid #333333;
 }
 
-.refresh-container {
+.refreshGateways {
     position: absolute;
     top: 10px;
     right: 10px;
@@ -476,4 +473,18 @@ footer a:hover {
 
 #refreshIcon:hover {
     color: #555; /* Darker shade for hover effect, adjust as needed */
+}
+
+.light-mode #refreshIcon {
+    font-size: 18px; /* Adjust based on your design needs */
+    font-weight: bold;
+    color: #333333; /* Choose a suitable color */
+    text-decoration: none;
+    cursor: pointer;
+    padding-left: 215px;
+}
+
+.light-mode #refreshIcon:hover {
+    background-color: #FAFAFA;
+    color: #777777; /* Darker shade for hover effect, adjust as needed */
 }
