@@ -81,17 +81,24 @@ async function isGatewayOnline(gateway) {
   // Construct the gateway URL
   const url = `${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}/`;
   
+  const timeoutPromise = new Promise((_, reject) => 
+  setTimeout(() => reject(new Error('Request timed out after 10 seconds')), 10 * 1000) // 10 seconds
+);
+
   try {
-    // Make a request to the gateway. A simple HEAD request might suffice.
-    const response = await fetch(url, { 
-      method: 'HEAD', 
-      mode: 'no-cors' // For cross-origin requests 
-    });
-    
+    // Race the fetch request against the timeout promise
+    const response = await Promise.race([
+      fetch(url, { 
+        method: 'HEAD', 
+        mode: 'no-cors' // For cross-origin requests 
+      }),
+      timeoutPromise
+    ]);
+
     // If the request succeeds without any exceptions, the gateway is online.
     return response.ok;
   } catch (error) {
-    // If any exceptions occur, assume the gateway is offline.
+    // If any exceptions occur or the timeout is reached, assume the gateway is offline.
     return false;
   }
 }
