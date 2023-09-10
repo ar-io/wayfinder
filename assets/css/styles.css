@@ -468,7 +468,7 @@ footer a:hover {
     color: #EDEDED; /* Choose a suitable color */
     text-decoration: none;
     cursor: pointer;
-    padding-left: 215px;
+    padding-left: 195px;
 }
 
 #refreshIcon:hover {
@@ -481,7 +481,7 @@ footer a:hover {
     color: #333333; /* Choose a suitable color */
     text-decoration: none;
     cursor: pointer;
-    padding-left: 215px;
+    padding-left: 195px;
 }
 
 .light-mode #refreshIcon:hover {
