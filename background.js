@@ -82,7 +82,7 @@ async function isGatewayOnline(gateway) {
   const url = `${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}/`;
   
   const timeoutPromise = new Promise((_, reject) => 
-  setTimeout(() => reject(new Error('Request timed out after 10 seconds')), 10 * 1000) // 10 seconds
+  setTimeout(() => reject(new Error('Request timed out after 5 seconds')), 5 * 1000) // 5 seconds
 );
 
   try {
