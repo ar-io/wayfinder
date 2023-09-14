@@ -468,7 +468,30 @@ footer a:hover {
     color: #EDEDED; /* Choose a suitable color */
     text-decoration: none;
     cursor: pointer;
-    padding-left: 215px;
+    padding-left: 195px;
+}
+
+@keyframes ellipsis {
+    0% {
+        content: "Refreshing  ";
+    }
+    20% {
+        content: "Refreshing . ";
+    }
+    40% {
+        content: "Refreshing ..";
+    }
+    60% {
+        content: "Refreshing ...   ";
+    }
+    80% {
+        content: "Refreshing ....   ";
+    }
+}
+  
+.refreshing-text::after {
+    content: "Refreshing";
+    animation: ellipsis 2s infinite;
 }
 
 #refreshIcon:hover {
@@ -481,7 +504,7 @@ footer a:hover {
     color: #333333; /* Choose a suitable color */
     text-decoration: none;
     cursor: pointer;
-    padding-left: 215px;
+    padding-left: 195px;
 }
 
 .light-mode #refreshIcon:hover {

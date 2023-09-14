@@ -82,8 +82,9 @@ async function afterDOMLoaded(){
     });
 
     refreshGateways.addEventListener("click", async function() {
-        gatewayList.innerHTML = '';
+        gatewayList.innerHTML = 'Refreshing...';
         await syncGatewayAddressRegistry();
+        gatewayList.innerHTML = '';
         const { garLocal } = await chrome.storage.local.get(["garLocal"]);
         const sortedGateways = sortGatewaysByStake(garLocal);
         sortedGateways.forEach(sortedGateway => {

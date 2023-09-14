@@ -4,11 +4,13 @@ let redirectedTabs = {};  // A dictionary to keep track of redirected tabs
 const RANDOM_ROUTE_METHOD = 'random';
 const STAKE_RANDOM_ROUTE_METHOD = 'stakeRandom';
 const HIGHEST_STAKE_ROUTE_METHOD = 'highestStake';
+const RANDOM_TOP_FIVE_STAKED_ROUTE_METHOD = 'topFiveStake'
 const MAX_HISTORY_ITEMS = 20;
+const CONCURRENT_REQUESTS = 10; // number of gateways to check concurrently
 
 const defaultTestGARCacheURL = "https://dev.arns.app/v1/contract/E-pRI1bokGWQBqHnbut9rsHSt9Ypbldos3bAtwg4JMc/gateways";
 const defaultGARCacheURL = "https://dev.arns.app/v1/contract/bLAgYxAdX2Ry-nt6aH2ixgvJXbpsEYm28NgJgyqfs-U/gateways";
-chrome.storage.local.set({routingMethod: STAKE_RANDOM_ROUTE_METHOD }); // sets the default route method
+chrome.storage.local.set({routingMethod: RANDOM_TOP_FIVE_STAKED_ROUTE_METHOD }); // sets the default route method
 chrome.storage.local.set({garCache: {}});
 chrome.storage.local.set({garLocal: {}});
 
@@ -78,37 +80,48 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 
 
 async function isGatewayOnline(gateway) {
-  // Construct the gateway URL
   const url = `${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}/`;
-  
+
+  const timeoutPromise = new Promise((_, reject) => 
+    setTimeout(() => reject(new Error(`Request for ${url} timed out after 5 seconds`)), 5 * 1000) // 5 seconds
+  );
+
   try {
-    // Make a request to the gateway. A simple HEAD request might suffice.
-    const response = await fetch(url, { 
-      method: 'HEAD', 
-      mode: 'no-cors' // For cross-origin requests 
-    });
-    
-    // If the request succeeds without any exceptions, the gateway is online.
+    const response = await Promise.race([
+      fetch(url, { 
+        method: 'HEAD', 
+        mode: 'no-cors'
+      }),
+      timeoutPromise
+    ]);
     return response.ok;
   } catch (error) {
-    // If any exceptions occur, assume the gateway is offline.
+    console.log(error.message);  // Log the error
     return false;
   }
 }
 
 async function refreshOnlineGateways() {
   const { garCache } = await chrome.storage.local.get(["garCache"]);
-  // Iterate through each gateway in the GAR
+  const promises = [];
+  
   for (const address in garCache) {
-    const gateway = garCache[address];
-    
-    // Check if the current gateway is online
-    const online = await isGatewayOnline(gateway);
-    
-    // Update the 'online' property of the gateway
-    garCache[address].online = online;
+    promises.push((async () => {
+      const gateway = garCache[address];
+      gateway.online = await isGatewayOnline(gateway);
+      return { address, gateway };
+    })());
   }
-  return garCache
+
+  const results = await Promise.allSettled(promises);
+  
+  results.forEach(result => {
+    if (result.status === 'fulfilled') {
+      garCache[result.value.address] = result.value.gateway;
+    }
+  });
+
+  return garCache;
 }
 
 async function fetchGatewayAddressRegistryCache(garCacheURL) {
@@ -150,11 +163,15 @@ async function getOnlineGateway() {
     console.log ("Static gateway being used: ", staticGateway)
     return staticGateway
   }
-
   const { routingMethod } = await chrome.storage.local.get(["routingMethod"]);
   const { garLocal } = await chrome.storage.local.get(["garLocal"]);
   let gateway = {}
-  if (routingMethod === STAKE_RANDOM_ROUTE_METHOD) {
+  if (routingMethod === RANDOM_TOP_FIVE_STAKED_ROUTE_METHOD) {
+    gateway = selectRandomTopFiveStakedGateway(garLocal);
+    console.log ("Random Top 5 staked gateway being used: ", gateway.settings.fqdn);
+    return gateway;
+  }
+  else if (routingMethod === STAKE_RANDOM_ROUTE_METHOD) {
     gateway = selectWeightedGateway(garLocal);
     console.log ("Stake-weighted random gateway being used: ", gateway.settings.fqdn)
     return gateway;
@@ -248,4 +265,24 @@ function selectHighestStakeGateway(gar) {
   // If there are multiple online gateways with the same highest stake, pick a random one and return it
   const randomIndex = Math.floor(Math.random() * maxStakeGateways.length);
   return maxStakeGateways[randomIndex];
+}
+
+function selectRandomTopFiveStakedGateway(gar) {
+  // 1. Sort the gateways based on their stake in descending order and filter online gateways
+  const sortedGateways = Object.values(gar)
+      .filter(gateway => gateway.online)
+      .sort((gatewayA, gatewayB) => gatewayB.operatorStake - gatewayA.operatorStake);
+  
+  // If there's no online gateway, handle this case
+  if (sortedGateways.length === 0) {
+    console.error('No online gateways available.');
+    return null;
+  }
+
+  // 2. Take the top 5 or as many as are available (in cases where there are less than 5 online gateways)
+  const top5 = sortedGateways.slice(0, Math.min(5, sortedGateways.length));
+  
+  // 3. Randomly select one from the top 5
+  const randomIndex = Math.floor(Math.random() * top5.length);
+  return top5[randomIndex];
 }
