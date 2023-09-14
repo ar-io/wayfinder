@@ -82,7 +82,7 @@ async function afterDOMLoaded(){
     });
 
     refreshGateways.addEventListener("click", async function() {
-        gatewayList.innerHTML = 'Refreshing...';
+        gatewayList.innerHTML = '<span class="refreshing-text"></span>';  // use class here
         await syncGatewayAddressRegistry();
         gatewayList.innerHTML = '';
         const { garLocal } = await chrome.storage.local.get(["garLocal"]);
