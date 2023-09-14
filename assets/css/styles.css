@@ -471,6 +471,29 @@ footer a:hover {
     padding-left: 195px;
 }
 
+@keyframes ellipsis {
+    0% {
+        content: "Refreshing  ";
+    }
+    20% {
+        content: "Refreshing . ";
+    }
+    40% {
+        content: "Refreshing ..";
+    }
+    60% {
+        content: "Refreshing ...   ";
+    }
+    80% {
+        content: "Refreshing ....   ";
+    }
+}
+  
+.refreshing-text::after {
+    content: "Refreshing";
+    animation: ellipsis 2s infinite;
+}
+
 #refreshIcon:hover {
     color: #555; /* Darker shade for hover effect, adjust as needed */
 }
