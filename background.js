@@ -13,6 +13,7 @@ const defaultGARCacheURL = "https://dev.arns.app/v1/contract/bLAgYxAdX2Ry-nt6aH2
 chrome.storage.local.set({routingMethod: RANDOM_TOP_FIVE_STAKED_ROUTE_METHOD }); // sets the default route method
 chrome.storage.local.set({garCache: {}});
 chrome.storage.local.set({garLocal: {}});
+chrome.storage.local.set({blacklistedGateways: []});
 
 // Run the check initially when the background script starts
 syncGatewayAddressRegistry();
@@ -163,30 +164,41 @@ async function getOnlineGateway() {
     console.log ("Static gateway being used: ", staticGateway)
     return staticGateway
   }
+
   const { routingMethod } = await chrome.storage.local.get(["routingMethod"]);
   const { garLocal } = await chrome.storage.local.get(["garLocal"]);
+  const { blacklistedGateways = {} } = await chrome.storage.local.get(["blacklistedGateways"]);
+
+  console.log (blacklistedGateways)
+  const filteredGar = {};
+  for (const [address, gatewayData] of Object.entries(garLocal)) {
+    if (!blacklistedGateways.includes(address)) {
+        filteredGar[address] = gatewayData;
+    }
+  }
+
   let gateway = {}
   if (routingMethod === RANDOM_TOP_FIVE_STAKED_ROUTE_METHOD) {
-    gateway = selectRandomTopFiveStakedGateway(garLocal);
+    gateway = selectRandomTopFiveStakedGateway(filteredGar);
     console.log ("Random Top 5 staked gateway being used: ", gateway.settings.fqdn);
     return gateway;
   }
   else if (routingMethod === STAKE_RANDOM_ROUTE_METHOD) {
-    gateway = selectWeightedGateway(garLocal);
+    gateway = selectWeightedGateway(filteredGar);
     console.log ("Stake-weighted random gateway being used: ", gateway.settings.fqdn)
     return gateway;
   } else if (routingMethod === RANDOM_ROUTE_METHOD) {
-    gateway = selectRandomGateway(garLocal);
+    gateway = selectRandomGateway(filteredGar);
     console.log ("Random gateway being used: ", gateway.settings.fqdn)
     return gateway;
   } else if (routingMethod === HIGHEST_STAKE_ROUTE_METHOD) {
-    gateway = selectHighestStakeGateway(garLocal);
+    gateway = selectHighestStakeGateway(filteredGar);
     console.log ("Highest staked gateway being used: ", gateway.settings.fqdn)
     return gateway;
   }
   
   if (!gateway) {
-    console.error('Selected gateway is not valid:', gateway);
+    console.error('There is no valid gateway to use.', gateway);
     return null;  // Or return a default gateway or handle this situation as appropriate
   }
 }

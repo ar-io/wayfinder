@@ -87,6 +87,11 @@ ul {
     color: red;
 }
 
+.blacklisted .offline,
+.blacklisted .online {
+    color: grey; /* or any shade of grey you prefer */
+}
+
 ul::-webkit-scrollbar {
     width: 10px;
 }
@@ -173,9 +178,15 @@ button:hover {
     transition: background-color 0.3s ease;
 }
 
-.gateway:hover {
+.gateway:hover,
+.gateway.blacklisted:hover {
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     background-color: #323232;
+}
+
+.light-mode .gateway.blacklisted:hover{
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    background-color: #E0E0E0;
 }
 
 .gateway-header {
@@ -468,7 +479,7 @@ footer a:hover {
     color: #EDEDED; /* Choose a suitable color */
     text-decoration: none;
     cursor: pointer;
-    padding-left: 195px;
+    padding-left: 180px;
 }
 
 @keyframes ellipsis {
@@ -504,10 +515,20 @@ footer a:hover {
     color: #333333; /* Choose a suitable color */
     text-decoration: none;
     cursor: pointer;
-    padding-left: 195px;
+    padding-left: 180px;
 }
 
 .light-mode #refreshIcon:hover {
     background-color: #FAFAFA;
     color: #777777; /* Darker shade for hover effect, adjust as needed */
+}
+
+.light-mode .gateway.blacklisted {
+    background-color: white; /* Light gray for blacklisted gateways */
+    /* color: white; /* Dark gray text for readability */
+}
+
+.gateway.blacklisted {
+    background-color: #010905;
+    /*color: white; /* Setting text color to white for readability */
 }

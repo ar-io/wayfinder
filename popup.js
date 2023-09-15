@@ -31,14 +31,21 @@ async function afterDOMLoaded(){
             gatewayList.innerHTML = '';
             const { garLocal } = await chrome.storage.local.get(["garLocal"]);
             const sortedGateways = sortGatewaysByStake(garLocal);
-            sortedGateways.forEach(sortedGateway => {
+            for (const sortedGateway of sortedGateways) {
                 const gateway = sortedGateway.data;
 
                 // Create a new element for each gateway
                 const listItem = document.createElement('div');
                 listItem.className = 'gateway';
-                listItem.onclick = function() {
-                    showMoreGatewayInfo(gateway, sortedGateway.address);
+                listItem.setAttribute('data-address', sortedGateway.address); // Binding the address to the row
+
+                // Check if the gateway is blacklisted and apply the blacklisted class
+                if (await checkIfBlacklisted(sortedGateway.address)) {
+                    listItem.classList.add('blacklisted');
+                }
+
+                listItem.onclick = async function() {
+                    await showMoreGatewayInfo(gateway, sortedGateway.address);
                 };
 
                 let onlineStatus = '<span class="offline" title="Gateway is offline">✖</span>'
@@ -55,8 +62,9 @@ async function afterDOMLoaded(){
                         <span class="operator-stake">Stake: ${gateway.operatorStake}</span>
                     </div>
                 `;
+
                 gatewayList.appendChild(listItem);
-            })
+            }
             document.getElementById('onlineGatewayCount').textContent = (Object.values(garLocal).filter(gateway => gateway.online)).length;
             document.getElementById('totalGatewayCount').textContent = Object.keys(garLocal).length;
             // Close the modal when the close button is clicked
@@ -70,6 +78,7 @@ async function afterDOMLoaded(){
                     document.getElementById('gatewayModal').style.display = "none";
                 }
             }
+            
             showSettingsBtn.style.display = 'none';
             aboutSection.style.display = 'none';  // hide the "about" section
             showHistoryBtn.style.display = 'none';
@@ -87,14 +96,21 @@ async function afterDOMLoaded(){
         gatewayList.innerHTML = '';
         const { garLocal } = await chrome.storage.local.get(["garLocal"]);
         const sortedGateways = sortGatewaysByStake(garLocal);
-        sortedGateways.forEach(sortedGateway => {
+        for (const sortedGateway of sortedGateways) {
             const gateway = sortedGateway.data;
 
             // Create a new element for each gateway
             const listItem = document.createElement('div');
             listItem.className = 'gateway';
-            listItem.onclick = function() {
-                showMoreGatewayInfo(gateway, sortedGateway.address);
+            listItem.setAttribute('data-address', sortedGateway.address); // Binding the address to the row
+
+            // Check if the gateway is blacklisted and apply the blacklisted class
+            if (await checkIfBlacklisted(sortedGateway.address)) {
+                listItem.classList.add('blacklisted');
+            }
+
+            listItem.onclick = async function() {
+                await showMoreGatewayInfo(gateway, sortedGateway.address);
             };
 
             let onlineStatus = '<span class="offline" title="Gateway is offline">✖</span>'
@@ -112,7 +128,7 @@ async function afterDOMLoaded(){
                 </div>
             `;
             gatewayList.appendChild(listItem);
-        })
+        }
         document.getElementById('onlineGatewayCount').textContent = (Object.values(garLocal).filter(gateway => gateway.online)).length;
         document.getElementById('totalGatewayCount').textContent = Object.keys(garLocal).length;
     });
@@ -299,7 +315,7 @@ function saveStaticGateway(inputValue) {
     }
 }
 
-function showMoreGatewayInfo(gateway, address) {
+async function showMoreGatewayInfo(gateway, address) {
     // Get modal elements
     const modal = document.getElementById('gatewayModal');
     const modalUrl = document.getElementById('modal-gateway-url')
@@ -330,8 +346,59 @@ function showMoreGatewayInfo(gateway, address) {
 
     modalNote.textContent = gateway.settings.note || 'No note provided';
 
+    // Blacklist functionality
+    const blacklistButton = document.getElementById('blacklistButton');
+        
+    // Check if the gateway is already blacklisted
+    const isBlacklisted = await checkIfBlacklisted(address);
+
+    if (isBlacklisted) {
+        blacklistButton.textContent = 'Unblacklist Gateway';
+    } else {
+        blacklistButton.textContent = 'Blacklist Gateway';
+    }
+
+    // Toggle blacklist status
+    blacklistButton.onclick = async function() {
+        await toggleBlacklist(address);
+        await showMoreGatewayInfo(gateway, address);
+    };
+
     // Display the modal
     modal.style.display = 'block';
+}
+
+async function checkIfBlacklisted(address) {
+    // Check from local storage or other data source if the gateway is blacklisted
+    const { blacklistedGateways = [] } = await chrome.storage.local.get(["blacklistedGateways"]);
+    return blacklistedGateways.includes(address);
+}
+
+async function toggleBlacklist(address) {
+    // Get blacklistedGateways from chrome storage
+    let { blacklistedGateways = [] } = await chrome.storage.local.get(["blacklistedGateways"]);
+    if (blacklistedGateways.includes(address)) {
+        // Removing the address from blacklist
+        blacklistedGateways = blacklistedGateways.filter(gatewayAddress => gatewayAddress !== address);
+        
+        // Find the corresponding row and remove the 'blacklisted' class
+        const gatewayRow = document.querySelector(`.gateway[data-address='${address}']`);
+        if (gatewayRow) {
+            gatewayRow.classList.remove('blacklisted');
+        }
+    } else {
+        // Adding the address to blacklist
+        blacklistedGateways.push(address);
+        
+        // Find the corresponding row and add the 'blacklisted' class
+        const gatewayRow = document.querySelector(`.gateway[data-address='${address}']`);
+        if (gatewayRow) {
+            gatewayRow.classList.add('blacklisted');
+        }
+    }
+    // Set updated blacklistedGateways back to chrome storage
+    console.log ("Current black list: ", blacklistedGateways)
+    chrome.storage.local.set({blacklistedGateways: blacklistedGateways});
 }
 
 function sortGatewaysByStake(gateways) {
