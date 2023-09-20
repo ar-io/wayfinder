@@ -79,6 +79,23 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   }
 });
 
+// Used if someone clicks on an ar:// link in a page
+chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
+  if (message.type === 'arUrlClicked') {
+    const arUrl = message.arUrl;
+    const url = await getRoutableGatewayUrl(arUrl)
+    if (message.target === "_blank") {
+        // Open in a new tab
+        const tab = await chrome.tabs.create({url}); 
+        redirectedTabs[tab.id] = true;
+    } else {
+        // Open in the current tab
+        const tab = await chrome.tabs.update(sender.tab.id, {url});
+        redirectedTabs[tab.id] = true;
+    }
+    return true;
+  }
+});
 
 async function isGatewayOnline(gateway) {
   const url = `${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}/`;
@@ -169,7 +186,6 @@ async function getOnlineGateway() {
   const { garLocal } = await chrome.storage.local.get(["garLocal"]);
   const { blacklistedGateways = {} } = await chrome.storage.local.get(["blacklistedGateways"]);
 
-  console.log (blacklistedGateways)
   const filteredGar = {};
   for (const [address, gatewayData] of Object.entries(garLocal)) {
     if (!blacklistedGateways.includes(address)) {
@@ -297,4 +313,18 @@ function selectRandomTopFiveStakedGateway(gar) {
   // 3. Randomly select one from the top 5
   const randomIndex = Math.floor(Math.random() * top5.length);
   return top5[randomIndex];
+}
+
+// This method takes an ar:// URL and converts it to a routable URL
+// Uses an online gateway frmo the GAR, using the configured routing settings
+async function getRoutableGatewayUrl(arUrl) {
+  const name = arUrl.replace("ar://", "");
+  const gateway = await getOnlineGateway();
+  let redirectTo;
+  if (!/[a-z0-9_-]{43}/i.test(name)) { // this is an ArNS name
+    redirectTo = `${gateway.settings.protocol}://${name}.${gateway.settings.fqdn}:${gateway.settings.port}/`;
+  } else { // this is an arweave transaction ID
+    redirectTo = `${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}/${name}`;
+  }
+  return redirectTo;
 }
