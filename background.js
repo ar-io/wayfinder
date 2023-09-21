@@ -97,6 +97,28 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
   }
 });
 
+// Used if someone requests an ar:// image on a page
+chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
+  if (message.type === 'arImageUrlRequested') {
+    const arUrl = message.arUrl;
+    const url = await getRoutableGatewayUrl(arUrl)
+    console.log ("ooo got an image!")
+    fetch(url)
+        .then(response => response.blob())
+        .then(blob => {
+            const imageUrl = URL.createObjectURL(blob);
+            sendResponse({ imageUrl });
+        })
+        .catch(error => {
+            console.error(`Error fetching AR content from ${url}:`, error);
+            sendResponse({ error: 'Failed to fetch AR content' });
+        });
+    
+    // This will keep the message channel open to the sender until `sendResponse` is executed
+    return true;
+  }
+});
+
 async function isGatewayOnline(gateway) {
   const url = `${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}/`;
 
