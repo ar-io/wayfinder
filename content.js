@@ -1,118 +1,116 @@
-/*document.body.addEventListener('click', function(e) {
-    let arUrl = null;
-    let targetBehavior = null;
+if(document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded',afterDOMLoaded);
+} else {
+    afterDOMLoaded();
+}
 
-    // Handle anchor (<a>) tags with ar:// protocol
-    if (e.target.tagName === 'A' && e.target.href.startsWith('ar://')) {
-        e.preventDefault();
-        arUrl = e.target.href;
-        targetBehavior = e.target.getAttribute('target');
-    }
+async function afterDOMLoaded(){
 
-    // Handle image (<img>) tags with ar:// protocol
-    else if (e.target.tagName === 'IMG' && e.target.src.startsWith('ar://')) {
-        e.preventDefault();
-        arUrl = e.target.src;
-    }
-
-    // Handle iframe tags with ar:// protocol
-    else if (e.target.tagName === 'IFRAME' && e.target.src.startsWith('ar://')) {
-        e.preventDefault();
-        arUrl = e.target.src;
-    }
-
-    // Handle audio tags with ar:// protocol
-    else if (e.target.tagName === 'AUDIO' && e.target.currentSrc.startsWith('ar://')) {
-        e.preventDefault();
-        arUrl = e.target.currentSrc;
-    }
-
-    // Handle video tags with ar:// protocol
-    else if (e.target.tagName === 'VIDEO') {
-        const sources = e.target.getElementsByTagName('source');
-        for (let i = 0; i < sources.length; i++) {
-            if (sources[i].src.startsWith('ar://')) {
-                e.preventDefault();
-                arUrl = sources[i].src;
-                break;
-            }
-        }
-        if (!arUrl && e.target.src.startsWith('ar://')) {
-            e.preventDefault();
-            arUrl = e.target.src;
-        }
-    }
-
-    // If we've identified an ar:// URL, send a message to the background script
-    if (arUrl) {
-        chrome.runtime.sendMessage({ 
-            type: 'arUrlClicked', 
-            arUrl,
-            target: targetBehavior 
-        }, (response) => {
-            // Handle potential responses from the background script or error handling here.
-            if (chrome.runtime.lastError) {
-                console.error(chrome.runtime.lastError);
-            } else if (response && response.error) {
-                console.error(response.error);
-            }
-        });
-    }
-});*/
-
-document.addEventListener('DOMContentLoaded', function() {
     // Gather all elements with `ar://` protocol
-    const arElements = document.querySelectorAll('a[href^="ar://"], img[src^="ar://"], iframe[src^="ar://"], audio > source[src^="ar://"], video > source[src^="ar://"]');
+    const arElements = document.querySelectorAll(
+        'a[href^="ar://"], img[src^="ar://"], iframe[src^="ar://"], ' +
+        'audio > source[src^="ar://"], video > source[src^="ar://"], ' +
+        'link[href^="ar://"], embed[src^="ar://"], object[data^="ar://"]'
+    );
 
     arElements.forEach(element => {
-        if (element.tagName === 'A') {
-            element.addEventListener('click', function(e) {
-                e.preventDefault();
-
-                const arUrl = e.target.href;
-
-                // Determine the target behavior
-                let targetBehavior = e.target.getAttribute('target');
-
-                // Communicate with background script to handle routing
-                chrome.runtime.sendMessage({ 
-                    type: 'arUrlClicked', 
-                    arUrl,
-                    target: targetBehavior 
+        let arUrl;
+        switch(element.tagName) {
+            case 'A':
+                arUrl = element.href;
+                chrome.runtime.sendMessage({ type: 'convertArUrlToHttpUrl', arUrl }, response => {
+                    if (response && response.url) {
+                        element.href = response.url;
+                    } else {
+                        console.error(`Failed to load image: ${response.error}`);
+                    }
                 });
-            });
-        }
-        if (element.tagName === 'IMG') {
-            const arUrl = element.getAttribute('src');
-            const placeholder = 'icon128.png'; // provide the path to your placeholder image
-            
-            element.src = placeholder; // set the placeholder while loading AR content
-
-            // Assuming your background script can fetch and process the AR content and return a displayable image
-            chrome.runtime.sendMessage({
-                type: 'arImageUrlRequested',
-                arUrl
-            }, response => {
-                if (response && response.imageUrl) {
-                    element.src = response.imageUrl; // Replace with the actual image provided by the AR content
+                break;
+            case 'IMG':
+                arUrl = element.getAttribute('src');
+                chrome.runtime.sendMessage({ type: 'convertArUrlToHttpUrl', arUrl }, response => {
+                    if (response && response.url) {
+                        element.src = response.url;
+                    } else {
+                        console.error(`Failed to load image: ${response.error}`);
+                    }
+                });
+                break;
+            case 'IFRAME':
+                arUrl = element.getAttribute('src');
+                chrome.runtime.sendMessage({ type: 'convertArUrlToHttpUrl', arUrl }, response => {
+                    if (response && response.url) {
+                        element.src = response.url;
+                    } else {
+                        console.error(`Failed to load image: ${response.error}`);
+                    }
+                });
+                break;
+            case 'SOURCE':
+                arUrl = element.getAttribute('src');
+                if (element.parentNode.tagName === 'AUDIO') {
+                    chrome.runtime.sendMessage({ type: 'convertArUrlToHttpUrl', arUrl }, response => {
+                        if (response && response.url) {
+                            element.src = response.url;
+                            element.parentNode.load(); // Load the media element with the new source
+                        } else {
+                            console.error(`Failed to load image: ${response.error}`);
+                        }
+                    });
+                    break;
+                } else if (element.parentNode.tagName === 'VIDEO') {
+                    chrome.runtime.sendMessage({ type: 'convertArUrlToHttpUrl', arUrl }, response => {
+                        if (response && response.url) {
+                            element.src = response.url;
+                            element.parentNode.load(); // Load the media element with the new source
+                        } else {
+                            console.error(`Failed to load image: ${response.error}`);
+                        }
+                    });
+                    break;
                 } else {
-                    // Handle any errors, e.g., by displaying a different error placeholder
-                    element.src = 'icon128.png';
+                    console.error('Unexpected parent for source element', element);
                 }
-            });
+                break;
+            case 'LINK':
+                arUrl = element.getAttribute('href');
+                chrome.runtime.sendMessage({ type: 'convertArUrlToHttpUrl', arUrl }, response => {
+                    if (response && response.url) {
+                        // Create a clone of the original element
+                        const newLinkEl = element.cloneNode();
 
-            element.addEventListener('click', function() {
-                // When the image is clicked, you can have further interactivity, 
-                // such as opening the full AR experience
-                chrome.runtime.sendMessage({ 
-                    type: 'arImgClicked', 
-                    arUrl 
+                        // Set the new URL to the cloned element
+                        newLinkEl.href = response.url;
+                        
+                        // Replace the old link element with the new one
+                        element.parentNode.replaceChild(newLinkEl, element);
+                    } else {
+                        console.error(`Failed to load link element: ${response.error}`);
+                    }
                 });
-            });
+                break;
+            case 'EMBED':
+                arUrl = element.getAttribute('src');
+                chrome.runtime.sendMessage({ type: 'convertArUrlToHttpUrl', arUrl }, response => {
+                    if (response && response.url) {
+                        element.src = response.url; // Set the new URL
+                    } else {
+                        console.error(`Failed to load embed element: ${response.error}`);
+                    }
+                });
+                break;
+            case 'OBJECT':
+                arUrl = element.getAttribute('data');
+                chrome.runtime.sendMessage({ type: 'convertArUrlToHttpUrl', arUrl }, response => {
+                    if (response && response.url) {
+                        element.data = response.url; // Set the new URL
+                    } else {
+                        console.error(`Failed to load object: ${response.error}`);
+                    }
+                });
+                break;
+            default:
+                console.error('Unexpected element', element);
         }
-        // Add handling for other tags as necessary. 
-        // For images, videos, etc., you might want to replace them with placeholders or provide overlays, 
-        // and then handle user interactions such as clicks or hovers accordingly.
     });
-});
-
+}
