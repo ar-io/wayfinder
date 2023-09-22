@@ -215,7 +215,7 @@ async function syncGatewayAddressRegistry() {
 async function getOnlineGateway() {
   const { staticGateway } = await chrome.storage.local.get(["staticGateway"]);
   if (staticGateway) {
-    console.log ("Static gateway being used: ", staticGateway)
+    console.log ("Static gateway being used: ", staticGateway.settings.fqdn)
     return staticGateway
   }
 
