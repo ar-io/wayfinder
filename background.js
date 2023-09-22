@@ -10,6 +10,23 @@ const CONCURRENT_REQUESTS = 10; // number of gateways to check concurrently
 
 const defaultTestGARCacheURL = "https://dev.arns.app/v1/contract/E-pRI1bokGWQBqHnbut9rsHSt9Ypbldos3bAtwg4JMc/gateways";
 const defaultGARCacheURL = "https://dev.arns.app/v1/contract/bLAgYxAdX2Ry-nt6aH2ixgvJXbpsEYm28NgJgyqfs-U/gateways";
+
+const defaultGateway = {
+  "operatorStake": 250000,
+  "vaults": [],
+  "settings": {
+    "label": "AR.IO Test",
+    "fqdn": "ar-io.dev",
+    "port": 443,
+    "protocol": "https",
+    "properties": "raJgvbFU-YAnku-WsupIdbTsqqGLQiYpGzoqk9SCVgY",
+    "note": "Test Gateway operated by PDS for the AR.IO ecosystem."
+  },
+  "status": "joined",
+  "start": 1256694,
+  "end": 0
+}
+
 chrome.storage.local.set({routingMethod: RANDOM_TOP_FIVE_STAKED_ROUTE_METHOD }); // sets the default route method
 chrome.storage.local.set({garCache: {}});
 chrome.storage.local.set({garLocal: {}});
@@ -97,6 +114,26 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
   }
 });
 
+// Used if someone requests an ar:// image on a page
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'convertArUrlToHttpUrl') {
+    const arUrl = message.arUrl;
+
+    getRoutableGatewayUrl(arUrl)
+        .then(url => {
+            if (!url) throw new Error('URL is undefined');
+            sendResponse({ url });
+        })
+        .catch(error => {
+            console.error('Error in message listener:', error);
+            sendResponse({ error: error.message });
+        });
+
+    // indicate that the response will be sent asynchronously
+    return true;
+}
+});
+
 async function isGatewayOnline(gateway) {
   const url = `${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}/`;
 
@@ -178,7 +215,7 @@ async function syncGatewayAddressRegistry() {
 async function getOnlineGateway() {
   const { staticGateway } = await chrome.storage.local.get(["staticGateway"]);
   if (staticGateway) {
-    console.log ("Static gateway being used: ", staticGateway)
+    console.log ("Static gateway being used: ", staticGateway.settings.fqdn)
     return staticGateway
   }
 
@@ -240,8 +277,8 @@ function selectRandomGateway(gar) {
 
   // If there are no online gateways, handle this case appropriately
   if (onlineGateways.length === 0) {
-    console.error('No online random gateways available.');
-    return null;
+    console.log('No online random gateways available.  Using default');
+    return defaultGateway;
   }
 
   // Select a random online gateway
@@ -267,8 +304,8 @@ function selectWeightedGateway(gar) {
   }
 
   // This point should never be reached if there's at least one online gateway, but just in case:
-  console.error('No online gateways available.');
-  return null;
+  console.log('No gateways available.  Using default.');
+  return defaultGateway;
 }
 
 function selectHighestStakeGateway(gar) {
@@ -281,8 +318,8 @@ function selectHighestStakeGateway(gar) {
 
   // If there's no online gateway with the maximum stake, handle this case
   if (maxStakeGateways.length === 0) {
-    console.error('No online gateways available with the highest stake.');
-    return null;
+    console.log('No online gateways available.  Using default.');
+    return defaultGateway;
   }
 
   // If there's only one online gateway with the maximum stake, return it
@@ -303,8 +340,8 @@ function selectRandomTopFiveStakedGateway(gar) {
   
   // If there's no online gateway, handle this case
   if (sortedGateways.length === 0) {
-    console.error('No online gateways available.');
-    return null;
+    console.log('No online gateways available.  Using default');
+    return defaultGateway;
   }
 
   // 2. Take the top 5 or as many as are available (in cases where there are less than 5 online gateways)

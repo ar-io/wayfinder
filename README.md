@@ -6,7 +6,7 @@ WayFinder (alpha) is a simple, open source, Google Chrome extension that intelli
 - Developers who want to integrate ar:// protocol.  Wayfinder shows how the ar:// protocol could be leveraged along with how to discover gateways on the ar.io network.
 
 # MVP Features
-- ar:// routing in the browser search bar and within pages that use ar:// hyperlinks.
+- ar:// routing in the browser search bar and within pages that use ar:// hyperlinks, images, video, audio and embedded iframes, objects
 - Automatically routes ArNS names and Arweave Transaction IDs to an available gateway.
 - Algorithmic Gateway Selection: Utilizes basic algorithm to route users through the most optimal gateway.
 - Gateway Discovery: Synchronizes the AR.IO Gateway Address registry providing up to date gateway selection.
