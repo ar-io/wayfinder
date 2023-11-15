@@ -39,18 +39,26 @@ syncGatewayAddressRegistry();
 chrome.webNavigation.onBeforeNavigate.addListener(async function(details) {
   const url = new URL(details.url);
   const arUrl = url.searchParams.get("q")
-  if (arUrl && arUrl.includes("ar://")) {
-      const name = arUrl.replace("ar://", "");
-      const gateway = await getOnlineGateway();
-      if (!/[a-z0-9_-]{43}/i.test(name)) {
-        const redirectTo = `${gateway.settings.protocol}://${name}.${gateway.settings.fqdn}:${gateway.settings.port}/`;
-        redirectedTabs[details.tabId] = true;
-        chrome.tabs.update(details.tabId, {url: redirectTo});
-      } else {
-        const redirectTo = `${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}/${name}`;
-        chrome.tabs.update(details.tabId, {url: redirectTo});
-      }
-  }
+  if (arUrl && arUrl.startsWith("ar://")) {
+    // Remove 'ar://' and split the URL into parts
+    const arUrlParts = arUrl.slice(5).split('/');
+    const baseName = arUrlParts[0]; // The first part is the baseName
+    const path = '/' + arUrlParts.slice(1).join('/'); // The rest is the path
+    const gateway = await getOnlineGateway();
+
+    let redirectTo;
+
+    // Check if the baseName is an Arweave transaction ID (43 characters)
+    if (/[a-z0-9_-]{43}/i.test(baseName)) {
+        redirectTo = `${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}/${baseName}${path}`;
+    } else {
+        // Handle domain-like baseName
+        redirectTo = `${gateway.settings.protocol}://${baseName}.${gateway.settings.fqdn}${gateway.settings.port ? `:${gateway.settings.port}` : ''}${path}`;
+    }
+
+    redirectedTabs[details.tabId] = true;
+    chrome.tabs.update(details.tabId, {url: redirectTo});
+}
 }, {urls: ["<all_urls>"]});
 
 // To handle getting the X-Arns-Resolved-Id
@@ -355,13 +363,19 @@ function selectRandomTopFiveStakedGateway(gar) {
 // This method takes an ar:// URL and converts it to a routable URL
 // Uses an online gateway frmo the GAR, using the configured routing settings
 async function getRoutableGatewayUrl(arUrl) {
-  const name = arUrl.replace("ar://", "");
+  //const name = arUrl.replace("ar://", "");
+  // Extract the base name and the path (if any) from the arUrl
+  const arUrlParts = arUrl.slice(5).split('/');
+  const baseName = arUrlParts[0]; // The first part is the baseName
+  const path = '/' + arUrlParts.slice(1).join('/'); // The rest is the path
   const gateway = await getOnlineGateway();
   let redirectTo;
-  if (!/[a-z0-9_-]{43}/i.test(name)) { // this is an ArNS name
-    redirectTo = `${gateway.settings.protocol}://${name}.${gateway.settings.fqdn}:${gateway.settings.port}/`;
-  } else { // this is an arweave transaction ID
-    redirectTo = `${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}/${name}`;
+    // Check if the baseName is an Arweave transaction ID (43 characters)
+    if (/[a-z0-9_-]{43}/i.test(baseName)) {
+      redirectTo = `${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}/${baseName}${path}`;
+  } else {
+      // Handle domain-like baseName
+      redirectTo = `${gateway.settings.protocol}://${baseName}.${gateway.settings.fqdn}${gateway.settings.port ? `:${gateway.settings.port}` : ''}${path}`;
   }
   return redirectTo;
 }
