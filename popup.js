@@ -316,10 +316,16 @@ function saveStaticGateway(inputValue) {
 }
 
 async function showMoreGatewayInfo(gateway, address) {
+    console.log(gateway)
     // Get modal elements
     const modal = document.getElementById('gatewayModal');
-    const modalUrl = document.getElementById('modal-gateway-url')
-    const modalAddress = document.getElementById('modal-gateway-address');
+    const modalUrl = document.getElementById('modal-gateway-url');
+    const modalORR = document.getElementById('modal-gateway-orr');
+    modalORR.textContent = gateway.weights.observerRewardRatioWeight;
+    const modalGRR = document.getElementById('modal-gateway-grr');
+    modalGRR.textContent = gateway.weights.gatewayRewardRatioWeight;
+    const modalGatewayWallet = document.getElementById('modal-gateway-wallet');
+    const modalObserverWallet = document.getElementById('modal-observer-wallet');
     const modalStake = document.getElementById('modal-stake');
     const modalStatus = document.getElementById('modal-status');
     const modalStart = document.getElementById('modal-start');
@@ -327,17 +333,20 @@ async function showMoreGatewayInfo(gateway, address) {
     const modalNote = document.getElementById('modal-note');
 
     // Assign values from the gateway object to modal elements
-    modalUrl.textContent = `${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}`
-    modalUrl.href = `${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}`
-    modalAddress.textContent = address.slice(0, 6) + '...'
-    modalAddress.href = `https://viewblock.io/arweave/address/${address}`;
+    modalUrl.textContent = `${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}`;
+    modalUrl.href = `${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}`;
+    modalGatewayWallet.textContent = address.slice(0, 6) + '...';
+    modalGatewayWallet.href = `https://viewblock.io/arweave/address/${address}`;
+
+    modalObserverWallet.textContent = gateway.observerWallet.slice(0, 6) + '...';
+    modalObserverWallet.href = `https://viewblock.io/arweave/address/${gateway.observerWallet}`;
 
     modalStake.textContent = gateway.operatorStake;
     modalStatus.textContent = gateway.status;
     modalStart.textContent = gateway.start; // start block height
 
     if (gateway.settings.properties) {
-        modalProperties.textContent = gateway.settings.properties.slice(0, 6) + '...'
+        modalProperties.textContent = gateway.settings.properties.slice(0, 6) + '...';
         modalProperties.href = `https://viewblock.io/arweave/tx/${gateway.settings.properties}`;
     } else {
         modalProperties.textContent = 'No properties set';
