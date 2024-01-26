@@ -206,7 +206,7 @@ async function refreshOnlineGateways() {
 async function fetchGatewayAddressRegistryCache(garCacheURL) {
   return fetch(garCacheURL)
     .then(response => response.json())
-    .then(data => (data.gateways ?? data.state.gateways));
+    .then(data => (data.result ?? data.gateways ?? data.state.gateways));
 }
 
 async function syncGatewayAddressRegistry() {

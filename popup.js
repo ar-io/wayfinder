@@ -425,7 +425,7 @@ async function isValidGarCacheURL(url) {
         const data = await response.json();
 
         // Check if the JSON has a "gateways" property and it's an array
-        if (!data.gateways && !data.state.gateways) {
+        if (!data.result && data.gateways && !data.state.gateways) {
             alert(`Cannot validate Gateways JSON within this Cache: ${garCacheURL}`);
             return false;
         }
