@@ -8,8 +8,8 @@ const RANDOM_TOP_FIVE_STAKED_ROUTE_METHOD = 'topFiveStake'
 const MAX_HISTORY_ITEMS = 20;
 const CONCURRENT_REQUESTS = 10; // number of gateways to check concurrently
 
-const defaultTestGARCacheURL = "https://dev.arns.app/v1/contract/E-pRI1bokGWQBqHnbut9rsHSt9Ypbldos3bAtwg4JMc/gateways";
-const defaultGARCacheURL = "https://dev.arns.app/v1/contract/bLAgYxAdX2Ry-nt6aH2ixgvJXbpsEYm28NgJgyqfs-U/gateways";
+const defaultTestGARCacheURL = "https://dev.arns.app/v1/contract/_NctcA2sRy1-J4OmIQZbYFPM17piNcbdBPH2ncX2RL8/read/gateways";
+const defaultGARCacheURL = "https://api.arns.app/v1/contract/bLAgYxAdX2Ry-nt6aH2ixgvJXbpsEYm28NgJgyqfs-U/read/gateways";
 
 const defaultGateway = {
   "operatorStake": 250000,
