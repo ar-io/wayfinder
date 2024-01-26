@@ -12,19 +12,35 @@ const defaultTestGARCacheURL = "https://dev.arns.app/v1/contract/_NctcA2sRy1-J4O
 const defaultGARCacheURL = "https://api.arns.app/v1/contract/bLAgYxAdX2Ry-nt6aH2ixgvJXbpsEYm28NgJgyqfs-U/read/gateways";
 
 const defaultGateway = {
+  "end": 0,
+  "observerWallet": "IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs",
   "operatorStake": 250000,
-  "vaults": [],
   "settings": {
-    "label": "AR.IO Test",
     "fqdn": "ar-io.dev",
+    "label": "AR.IO Test",
+    "note": "Test Gateway operated by PDS for the AR.IO ecosystem.",
     "port": 443,
-    "protocol": "https",
     "properties": "raJgvbFU-YAnku-WsupIdbTsqqGLQiYpGzoqk9SCVgY",
-    "note": "Test Gateway operated by PDS for the AR.IO ecosystem."
+    "protocol": "https"
+  },
+  "start": 1256694,
+  "stats": {
+    "failedConsecutiveEpochs": 0,
+    "passedEpochCount": 0,
+    "submittedEpochCount": 0,
+    "totalEpochParticipationCount": 0,
+    "totalEpochsPrescribedCount": 0
   },
   "status": "joined",
-  "start": 1256694,
-  "end": 0
+  "vaults": {},
+  "weights": {
+    "stakeWeight": 25,
+    "tenureWeight": 0.7253549382716049,
+    "gatewayRewardRatioWeight": 1,
+    "observerRewardRatioWeight": 1,
+    "compositeWeight": 18.133873456790123,
+    "normalizedCompositeWeight": 0.08297298112085387
+  }
 }
 
 chrome.storage.local.set({routingMethod: RANDOM_TOP_FIVE_STAKED_ROUTE_METHOD }); // sets the default route method
