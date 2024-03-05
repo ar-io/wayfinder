@@ -8,6 +8,7 @@ WayFinder (alpha) is a simple, open source, Google Chrome extension that intelli
 # MVP Features
 - ar:// routing in the browser search bar and within pages that use ar:// hyperlinks, images, video, audio and embedded iframes, objects
 - Automatically routes ArNS names and Arweave Transaction IDs to an available gateway.
+- The DNS TXT Record Redirection feature uses DNS TXT records to link Arweave transaction IDs with domains, thus offering a gasless, secure, and user-friendly method to navigate the permaweb with familiar URLs.
 - Algorithmic Gateway Selection: Utilizes basic algorithm to route users through the most optimal gateway.
 - Gateway Discovery: Synchronizes the AR.IO Gateway Address registry providing up to date gateway selection.
 - Static Gateway Configuration: Allows advanced users to pin their sessions to a specific gateway.
