@@ -84,6 +84,7 @@ chrome.webNavigation.onBeforeNavigate.addListener(async function(details) {
       // If baseName does not look like a domain and is not a 43 character Arweave ID,
       // use the original redirection logic
       redirectTo = `${gateway.settings.protocol}://${baseName}.${gateway.settings.fqdn}${gateway.settings.port ? `:${gateway.settings.port}` : ''}${path}`;
+      redirectedTabs[details.tabId] = true;
       chrome.tabs.update(details.tabId, {url: redirectTo});
     }
 }
