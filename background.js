@@ -64,16 +64,28 @@ chrome.webNavigation.onBeforeNavigate.addListener(async function(details) {
 
     let redirectTo;
 
-    // Check if the baseName is an Arweave transaction ID (43 characters)
     if (/[a-z0-9_-]{43}/i.test(baseName)) {
-        redirectTo = `${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}/${baseName}${path}`;
+      // If baseName is a 43 character Arweave ID, construct redirect URL to Arweave gateway
+      redirectTo = `${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}/${baseName}${path}`;
+      chrome.tabs.update(details.tabId, {url: redirectTo});
+    } else if (baseName.includes('.')) {
+      // If baseName contains a dot, indicating it's a domain, attempt to lookup TXT record
+      const txId = await lookupArweaveTxIdForDomain(baseName);
+      if (txId) {
+        // If a TX ID is found, redirect to the Arweave TX via a gateway
+        redirectTo = `${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}/${txId}${path}`;
+        chrome.tabs.update(details.tabId, {url: redirectTo});
+      } else {
+        // If no TX ID found, halt without redirection
+        console.error(`No Arweave TX ID found for domain: ${baseName}`);
+        // No redirection is performed if TXT record is not found
+      }
     } else {
-        // Handle domain-like baseName
-        redirectTo = `${gateway.settings.protocol}://${baseName}.${gateway.settings.fqdn}${gateway.settings.port ? `:${gateway.settings.port}` : ''}${path}`;
+      // If baseName does not look like a domain and is not a 43 character Arweave ID,
+      // use the original redirection logic
+      redirectTo = `${gateway.settings.protocol}://${baseName}.${gateway.settings.fqdn}${gateway.settings.port ? `:${gateway.settings.port}` : ''}${path}`;
+      chrome.tabs.update(details.tabId, {url: redirectTo});
     }
-
-    redirectedTabs[details.tabId] = true;
-    chrome.tabs.update(details.tabId, {url: redirectTo});
 }
 }, {urls: ["<all_urls>"]});
 
@@ -386,12 +398,48 @@ async function getRoutableGatewayUrl(arUrl) {
   const path = '/' + arUrlParts.slice(1).join('/'); // The rest is the path
   const gateway = await getOnlineGateway();
   let redirectTo;
-    // Check if the baseName is an Arweave transaction ID (43 characters)
-    if (/[a-z0-9_-]{43}/i.test(baseName)) {
-      redirectTo = `${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}/${baseName}${path}`;
+  // Check if the baseName is an Arweave transaction ID (43 characters)
+  // Expanded logic for handling domain-like baseName
+  // Check if the baseName is an Arweave transaction ID (43 characters)
+  if (/[a-z0-9_-]{43}/i.test(baseName)) {
+    redirectTo = `${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}/${baseName}${path}`;
   } else {
       // Handle domain-like baseName
-      redirectTo = `${gateway.settings.protocol}://${baseName}.${gateway.settings.fqdn}${gateway.settings.port ? `:${gateway.settings.port}` : ''}${path}`;
+      await lookupArweaveTxIdForDomain(baseName).then(txId => {
+        if (txId) {
+            // If a TX ID is found, redirect to the Arweave TX via a gateway
+            redirectTo = `${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}/${txId}${path}`;
+        } else {
+            // No TX ID found, use the original redirection logic
+            redirectTo = `${gateway.settings.protocol}://${baseName}.${gateway.settings.fqdn}${gateway.settings.port ? `:${gateway.settings.port}` : ''}${path}`;
+        }
+        chrome.tabs.update(details.tabId, {url: redirectTo});
+    });
   }
   return redirectTo;
+}
+
+// Fetches the TXT record matching ARTX for a given domain and returns the ID
+async function lookupArweaveTxIdForDomain(domain) {
+  // This example uses Google's DoH (DNS-over-HTTPS) service. 
+  // Make sure to find a DNS lookup API that suits your needs and supports CORS.
+  const apiUrl = `https://dns.google/resolve?name=${domain}&type=TXT`;
+
+  try {
+      const response = await fetch(apiUrl);
+      const data = await response.json();
+      if (data.Answer) {
+          for (const record of data.Answer) {
+              const txtRecord = record.data;
+              // Assuming the TXT record is formatted as "arweave-tx=<txId>"
+              const match = txtRecord.match(/ARTX ([a-zA-Z0-9_-]{43})/);
+              if (match) {
+                return match[1]; // Return the Arweave TX ID
+              }
+          }
+      }
+  } catch (error) {
+      console.error("Failed to lookup DNS TXT records:", error);
+  }
+  return null; // Return null if no matching TXT record is found
 }
