@@ -316,10 +316,18 @@ function saveStaticGateway(inputValue) {
 }
 
 async function showMoreGatewayInfo(gateway, address) {
+    console.log(gateway)
     // Get modal elements
     const modal = document.getElementById('gatewayModal');
-    const modalUrl = document.getElementById('modal-gateway-url')
-    const modalAddress = document.getElementById('modal-gateway-address');
+    const modalUrl = document.getElementById('modal-gateway-url');
+    const modalORR = document.getElementById('modal-gateway-orr');
+    // Convert observerRewardRatioWeight to percentage and format to one decimal place
+    modalORR.textContent = (gateway.weights.observerRewardRatioWeight * 100).toFixed(1) + '%';
+    const modalGRR = document.getElementById('modal-gateway-grr');
+    // Convert gatewayRewardRatioWeight to percentage and format to one decimal place
+    modalGRR.textContent = (gateway.weights.gatewayRewardRatioWeight * 100).toFixed(1) + '%';
+    const modalGatewayWallet = document.getElementById('modal-gateway-wallet');
+    const modalObserverWallet = document.getElementById('modal-observer-wallet');
     const modalStake = document.getElementById('modal-stake');
     const modalStatus = document.getElementById('modal-status');
     const modalStart = document.getElementById('modal-start');
@@ -327,17 +335,20 @@ async function showMoreGatewayInfo(gateway, address) {
     const modalNote = document.getElementById('modal-note');
 
     // Assign values from the gateway object to modal elements
-    modalUrl.textContent = `${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}`
-    modalUrl.href = `${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}`
-    modalAddress.textContent = address.slice(0, 6) + '...'
-    modalAddress.href = `https://viewblock.io/arweave/address/${address}`;
+    modalUrl.textContent = `${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}`;
+    modalUrl.href = `${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}`;
+    modalGatewayWallet.textContent = address.slice(0, 6) + '...';
+    modalGatewayWallet.href = `https://viewblock.io/arweave/address/${address}`;
+
+    modalObserverWallet.textContent = gateway.observerWallet.slice(0, 6) + '...';
+    modalObserverWallet.href = `https://viewblock.io/arweave/address/${gateway.observerWallet}`;
 
     modalStake.textContent = gateway.operatorStake;
     modalStatus.textContent = gateway.status;
     modalStart.textContent = gateway.start; // start block height
 
     if (gateway.settings.properties) {
-        modalProperties.textContent = gateway.settings.properties.slice(0, 6) + '...'
+        modalProperties.textContent = gateway.settings.properties.slice(0, 6) + '...';
         modalProperties.href = `https://viewblock.io/arweave/tx/${gateway.settings.properties}`;
     } else {
         modalProperties.textContent = 'No properties set';
@@ -425,7 +436,7 @@ async function isValidGarCacheURL(url) {
         const data = await response.json();
 
         // Check if the JSON has a "gateways" property and it's an array
-        if (!data.gateways && !data.state.gateways) {
+        if (!data.result && data.gateways && !data.state.gateways) {
             alert(`Cannot validate Gateways JSON within this Cache: ${garCacheURL}`);
             return false;
         }
