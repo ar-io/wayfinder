@@ -321,9 +321,11 @@ async function showMoreGatewayInfo(gateway, address) {
     const modal = document.getElementById('gatewayModal');
     const modalUrl = document.getElementById('modal-gateway-url');
     const modalORR = document.getElementById('modal-gateway-orr');
-    modalORR.textContent = gateway.weights.observerRewardRatioWeight;
+    // Convert observerRewardRatioWeight to percentage and format to one decimal place
+    modalORR.textContent = (gateway.weights.observerRewardRatioWeight * 100).toFixed(1) + '%';
     const modalGRR = document.getElementById('modal-gateway-grr');
-    modalGRR.textContent = gateway.weights.gatewayRewardRatioWeight;
+    // Convert gatewayRewardRatioWeight to percentage and format to one decimal place
+    modalGRR.textContent = (gateway.weights.gatewayRewardRatioWeight * 100).toFixed(1) + '%';
     const modalGatewayWallet = document.getElementById('modal-gateway-wallet');
     const modalObserverWallet = document.getElementById('modal-observer-wallet');
     const modalStake = document.getElementById('modal-stake');
