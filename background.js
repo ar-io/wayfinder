@@ -68,8 +68,13 @@ chrome.webNavigation.onBeforeNavigate.addListener(async function(details) {
       // If baseName is a 43 character Arweave ID, construct redirect URL to Arweave gateway
       redirectTo = `${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}/${baseName}${path}`;
       chrome.tabs.update(details.tabId, {url: redirectTo});
-    } else if (baseName.includes('.')) {
-      // If baseName contains a dot, indicating it's a domain, attempt to lookup TXT record
+    } else if (!baseName.includes('.')) {
+        // If baseName does not look like a domain and is not a 43 character Arweave ID, redirect to arns name
+        redirectTo = `${gateway.settings.protocol}://${baseName}.${gateway.settings.fqdn}${gateway.settings.port ? `:${gateway.settings.port}` : ''}${path}`;
+        redirectedTabs[details.tabId] = true;
+        chrome.tabs.update(details.tabId, {url: redirectTo});
+    } else {
+      // BaseName contains a dot, indicating it's a domain, attempt to lookup TXT record
       const txId = await lookupArweaveTxIdForDomain(baseName);
       if (txId) {
         // If a TX ID is found, redirect to the Arweave TX via a gateway
@@ -80,12 +85,6 @@ chrome.webNavigation.onBeforeNavigate.addListener(async function(details) {
         console.error(`No Arweave TX ID found for domain: ${baseName}`);
         // No redirection is performed if TXT record is not found
       }
-    } else {
-      // If baseName does not look like a domain and is not a 43 character Arweave ID,
-      // use the original redirection logic
-      redirectTo = `${gateway.settings.protocol}://${baseName}.${gateway.settings.fqdn}${gateway.settings.port ? `:${gateway.settings.port}` : ''}${path}`;
-      redirectedTabs[details.tabId] = true;
-      chrome.tabs.update(details.tabId, {url: redirectTo});
     }
 }
 }, {urls: ["<all_urls>"]});
@@ -403,19 +402,19 @@ async function getRoutableGatewayUrl(arUrl) {
   // Expanded logic for handling domain-like baseName
   // Check if the baseName is an Arweave transaction ID (43 characters)
   if (/[a-z0-9_-]{43}/i.test(baseName)) {
+    // Handle arweave transaction id
     redirectTo = `${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}/${baseName}${path}`;
-  } else {
-      // Handle domain-like baseName
-      await lookupArweaveTxIdForDomain(baseName).then(txId => {
-        if (txId) {
-            // If a TX ID is found, redirect to the Arweave TX via a gateway
-            redirectTo = `${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}/${txId}${path}`;
-        } else {
-            // No TX ID found, use the original redirection logic
-            redirectTo = `${gateway.settings.protocol}://${baseName}.${gateway.settings.fqdn}${gateway.settings.port ? `:${gateway.settings.port}` : ''}${path}`;
-        }
-        chrome.tabs.update(details.tabId, {url: redirectTo});
-    });
+  } else if (baseName.includes('.')) {
+    // Handle domain-like baseName
+    txId = await lookupArweaveTxIdForDomain(baseName)
+    if (txId) {
+      // If a TX ID is found, redirect to the Arweave TX via a gateway
+      redirectTo = `${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}/${txId}${path}`;
+    }
+  }
+  else {
+    // Handle ArNS name
+    redirectTo = `${gateway.settings.protocol}://${baseName}.${gateway.settings.fqdn}${gateway.settings.port ? `:${gateway.settings.port}` : ''}${path}`;
   }
   return redirectTo;
 }
