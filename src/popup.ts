@@ -1,4 +1,4 @@
-import { OnlineGateway } from "./background";
+import { OnlineGateway } from "./background.js";
 
 // Check if the document is still loading, if not, call the function directly
 if (document.readyState === "loading") {
@@ -92,6 +92,7 @@ async function afterPopupDOMLoaded(): Promise<void> {
         )) as {
           enrichedGarCache: Record<string, OnlineGateway>;
         };
+        console.log("Enriched cache: ", enrichedGarCache);
         const sortedGateways = sortGatewaysByStake(enrichedGarCache);
         for (const sortedGateway of sortedGateways) {
           const gateway = sortedGateway.data as OnlineGateway;
@@ -445,11 +446,19 @@ async function showMoreGatewayInfo(gateway: OnlineGateway, address: string) {
 
   // Convert observerRewardRatioWeight to percentage and format to one decimal place
   modalORR.textContent =
-    (gateway.weights.observerRewardRatioWeight * 100).toFixed(1) + "%";
+    (
+      (gateway.stats.totalEpochsPrescribedCount /
+        gateway.stats.submittedEpochCount) *
+      100
+    ).toFixed(1) + "%";
 
   // Convert gatewayRewardRatioWeight to percentage and format to one decimal place
   modalGRR.textContent =
-    (gateway.weights.gatewayRewardRatioWeight * 100).toFixed(1) + "%";
+    (
+      (gateway.stats.totalEpochParticipationCount /
+        gateway.stats.passedEpochCount) *
+      100
+    ).toFixed(1) + "%";
 
   // Assign values from the gateway object to modal elements
   modalUrl.textContent = `${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}`;
@@ -545,6 +554,7 @@ async function toggleBlacklist(address: any) {
 function sortGatewaysByStake(
   gateways: { [s: string]: OnlineGateway } | ArrayLike<OnlineGateway>
 ) {
+  console.log("Gateways before sort: ", gateways);
   // Convert the object to an array of {address, data} pairs
   const gatewayArray = Object.entries(gateways).map(([address, data]) => ({
     address,

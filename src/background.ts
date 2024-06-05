@@ -1,6 +1,4 @@
-// TypeScript version of background.ts
-import { ArIO, Gateway } from "@ar.io/sdk";
-const arIO = ArIO.init();
+import { Gateway } from "./types.js";
 
 export type OnlineGateway = Gateway & {
   online?: boolean;
@@ -42,15 +40,13 @@ const defaultGateway: Gateway = {
   status: "joined",
   totalDelegatedStake: 13868917608,
   vaults: {},
-  weights: {
-    stakeWeight: 25,
-    tenureWeight: 0.7253549382716049,
-    gatewayRewardRatioWeight: 1,
-    observerRewardRatioWeight: 1,
-    compositeWeight: 18.133873456790123,
-    normalizedCompositeWeight: 0.08297298112085387,
-  },
 };
+
+// TypeScript version of background.ts
+import { ArIO } from "@ar.io/sdk/web";
+
+const arIO = ArIO.init();
+console.log("Initialized AR.IO");
 
 // Set default values in Chrome storage
 chrome.storage.local.set({
@@ -61,7 +57,8 @@ chrome.storage.local.set({ enrichedGarCache: {} });
 chrome.storage.local.set({ blacklistedGateways: [] });
 
 // Run the check initially when the background script starts
-getGatewayAddressRegistry();
+getGatewayAddressRegistry(arIO);
+console.log("Got the registry");
 
 // Finds requests for ar:// in the browser address bar
 chrome.webNavigation.onBeforeNavigate.addListener(
@@ -104,7 +101,7 @@ chrome.webRequest.onHeadersReceived.addListener(
 // Used if someone clicks the refresh gateways button
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.message === "syncGatewayAddressRegistry") {
-    getGatewayAddressRegistry()
+    getGatewayAddressRegistry(arIO)
       .then(() => sendResponse({}))
       .catch((error) => {
         console.error(error);
@@ -152,7 +149,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true; // indicate that the response will be sent asynchronously
   }
 });
-
 // Helper functions
 
 /**
@@ -205,24 +201,11 @@ async function refreshOnlineGateways(): Promise<Record<string, OnlineGateway>> {
 }
 
 /**
- * Fetch the gateway address registry cache from a given URL.
- * @param garCacheURL The URL to fetch the cache from.
- * @returns A promise that resolves to the fetched cache.
- */
-async function fetchGatewayAddressRegistryCache(
-  garCacheURL: string
-): Promise<Record<string, Gateway>> {
-  const response = await fetch(garCacheURL);
-  const data = await response.json();
-  return data.result ?? data.gateways ?? data.state.gateways;
-}
-
-/**
  * Synchronize the gateway address registry with the cache.
  */
-
-async function getGatewayAddressRegistry(): Promise<void> {
+async function getGatewayAddressRegistry(arIO: any): Promise<void> {
   try {
+    console.log("Getting the gateways with the SDK");
     const garCache = await arIO.getGateways();
     await chrome.storage.local.set({ garCache });
     console.log(
