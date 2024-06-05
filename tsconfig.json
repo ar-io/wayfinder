@@ -2,14 +2,14 @@
   "compilerOptions": {
     "target": "es6",
     "module": "es6",
-    "moduleResolution": "node",
+    "moduleResolution": "Bundler",
     "outDir": "./dist",
-    "rootDir": "./src",
     "strict": true,
+    "lib": ["dom", "es2015"],
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "declaration": true,
+    "declaration": false,
     "sourceMap": true
   },
   "include": ["src"]

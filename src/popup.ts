@@ -1,5 +1,3 @@
-import { OnlineGateway } from "./background.js";
-
 // Check if the document is still loading, if not, call the function directly
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", afterPopupDOMLoaded);
@@ -87,15 +85,13 @@ async function afterPopupDOMLoaded(): Promise<void> {
         showGatewaysBtn.innerText = "Gateway Address Registry";
       } else {
         gatewayList.innerHTML = "";
-        const { enrichedGarCache } = (await chrome.storage.local.get(
+        const { enrichedGarCache  = {}} = (await chrome.storage.local.get(
           "enrichedGarCache"
-        )) as {
-          enrichedGarCache: Record<string, OnlineGateway>;
-        };
+        ))
         console.log("Enriched cache: ", enrichedGarCache);
         const sortedGateways = sortGatewaysByStake(enrichedGarCache);
         for (const sortedGateway of sortedGateways) {
-          const gateway = sortedGateway.data as OnlineGateway;
+          const gateway = sortedGateway.data;
 
           // Create a new element for each gateway
           const listItem = document.createElement("div");
@@ -130,12 +126,12 @@ async function afterPopupDOMLoaded(): Promise<void> {
 
           gatewayList.appendChild(listItem);
         }
-        document.getElementById("onlineGatewayCount")!.textContent =
+        document.getElementById("anyCount")!.textContent = enrichedGarCache && Object.values(enrichedGarCache) ?
           Object.values(enrichedGarCache)
-            .filter((gateway: OnlineGateway) => gateway.online)
-            .length.toString();
-        document.getElementById("totalGatewayCount")!.textContent =
-          Object.keys(enrichedGarCache).length.toString();
+            .filter((gateway: any) => gateway.online)
+            .length.toString() : "0";
+        document.getElementById("totalGatewayCount")!.textContent = enrichedGarCache && Object.keys(enrichedGarCache) ?
+          Object.keys(enrichedGarCache).length.toString() : "0";
 
         // Close the modal when the close button is clicked
         (
@@ -173,11 +169,11 @@ async function afterPopupDOMLoaded(): Promise<void> {
       const { enrichedGarCache } = (await chrome.storage.local.get(
         "enrichedGarCache"
       )) as {
-        enrichedGarCache: Record<string, OnlineGateway>;
+        enrichedGarCache: Record<string, any>;
       };
       const sortedGateways = sortGatewaysByStake(enrichedGarCache);
       for (const sortedGateway of sortedGateways) {
-        const gateway = sortedGateway.data as OnlineGateway;
+        const gateway = sortedGateway.data ;
 
         // Create a new element for each gateway
         const listItem = document.createElement("div");
@@ -211,9 +207,9 @@ async function afterPopupDOMLoaded(): Promise<void> {
                 `;
         gatewayList.appendChild(listItem);
       }
-      document.getElementById("onlineGatewayCount")!.textContent =
+      document.getElementById("anyCount")!.textContent =
         Object.values(enrichedGarCache)
-          .filter((gateway: OnlineGateway) => gateway.online)
+          .filter((gateway: any) => gateway.online)
           .length.toString();
       document.getElementById("totalGatewayCount")!.textContent =
         Object.keys(enrichedGarCache).length.toString();
@@ -421,7 +417,7 @@ function saveStaticGateway(inputValue: string | URL) {
   }
 }
 
-async function showMoreGatewayInfo(gateway: OnlineGateway, address: string) {
+async function showMoreGatewayInfo(gateway: any, address: string) {
   console.log(gateway);
   // Get modal elements
   const modal = document.getElementById("gatewayModal") as HTMLElement;
@@ -552,9 +548,13 @@ async function toggleBlacklist(address: any) {
 }
 
 function sortGatewaysByStake(
-  gateways: { [s: string]: OnlineGateway } | ArrayLike<OnlineGateway>
+  gateways: { [s: string]: any } | ArrayLike<any>
 ) {
   console.log("Gateways before sort: ", gateways);
+  // check the length
+  if (gateways === undefined || Object.keys(gateways).length === 0) {
+    return [];
+  }
   // Convert the object to an array of {address, data} pairs
   const gatewayArray = Object.entries(gateways).map(([address, data]) => ({
     address,

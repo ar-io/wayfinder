@@ -1,4 +1,4 @@
-import { Gateway } from "./types.js";
+import { ArIO, ArIOReadContract, Gateway } from "@ar.io/sdk/web";
 
 export type OnlineGateway = Gateway & {
   online?: boolean;
@@ -40,10 +40,15 @@ const defaultGateway: Gateway = {
   status: "joined",
   totalDelegatedStake: 13868917608,
   vaults: {},
+  weights: {
+    stakeWeight: 0,
+    tenureWeight: 0,
+    gatewayRewardRatioWeight: 0,
+    observerRewardRatioWeight: 0,
+    compositeWeight: 0,
+    normalizedCompositeWeight: 0
+  },
 };
-
-// TypeScript version of background.ts
-import { ArIO } from "@ar.io/sdk/web";
 
 const arIO = ArIO.init();
 console.log("Initialized AR.IO");
@@ -150,12 +155,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 });
 // Helper functions
-
-/**
- * Check if a gateway is online by sending a HEAD request.
- * @param gateway The gateway object to check.
- * @returns A promise that resolves to true if the gateway is online, otherwise false.
- */
 async function isGatewayOnline(gateway: Gateway): Promise<boolean> {
   const url = `${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}/`;
   const timeoutPromise = new Promise<never>((_, reject) =>
@@ -177,10 +176,6 @@ async function isGatewayOnline(gateway: Gateway): Promise<boolean> {
   }
 }
 
-/**
- * Refresh the online status of all gateways in the cache.
- * @returns A promise that resolves to the updated cache.
- */
 async function refreshOnlineGateways(): Promise<Record<string, OnlineGateway>> {
   const { garCache } = await chrome.storage.local.get(["garCache"]);
   const promises = Object.entries(garCache).map(async ([address, gateway]) => {
@@ -200,10 +195,7 @@ async function refreshOnlineGateways(): Promise<Record<string, OnlineGateway>> {
   return garCache;
 }
 
-/**
- * Synchronize the gateway address registry with the cache.
- */
-async function getGatewayAddressRegistry(arIO: any): Promise<void> {
+async function getGatewayAddressRegistry(arIO: ArIOReadContract): Promise<void> {
   try {
     console.log("Getting the gateways with the SDK");
     const garCache = await arIO.getGateways();
@@ -228,10 +220,6 @@ async function getGatewayAddressRegistry(arIO: any): Promise<void> {
   }
 }
 
-/**
- * Get an online gateway based on the configured routing method.
- * @returns A promise that resolves to a gateway object.
- */
 async function getOnlineGateway(): Promise<Gateway> {
   const { staticGateway } = (await chrome.storage.local.get([
     "staticGateway",
@@ -283,12 +271,7 @@ async function getOnlineGateway(): Promise<Gateway> {
   return gateway;
 }
 
-/**
- * Save a history entry to local storage.
- * @param url The URL accessed.
- * @param resolvedId The resolved Arweave transaction ID.
- * @param timestamp The timestamp of the access.
- */
+
 function saveToHistory(
   url: string,
   resolvedId: string,
@@ -302,11 +285,7 @@ function saveToHistory(
   });
 }
 
-/**
- * Select a random gateway from the GAR JSON.
- * @param gar The GAR JSON object.
- * @returns A random Gateway object or the default gateway if no gateways are online.
- */
+
 function selectRandomGateway(
   gar: Record<string, OnlineGateway>
 ): OnlineGateway {
@@ -319,11 +298,7 @@ function selectRandomGateway(
   return onlineGateways[randomIndex];
 }
 
-/**
- * Select a weighted random gateway based on operator stake.
- * @param gar The GAR JSON object.
- * @returns A weighted random Gateway object or the default gateway if no gateways are online.
- */
+
 function selectWeightedGateway(
   gar: Record<string, OnlineGateway>
 ): OnlineGateway {
@@ -343,11 +318,7 @@ function selectWeightedGateway(
   return defaultGateway;
 }
 
-/**
- * Select the gateway with the highest stake.
- * @param gar The GAR JSON object.
- * @returns The gateway with the highest stake or the default gateway if no gateways are online.
- */
+
 function selectHighestStakeGateway(
   gar: Record<string, OnlineGateway>
 ): OnlineGateway {
@@ -368,11 +339,6 @@ function selectHighestStakeGateway(
   return maxStakeGateways[randomIndex];
 }
 
-/**
- * Select a random gateway from the top five staked gateways.
- * @param gar The GAR JSON object.
- * @returns A random Gateway object from the top five staked gateways or the default gateway if no gateways are online.
- */
 function selectRandomTopFiveStakedGateway(
   gar: Record<string, OnlineGateway>
 ): OnlineGateway {
@@ -388,11 +354,7 @@ function selectRandomTopFiveStakedGateway(
   return top5[randomIndex];
 }
 
-/**
- * Convert an ar:// URL to a routable gateway URL.
- * @param arUrl The ar:// URL to convert.
- * @returns A promise that resolves to the routable gateway URL.
- */
+
 async function getRoutableGatewayUrl(arUrl: string): Promise<string> {
   const arUrlParts = arUrl.slice(5).split("/");
   const baseName = arUrlParts[0];
@@ -415,11 +377,7 @@ async function getRoutableGatewayUrl(arUrl: string): Promise<string> {
   return redirectTo || "";
 }
 
-/**
- * Lookup the Arweave transaction ID for a given domain using DNS TXT records.
- * @param domain The domain to lookup.
- * @returns A promise that resolves to the Arweave transaction ID or null if not found.
- */
+
 async function lookupArweaveTxIdForDomain(
   domain: string
 ): Promise<string | null> {

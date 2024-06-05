@@ -4,18 +4,17 @@
     "version": "0.0.12",
     "description": "WayFinder (Alpha) streamlines access to the Permaweb through the AR.IO Network and Arweave Name System.",
     "permissions": ["storage", "webNavigation", "webRequest"],
-    "background": {
-      "service_worker": "dist/background.js",
-      "type": "module"
-    },
     "host_permissions": ["<all_urls>"],
+    "background": {
+      "service_worker": "background.js"
+    },
     "action": {
       "default_popup": "popup.html"
     },
     "content_scripts": [
       {
           "matches": ["<all_urls>"],
-          "js": ["dist/content.js"]
+          "js": ["content.js"]
       }
     ],
     "content_security_policy": {
@@ -29,7 +28,7 @@
     },
     "web_accessible_resources": [
       {
-        "resources": ["dist/**/*"],
+        "resources": ["**/*"],
         "matches": ["<all_urls>"]
       }
     ]
