@@ -1,68 +1,31 @@
 // TypeScript version of background.ts
+import { ArIO, Gateway } from "@ar.io/sdk";
+const arIO = ArIO.init();
 
-// Type definitions for various objects used in the code
-type GatewaySettings = {
-  fqdn: string;
-  label: string;
-  note: string;
-  port: number;
-  properties: string;
-  protocol: string;
-};
-
-type GatewayStats = {
-  failedConsecutiveEpochs: number;
-  passedEpochCount: number;
-  submittedEpochCount: number;
-  totalEpochParticipationCount: number;
-  totalEpochsPrescribedCount: number;
-};
-
-type GatewayWeights = {
-  stakeWeight: number;
-  tenureWeight: number;
-  gatewayRewardRatioWeight: number;
-  observerRewardRatioWeight: number;
-  compositeWeight: number;
-  normalizedCompositeWeight: number;
-};
-
-type Gateway = {
-  end: number;
-  observerWallet: string;
-  operatorStake: number;
-  settings: GatewaySettings;
-  start: number;
-  stats: GatewayStats;
-  status: string;
-  vaults: Record<string, unknown>;
-  weights: GatewayWeights;
+export type OnlineGateway = Gateway & {
   online?: boolean;
 };
 
 // Global variables
-let gar: Record<string, Gateway> = {};
-let sortedGar: Record<string, Gateway> = {};
 let redirectedTabs: Record<number, boolean> = {}; // A dictionary to keep track of redirected tabs
 const RANDOM_ROUTE_METHOD = "random";
 const STAKE_RANDOM_ROUTE_METHOD = "stakeRandom";
 const HIGHEST_STAKE_ROUTE_METHOD = "highestStake";
 const RANDOM_TOP_FIVE_STAKED_ROUTE_METHOD = "topFiveStake";
 const MAX_HISTORY_ITEMS = 20;
-const CONCURRENT_REQUESTS = 10; // number of gateways to check concurrently
-
-const defaultTestGARCacheURL =
-  "https://dev.arns.app/v1/contract/_NctcA2sRy1-J4OmIQZbYFPM17piNcbdBPH2ncX2RL8/read/gateways";
-const defaultGARCacheURL =
-  "https://api.arns.app/v1/contract/bLAgYxAdX2Ry-nt6aH2ixgvJXbpsEYm28NgJgyqfs-U/read/gateways";
 
 const defaultGateway: Gateway = {
+  delegates: {},
   end: 0,
   observerWallet: "IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs",
-  operatorStake: 250000,
+  operatorStake: 250000000000,
   settings: {
+    allowDelegatedStaking: true,
+    autoStake: false,
+    delegateRewardShareRatio: 30,
     fqdn: "ar-io.dev",
     label: "AR.IO Test",
+    minDelegatedStake: 100000000,
     note: "Test Gateway operated by PDS for the AR.IO ecosystem.",
     port: 443,
     properties: "raJgvbFU-YAnku-WsupIdbTsqqGLQiYpGzoqk9SCVgY",
@@ -71,12 +34,13 @@ const defaultGateway: Gateway = {
   start: 1256694,
   stats: {
     failedConsecutiveEpochs: 0,
-    passedEpochCount: 0,
-    submittedEpochCount: 0,
-    totalEpochParticipationCount: 0,
-    totalEpochsPrescribedCount: 0,
+    passedEpochCount: 114,
+    submittedEpochCount: 113,
+    totalEpochParticipationCount: 120,
+    totalEpochsPrescribedCount: 120,
   },
   status: "joined",
+  totalDelegatedStake: 13868917608,
   vaults: {},
   weights: {
     stakeWeight: 25,
@@ -93,11 +57,11 @@ chrome.storage.local.set({
   routingMethod: RANDOM_TOP_FIVE_STAKED_ROUTE_METHOD,
 });
 chrome.storage.local.set({ garCache: {} });
-chrome.storage.local.set({ garLocal: {} });
+chrome.storage.local.set({ enrichedGarCache: {} });
 chrome.storage.local.set({ blacklistedGateways: [] });
 
 // Run the check initially when the background script starts
-syncGatewayAddressRegistry();
+getGatewayAddressRegistry();
 
 // Finds requests for ar:// in the browser address bar
 chrome.webNavigation.onBeforeNavigate.addListener(
@@ -140,7 +104,7 @@ chrome.webRequest.onHeadersReceived.addListener(
 // Used if someone clicks the refresh gateways button
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.message === "syncGatewayAddressRegistry") {
-    syncGatewayAddressRegistry()
+    getGatewayAddressRegistry()
       .then(() => sendResponse({}))
       .catch((error) => {
         console.error(error);
@@ -221,11 +185,13 @@ async function isGatewayOnline(gateway: Gateway): Promise<boolean> {
  * Refresh the online status of all gateways in the cache.
  * @returns A promise that resolves to the updated cache.
  */
-async function refreshOnlineGateways(): Promise<Record<string, Gateway>> {
+async function refreshOnlineGateways(): Promise<Record<string, OnlineGateway>> {
   const { garCache } = await chrome.storage.local.get(["garCache"]);
   const promises = Object.entries(garCache).map(async ([address, gateway]) => {
-    (gateway as Gateway).online = await isGatewayOnline(gateway as Gateway);
-    return { address, gateway: gateway as Gateway };
+    (gateway as OnlineGateway).online = await isGatewayOnline(
+      gateway as Gateway
+    );
+    return { address, gateway: gateway as OnlineGateway };
   });
 
   const results = await Promise.allSettled(promises);
@@ -254,25 +220,21 @@ async function fetchGatewayAddressRegistryCache(
 /**
  * Synchronize the gateway address registry with the cache.
  */
-async function syncGatewayAddressRegistry(): Promise<void> {
-  try {
-    const { garCacheURL } = await chrome.storage.local.get(["garCacheURL"]);
-    const garCache = garCacheURL
-      ? await fetchGatewayAddressRegistryCache(garCacheURL)
-      : await fetchGatewayAddressRegistryCache(defaultGARCacheURL);
 
+async function getGatewayAddressRegistry(): Promise<void> {
+  try {
+    const garCache = await arIO.getGateways();
     await chrome.storage.local.set({ garCache });
     console.log(
       `Found ${
         Object.keys(garCache).length
       } gateways cached. Syncing availability...`
     );
-
-    const garLocal = await refreshOnlineGateways();
-    await chrome.storage.local.set({ garLocal });
+    const enrichedGarCache = await refreshOnlineGateways();
+    await chrome.storage.local.set({ enrichedGarCache });
     console.log(
       `Finished syncing gateway availability. Found ${
-        Object.values(garLocal).filter((g) => g.online).length
+        Object.values(enrichedGarCache).filter((g) => g.online).length
       } gateways online.`
     );
   } catch (error) {
@@ -299,15 +261,17 @@ async function getOnlineGateway(): Promise<Gateway> {
   const { routingMethod } = (await chrome.storage.local.get([
     "routingMethod",
   ])) as { routingMethod: string };
-  const { garLocal } = (await chrome.storage.local.get(["garLocal"])) as {
-    garLocal: Record<string, Gateway>;
+  const { enrichedGarCache } = (await chrome.storage.local.get([
+    "enrichedGarCache",
+  ])) as {
+    enrichedGarCache: Record<string, OnlineGateway>;
   };
   const { blacklistedGateways = [] } = (await chrome.storage.local.get([
     "blacklistedGateways",
   ])) as { blacklistedGateways: string[] };
 
-  const filteredGar: Record<string, Gateway> = Object.fromEntries(
-    Object.entries(garLocal).filter(
+  const filteredGar: Record<string, OnlineGateway> = Object.fromEntries(
+    Object.entries(enrichedGarCache).filter(
       ([address]) => !blacklistedGateways.includes(address)
     )
   );
@@ -360,7 +324,9 @@ function saveToHistory(
  * @param gar The GAR JSON object.
  * @returns A random Gateway object or the default gateway if no gateways are online.
  */
-function selectRandomGateway(gar: Record<string, Gateway>): Gateway {
+function selectRandomGateway(
+  gar: Record<string, OnlineGateway>
+): OnlineGateway {
   const onlineGateways = Object.values(gar).filter((gateway) => gateway.online);
   if (onlineGateways.length === 0) {
     console.log("No online random gateways available. Using default");
@@ -375,7 +341,9 @@ function selectRandomGateway(gar: Record<string, Gateway>): Gateway {
  * @param gar The GAR JSON object.
  * @returns A weighted random Gateway object or the default gateway if no gateways are online.
  */
-function selectWeightedGateway(gar: Record<string, Gateway>): Gateway {
+function selectWeightedGateway(
+  gar: Record<string, OnlineGateway>
+): OnlineGateway {
   const onlineGateways = Object.values(gar).filter((gateway) => gateway.online);
   const totalStake = onlineGateways.reduce(
     (accum, gateway) => accum + gateway.operatorStake,
@@ -397,7 +365,9 @@ function selectWeightedGateway(gar: Record<string, Gateway>): Gateway {
  * @param gar The GAR JSON object.
  * @returns The gateway with the highest stake or the default gateway if no gateways are online.
  */
-function selectHighestStakeGateway(gar: Record<string, Gateway>): Gateway {
+function selectHighestStakeGateway(
+  gar: Record<string, OnlineGateway>
+): OnlineGateway {
   const maxStake = Math.max(
     ...Object.values(gar).map((gateway) => gateway.operatorStake)
   );
@@ -421,8 +391,8 @@ function selectHighestStakeGateway(gar: Record<string, Gateway>): Gateway {
  * @returns A random Gateway object from the top five staked gateways or the default gateway if no gateways are online.
  */
 function selectRandomTopFiveStakedGateway(
-  gar: Record<string, Gateway>
-): Gateway {
+  gar: Record<string, OnlineGateway>
+): OnlineGateway {
   const sortedGateways = Object.values(gar)
     .filter((gateway) => gateway.online)
     .sort((a, b) => b.operatorStake - a.operatorStake);

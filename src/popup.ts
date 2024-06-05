@@ -1,3 +1,5 @@
+import { OnlineGateway } from "./background";
+
 // Check if the document is still loading, if not, call the function directly
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", afterPopupDOMLoaded);
@@ -85,12 +87,14 @@ async function afterPopupDOMLoaded(): Promise<void> {
         showGatewaysBtn.innerText = "Gateway Address Registry";
       } else {
         gatewayList.innerHTML = "";
-        const { garLocal } = (await chrome.storage.local.get("garLocal")) as {
-          garLocal: Record<string, Gateway>;
+        const { enrichedGarCache } = (await chrome.storage.local.get(
+          "enrichedGarCache"
+        )) as {
+          enrichedGarCache: Record<string, OnlineGateway>;
         };
-        const sortedGateways = sortGatewaysByStake(garLocal);
+        const sortedGateways = sortGatewaysByStake(enrichedGarCache);
         for (const sortedGateway of sortedGateways) {
-          const gateway = sortedGateway.data as Gateway;
+          const gateway = sortedGateway.data as OnlineGateway;
 
           // Create a new element for each gateway
           const listItem = document.createElement("div");
@@ -126,11 +130,11 @@ async function afterPopupDOMLoaded(): Promise<void> {
           gatewayList.appendChild(listItem);
         }
         document.getElementById("onlineGatewayCount")!.textContent =
-          Object.values(garLocal)
-            .filter((gateway: Gateway) => gateway.online)
+          Object.values(enrichedGarCache)
+            .filter((gateway: OnlineGateway) => gateway.online)
             .length.toString();
         document.getElementById("totalGatewayCount")!.textContent =
-          Object.keys(garLocal).length.toString();
+          Object.keys(enrichedGarCache).length.toString();
 
         // Close the modal when the close button is clicked
         (
@@ -165,12 +169,14 @@ async function afterPopupDOMLoaded(): Promise<void> {
       gatewayList.innerHTML = '<span class="refreshing-text"></span>'; // use class here
       await syncGatewayAddressRegistryPopup();
       gatewayList.innerHTML = "";
-      const { garLocal } = (await chrome.storage.local.get("garLocal")) as {
-        garLocal: Record<string, Gateway>;
+      const { enrichedGarCache } = (await chrome.storage.local.get(
+        "enrichedGarCache"
+      )) as {
+        enrichedGarCache: Record<string, OnlineGateway>;
       };
-      const sortedGateways = sortGatewaysByStake(garLocal);
+      const sortedGateways = sortGatewaysByStake(enrichedGarCache);
       for (const sortedGateway of sortedGateways) {
-        const gateway = sortedGateway.data as Gateway;
+        const gateway = sortedGateway.data as OnlineGateway;
 
         // Create a new element for each gateway
         const listItem = document.createElement("div");
@@ -205,11 +211,11 @@ async function afterPopupDOMLoaded(): Promise<void> {
         gatewayList.appendChild(listItem);
       }
       document.getElementById("onlineGatewayCount")!.textContent =
-        Object.values(garLocal)
-          .filter((gateway: Gateway) => gateway.online)
+        Object.values(enrichedGarCache)
+          .filter((gateway: OnlineGateway) => gateway.online)
           .length.toString();
       document.getElementById("totalGatewayCount")!.textContent =
-        Object.keys(garLocal).length.toString();
+        Object.keys(enrichedGarCache).length.toString();
     });
 
     showHistoryBtn.addEventListener("click", function () {
@@ -414,7 +420,7 @@ function saveStaticGateway(inputValue: string | URL) {
   }
 }
 
-async function showMoreGatewayInfo(gateway: Gateway, address: string) {
+async function showMoreGatewayInfo(gateway: OnlineGateway, address: string) {
   console.log(gateway);
   // Get modal elements
   const modal = document.getElementById("gatewayModal") as HTMLElement;
@@ -537,7 +543,7 @@ async function toggleBlacklist(address: any) {
 }
 
 function sortGatewaysByStake(
-  gateways: { [s: string]: Gateway } | ArrayLike<Gateway>
+  gateways: { [s: string]: OnlineGateway } | ArrayLike<OnlineGateway>
 ) {
   // Convert the object to an array of {address, data} pairs
   const gatewayArray = Object.entries(gateways).map(([address, data]) => ({
