@@ -20,3 +20,35 @@ WayFinder (alpha) is a simple, open source, Google Chrome extension that intelli
 
 # Want to learn more?
 Join our discord for more information about WayFinder or how to contribute. https://discord.gg/zAZ8p9ARqC
+
+## Developers
+
+### Requirements
+
+- `node` - v18+
+- `yarn` - v1.4
+
+### Dependencies
+
+Dependencies should be installed using [Yarn]
+
+```bash
+yarn
+```
+
+### Build
+
+The extension uses [Webpack] to bundle extension files into minimized javascript. 
+
+```bash
+yarn build
+```
+
+### Loading into Chrome
+
+To load the bundled app as an extension in Chrome:
+
+1. Run `yarn build` to create a fresh `dist` directory
+1. Navigate to `Manage Extensions`
+1. Click `Load unpacked`
+1. Select the `dist` directory and hit `Load`
