@@ -7,9 +7,9 @@ export default {
   entry: {
     background: `${__dirname}/src/background.ts`,
     content: `${__dirname}/src/content.ts`,
-    popup: `${__dirname}/src/popup.ts`
+    popup: `${__dirname}/src/popup.ts`,
   },
-  devtool: "source-map",
+  devtool: false,
   output: {
     path: `${__dirname}/dist`,
     filename: "[name].js",
@@ -19,7 +19,7 @@ export default {
     rules: [
       {
         test: /\.ts$/,
-        use: 'ts-loader',
+        use: "ts-loader",
         exclude: /node_modules/,
       },
     ],

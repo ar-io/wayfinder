@@ -1,36 +1,34 @@
 {
-    "manifest_version": 3,
-    "name": "AR.IO WayFinder",
-    "version": "0.0.12",
-    "description": "WayFinder (Alpha) streamlines access to the Permaweb through the AR.IO Network and Arweave Name System.",
-    "permissions": ["storage", "webNavigation", "webRequest"],
-    "host_permissions": ["<all_urls>"],
-    "background": {
-      "service_worker": "background.js"
-    },
-    "action": {
-      "default_popup": "popup.html"
-    },
-    "content_scripts": [
-      {
-          "matches": ["<all_urls>"],
-          "js": ["content.js"]
-      }
-    ],
-    "content_security_policy": {
-      "extension_pages": "script-src 'self'; object-src 'self';"
-    },
-    "icons": {
-      "16": "assets/icon16.png",
-      "48": "assets/icon48.png",
-      "128": "assets/icon128.png"
-    
-    },
-    "web_accessible_resources": [
-      {
-        "resources": ["**/*"],
-        "matches": ["<all_urls>"]
-      }
-    ]
-  }
-  
+  "manifest_version": 3,
+  "name": "AR.IO WayFinder",
+  "version": "0.0.12",
+  "description": "WayFinder (Alpha) streamlines access to the Permaweb through the AR.IO Network and Arweave Name System.",
+  "permissions": ["storage", "webNavigation", "webRequest"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self';"
+  },
+  "icons": {
+    "16": "assets/icon16.png",
+    "48": "assets/icon48.png",
+    "128": "assets/icon128.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["**/*"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

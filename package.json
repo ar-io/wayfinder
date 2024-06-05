@@ -23,6 +23,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "clean": "rimraf dist",
     "start": "webpack serve --mode development",
+    "format:fix": "prettier --write .",
     "build:webpack": "webpack --config webpack.config.mjs",
     "build": "yarn clean && yarn build:webpack"
   },
