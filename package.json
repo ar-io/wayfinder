@@ -3,29 +3,28 @@
   "version": "0.0.12",
   "description": "WayFinder (alpha) is a simple, open source, Google Chrome extension that intelligently routes users to optimal AR.IO gateways, ensuring streamlined access to the permaweb on Arweave.",
   "main": "dist/index.js",
-  "type": "module",
   "browser": "dist/index.js",
+  "type": "module",
   "devDependencies": {
+    "@crxjs/vite-plugin": "^2.0.0-beta.23",
     "@types/chrome": "^0.0.268",
     "@types/node": "^20.12.12",
-    "clean-webpack-plugin": "^4.0.0",
-    "copy-webpack-plugin": "^12.0.2",
-    "html-webpack-plugin": "^5.6.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "@vitejs/plugin-react-swc": "^3.7.0",
     "prettier": "^3.3.1",
-    "terser-webpack-plugin": "^5.0.0",
-    "ts-loader": "^9.5.1",
     "typescript": "^5.4.5",
-    "webpack": "^5.91.0",
-    "webpack-cli": "^5.1.4",
-    "webpack-dev-server": "^5.0.4"
+    "vite": "^5.2.10",
+    "vite-plugin-copy": "^0.1.6",
+    "vite-plugin-html": "^3.2.2",
+    "vite-plugin-node-polyfills": "^0.22.0",
+    "vite-plugin-static-copy": "^1.0.6"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "clean": "rimraf dist",
-    "start": "webpack serve --mode development",
+    "start": "vite preview",
     "format:fix": "prettier --write .",
-    "build:webpack": "webpack --config webpack.config.mjs",
-    "build": "yarn clean && yarn build:webpack"
+    "build": "vite build --config vite.config.js"
   },
   "repository": {
     "type": "git",
@@ -39,6 +38,6 @@
   },
   "homepage": "https://github.com/ar-io/wayfinder#readme",
   "dependencies": {
-    "@ar.io/sdk": "^1.1.0"
+    "@ar.io/sdk": "1.2.0"
   }
 }

@@ -1,3 +1,5 @@
+import { mIOToken, Gateway, AoGateway } from '@ar.io/sdk/web';
+
 // Check if the document is still loading, if not, call the function directly
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", afterPopupDOMLoaded);
@@ -87,7 +89,6 @@ async function afterPopupDOMLoaded(): Promise<void> {
         gatewayList.innerHTML = "";
         const { enrichedGarCache = {} } =
           await chrome.storage.local.get("enrichedGarCache");
-        console.log("Enriched cache: ", enrichedGarCache);
         const sortedGateways = sortGatewaysByStake(enrichedGarCache);
         for (const sortedGateway of sortedGateways) {
           const gateway = sortedGateway.data;
@@ -119,22 +120,15 @@ async function afterPopupDOMLoaded(): Promise<void> {
                             <span class="online-status">${onlineStatus}</span>
                         </div>
                         <div class="gateway-info">
-                            <span class="operator-stake">Stake: ${gateway.operatorStake}</span>
+                            <span class="operator-stake">Stake: ${new mIOToken(gateway.operatorStake).toIO()} IO</span>
                         </div>
                     `;
 
           gatewayList.appendChild(listItem);
         }
-        document.getElementById("anyCount")!.textContent =
-          enrichedGarCache && Object.values(enrichedGarCache)
-            ? Object.values(enrichedGarCache)
-                .filter((gateway: any) => gateway.online)
-                .length.toString()
-            : "0";
-        document.getElementById("totalGatewayCount")!.textContent =
-          enrichedGarCache && Object.keys(enrichedGarCache)
-            ? Object.keys(enrichedGarCache).length.toString()
-            : "0";
+        const onlineCount = Object.values(enrichedGarCache).filter((gateway: any) => gateway.online).length;
+        document.getElementById("onlineGatewayCount")!.textContent = `${onlineCount}`;
+        document.getElementById("totalGatewayCount")!.textContent = Object.keys(enrichedGarCache).length.toString();
 
         // Close the modal when the close button is clicked
         (
@@ -205,18 +199,16 @@ async function afterPopupDOMLoaded(): Promise<void> {
                         <span class="online-status">${onlineStatus}</span>
                     </div>
                     <div class="gateway-info">
-                        <span class="operator-stake">Stake: ${gateway.operatorStake}</span>
+                        <span class="operator-stake">Stake: ${new mIOToken(gateway.operatorStake).toIO()} IO</span>
                     </div>
                 `;
         gatewayList.appendChild(listItem);
       }
-      document.getElementById("anyCount")!.textContent = Object.values(
-        enrichedGarCache,
-      )
-        .filter((gateway: any) => gateway.online)
-        .length.toString();
-      document.getElementById("totalGatewayCount")!.textContent =
-        Object.keys(enrichedGarCache).length.toString();
+
+        const onlineCount = Object.values(enrichedGarCache).filter((gateway: any) => gateway.online).length;
+        document.getElementById("onlineGatewayCount")!.textContent = `${onlineCount}`;
+        document.getElementById("totalGatewayCount")!.textContent = Object.keys(enrichedGarCache).length.toString();
+
     });
 
     showHistoryBtn.addEventListener("click", function () {
@@ -421,8 +413,7 @@ function saveStaticGateway(inputValue: string | URL) {
   }
 }
 
-async function showMoreGatewayInfo(gateway: any, address: string) {
-  console.log(gateway);
+async function showMoreGatewayInfo(gateway: AoGateway, address: string) {
   // Get modal elements
   const modal = document.getElementById("gatewayModal") as HTMLElement;
   const modalUrl = document.getElementById(
@@ -444,21 +435,14 @@ async function showMoreGatewayInfo(gateway: any, address: string) {
   ) as HTMLAnchorElement;
   const modalNote = document.getElementById("modal-note") as HTMLElement;
 
+  const orr = gateway.stats.prescribedEpochCount > 0 ? gateway.stats.observedEpochCount / gateway.stats.prescribedEpochCount * 100 : 100;
   // Convert observerRewardRatioWeight to percentage and format to one decimal place
-  modalORR.textContent =
-    (
-      (gateway.stats.totalEpochsPrescribedCount /
-        gateway.stats.submittedEpochCount) *
-      100
-    ).toFixed(1) + "%";
+  modalORR.textContent = `${orr}%`;
+
+  const grr = gateway.stats.totalEpochParticipationCount ? gateway.stats.passedEpochCount / gateway.stats.totalEpochParticipationCount * 100 : 100 ;
 
   // Convert gatewayRewardRatioWeight to percentage and format to one decimal place
-  modalGRR.textContent =
-    (
-      (gateway.stats.totalEpochParticipationCount /
-        gateway.stats.passedEpochCount) *
-      100
-    ).toFixed(1) + "%";
+  modalGRR.textContent = `${grr}%`
 
   // Assign values from the gateway object to modal elements
   modalUrl.textContent = `${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}`;
@@ -466,13 +450,12 @@ async function showMoreGatewayInfo(gateway: any, address: string) {
   modalGatewayWallet.textContent = address.slice(0, 6) + "...";
   modalGatewayWallet.href = `https://viewblock.io/arweave/address/${address}`;
 
-  modalObserverWallet.textContent = gateway.observerWallet.slice(0, 6) + "...";
-  modalObserverWallet.href = `https://viewblock.io/arweave/address/${gateway.observerWallet}`;
+  modalObserverWallet.textContent = gateway.observerAddress.slice(0, 6) + "...";
+  modalObserverWallet.href = `https://viewblock.io/arweave/address/${gateway.observerAddress}`;
 
-  modalStake.textContent = gateway.operatorStake.toString();
+  modalStake.textContent = `${new mIOToken(gateway.operatorStake).toIO()} IO`;
   modalStatus.textContent = gateway.status;
-  modalStart.textContent = gateway.start.toString(); // start block height
-
+  modalStart.textContent = `${new Date(gateway.startTimestamp).toLocaleDateString()}`;
   if (gateway.settings.properties) {
     modalProperties.textContent =
       gateway.settings.properties.slice(0, 6) + "...";

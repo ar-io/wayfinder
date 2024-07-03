@@ -1,4 +1,10 @@
-import { ArIO, ArIOReadContract, Gateway } from "@ar.io/sdk/web";
+import { IO, Gateway } from "@ar.io/sdk/web";
+
+if (typeof self !== 'undefined') {
+  // Define 'window' as 'self' to simulate the window object
+  self.window = self;
+}
+
 
 export type OnlineGateway = Gateway & {
   online?: boolean;
@@ -50,7 +56,6 @@ const defaultGateway: Gateway = {
   },
 };
 
-
 // Set default values in Chrome storage
 chrome.storage.local.set({
   routingMethod: RANDOM_TOP_FIVE_STAKED_ROUTE_METHOD,
@@ -60,7 +65,7 @@ chrome.storage.local.set({ enrichedGarCache: {} });
 chrome.storage.local.set({ blacklistedGateways: [] });
 
 console.log("Initialized AR.IO");
-const arIO = ArIO.init();
+const arIO = IO.init();
 
 // Run the check initially when the background script starts
 getGatewayAddressRegistry(arIO);
@@ -190,13 +195,13 @@ async function isGatewayOnline(gateway: Gateway): Promise<boolean> {
 async function refreshOnlineGateways(): Promise<Record<string, OnlineGateway>> {
   const { garCache } = await chrome.storage.local.get(["garCache"]);
   const promises = Object.entries(garCache).map(async ([address, gateway]) => {
-    (gateway as OnlineGateway).online = await isGatewayOnline(
-      gateway as Gateway,
-    );
-    return { address, gateway: gateway as OnlineGateway };
+    const online = await isGatewayOnline(gateway as Gateway);
+    const onlineGateway: OnlineGateway = { ...gateway as Gateway, online };
+    return { address, gateway: onlineGateway };
   });
 
   const results = await Promise.allSettled(promises);
+  console.log(results)
   results.forEach((result) => {
     if (result.status === "fulfilled") {
       garCache[result.value.address] = result.value.gateway;
@@ -209,9 +214,7 @@ async function refreshOnlineGateways(): Promise<Record<string, OnlineGateway>> {
 /**
  * Synchronize the gateway address registry with the cache.
  */
-async function getGatewayAddressRegistry(
-  arIO: any,
-): Promise<void> {
+async function getGatewayAddressRegistry(arIO: any): Promise<void> {
   try {
     console.log("Getting the gateways with the SDK");
     const garCache = await arIO.getGateways();
@@ -447,7 +450,8 @@ async function lookupArweaveTxIdForDomain(
   } catch (error) {
     console.error(
       "Failed to lookup DNS TXT records:",
-      (error as Error).message,)
+      (error as Error).message,
+    );
     const response = await fetch(apiUrl);
     const data = await response.json();
     if (data.Answer) {
