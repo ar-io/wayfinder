@@ -7,11 +7,7 @@
     "strict": true,
     "jsx": "preserve",
     "sourceMap": true,
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["src/*"],
-      "@ar.io/sdk/web": ["node_modules/@ar.io/sdk/lib/esm/web/index.js"]
-    }
+    "baseUrl": "."
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"],
   "exclude": ["node_modules"]

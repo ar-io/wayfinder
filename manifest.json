@@ -16,7 +16,7 @@
     {
       "matches": ["<all_urls>"],
       "js": ["content.js"],
-      "type": "module"  
+      "type": "module"
     }
   ],
   "content_security_policy": {

@@ -1,4 +1,4 @@
-import { mIOToken, Gateway, AoGateway } from '@ar.io/sdk/web';
+import { mIOToken, AoGateway } from "@ar.io/sdk/web";
 
 // Check if the document is still loading, if not, call the function directly
 if (document.readyState === "loading") {
@@ -126,9 +126,13 @@ async function afterPopupDOMLoaded(): Promise<void> {
 
           gatewayList.appendChild(listItem);
         }
-        const onlineCount = Object.values(enrichedGarCache).filter((gateway: any) => gateway.online).length;
-        document.getElementById("onlineGatewayCount")!.textContent = `${onlineCount}`;
-        document.getElementById("totalGatewayCount")!.textContent = Object.keys(enrichedGarCache).length.toString();
+        const onlineCount = Object.values(enrichedGarCache).filter(
+          (gateway: any) => gateway.online,
+        ).length;
+        document.getElementById("onlineGatewayCount")!.textContent =
+          `${onlineCount}`;
+        document.getElementById("totalGatewayCount")!.textContent =
+          Object.keys(enrichedGarCache).length.toString();
 
         // Close the modal when the close button is clicked
         (
@@ -205,10 +209,13 @@ async function afterPopupDOMLoaded(): Promise<void> {
         gatewayList.appendChild(listItem);
       }
 
-        const onlineCount = Object.values(enrichedGarCache).filter((gateway: any) => gateway.online).length;
-        document.getElementById("onlineGatewayCount")!.textContent = `${onlineCount}`;
-        document.getElementById("totalGatewayCount")!.textContent = Object.keys(enrichedGarCache).length.toString();
-
+      const onlineCount = Object.values(enrichedGarCache).filter(
+        (gateway: any) => gateway.online,
+      ).length;
+      document.getElementById("onlineGatewayCount")!.textContent =
+        `${onlineCount}`;
+      document.getElementById("totalGatewayCount")!.textContent =
+        Object.keys(enrichedGarCache).length.toString();
     });
 
     showHistoryBtn.addEventListener("click", function () {
@@ -435,14 +442,23 @@ async function showMoreGatewayInfo(gateway: AoGateway, address: string) {
   ) as HTMLAnchorElement;
   const modalNote = document.getElementById("modal-note") as HTMLElement;
 
-  const orr = gateway.stats.prescribedEpochCount > 0 ? gateway.stats.observedEpochCount / gateway.stats.prescribedEpochCount * 100 : 100;
+  const orr =
+    gateway.stats.prescribedEpochCount > 0
+      ? (gateway.stats.observedEpochCount /
+          gateway.stats.prescribedEpochCount) *
+        100
+      : 100;
   // Convert observerRewardRatioWeight to percentage and format to one decimal place
   modalORR.textContent = `${orr}%`;
 
-  const grr = gateway.stats.totalEpochParticipationCount ? gateway.stats.passedEpochCount / gateway.stats.totalEpochParticipationCount * 100 : 100 ;
+  const grr = gateway.stats.totalEpochParticipationCount
+    ? (gateway.stats.passedEpochCount /
+        gateway.stats.totalEpochParticipationCount) *
+      100
+    : 100;
 
   // Convert gatewayRewardRatioWeight to percentage and format to one decimal place
-  modalGRR.textContent = `${grr}%`
+  modalGRR.textContent = `${grr}%`;
 
   // Assign values from the gateway object to modal elements
   modalUrl.textContent = `${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}`;

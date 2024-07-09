@@ -1,11 +1,5 @@
 import { IO, Gateway } from "@ar.io/sdk/web";
 
-if (typeof self !== 'undefined') {
-  // Define 'window' as 'self' to simulate the window object
-  self.window = self;
-}
-
-
 export type OnlineGateway = Gateway & {
   online?: boolean;
 };
@@ -196,12 +190,12 @@ async function refreshOnlineGateways(): Promise<Record<string, OnlineGateway>> {
   const { garCache } = await chrome.storage.local.get(["garCache"]);
   const promises = Object.entries(garCache).map(async ([address, gateway]) => {
     const online = await isGatewayOnline(gateway as Gateway);
-    const onlineGateway: OnlineGateway = { ...gateway as Gateway, online };
+    const onlineGateway: OnlineGateway = { ...(gateway as Gateway), online };
     return { address, gateway: onlineGateway };
   });
 
   const results = await Promise.allSettled(promises);
-  console.log(results)
+  console.log(results);
   results.forEach((result) => {
     if (result.status === "fulfilled") {
       garCache[result.value.address] = result.value.gateway;
