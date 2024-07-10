@@ -1,0 +1,42 @@
+{
+  "name": "wayfinder",
+  "version": "0.0.12",
+  "description": "WayFinder (alpha) is a simple, open source, Google Chrome extension that intelligently routes users to optimal AR.IO gateways, ensuring streamlined access to the permaweb on Arweave.",
+  "main": "dist/index.js",
+  "browser": "dist/index.js",
+  "type": "module",
+  "devDependencies": {
+    "@types/chrome": "^0.0.268",
+    "@types/node": "^20.12.12",
+    "@vitejs/plugin-react": "^4.3.1",
+    "@vitejs/plugin-react-swc": "^3.7.0",
+    "prettier": "^3.3.1",
+    "typescript": "^5.4.5",
+    "vite": "^5.2.10",
+    "vite-plugin-copy": "^0.1.6",
+    "vite-plugin-html": "^3.2.2",
+    "vite-plugin-node-polyfills": "^0.22.0",
+    "vite-plugin-static-copy": "^1.0.6"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "clean": "rimraf dist",
+    "start": "vite preview",
+    "format:fix": "prettier --write .",
+    "build": "vite build --config vite.config.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ar-io/wayfinder.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "AGPL-3.0-only",
+  "bugs": {
+    "url": "https://github.com/ar-io/wayfinder/issues"
+  },
+  "homepage": "https://github.com/ar-io/wayfinder#readme",
+  "dependencies": {
+    "@ar.io/sdk": "2.0.0-alpha.2"
+  }
+}
