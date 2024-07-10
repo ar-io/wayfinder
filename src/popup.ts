@@ -1,4 +1,4 @@
-import { mIOToken, AoGateway } from "@ar.io/sdk/web";
+import { mIOToken, AoGateway, IO_TESTNET_PROCESS_ID } from "@ar.io/sdk/web";
 
 // Check if the document is still loading, if not, call the function directly
 if (document.readyState === "loading") {
@@ -10,52 +10,52 @@ if (document.readyState === "loading") {
 // Define the function to be called after the DOM is fully loaded
 async function afterPopupDOMLoaded(): Promise<void> {
   const gatewayList = document.getElementById(
-    "gatewayList",
+    "gatewayList"
   ) as HTMLElement | null;
   const gatewayListTitle = document.getElementById(
-    "gatewayListTitle",
+    "gatewayListTitle"
   ) as HTMLElement | null;
   const gatewayListHeader = document.getElementById(
-    "gatewayListHeader",
+    "gatewayListHeader"
   ) as HTMLElement | null;
   const refreshGateways = document.getElementById(
-    "refreshGateways",
+    "refreshGateways"
   ) as HTMLElement | null;
   const showGatewaysBtn = document.getElementById(
-    "showGateways",
+    "showGateways"
   ) as HTMLElement | null;
   const showSettingsBtn = document.getElementById(
-    "showSettings",
+    "showSettings"
   ) as HTMLElement | null;
   const aboutSection = document.getElementById(
-    "aboutSection",
+    "aboutSection"
   ) as HTMLElement | null;
   const settingsSection = document.getElementById(
-    "settingsSection",
+    "settingsSection"
   ) as HTMLElement | null;
   const settingsListTitle = document.getElementById(
-    "settingsListTitle",
+    "settingsListTitle"
   ) as HTMLElement | null;
   const showHistoryBtn = document.getElementById(
-    "showHistory",
+    "showHistory"
   ) as HTMLElement | null;
   const historyList = document.getElementById(
-    "historyList",
+    "historyList"
   ) as HTMLElement | null;
   const historyListTitle = document.getElementById(
-    "historyListTitle",
+    "historyListTitle"
   ) as HTMLElement | null;
   const themeToggle = document.getElementById(
-    "themeToggle",
+    "themeToggle"
   ) as HTMLSelectElement | null;
   const routingToggle = document.getElementById(
-    "routingToggle",
+    "routingToggle"
   ) as HTMLSelectElement | null;
   const saveStaticGatewayButton = document.getElementById(
-    "saveStaticGateway",
+    "saveStaticGateway"
   ) as HTMLElement | null;
-  const saveGarCacheURLButton = document.getElementById(
-    "saveGarCacheURL",
+  const saveArIOProcessIdButton = document.getElementById(
+    "saveArIOProcessId"
   ) as HTMLElement | null;
 
   if (
@@ -73,7 +73,7 @@ async function afterPopupDOMLoaded(): Promise<void> {
     themeToggle &&
     routingToggle &&
     saveStaticGatewayButton &&
-    saveGarCacheURLButton &&
+    saveArIOProcessIdButton &&
     gatewayList
   ) {
     showGatewaysBtn.addEventListener("click", async function () {
@@ -87,9 +87,9 @@ async function afterPopupDOMLoaded(): Promise<void> {
         showGatewaysBtn.innerText = "Gateway Address Registry";
       } else {
         gatewayList.innerHTML = "";
-        const { enrichedGarCache = {} } =
-          await chrome.storage.local.get("enrichedGarCache");
-        const sortedGateways = sortGatewaysByStake(enrichedGarCache);
+        const { enrichedGar = {} } =
+          await chrome.storage.local.get("enrichedGar");
+        const sortedGateways = sortGatewaysByStake(enrichedGar);
         for (const sortedGateway of sortedGateways) {
           const gateway = sortedGateway.data;
 
@@ -126,13 +126,13 @@ async function afterPopupDOMLoaded(): Promise<void> {
 
           gatewayList.appendChild(listItem);
         }
-        const onlineCount = Object.values(enrichedGarCache).filter(
-          (gateway: any) => gateway.online,
+        const onlineCount = Object.values(enrichedGar).filter(
+          (gateway: any) => gateway.online
         ).length;
         document.getElementById("onlineGatewayCount")!.textContent =
           `${onlineCount}`;
         document.getElementById("totalGatewayCount")!.textContent =
-          Object.keys(enrichedGarCache).length.toString();
+          Object.keys(enrichedGar).length.toString();
 
         // Close the modal when the close button is clicked
         (
@@ -167,12 +167,12 @@ async function afterPopupDOMLoaded(): Promise<void> {
       gatewayList.innerHTML = '<span class="refreshing-text"></span>'; // use class here
       await syncGatewayAddressRegistryPopup();
       gatewayList.innerHTML = "";
-      const { enrichedGarCache } = (await chrome.storage.local.get(
-        "enrichedGarCache",
+      const { enrichedGar } = (await chrome.storage.local.get(
+        "enrichedGar"
       )) as {
-        enrichedGarCache: Record<string, any>;
+        enrichedGar: Record<string, any>;
       };
-      const sortedGateways = sortGatewaysByStake(enrichedGarCache);
+      const sortedGateways = sortGatewaysByStake(enrichedGar);
       for (const sortedGateway of sortedGateways) {
         const gateway = sortedGateway.data;
 
@@ -209,13 +209,13 @@ async function afterPopupDOMLoaded(): Promise<void> {
         gatewayList.appendChild(listItem);
       }
 
-      const onlineCount = Object.values(enrichedGarCache).filter(
-        (gateway: any) => gateway.online,
+      const onlineCount = Object.values(enrichedGar).filter(
+        (gateway: any) => gateway.online
       ).length;
       document.getElementById("onlineGatewayCount")!.textContent =
         `${onlineCount}`;
       document.getElementById("totalGatewayCount")!.textContent =
-        Object.keys(enrichedGarCache).length.toString();
+        Object.keys(enrichedGar).length.toString();
     });
 
     showHistoryBtn.addEventListener("click", function () {
@@ -233,10 +233,10 @@ async function afterPopupDOMLoaded(): Promise<void> {
               listItem.innerHTML = `<a href="https://viewblock.io/arweave/tx/${
                 item.resolvedId
               }" target="_blank">${item.url}</a>${new Date(
-                item.timestamp,
+                item.timestamp
               ).toLocaleString()}`;
               historyList.appendChild(listItem);
-            },
+            }
           );
           historyList.style.display = "block";
           historyListTitle.style.display = "block";
@@ -333,24 +333,52 @@ async function afterPopupDOMLoaded(): Promise<void> {
       }
     });
 
-    saveGarCacheURLButton.addEventListener("click", async function () {
-      const garCacheURL = (
-        document.getElementById("garCacheURL") as HTMLInputElement
+    saveArIOProcessIdButton.addEventListener("click", async function () {
+      const arIOProcessId = (
+        document.getElementById("arIOProcessId") as HTMLInputElement
       ).value;
-      if (garCacheURL === "") {
-        const result = saveGarCacheURL(garCacheURL);
-        (document.getElementById("garCacheURL") as HTMLInputElement).value = "";
-      } else if (await isValidGarCacheURL(garCacheURL)) {
-        const result = saveGarCacheURL(garCacheURL);
+      if (arIOProcessId === "") {
+        const result = saveArIOProcessId(IO_TESTNET_PROCESS_ID);
+        (document.getElementById("arIOProcessId") as HTMLInputElement).value =
+          "";
+        return new Promise((resolve, reject) => {
+          chrome.runtime.sendMessage(
+            { message: "setArIOProcessId" },
+            function (response) {
+              if (chrome.runtime.lastError) {
+                // Handle any error that might occur while sending the message
+                reject(chrome.runtime.lastError);
+              } else {
+                resolve(response);
+              }
+            }
+          );
+        });
+      } else if (isBase64URL(arIOProcessId)) {
+        const result = saveArIOProcessId(arIOProcessId);
+        return new Promise((resolve, reject) => {
+          chrome.runtime.sendMessage(
+            { message: "setArIOProcessId" },
+            function (response) {
+              if (chrome.runtime.lastError) {
+                // Handle any error that might occur while sending the message
+                reject(chrome.runtime.lastError);
+              } else {
+                resolve(response);
+              }
+            }
+          );
+        });
       } else {
-        (document.getElementById("garCacheURL") as HTMLInputElement).value = "";
+        (document.getElementById("arIOProcessId") as HTMLInputElement).value =
+          "";
       }
     });
 
-    chrome.storage.local.get("garCacheURL", function (data) {
-      if (data.garCacheURL) {
-        (document.getElementById("garCacheURL") as HTMLInputElement).value =
-          data.garCacheURL;
+    chrome.storage.local.get("processId", function (data) {
+      if (data.processId) {
+        (document.getElementById("arIOProcessId") as HTMLInputElement).value =
+          data.processId;
       }
     });
   }
@@ -367,7 +395,7 @@ async function syncGatewayAddressRegistryPopup() {
         } else {
           resolve(response);
         }
-      },
+      }
     );
   });
 }
@@ -424,21 +452,21 @@ async function showMoreGatewayInfo(gateway: AoGateway, address: string) {
   // Get modal elements
   const modal = document.getElementById("gatewayModal") as HTMLElement;
   const modalUrl = document.getElementById(
-    "modal-gateway-url",
+    "modal-gateway-url"
   ) as HTMLAnchorElement;
   const modalORR = document.getElementById("modal-gateway-orr") as HTMLElement;
   const modalGRR = document.getElementById("modal-gateway-grr") as HTMLElement;
   const modalGatewayWallet = document.getElementById(
-    "modal-gateway-wallet",
+    "modal-gateway-wallet"
   ) as HTMLAnchorElement;
   const modalObserverWallet = document.getElementById(
-    "modal-observer-wallet",
+    "modal-observer-wallet"
   ) as HTMLAnchorElement;
   const modalStake = document.getElementById("modal-stake") as HTMLElement;
   const modalStatus = document.getElementById("modal-status") as HTMLElement;
   const modalStart = document.getElementById("modal-start") as HTMLElement;
   const modalProperties = document.getElementById(
-    "modal-properties",
+    "modal-properties"
   ) as HTMLAnchorElement;
   const modalNote = document.getElementById("modal-note") as HTMLElement;
 
@@ -485,7 +513,7 @@ async function showMoreGatewayInfo(gateway: AoGateway, address: string) {
 
   // Blacklist functionality
   const blacklistButton = document.getElementById(
-    "blacklistButton",
+    "blacklistButton"
   ) as HTMLElement;
 
   // Check if the gateway is already blacklisted
@@ -523,12 +551,12 @@ async function toggleBlacklist(address: any) {
   if (blacklistedGateways.includes(address)) {
     // Removing the address from blacklist
     blacklistedGateways = blacklistedGateways.filter(
-      (gatewayAddress: any) => gatewayAddress !== address,
+      (gatewayAddress: any) => gatewayAddress !== address
     );
 
     // Find the corresponding row and remove the 'blacklisted' class
     const gatewayRow = document.querySelector(
-      `.gateway[data-address='${address}']`,
+      `.gateway[data-address='${address}']`
     );
     if (gatewayRow) {
       gatewayRow.classList.remove("blacklisted");
@@ -539,7 +567,7 @@ async function toggleBlacklist(address: any) {
 
     // Find the corresponding row and add the 'blacklisted' class
     const gatewayRow = document.querySelector(
-      `.gateway[data-address='${address}']`,
+      `.gateway[data-address='${address}']`
     );
     if (gatewayRow) {
       gatewayRow.classList.add("blacklisted");
@@ -564,50 +592,25 @@ function sortGatewaysByStake(gateways: { [s: string]: any } | ArrayLike<any>) {
 
   // Sort the array based on operatorStake
   const sortedGateways = gatewayArray.sort(
-    (a, b) => b.data.operatorStake - a.data.operatorStake,
+    (a, b) => b.data.operatorStake - a.data.operatorStake
   );
 
   return sortedGateways;
 }
 
-async function isValidGarCacheURL(url: string | URL | Request) {
-  try {
-    // Fetch data from the URL
-    const response = await fetch(url);
-    // Check if the response is OK and content type is application/json
-    if (
-      !response.ok ||
-      !response.headers.get("content-type")?.includes("application/json")
-    ) {
-      alert(`Error verifying Gateway Address Registry Cache URL: ${url}`);
-      return false;
-    }
-
-    // Parse the JSON
-    const data = await response.json();
-
-    // Check if the JSON has a "gateways" property and it's an array
-    if (!data.result && data.gateways && !data.state.gateways) {
-      alert(`Cannot validate Gateways JSON within this Cache: ${url}`);
-      return false;
-    }
-
-    // Further validation can be done here based on the expected structure of the GAR JSON object
-    return true; // URL is a valid GAR cache
-  } catch (error) {
-    console.error(`Error verifying Gateway Address Registry Cache URL: ${url}`);
-    console.error(error);
-    return false; // URL is invalid or there was an error during verification
-  }
+function isBase64URL(address: string): boolean {
+  const trimmedBase64URL = address.toString().trim();
+  const BASE_64_REXEX = new RegExp("^[a-zA-Z0-9-_s+]{43}$");
+  return BASE_64_REXEX.test(trimmedBase64URL);
 }
 
-function saveGarCacheURL(url: string) {
-  if (url === "") {
-    chrome.storage.local.set({ garCacheURL: null });
-    alert(`GAR Cache URL removed.  Using default GAR Cache.`);
+function saveArIOProcessId(processId: string) {
+  if (processId === "") {
+    chrome.storage.local.set({ processId: IO_TESTNET_PROCESS_ID });
+    alert(`AR.IO Process ID set back to default.`);
   } else {
-    chrome.storage.local.set({ garCacheURL: url });
-    alert(`Gateway Address Registry Cache URL set to ${url}`);
+    chrome.storage.local.set({ processId: processId });
+    alert(`AR.IO Process ID set to ${processId}`);
   }
   return true;
 }

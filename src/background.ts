@@ -1,4 +1,4 @@
-import { IO, Gateway } from "@ar.io/sdk/web";
+import { IO, Gateway, IO_TESTNET_PROCESS_ID } from "@ar.io/sdk/web";
 
 export type OnlineGateway = Gateway & {
   online?: boolean;
@@ -55,15 +55,15 @@ chrome.storage.local.set({
   routingMethod: RANDOM_TOP_FIVE_STAKED_ROUTE_METHOD,
 });
 chrome.storage.local.set({ garCache: {} });
-chrome.storage.local.set({ enrichedGarCache: {} });
+chrome.storage.local.set({ enrichedGar: {} });
 chrome.storage.local.set({ blacklistedGateways: [] });
+chrome.storage.local.set({ processId: IO_TESTNET_PROCESS_ID });
 
 console.log("Initialized AR.IO");
-const arIO = IO.init();
+let arIO = IO.init();
 
 // Run the check initially when the background script starts
 getGatewayAddressRegistry(arIO);
-console.log("Got the registry");
 
 // Finds requests for ar:// in the browser address bar
 chrome.webNavigation.onBeforeNavigate.addListener(
@@ -77,7 +77,7 @@ chrome.webNavigation.onBeforeNavigate.addListener(
       }
     }
   },
-  { url: [{ schemes: ["http", "https"] }] },
+  { url: [{ schemes: ["http", "https"] }] }
 );
 
 // To handle getting the X-Arns-Resolved-Id
@@ -100,7 +100,7 @@ chrome.webRequest.onHeadersReceived.addListener(
     }
   },
   { urls: ["<all_urls>"] },
-  ["responseHeaders"],
+  ["responseHeaders"]
 );
 
 // Used if someone clicks the refresh gateways button
@@ -111,6 +111,23 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       .catch((error) => {
         console.error(error);
         sendResponse({ error: "Failed to sync gateway address registry." });
+      });
+
+    return true; // this keeps the message channel open until `sendResponse` is invoked
+  }
+});
+
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.message === "setArIOProcessId") {
+    reinitalizeArIO()
+      .then(() => getGatewayAddressRegistry(arIO))
+      .then(() => sendResponse({}))
+      .catch((error) => {
+        console.error(error);
+        sendResponse({
+          error:
+            "Failed to reinitialize AR.IO and sync gateway address registry.",
+        });
       });
 
     return true; // this keeps the message channel open until `sendResponse` is invoked
@@ -154,6 +171,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true; // indicate that the response will be sent asynchronously
   }
 });
+
+//
 // Helper functions
 
 /**
@@ -166,8 +185,8 @@ async function isGatewayOnline(gateway: Gateway): Promise<boolean> {
   const timeoutPromise = new Promise<never>((_, reject) =>
     setTimeout(
       () => reject(new Error(`Request for ${url} timed out after 5 seconds`)),
-      5000,
-    ),
+      5000
+    )
   );
 
   try {
@@ -210,25 +229,29 @@ async function refreshOnlineGateways(): Promise<Record<string, OnlineGateway>> {
  */
 async function getGatewayAddressRegistry(arIO: any): Promise<void> {
   try {
-    console.log("Getting the gateways with the SDK");
+    const { processId } = await chrome.storage.local.get(["processId"]);
+    console.log(
+      "Getting the gateways with the SDK and Process Id: ",
+      processId
+    );
     const garCache = await arIO.getGateways();
     await chrome.storage.local.set({ garCache });
     console.log(
       `Found ${
         Object.keys(garCache).length
-      } gateways cached. Syncing availability...`,
+      } gateways cached. Syncing availability...`
     );
-    const enrichedGarCache = await refreshOnlineGateways();
-    await chrome.storage.local.set({ enrichedGarCache });
+    const enrichedGar = await refreshOnlineGateways();
+    await chrome.storage.local.set({ enrichedGar });
     console.log(
       `Finished syncing gateway availability. Found ${
-        Object.values(enrichedGarCache).filter((g) => g.online).length
-      } gateways online.`,
+        Object.values(enrichedGar).filter((g) => g.online).length
+      } gateways online.`
     );
   } catch (error) {
     console.error(
       "An error occurred while syncing the Gateway Address Registry:",
-      (error as Error).message,
+      (error as Error).message
     );
   }
 }
@@ -249,19 +272,17 @@ async function getOnlineGateway(): Promise<Gateway> {
   const { routingMethod } = (await chrome.storage.local.get([
     "routingMethod",
   ])) as { routingMethod: string };
-  const { enrichedGarCache } = (await chrome.storage.local.get([
-    "enrichedGarCache",
-  ])) as {
-    enrichedGarCache: Record<string, OnlineGateway>;
+  const { enrichedGar } = (await chrome.storage.local.get(["enrichedGar"])) as {
+    enrichedGar: Record<string, OnlineGateway>;
   };
   const { blacklistedGateways = [] } = (await chrome.storage.local.get([
     "blacklistedGateways",
   ])) as { blacklistedGateways: string[] };
 
   const filteredGar: Record<string, OnlineGateway> = Object.fromEntries(
-    Object.entries(enrichedGarCache).filter(
-      ([address]) => !blacklistedGateways.includes(address),
-    ),
+    Object.entries(enrichedGar).filter(
+      ([address]) => !blacklistedGateways.includes(address)
+    )
   );
 
   let gateway: Gateway | null = null;
@@ -297,7 +318,7 @@ async function getOnlineGateway(): Promise<Gateway> {
 function saveToHistory(
   url: string,
   resolvedId: string,
-  timestamp: string,
+  timestamp: string
 ): void {
   chrome.storage.local.get("history", (data) => {
     let history = data.history || [];
@@ -313,7 +334,7 @@ function saveToHistory(
  * @returns A random Gateway object or the default gateway if no gateways are online.
  */
 function selectRandomGateway(
-  gar: Record<string, OnlineGateway>,
+  gar: Record<string, OnlineGateway>
 ): OnlineGateway {
   const onlineGateways = Object.values(gar).filter((gateway) => gateway.online);
   if (onlineGateways.length === 0) {
@@ -330,12 +351,12 @@ function selectRandomGateway(
  * @returns A weighted random Gateway object or the default gateway if no gateways are online.
  */
 function selectWeightedGateway(
-  gar: Record<string, OnlineGateway>,
+  gar: Record<string, OnlineGateway>
 ): OnlineGateway {
   const onlineGateways = Object.values(gar).filter((gateway) => gateway.online);
   const totalStake = onlineGateways.reduce(
     (accum, gateway) => accum + gateway.operatorStake,
-    0,
+    0
   );
   let randomNum = Math.random() * totalStake;
   for (const gateway of onlineGateways) {
@@ -354,13 +375,13 @@ function selectWeightedGateway(
  * @returns The gateway with the highest stake or the default gateway if no gateways are online.
  */
 function selectHighestStakeGateway(
-  gar: Record<string, OnlineGateway>,
+  gar: Record<string, OnlineGateway>
 ): OnlineGateway {
   const maxStake = Math.max(
-    ...Object.values(gar).map((gateway) => gateway.operatorStake),
+    ...Object.values(gar).map((gateway) => gateway.operatorStake)
   );
   const maxStakeGateways = Object.values(gar).filter(
-    (gateway) => gateway.operatorStake === maxStake && gateway.online,
+    (gateway) => gateway.operatorStake === maxStake && gateway.online
   );
   if (maxStakeGateways.length === 0) {
     console.log("No online gateways available. Using default.");
@@ -379,7 +400,7 @@ function selectHighestStakeGateway(
  * @returns A random Gateway object from the top five staked gateways or the default gateway if no gateways are online.
  */
 function selectRandomTopFiveStakedGateway(
-  gar: Record<string, OnlineGateway>,
+  gar: Record<string, OnlineGateway>
 ): OnlineGateway {
   const sortedGateways = Object.values(gar)
     .filter((gateway) => gateway.online)
@@ -426,7 +447,7 @@ async function getRoutableGatewayUrl(arUrl: string): Promise<string> {
  * @returns A promise that resolves to the Arweave transaction ID or null if not found.
  */
 async function lookupArweaveTxIdForDomain(
-  domain: string,
+  domain: string
 ): Promise<string | null> {
   const apiUrl = `https://dns.google/resolve?name=${domain}&type=TXT`;
   try {
@@ -444,7 +465,7 @@ async function lookupArweaveTxIdForDomain(
   } catch (error) {
     console.error(
       "Failed to lookup DNS TXT records:",
-      (error as Error).message,
+      (error as Error).message
     );
     const response = await fetch(apiUrl);
     const data = await response.json();
@@ -459,4 +480,17 @@ async function lookupArweaveTxIdForDomain(
     }
   }
   return null;
+}
+
+async function reinitalizeArIO(): Promise<boolean> {
+  try {
+    const { processId } = await chrome.storage.local.get(["processId"]);
+    arIO = IO.init({ processId });
+    return true;
+  } catch (err) {
+    arIO = IO.init();
+    console.log("Cannot reinitalize with new AR.IO Process ID.  Using default");
+    console.log(err);
+    return false;
+  }
 }
