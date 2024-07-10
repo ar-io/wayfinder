@@ -32,10 +32,6 @@ temp/
 *.sublime-project
 *.sublime-workspace
 
-# Ignore compiled JS files if you have a mixed TS/JS project
-*.js
-*.js.map
-
 # Ignore TypeScript cache
 *.tsbuildinfo
 

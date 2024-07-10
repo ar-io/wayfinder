@@ -9,7 +9,7 @@ async function afterContentDOMLoaded() {
   const arElements = document.querySelectorAll(
     'a[href^="ar://"], img[src^="ar://"], iframe[src^="ar://"], ' +
       'audio > source[src^="ar://"], video > source[src^="ar://"], ' +
-      'link[href^="ar://"], embed[src^="ar://"], object[data^="ar://"]'
+      'link[href^="ar://"], embed[src^="ar://"], object[data^="ar://"]',
   );
 
   arElements.forEach((element) => {
@@ -25,7 +25,7 @@ async function afterContentDOMLoaded() {
             } else {
               console.error(`Failed to load URL: ${response.error}`);
             }
-          }
+          },
         );
         break;
       case "IMG":
@@ -38,7 +38,7 @@ async function afterContentDOMLoaded() {
             } else {
               console.error(`Failed to load image: ${response.error}`);
             }
-          }
+          },
         );
         break;
       case "IFRAME":
@@ -51,7 +51,7 @@ async function afterContentDOMLoaded() {
             } else {
               console.error(`Failed to load iframe: ${response.error}`);
             }
-          }
+          },
         );
         break;
       case "SOURCE":
@@ -74,7 +74,7 @@ async function afterContentDOMLoaded() {
                 } else {
                   console.error(`Failed to load source: ${response.error}`);
                 }
-              }
+              },
             );
           } else {
             console.error("Unexpected parent for source element", element);
@@ -100,7 +100,7 @@ async function afterContentDOMLoaded() {
             } else {
               console.error(`Failed to load link element: ${response.error}`);
             }
-          }
+          },
         );
         break;
       case "EMBED":
@@ -113,7 +113,7 @@ async function afterContentDOMLoaded() {
             } else {
               console.error(`Failed to load embed element: ${response.error}`);
             }
-          }
+          },
         );
         break;
       case "OBJECT":
@@ -126,7 +126,7 @@ async function afterContentDOMLoaded() {
             } else {
               console.error(`Failed to load object: ${response.error}`);
             }
-          }
+          },
         );
         break;
       default:

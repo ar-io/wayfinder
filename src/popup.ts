@@ -1,4 +1,4 @@
-import { OnlineGateway } from "./background.js";
+import { mIOToken, AoGateway } from "@ar.io/sdk/web";
 
 // Check if the document is still loading, if not, call the function directly
 if (document.readyState === "loading") {
@@ -10,52 +10,52 @@ if (document.readyState === "loading") {
 // Define the function to be called after the DOM is fully loaded
 async function afterPopupDOMLoaded(): Promise<void> {
   const gatewayList = document.getElementById(
-    "gatewayList"
+    "gatewayList",
   ) as HTMLElement | null;
   const gatewayListTitle = document.getElementById(
-    "gatewayListTitle"
+    "gatewayListTitle",
   ) as HTMLElement | null;
   const gatewayListHeader = document.getElementById(
-    "gatewayListHeader"
+    "gatewayListHeader",
   ) as HTMLElement | null;
   const refreshGateways = document.getElementById(
-    "refreshGateways"
+    "refreshGateways",
   ) as HTMLElement | null;
   const showGatewaysBtn = document.getElementById(
-    "showGateways"
+    "showGateways",
   ) as HTMLElement | null;
   const showSettingsBtn = document.getElementById(
-    "showSettings"
+    "showSettings",
   ) as HTMLElement | null;
   const aboutSection = document.getElementById(
-    "aboutSection"
+    "aboutSection",
   ) as HTMLElement | null;
   const settingsSection = document.getElementById(
-    "settingsSection"
+    "settingsSection",
   ) as HTMLElement | null;
   const settingsListTitle = document.getElementById(
-    "settingsListTitle"
+    "settingsListTitle",
   ) as HTMLElement | null;
   const showHistoryBtn = document.getElementById(
-    "showHistory"
+    "showHistory",
   ) as HTMLElement | null;
   const historyList = document.getElementById(
-    "historyList"
+    "historyList",
   ) as HTMLElement | null;
   const historyListTitle = document.getElementById(
-    "historyListTitle"
+    "historyListTitle",
   ) as HTMLElement | null;
   const themeToggle = document.getElementById(
-    "themeToggle"
+    "themeToggle",
   ) as HTMLSelectElement | null;
   const routingToggle = document.getElementById(
-    "routingToggle"
+    "routingToggle",
   ) as HTMLSelectElement | null;
   const saveStaticGatewayButton = document.getElementById(
-    "saveStaticGateway"
+    "saveStaticGateway",
   ) as HTMLElement | null;
   const saveGarCacheURLButton = document.getElementById(
-    "saveGarCacheURL"
+    "saveGarCacheURL",
   ) as HTMLElement | null;
 
   if (
@@ -87,15 +87,11 @@ async function afterPopupDOMLoaded(): Promise<void> {
         showGatewaysBtn.innerText = "Gateway Address Registry";
       } else {
         gatewayList.innerHTML = "";
-        const { enrichedGarCache } = (await chrome.storage.local.get(
-          "enrichedGarCache"
-        )) as {
-          enrichedGarCache: Record<string, OnlineGateway>;
-        };
-        console.log("Enriched cache: ", enrichedGarCache);
+        const { enrichedGarCache = {} } =
+          await chrome.storage.local.get("enrichedGarCache");
         const sortedGateways = sortGatewaysByStake(enrichedGarCache);
         for (const sortedGateway of sortedGateways) {
-          const gateway = sortedGateway.data as OnlineGateway;
+          const gateway = sortedGateway.data;
 
           // Create a new element for each gateway
           const listItem = document.createElement("div");
@@ -124,16 +120,17 @@ async function afterPopupDOMLoaded(): Promise<void> {
                             <span class="online-status">${onlineStatus}</span>
                         </div>
                         <div class="gateway-info">
-                            <span class="operator-stake">Stake: ${gateway.operatorStake}</span>
+                            <span class="operator-stake">Stake: ${new mIOToken(gateway.operatorStake).toIO()} IO</span>
                         </div>
                     `;
 
           gatewayList.appendChild(listItem);
         }
+        const onlineCount = Object.values(enrichedGarCache).filter(
+          (gateway: any) => gateway.online,
+        ).length;
         document.getElementById("onlineGatewayCount")!.textContent =
-          Object.values(enrichedGarCache)
-            .filter((gateway: OnlineGateway) => gateway.online)
-            .length.toString();
+          `${onlineCount}`;
         document.getElementById("totalGatewayCount")!.textContent =
           Object.keys(enrichedGarCache).length.toString();
 
@@ -171,13 +168,13 @@ async function afterPopupDOMLoaded(): Promise<void> {
       await syncGatewayAddressRegistryPopup();
       gatewayList.innerHTML = "";
       const { enrichedGarCache } = (await chrome.storage.local.get(
-        "enrichedGarCache"
+        "enrichedGarCache",
       )) as {
-        enrichedGarCache: Record<string, OnlineGateway>;
+        enrichedGarCache: Record<string, any>;
       };
       const sortedGateways = sortGatewaysByStake(enrichedGarCache);
       for (const sortedGateway of sortedGateways) {
-        const gateway = sortedGateway.data as OnlineGateway;
+        const gateway = sortedGateway.data;
 
         // Create a new element for each gateway
         const listItem = document.createElement("div");
@@ -206,15 +203,17 @@ async function afterPopupDOMLoaded(): Promise<void> {
                         <span class="online-status">${onlineStatus}</span>
                     </div>
                     <div class="gateway-info">
-                        <span class="operator-stake">Stake: ${gateway.operatorStake}</span>
+                        <span class="operator-stake">Stake: ${new mIOToken(gateway.operatorStake).toIO()} IO</span>
                     </div>
                 `;
         gatewayList.appendChild(listItem);
       }
+
+      const onlineCount = Object.values(enrichedGarCache).filter(
+        (gateway: any) => gateway.online,
+      ).length;
       document.getElementById("onlineGatewayCount")!.textContent =
-        Object.values(enrichedGarCache)
-          .filter((gateway: OnlineGateway) => gateway.online)
-          .length.toString();
+        `${onlineCount}`;
       document.getElementById("totalGatewayCount")!.textContent =
         Object.keys(enrichedGarCache).length.toString();
     });
@@ -234,10 +233,10 @@ async function afterPopupDOMLoaded(): Promise<void> {
               listItem.innerHTML = `<a href="https://viewblock.io/arweave/tx/${
                 item.resolvedId
               }" target="_blank">${item.url}</a>${new Date(
-                item.timestamp
+                item.timestamp,
               ).toLocaleString()}`;
               historyList.appendChild(listItem);
-            }
+            },
           );
           historyList.style.display = "block";
           historyListTitle.style.display = "block";
@@ -368,7 +367,7 @@ async function syncGatewayAddressRegistryPopup() {
         } else {
           resolve(response);
         }
-      }
+      },
     );
   });
 }
@@ -421,44 +420,45 @@ function saveStaticGateway(inputValue: string | URL) {
   }
 }
 
-async function showMoreGatewayInfo(gateway: OnlineGateway, address: string) {
-  console.log(gateway);
+async function showMoreGatewayInfo(gateway: AoGateway, address: string) {
   // Get modal elements
   const modal = document.getElementById("gatewayModal") as HTMLElement;
   const modalUrl = document.getElementById(
-    "modal-gateway-url"
+    "modal-gateway-url",
   ) as HTMLAnchorElement;
   const modalORR = document.getElementById("modal-gateway-orr") as HTMLElement;
   const modalGRR = document.getElementById("modal-gateway-grr") as HTMLElement;
   const modalGatewayWallet = document.getElementById(
-    "modal-gateway-wallet"
+    "modal-gateway-wallet",
   ) as HTMLAnchorElement;
   const modalObserverWallet = document.getElementById(
-    "modal-observer-wallet"
+    "modal-observer-wallet",
   ) as HTMLAnchorElement;
   const modalStake = document.getElementById("modal-stake") as HTMLElement;
   const modalStatus = document.getElementById("modal-status") as HTMLElement;
   const modalStart = document.getElementById("modal-start") as HTMLElement;
   const modalProperties = document.getElementById(
-    "modal-properties"
+    "modal-properties",
   ) as HTMLAnchorElement;
   const modalNote = document.getElementById("modal-note") as HTMLElement;
 
+  const orr =
+    gateway.stats.prescribedEpochCount > 0
+      ? (gateway.stats.observedEpochCount /
+          gateway.stats.prescribedEpochCount) *
+        100
+      : 100;
   // Convert observerRewardRatioWeight to percentage and format to one decimal place
-  modalORR.textContent =
-    (
-      (gateway.stats.totalEpochsPrescribedCount /
-        gateway.stats.submittedEpochCount) *
+  modalORR.textContent = `${orr}%`;
+
+  const grr = gateway.stats.totalEpochParticipationCount
+    ? (gateway.stats.passedEpochCount /
+        gateway.stats.totalEpochParticipationCount) *
       100
-    ).toFixed(1) + "%";
+    : 100;
 
   // Convert gatewayRewardRatioWeight to percentage and format to one decimal place
-  modalGRR.textContent =
-    (
-      (gateway.stats.totalEpochParticipationCount /
-        gateway.stats.passedEpochCount) *
-      100
-    ).toFixed(1) + "%";
+  modalGRR.textContent = `${grr}%`;
 
   // Assign values from the gateway object to modal elements
   modalUrl.textContent = `${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}`;
@@ -466,13 +466,12 @@ async function showMoreGatewayInfo(gateway: OnlineGateway, address: string) {
   modalGatewayWallet.textContent = address.slice(0, 6) + "...";
   modalGatewayWallet.href = `https://viewblock.io/arweave/address/${address}`;
 
-  modalObserverWallet.textContent = gateway.observerWallet.slice(0, 6) + "...";
-  modalObserverWallet.href = `https://viewblock.io/arweave/address/${gateway.observerWallet}`;
+  modalObserverWallet.textContent = gateway.observerAddress.slice(0, 6) + "...";
+  modalObserverWallet.href = `https://viewblock.io/arweave/address/${gateway.observerAddress}`;
 
-  modalStake.textContent = gateway.operatorStake.toString();
+  modalStake.textContent = `${new mIOToken(gateway.operatorStake).toIO()} IO`;
   modalStatus.textContent = gateway.status;
-  modalStart.textContent = gateway.start.toString(); // start block height
-
+  modalStart.textContent = `${new Date(gateway.startTimestamp).toLocaleDateString()}`;
   if (gateway.settings.properties) {
     modalProperties.textContent =
       gateway.settings.properties.slice(0, 6) + "...";
@@ -486,7 +485,7 @@ async function showMoreGatewayInfo(gateway: OnlineGateway, address: string) {
 
   // Blacklist functionality
   const blacklistButton = document.getElementById(
-    "blacklistButton"
+    "blacklistButton",
   ) as HTMLElement;
 
   // Check if the gateway is already blacklisted
@@ -524,12 +523,12 @@ async function toggleBlacklist(address: any) {
   if (blacklistedGateways.includes(address)) {
     // Removing the address from blacklist
     blacklistedGateways = blacklistedGateways.filter(
-      (gatewayAddress: any) => gatewayAddress !== address
+      (gatewayAddress: any) => gatewayAddress !== address,
     );
 
     // Find the corresponding row and remove the 'blacklisted' class
     const gatewayRow = document.querySelector(
-      `.gateway[data-address='${address}']`
+      `.gateway[data-address='${address}']`,
     );
     if (gatewayRow) {
       gatewayRow.classList.remove("blacklisted");
@@ -540,7 +539,7 @@ async function toggleBlacklist(address: any) {
 
     // Find the corresponding row and add the 'blacklisted' class
     const gatewayRow = document.querySelector(
-      `.gateway[data-address='${address}']`
+      `.gateway[data-address='${address}']`,
     );
     if (gatewayRow) {
       gatewayRow.classList.add("blacklisted");
@@ -551,10 +550,12 @@ async function toggleBlacklist(address: any) {
   chrome.storage.local.set({ blacklistedGateways: blacklistedGateways });
 }
 
-function sortGatewaysByStake(
-  gateways: { [s: string]: OnlineGateway } | ArrayLike<OnlineGateway>
-) {
+function sortGatewaysByStake(gateways: { [s: string]: any } | ArrayLike<any>) {
   console.log("Gateways before sort: ", gateways);
+  // check the length
+  if (gateways === undefined || Object.keys(gateways).length === 0) {
+    return [];
+  }
   // Convert the object to an array of {address, data} pairs
   const gatewayArray = Object.entries(gateways).map(([address, data]) => ({
     address,
@@ -563,7 +564,7 @@ function sortGatewaysByStake(
 
   // Sort the array based on operatorStake
   const sortedGateways = gatewayArray.sort(
-    (a, b) => b.data.operatorStake - a.data.operatorStake
+    (a, b) => b.data.operatorStake - a.data.operatorStake,
   );
 
   return sortedGateways;
