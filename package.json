@@ -37,6 +37,6 @@
   },
   "homepage": "https://github.com/ar-io/wayfinder#readme",
   "dependencies": {
-    "@ar.io/sdk": "2.0.0-alpha.2"
+    "@ar.io/sdk": "2.0.0-alpha.10"
   }
 }
