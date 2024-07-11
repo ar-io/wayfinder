@@ -1,4 +1,4 @@
-import { IO, Gateway, IO_TESTNET_PROCESS_ID } from "@ar.io/sdk/web";
+import { IO, Gateway, IO_TESTNET_PROCESS_ID, WalletAddress, AoGateway } from "@ar.io/sdk/web";
 
 export type OnlineGateway = Gateway & {
   online?: boolean;
@@ -196,7 +196,7 @@ async function isGatewayOnline(gateway: Gateway): Promise<boolean> {
     ]);
     return (response as Response).ok;
   } catch (error) {
-    console.log((error as Error).message); // Log the error
+    console.error(error); 
     return false;
   }
 }
@@ -214,7 +214,6 @@ async function refreshOnlineGateways(): Promise<Record<string, OnlineGateway>> {
   });
 
   const results = await Promise.allSettled(promises);
-  console.log(results);
   results.forEach((result) => {
     if (result.status === "fulfilled") {
       garCache[result.value.address] = result.value.gateway;
@@ -234,7 +233,8 @@ async function getGatewayAddressRegistry(arIO: any): Promise<void> {
       "Getting the gateways with the SDK and Process Id: ",
       processId
     );
-    const garCache = await arIO.getGateways();
+
+    const garCache = await fetchAllGateways();
     await chrome.storage.local.set({ garCache });
     console.log(
       `Found ${
@@ -254,6 +254,23 @@ async function getGatewayAddressRegistry(arIO: any): Promise<void> {
       (error as Error).message
     );
   }
+}
+
+/**
+ * Fetch all gateways from the AR.IO SDK.
+ */
+const fetchAllGateways = async (): Promise<Record<WalletAddress, AoGateway>> => {
+  const gateways: Record<WalletAddress, AoGateway> = {};
+  let cursor;
+  do {
+    const response = await arIO.getGateways({ cursor });
+    for (const gateway of response.items) {
+      const { gatewayAddress, ...gatewayData } = gateway;
+      gateways[gatewayAddress] = gatewayData;
+    }
+    cursor = response.nextCursor;
+  } while (cursor)
+  return gateways;
 }
 
 /**
