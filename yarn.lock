@@ -10,10 +10,10 @@
     "@jridgewell/gen-mapping" "^0.3.5"
     "@jridgewell/trace-mapping" "^0.3.24"
 
-"@ar.io/sdk@2.0.0-alpha.10":
-  version "2.0.0-alpha.10"
-  resolved "https://registry.yarnpkg.com/@ar.io/sdk/-/sdk-2.0.0-alpha.10.tgz#09ab709064fe552f0af0c566bd0ee8304489594f"
-  integrity sha512-33tenbU1yz6R4WtuMXcnixKEVoi/E7f+AWxiVcWaNKKC0YpKq0AvTvVI6OsoehgnP5NGyi80GbMA4fZ6NTJH4w==
+"@ar.io/sdk@^2.0.0":
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/@ar.io/sdk/-/sdk-2.0.0.tgz#8725d1ece71b19dd7bfe44e846190bd458164206"
+  integrity sha512-at40lht1K6BOegoHoTezgL3z8y+Wj3VTEHMjNcoAywAV4R5l69xOTkJqEDL1uyLahspmxYGgX7rf50XFaVxMOw==
   dependencies:
     "@permaweb/aoconnect" "^0.0.55"
     arbundles "0.11.0"
