@@ -261,17 +261,15 @@ async function getGatewayAddressRegistry(arIO: any): Promise<void> {
  */
 const fetchAllGateways = async (): Promise<Record<WalletAddress, AoGateway>> => {
   const gateways: Record<WalletAddress, AoGateway> = {};
-  let hasNextPage = true;
-  let page = 1;
-  while (hasNextPage) {
-    const response = await arIO.getGateways({ page });
+  let cursor;
+  do {
+    const response = await arIO.getGateways({ cursor });
     for (const gateway of response.items) {
       const { gatewayAddress, ...gatewayData } = gateway;
       gateways[gatewayAddress] = gatewayData;
     }
-    hasNextPage = response.hasNextPage;
-    page++;
-  }
+    cursor = response.nextCursor;
+  } while (cursor)
   return gateways;
 }
 
