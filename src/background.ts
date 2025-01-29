@@ -1,6 +1,11 @@
-import { IO, Gateway, IO_TESTNET_PROCESS_ID } from "@ar.io/sdk/web";
+import {
+  IO,
+  IO_TESTNET_PROCESS_ID,
+  WalletAddress,
+  AoGateway,
+} from "@ar.io/sdk/web";
 
-export type OnlineGateway = Gateway & {
+export type OnlineGateway = AoGateway & {
   online?: boolean;
 };
 
@@ -12,12 +17,10 @@ const HIGHEST_STAKE_ROUTE_METHOD = "highestStake";
 const RANDOM_TOP_FIVE_STAKED_ROUTE_METHOD = "topFiveStake";
 const MAX_HISTORY_ITEMS = 20;
 
-const defaultGateway: Gateway = {
-  delegates: {},
-  end: 0,
-  observerWallet: "IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs",
+const defaultGateway: AoGateway = {
   operatorStake: 250000000000,
   settings: {
+    allowedDelegates: [],
     allowDelegatedStaking: true,
     autoStake: false,
     delegateRewardShareRatio: 30,
@@ -29,17 +32,17 @@ const defaultGateway: Gateway = {
     properties: "raJgvbFU-YAnku-WsupIdbTsqqGLQiYpGzoqk9SCVgY",
     protocol: "https",
   },
-  start: 1256694,
   stats: {
     failedConsecutiveEpochs: 0,
     passedEpochCount: 114,
-    submittedEpochCount: 113,
-    totalEpochParticipationCount: 120,
-    totalEpochsPrescribedCount: 120,
+    passedConsecutiveEpochs: 0,
+    totalEpochCount: 0,
+    failedEpochCount: 0,
+    observedEpochCount: 0,
+    prescribedEpochCount: 0,
   },
   status: "joined",
   totalDelegatedStake: 13868917608,
-  vaults: {},
   weights: {
     stakeWeight: 0,
     tenureWeight: 0,
@@ -47,6 +50,12 @@ const defaultGateway: Gateway = {
     normalizedCompositeWeight: 0,
     observerRewardRatioWeight: 0,
     compositeWeight: 0,
+  },
+  startTimestamp: 0,
+  endTimestamp: 0,
+  observerAddress: "IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs",
+  services: {
+    bundlers: [],
   },
 };
 
@@ -180,7 +189,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
  * @param gateway The gateway object to check.
  * @returns A promise that resolves to true if the gateway is online, otherwise false.
  */
-async function isGatewayOnline(gateway: Gateway): Promise<boolean> {
+async function isGatewayOnline(gateway: AoGateway): Promise<boolean> {
   const url = `${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}/`;
   const timeoutPromise = new Promise<never>((_, reject) =>
     setTimeout(
@@ -196,7 +205,7 @@ async function isGatewayOnline(gateway: Gateway): Promise<boolean> {
     ]);
     return (response as Response).ok;
   } catch (error) {
-    console.log((error as Error).message); // Log the error
+    console.error(error);
     return false;
   }
 }
@@ -208,13 +217,12 @@ async function isGatewayOnline(gateway: Gateway): Promise<boolean> {
 async function refreshOnlineGateways(): Promise<Record<string, OnlineGateway>> {
   const { garCache } = await chrome.storage.local.get(["garCache"]);
   const promises = Object.entries(garCache).map(async ([address, gateway]) => {
-    const online = await isGatewayOnline(gateway as Gateway);
-    const onlineGateway: OnlineGateway = { ...(gateway as Gateway), online };
+    const online = await isGatewayOnline(gateway as AoGateway);
+    const onlineGateway: OnlineGateway = { ...(gateway as AoGateway), online };
     return { address, gateway: onlineGateway };
   });
 
   const results = await Promise.allSettled(promises);
-  console.log(results);
   results.forEach((result) => {
     if (result.status === "fulfilled") {
       garCache[result.value.address] = result.value.gateway;
@@ -234,7 +242,8 @@ async function getGatewayAddressRegistry(arIO: any): Promise<void> {
       "Getting the gateways with the SDK and Process Id: ",
       processId
     );
-    const garCache = await arIO.getGateways();
+
+    const garCache = await fetchAllGateways();
     await chrome.storage.local.set({ garCache });
     console.log(
       `Found ${
@@ -257,13 +266,32 @@ async function getGatewayAddressRegistry(arIO: any): Promise<void> {
 }
 
 /**
+ * Fetch all gateways from the AR.IO SDK.
+ */
+const fetchAllGateways = async (): Promise<
+  Record<WalletAddress, AoGateway>
+> => {
+  const gateways: Record<WalletAddress, AoGateway> = {};
+  let cursor;
+  do {
+    const response = await arIO.getGateways({ cursor });
+    for (const gateway of response.items) {
+      const { gatewayAddress, ...gatewayData } = gateway;
+      gateways[gatewayAddress] = gatewayData;
+    }
+    cursor = response.nextCursor;
+  } while (cursor);
+  return gateways;
+};
+
+/**
  * Get an online gateway based on the configured routing method.
  * @returns A promise that resolves to a gateway object.
  */
-async function getOnlineGateway(): Promise<Gateway> {
+async function getOnlineGateway(): Promise<AoGateway> {
   const { staticGateway } = (await chrome.storage.local.get([
     "staticGateway",
-  ])) as { staticGateway?: Gateway };
+  ])) as { staticGateway?: AoGateway };
   if (staticGateway) {
     console.log("Static gateway being used:", staticGateway.settings.fqdn);
     return staticGateway;
@@ -285,7 +313,7 @@ async function getOnlineGateway(): Promise<Gateway> {
     )
   );
 
-  let gateway: Gateway | null = null;
+  let gateway: AoGateway | null = null;
   switch (routingMethod) {
     case RANDOM_TOP_FIVE_STAKED_ROUTE_METHOD:
       gateway = selectRandomTopFiveStakedGateway(filteredGar);

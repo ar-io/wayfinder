@@ -479,10 +479,8 @@ async function showMoreGatewayInfo(gateway: AoGateway, address: string) {
   // Convert observerRewardRatioWeight to percentage and format to one decimal place
   modalORR.textContent = `${orr}%`;
 
-  const grr = gateway.stats.totalEpochParticipationCount
-    ? (gateway.stats.passedEpochCount /
-        gateway.stats.totalEpochParticipationCount) *
-      100
+  const grr = gateway.stats.totalEpochCount
+    ? (gateway.stats.passedEpochCount / gateway.stats.totalEpochCount) * 100
     : 100;
 
   // Convert gatewayRewardRatioWeight to percentage and format to one decimal place
