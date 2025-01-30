@@ -114,13 +114,16 @@ async function afterPopupDOMLoaded(): Promise<void> {
               '<span class="online" title="Gateway is online">✔</span>';
           }
 
+          const totalStake = new mIOToken(
+            gateway.operatorStake + gateway.totalDelegatedStake
+          ).toIO();
           listItem.innerHTML = `
                         <div class="gateway-header">
                             <span class="gateway-url" title="Click to see gateway details">${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}</span>
                             <span class="online-status">${onlineStatus}</span>
                         </div>
                         <div class="gateway-info">
-                            <span class="operator-stake">Stake: ${new mIOToken(gateway.operatorStake).toIO()} IO</span>
+                            <span class="operator-stake">Total Stake:${totalStake} IO</span>
                         </div>
                     `;
 
@@ -462,7 +465,15 @@ async function showMoreGatewayInfo(gateway: AoGateway, address: string) {
   const modalObserverWallet = document.getElementById(
     "modal-observer-wallet"
   ) as HTMLAnchorElement;
-  const modalStake = document.getElementById("modal-stake") as HTMLElement;
+  const modalOperatorStake = document.getElementById(
+    "modal-operator-stake"
+  ) as HTMLElement;
+  const modalDelegatedStake = document.getElementById(
+    "modal-delegated-stake"
+  ) as HTMLElement;
+  const modalTotalStake = document.getElementById(
+    "modal-total-stake"
+  ) as HTMLElement;
   const modalStatus = document.getElementById("modal-status") as HTMLElement;
   const modalStart = document.getElementById("modal-start") as HTMLElement;
   const modalProperties = document.getElementById(
@@ -470,41 +481,47 @@ async function showMoreGatewayInfo(gateway: AoGateway, address: string) {
   ) as HTMLAnchorElement;
   const modalNote = document.getElementById("modal-note") as HTMLElement;
 
+  // Calculate ORR
   const orr =
     gateway.stats.prescribedEpochCount > 0
       ? (gateway.stats.observedEpochCount /
           gateway.stats.prescribedEpochCount) *
         100
       : 100;
-  // Convert observerRewardRatioWeight to percentage and format to one decimal place
-  modalORR.textContent = `${orr}%`;
+  modalORR.textContent = `${orr.toFixed(1)}%`;
 
+  // Calculate GRR
   const grr = gateway.stats.totalEpochCount
     ? (gateway.stats.passedEpochCount / gateway.stats.totalEpochCount) * 100
     : 100;
-
-  // Convert gatewayRewardRatioWeight to percentage and format to one decimal place
-  modalGRR.textContent = `${grr}%`;
+  modalGRR.textContent = `${grr.toFixed(1)}%`;
 
   // Assign values from the gateway object to modal elements
   modalUrl.textContent = `${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}`;
   modalUrl.href = `${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}`;
+
   modalGatewayWallet.textContent = address.slice(0, 6) + "...";
   modalGatewayWallet.href = `https://viewblock.io/arweave/address/${address}`;
 
   modalObserverWallet.textContent = gateway.observerAddress.slice(0, 6) + "...";
   modalObserverWallet.href = `https://viewblock.io/arweave/address/${gateway.observerAddress}`;
 
-  modalStake.textContent = `${new mIOToken(gateway.operatorStake).toIO()} IO`;
+  // Display Stake Information
+  modalOperatorStake.textContent = `${new mIOToken(gateway.operatorStake).toIO()} IO`;
+  modalDelegatedStake.textContent = `${new mIOToken(gateway.totalDelegatedStake).toIO()} IO`;
+  const totalStake = gateway.operatorStake + gateway.totalDelegatedStake;
+  modalTotalStake.textContent = `${new mIOToken(totalStake).toIO()} IO`;
+
   modalStatus.textContent = gateway.status;
   modalStart.textContent = `${new Date(gateway.startTimestamp).toLocaleDateString()}`;
+
   if (gateway.settings.properties) {
     modalProperties.textContent =
       gateway.settings.properties.slice(0, 6) + "...";
     modalProperties.href = `https://viewblock.io/arweave/tx/${gateway.settings.properties}`;
   } else {
     modalProperties.textContent = "No properties set";
-    modalProperties.removeAttribute("href"); // remove link if no properties
+    modalProperties.removeAttribute("href"); // Remove link if no properties
   }
 
   modalNote.textContent = gateway.settings.note || "No note provided";
@@ -517,11 +534,9 @@ async function showMoreGatewayInfo(gateway: AoGateway, address: string) {
   // Check if the gateway is already blacklisted
   const isBlacklisted = await checkIfBlacklisted(address);
 
-  if (isBlacklisted) {
-    blacklistButton.textContent = "Unblacklist Gateway";
-  } else {
-    blacklistButton.textContent = "Blacklist Gateway";
-  }
+  blacklistButton.textContent = isBlacklisted
+    ? "Unblacklist Gateway"
+    : "Blacklist Gateway";
 
   // Toggle blacklist status
   blacklistButton.onclick = async function () {
@@ -577,23 +592,23 @@ async function toggleBlacklist(address: any) {
 }
 
 function sortGatewaysByStake(gateways: { [s: string]: any } | ArrayLike<any>) {
-  console.log("Gateways before sort: ", gateways);
-  // check the length
-  if (gateways === undefined || Object.keys(gateways).length === 0) {
+  // Check if gateways are valid and not empty
+  if (!gateways || Object.keys(gateways).length === 0) {
     return [];
   }
-  // Convert the object to an array of {address, data} pairs
+
+  // Convert the object to an array of { address, data } pairs
   const gatewayArray = Object.entries(gateways).map(([address, data]) => ({
     address,
     data,
   }));
 
-  // Sort the array based on operatorStake
-  const sortedGateways = gatewayArray.sort(
-    (a, b) => b.data.operatorStake - a.data.operatorStake
-  );
+  // Compute total stake (operatorStake + totalDelegatedStake) for sorting
+  const getTotalStake = (gateway: any) =>
+    (gateway.data.operatorStake || 0) + (gateway.data.totalDelegatedStake || 0);
 
-  return sortedGateways;
+  // Sort the array based on total stake in descending order
+  return gatewayArray.sort((a, b) => getTotalStake(b) - getTotalStake(a));
 }
 
 function isBase64URL(address: string): boolean {
