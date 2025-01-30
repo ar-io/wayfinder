@@ -23,13 +23,13 @@ const defaultGateway: AoGateway = {
     allowedDelegates: [],
     allowDelegatedStaking: true,
     autoStake: false,
-    delegateRewardShareRatio: 30,
-    fqdn: "ar-io.dev",
-    label: "AR.IO Test",
+    delegateRewardShareRatio: 5,
+    fqdn: "arweave.net",
+    label: "Arweave.net",
     minDelegatedStake: 100000000,
-    note: "Test Gateway operated by PDS for the AR.IO ecosystem.",
+    note: "Arweave ecosystem gateway.",
     port: 443,
-    properties: "raJgvbFU-YAnku-WsupIdbTsqqGLQiYpGzoqk9SCVgY",
+    properties: "",
     protocol: "https",
   },
   stats: {
@@ -42,7 +42,7 @@ const defaultGateway: AoGateway = {
     prescribedEpochCount: 0,
   },
   status: "joined",
-  totalDelegatedStake: 13868917608,
+  totalDelegatedStake: 0,
   weights: {
     stakeWeight: 0,
     tenureWeight: 0,
@@ -53,7 +53,7 @@ const defaultGateway: AoGateway = {
   },
   startTimestamp: 0,
   endTimestamp: 0,
-  observerAddress: "IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs",
+  observerAddress: "",
   services: {
     bundlers: [],
   },
@@ -374,26 +374,45 @@ function selectRandomGateway(
 }
 
 /**
- * Select a weighted random gateway based on operator stake.
+ * Select a weighted random gateway based on total stake (operator + delegated).
  * @param gar The GAR JSON object.
  * @returns A weighted random Gateway object or the default gateway if no gateways are online.
  */
 function selectWeightedGateway(
   gar: Record<string, OnlineGateway>
 ): OnlineGateway {
+  // Filter only online gateways
   const onlineGateways = Object.values(gar).filter((gateway) => gateway.online);
+
+  // Compute total stake (operatorStake + totalDelegatedStake) for each gateway
+  const getTotalStake = (gateway: OnlineGateway) =>
+    gateway.operatorStake + gateway.totalDelegatedStake;
+
+  // Compute the total combined stake of all online gateways
   const totalStake = onlineGateways.reduce(
-    (accum, gateway) => accum + gateway.operatorStake,
+    (accum, gateway) => accum + getTotalStake(gateway),
     0
   );
+
+  // If no stake is present, return the default gateway
+  if (totalStake === 0) {
+    console.warn("No gateways with stake available. Using default.");
+    return defaultGateway;
+  }
+
+  // Generate a random number between 0 and totalStake
   let randomNum = Math.random() * totalStake;
+
+  // Iterate through gateways, subtracting their stake until we select one
   for (const gateway of onlineGateways) {
-    randomNum -= gateway.operatorStake;
+    randomNum -= getTotalStake(gateway);
     if (randomNum <= 0) {
       return gateway;
     }
   }
-  console.log("No gateways available. Using default.");
+
+  // Fallback (should never happen unless there's a rounding error)
+  console.warn("Unexpected failure in weighted selection. Using default.");
   return defaultGateway;
 }
 
@@ -405,21 +424,31 @@ function selectWeightedGateway(
 function selectHighestStakeGateway(
   gar: Record<string, OnlineGateway>
 ): OnlineGateway {
-  const maxStake = Math.max(
-    ...Object.values(gar).map((gateway) => gateway.operatorStake)
-  );
+  // Compute the total stake for each gateway
+  const getTotalStake = (gateway: OnlineGateway) =>
+    gateway.operatorStake + gateway.totalDelegatedStake;
+
+  // Find the maximum total stake
+  const maxStake = Math.max(...Object.values(gar).map(getTotalStake));
+
+  // Filter gateways with the max stake that are online
   const maxStakeGateways = Object.values(gar).filter(
-    (gateway) => gateway.operatorStake === maxStake && gateway.online
+    (gateway) => getTotalStake(gateway) === maxStake && gateway.online
   );
+
+  // If no gateways are online, return a default
   if (maxStakeGateways.length === 0) {
-    console.log("No online gateways available. Using default.");
+    console.warn("No online gateways available. Using default.");
     return defaultGateway;
   }
+
+  // If only one gateway has the highest stake, return it
   if (maxStakeGateways.length === 1) {
     return maxStakeGateways[0];
   }
-  const randomIndex = Math.floor(Math.random() * maxStakeGateways.length);
-  return maxStakeGateways[randomIndex];
+
+  // If multiple gateways have the highest stake, pick one randomly
+  return maxStakeGateways[Math.floor(Math.random() * maxStakeGateways.length)];
 }
 
 /**
@@ -430,16 +459,26 @@ function selectHighestStakeGateway(
 function selectRandomTopFiveStakedGateway(
   gar: Record<string, OnlineGateway>
 ): OnlineGateway {
+  // Compute total stake for sorting
+  const getTotalStake = (gateway: OnlineGateway) =>
+    gateway.operatorStake + gateway.totalDelegatedStake;
+
+  // Filter online gateways and sort them by total stake in descending order
   const sortedGateways = Object.values(gar)
     .filter((gateway) => gateway.online)
-    .sort((a, b) => b.operatorStake - a.operatorStake);
+    .sort((a, b) => getTotalStake(b) - getTotalStake(a));
+
+  // If no gateways are online, return the default gateway
   if (sortedGateways.length === 0) {
-    console.log("No online gateways available. Using default.");
+    console.warn("No online gateways available. Using default.");
     return defaultGateway;
   }
+
+  // Select the top 5 highest staked gateways (or fewer if less than 5 exist)
   const top5 = sortedGateways.slice(0, Math.min(5, sortedGateways.length));
-  const randomIndex = Math.floor(Math.random() * top5.length);
-  return top5[randomIndex];
+
+  // Randomly pick one of the top 5
+  return top5[Math.floor(Math.random() * top5.length)];
 }
 
 /**
