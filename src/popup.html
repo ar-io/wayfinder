@@ -30,8 +30,8 @@
         Gateway Address Registry
       </h2>
       <div id="gatewayListHeader" style="display: none">
-        <span class="online-gateways"
-          >Online: <span id="onlineGatewayCount">0</span></span
+        <span class="active-gateways"
+          >Active: <span id="activeGatewayCount">0</span></span
         >
         <span class="total-gateways"
           >Total: <span id="totalGatewayCount">0</span></span
@@ -75,6 +75,12 @@
             title="Route to one of the top 5 staked gateways."
           >
             Random Top 5 Stake
+          </option>
+          <option
+            value="weightedOnchainPerformance"
+            title="Route to a gateway based on its onchain performance."
+          >
+            Weighted Onchain Performance
           </option>
           <option
             value="stakeRandom"

@@ -108,10 +108,11 @@ async function afterPopupDOMLoaded(): Promise<void> {
           };
 
           let onlineStatus =
-            '<span class="offline" title="Gateway is offline">✖</span>';
-          if (gateway.online) {
-            onlineStatus =
-              '<span class="online" title="Gateway is online">✔</span>';
+            '<span class="unknown" title="Gateway status unknown">?</span>';
+          if (gateway.hasOwnProperty("online")) {
+            onlineStatus = gateway.online
+              ? '<span class="online" title="Gateway is online">✔</span>'
+              : '<span class="offline" title="Gateway is offline">✖</span>';
           }
 
           const totalStake = new mIOToken(
@@ -123,17 +124,19 @@ async function afterPopupDOMLoaded(): Promise<void> {
                             <span class="online-status">${onlineStatus}</span>
                         </div>
                         <div class="gateway-info">
-                            <span class="operator-stake">Total Stake:${totalStake} IO</span>
+                            <span class="operator-stake">Total Stake:${totalStake} ARIO</span>
                         </div>
                     `;
 
           gatewayList.appendChild(listItem);
         }
-        const onlineCount = Object.values(enrichedGar).filter(
-          (gateway: any) => gateway.online
+
+        const activeCount = Object.values(enrichedGar).filter(
+          (gateway: any) => gateway.status === "joined"
         ).length;
-        document.getElementById("onlineGatewayCount")!.textContent =
-          `${onlineCount}`;
+
+        document.getElementById("activeGatewayCount")!.textContent =
+          `${activeCount}`;
         document.getElementById("totalGatewayCount")!.textContent =
           Object.keys(enrichedGar).length.toString();
 
@@ -194,10 +197,11 @@ async function afterPopupDOMLoaded(): Promise<void> {
         };
 
         let onlineStatus =
-          '<span class="offline" title="Gateway is offline">✖</span>';
-        if (gateway.online) {
-          onlineStatus =
-            '<span class="online" title="Gateway is online">✔</span>';
+          '<span class="unknown" title="Gateway status unknown">?</span>';
+        if (gateway.hasOwnProperty("online")) {
+          onlineStatus = gateway.online
+            ? '<span class="online" title="Gateway is online">✔</span>'
+            : '<span class="offline" title="Gateway is offline">✖</span>';
         }
 
         listItem.innerHTML = `
@@ -206,17 +210,18 @@ async function afterPopupDOMLoaded(): Promise<void> {
                         <span class="online-status">${onlineStatus}</span>
                     </div>
                     <div class="gateway-info">
-                        <span class="operator-stake">Stake: ${new mIOToken(gateway.operatorStake).toIO()} IO</span>
+                        <span class="operator-stake">Stake: ${new mIOToken(gateway.operatorStake).toIO()} ARIO</span>
                     </div>
                 `;
         gatewayList.appendChild(listItem);
       }
 
-      const onlineCount = Object.values(enrichedGar).filter(
-        (gateway: any) => gateway.online
+      const activeCount = Object.values(enrichedGar).filter(
+        (gateway: any) => gateway.status === "joined"
       ).length;
-      document.getElementById("onlineGatewayCount")!.textContent =
-        `${onlineCount}`;
+
+      document.getElementById("activeGatewayCount")!.textContent =
+        `${activeCount}`;
       document.getElementById("totalGatewayCount")!.textContent =
         Object.keys(enrichedGar).length.toString();
     });
@@ -507,8 +512,8 @@ async function showMoreGatewayInfo(gateway: AoGateway, address: string) {
   modalObserverWallet.href = `https://viewblock.io/arweave/address/${gateway.observerAddress}`;
 
   // Display Stake Information
-  modalOperatorStake.textContent = `${new mIOToken(gateway.operatorStake).toIO()} IO`;
-  modalDelegatedStake.textContent = `${new mIOToken(gateway.totalDelegatedStake).toIO()} IO`;
+  modalOperatorStake.textContent = `${new mIOToken(gateway.operatorStake).toIO()} ARIO`;
+  modalDelegatedStake.textContent = `${new mIOToken(gateway.totalDelegatedStake).toIO()} ARIO`;
   const totalStake = gateway.operatorStake + gateway.totalDelegatedStake;
   modalTotalStake.textContent = `${new mIOToken(totalStake).toIO()} IO`;
 
