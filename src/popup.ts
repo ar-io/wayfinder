@@ -1,4 +1,4 @@
-import { mIOToken, AoGateway, IO_TESTNET_PROCESS_ID } from "@ar.io/sdk/web";
+import { AoGateway, ARIO_TESTNET_PROCESS_ID, mARIOToken } from "@ar.io/sdk/web";
 
 // Check if the document is still loading, if not, call the function directly
 if (document.readyState === "loading") {
@@ -87,9 +87,9 @@ async function afterPopupDOMLoaded(): Promise<void> {
         showGatewaysBtn.innerText = "Gateway Address Registry";
       } else {
         gatewayList.innerHTML = "";
-        const { enrichedGar = {} } =
-          await chrome.storage.local.get("enrichedGar");
-        const sortedGateways = sortGatewaysByStake(enrichedGar);
+        const { localGatewayAddressRegistry = {} } =
+          await chrome.storage.local.get("localGatewayAddressRegistry");
+        const sortedGateways = sortGatewaysByStake(localGatewayAddressRegistry);
         for (const sortedGateway of sortedGateways) {
           const gateway = sortedGateway.data;
 
@@ -115,9 +115,9 @@ async function afterPopupDOMLoaded(): Promise<void> {
               : '<span class="offline" title="Gateway is offline">✖</span>';
           }
 
-          const totalStake = new mIOToken(
+          const totalStake = new mARIOToken(
             gateway.operatorStake + gateway.totalDelegatedStake
-          ).toIO();
+          ).toARIO();
           listItem.innerHTML = `
                         <div class="gateway-header">
                             <span class="gateway-url" title="Click to see gateway details">${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}</span>
@@ -131,14 +131,15 @@ async function afterPopupDOMLoaded(): Promise<void> {
           gatewayList.appendChild(listItem);
         }
 
-        const activeCount = Object.values(enrichedGar).filter(
+        const activeCount = Object.values(localGatewayAddressRegistry).filter(
           (gateway: any) => gateway.status === "joined"
         ).length;
 
         document.getElementById("activeGatewayCount")!.textContent =
           `${activeCount}`;
-        document.getElementById("totalGatewayCount")!.textContent =
-          Object.keys(enrichedGar).length.toString();
+        document.getElementById("totalGatewayCount")!.textContent = Object.keys(
+          localGatewayAddressRegistry
+        ).length.toString();
 
         // Close the modal when the close button is clicked
         (
@@ -173,12 +174,12 @@ async function afterPopupDOMLoaded(): Promise<void> {
       gatewayList.innerHTML = '<span class="refreshing-text"></span>'; // use class here
       await syncGatewayAddressRegistryPopup();
       gatewayList.innerHTML = "";
-      const { enrichedGar } = (await chrome.storage.local.get(
-        "enrichedGar"
+      const { localGatewayAddressRegistry } = (await chrome.storage.local.get(
+        "localGatewayAddressRegistry"
       )) as {
-        enrichedGar: Record<string, any>;
+        localGatewayAddressRegistry: Record<string, any>;
       };
-      const sortedGateways = sortGatewaysByStake(enrichedGar);
+      const sortedGateways = sortGatewaysByStake(localGatewayAddressRegistry);
       for (const sortedGateway of sortedGateways) {
         const gateway = sortedGateway.data;
 
@@ -210,20 +211,21 @@ async function afterPopupDOMLoaded(): Promise<void> {
                         <span class="online-status">${onlineStatus}</span>
                     </div>
                     <div class="gateway-info">
-                        <span class="operator-stake">Stake: ${new mIOToken(gateway.operatorStake).toIO()} ARIO</span>
+                        <span class="operator-stake">Stake: ${new mARIOToken(gateway.operatorStake).toARIO()} ARIO</span>
                     </div>
                 `;
         gatewayList.appendChild(listItem);
       }
 
-      const activeCount = Object.values(enrichedGar).filter(
+      const activeCount = Object.values(localGatewayAddressRegistry).filter(
         (gateway: any) => gateway.status === "joined"
       ).length;
 
       document.getElementById("activeGatewayCount")!.textContent =
         `${activeCount}`;
-      document.getElementById("totalGatewayCount")!.textContent =
-        Object.keys(enrichedGar).length.toString();
+      document.getElementById("totalGatewayCount")!.textContent = Object.keys(
+        localGatewayAddressRegistry
+      ).length.toString();
     });
 
     showHistoryBtn.addEventListener("click", function () {
@@ -346,7 +348,7 @@ async function afterPopupDOMLoaded(): Promise<void> {
         document.getElementById("arIOProcessId") as HTMLInputElement
       ).value;
       if (arIOProcessId === "") {
-        const result = saveArIOProcessId(IO_TESTNET_PROCESS_ID);
+        const result = saveArIOProcessId(ARIO_TESTNET_PROCESS_ID);
         (document.getElementById("arIOProcessId") as HTMLInputElement).value =
           "";
         return new Promise((resolve, reject) => {
@@ -512,10 +514,10 @@ async function showMoreGatewayInfo(gateway: AoGateway, address: string) {
   modalObserverWallet.href = `https://viewblock.io/arweave/address/${gateway.observerAddress}`;
 
   // Display Stake Information
-  modalOperatorStake.textContent = `${new mIOToken(gateway.operatorStake).toIO()} ARIO`;
-  modalDelegatedStake.textContent = `${new mIOToken(gateway.totalDelegatedStake).toIO()} ARIO`;
+  modalOperatorStake.textContent = `${new mARIOToken(gateway.operatorStake).toARIO()} ARIO`;
+  modalDelegatedStake.textContent = `${new mARIOToken(gateway.totalDelegatedStake).toARIO()} ARIO`;
   const totalStake = gateway.operatorStake + gateway.totalDelegatedStake;
-  modalTotalStake.textContent = `${new mIOToken(totalStake).toIO()} IO`;
+  modalTotalStake.textContent = `${new mARIOToken(totalStake).toARIO()} IO`;
 
   modalStatus.textContent = gateway.status;
   modalStart.textContent = `${new Date(gateway.startTimestamp).toLocaleDateString()}`;
@@ -624,7 +626,7 @@ function isBase64URL(address: string): boolean {
 
 function saveArIOProcessId(processId: string) {
   if (processId === "") {
-    chrome.storage.local.set({ processId: IO_TESTNET_PROCESS_ID });
+    chrome.storage.local.set({ processId: ARIO_TESTNET_PROCESS_ID });
     alert(`AR.IO Process ID set back to default.`);
   } else {
     chrome.storage.local.set({ processId: processId });

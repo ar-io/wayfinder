@@ -1,6 +1,6 @@
 {
   "name": "wayfinder",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "description": "WayFinder (alpha) is a simple, open source, Google Chrome extension that intelligently routes users to optimal AR.IO gateways, ensuring streamlined access to the permaweb on Arweave.",
   "main": "dist/index.js",
   "browser": "dist/index.js",
@@ -37,6 +37,6 @@
   },
   "homepage": "https://github.com/ar-io/wayfinder#readme",
   "dependencies": {
-    "@ar.io/sdk": "^2.6.0"
+    "@ar.io/sdk": "^3.5.0"
   }
 }
