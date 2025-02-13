@@ -47,7 +47,13 @@
           ></span
         >
       </div>
-      <ul id="gatewayList" style="display: none"></ul>
+      <ul id="gatewayList" style="display: none">
+        <li class="gateway-header">
+          <span class="gateway-url">Gateway</span>
+          <span class="online-status">Status</span>
+          <span class="response-time">Response Time</span>
+        </li>
+      </ul>
     </div>
     <h2 id="historyListTitle" style="display: none">Usage History</h2>
     <ul id="historyList" style="display: none"></ul>
@@ -167,51 +173,24 @@
           >
         </p>
         <p
-          title="The unique wallet address of the gateway's observer. Click to view details on from Viewblock."
-        >
-          <strong>Observer Address:</strong>
-          <a id="modal-observer-wallet" href="#" target="_blank"
-            >shortened_address...</a
-          >
-        </p>
-        <p
           title="The amount of stake committed by this gateway. This indicates the gateway's vested interest in the network."
         >
           <strong>Total Stake:</strong>
           <span id="modal-total-stake">placeholder_stake_value</span>
         </p>
-        <p
-        title="The amount of stake committed by the operator of gateway. This indicates the operators's vested interest in the service of this gateway."
-        >
-        <strong>Operator Stake:</strong>
-        <span id="modal-operator-stake">placeholder_stake_value</span>
-      </p>
-      <p
-      title="The amount of stake delegated to this gateway. This indicates the communities's vested interest in this gateway."
-    >
-      <strong>Delegated Stake:</strong>
-      <span id="modal-delegated-stake">placeholder_stake_value</span>
-    </p>
-        <p
-          title="The current operational status of the gateway in the network."
-        >
-          <strong>Network Status:</strong>
-          <span id="modal-status">placeholder_status</span>
-        </p>
-        <p title="The block height when this gateway joined the network.">
+        <p title="When this gateway joined the network.">
           <strong>Joined Since:</strong>
           <span id="modal-start">placeholder_start_date</span>
         </p>
-        <p
-          title="Special properties or features of the gateway. Click to view details from Viewblock."
-        >
-          <strong>Gateway Properties:</strong>
-          <a id="modal-properties" href="#" target="_blank"
-            >shortened_properties...</a
-          >
-        </p>
         <p title="A note from the gateway operator." id="modal-note">
           placeholder_note
+        </p>
+        <p title="Find more information about this gateway from the AR.IO Network App."
+        >
+        <strong>
+        <a id="modal-gateway-more-info" href="#" target="_blank"
+          >more_info_link...</a
+        ></strong>
         </p>
         <button id="blacklistButton">Blacklist Gateway</button>
       </div>

@@ -1,60 +1,7 @@
 import { AoGatewayWithAddress } from "@ar.io/sdk/web";
-import { backgroundGatewayBenchmarking } from "./helpers";
-
-type GatewayRegistry = Record<string, AoGatewayWithAddress>;
-
-const defaultGateway: AoGatewayWithAddress = {
-  operatorStake: 250000000000,
-  settings: {
-    allowedDelegates: [],
-    allowDelegatedStaking: true,
-    autoStake: false,
-    delegateRewardShareRatio: 5,
-    fqdn: "arweave.net",
-    label: "Arweave.net",
-    minDelegatedStake: 100000000,
-    note: "Arweave ecosystem gateway.",
-    port: 443,
-    properties: "",
-    protocol: "https",
-  },
-  stats: {
-    failedConsecutiveEpochs: 0,
-    passedEpochCount: 0,
-    passedConsecutiveEpochs: 0,
-    totalEpochCount: 0,
-    failedEpochCount: 0,
-    observedEpochCount: 0,
-    prescribedEpochCount: 0,
-  },
-  status: "joined",
-  totalDelegatedStake: 0,
-  weights: {
-    stakeWeight: 0,
-    tenureWeight: 0,
-    gatewayRewardRatioWeight: 0,
-    normalizedCompositeWeight: 0,
-    observerRewardRatioWeight: 0,
-    compositeWeight: 0,
-    gatewayPerformanceRatio: 0,
-    observerPerformanceRatio: 0,
-  },
-  startTimestamp: 0,
-  endTimestamp: 0,
-  observerAddress: "",
-  services: {
-    bundlers: [],
-  },
-  gatewayAddress: "DEFAULT",
-};
-
-export const RANDOM_ROUTE_METHOD = "random";
-export const STAKE_RANDOM_ROUTE_METHOD = "stakeRandom";
-export const HIGHEST_STAKE_ROUTE_METHOD = "highestStake";
-export const RANDOM_TOP_FIVE_STAKED_ROUTE_METHOD = "topFiveStake";
-export const WEIGHTED_ONCHAIN_PERFORMANCE_ROUTE_METHOD =
-  "weightedOnchainPerformance";
-export const OPTIMAL_GATEWAY_ROUTE_METHOD = "optimalGateway";
+import { backgroundGatewayBenchmarking, backgroundValidateCachedGateway } from "./helpers";
+import { DEFAULT_GATEWAY, TOP_ONCHAIN_GATEWAY_LIMIT, HIGHEST_STAKE_ROUTE_METHOD, OPTIMAL_GATEWAY_ROUTE_METHOD, RANDOM_ROUTE_METHOD, RANDOM_TOP_FIVE_STAKED_ROUTE_METHOD, STAKE_RANDOM_ROUTE_METHOD, WEIGHTED_ONCHAIN_PERFORMANCE_ROUTE_METHOD } from "./constants";
+import { GatewayRegistry } from "./types";
 
 /**
  * Fetch the filtered Gateway Address Registry (GAR) from storage.
@@ -190,7 +137,7 @@ export function computeOnChainGatewayScores(
   const gamma = 0.15; // Gateway performance weight (15%)
   const delta = 0.05; // Observer performance weight (5%)
   const epsilon = 0.15; // Stability weight (log-based)
-  const zeta = -0.2; // Failure penalty (-20% per failed epoch, capped at -0.6)
+  const zeta = -0.2; // Failure penalty (-20% per failed epoch, capped at -0.8)
 
   return Object.values(gar).map((gateway) => {
     const weights = gateway.weights ?? {};
@@ -204,7 +151,7 @@ export function computeOnChainGatewayScores(
     const stabilityFactor = Math.log1p(stats.passedConsecutiveEpochs ?? 0);
     const failurePenalty =
       stats.failedConsecutiveEpochs > 0
-        ? Math.max(zeta * Math.log1p(stats.failedConsecutiveEpochs), -0.6)
+        ? Math.max(zeta * Math.log1p(stats.failedConsecutiveEpochs), -0.8)
         : 0;
 
     const score =
@@ -237,7 +184,7 @@ export function selectTopOnChainGateways(
   return scoredGateways.length > 0 ? scoredGateways : Object.values(gar);
 }
 
-/**
+  /**
  * Selects a **random weighted gateway** using on-chain metrics.
  *
  * @param gar The Gateway Address Registry.
@@ -255,42 +202,64 @@ export async function selectWeightedOnchainPerformanceGateway(
     return selectHighestStakedGateway(gar);
   }
 
-  // Normalize weights
-  const totalWeight = scoredGateways.reduce((sum, gw) => sum + gw.score, 0);
-  const normalizedGateways = scoredGateways.map((gw) => ({
-    gateway: gw.gateway,
-    weight: gw.score / totalWeight,
+    // Debug log gateway score distribution (no normalization)
+    console.log(
+      "🎯 Scored Gateway Selection Candidates:",
+      scoredGateways.map((gw) => ({
+        fqdn: gw.gateway.settings.fqdn,
+        rawScore: gw.score.toFixed(2),
+      }))
+    );
+
+    // Apply an exponential weight boost to favor top-performing gateways
+  const scorePower = 1.5; // Adjusting exponentiation makes top gateways more dominant
+  const weightedGateways = scoredGateways.map(({ gateway, score }) => ({
+    gateway,
+    weight: Math.pow(score, scorePower), // Exponentially boost high scores
   }));
 
-  // Debug log gateway weight distribution
-  console.log(
-    "🎯 Weighted Gateway Selection Candidates:",
-    normalizedGateways.map((gw) => ({
-      fqdn: gw.gateway.settings.fqdn,
-      weight: gw.weight.toFixed(4),
-    }))
-  );
+    // Debug log gateway score distribution (no normalization)
+    console.log(
+      "🎯 Weighted Gateway Selection Candidates:",
+      weightedGateways.map((gw) => ({
+        fqdn: gw.gateway.settings.fqdn,
+        rawScore: gw.weight.toFixed(2),
+      }))
+    );
 
-  // Weighted selection
-  let randomNum = Math.random();
-  for (const { gateway, weight } of normalizedGateways) {
-    randomNum -= weight;
-    if (randomNum <= 0) {
+
+  // Compute the total weight (sum of all scores after transformation)
+  const totalWeight = weightedGateways.reduce((sum, gw) => sum + gw.weight, 0);
+
+  // Generate a random number in the range [0, totalWeight]
+  let randomNum = Math.random() * totalWeight;
+
+  // Precompute cumulative weights for selection
+  let cumulativeWeight = 0;
+  for (const { gateway, weight } of weightedGateways) {
+    cumulativeWeight += weight;
+    if (randomNum <= cumulativeWeight) {
       console.log(`✅ Selected Weighted Gateway: ${gateway.settings.fqdn}`);
       return gateway;
     }
   }
 
+  // Fallback to highest-staked gateway (should never happen)
   console.warn("⚠️ Weighted selection failed unexpectedly, falling back.");
   return selectHighestStakedGateway(gar);
+
 }
 
 /**
  * Selects the best gateway by combining on-chain metrics (stake, tenure, performance)
- * and off-chain real-time metrics (response time, success rate).
+ * and off-chain real-time metrics (EMA-based response time).
  *
- * If no performance data exists, it relies **only on on-chain data**.
- * This allows Wayfinder to "cold start" and collect performance metrics over time.
+ * - Uses **on-chain scores** to get **top-ranked** gateways.
+ * - Excludes gateways with **high failure rates**.
+ * - Chooses the gateway with **lowest EMA response time** (if available).
+ * - If no EMA exists, **runs a lightweight ping** to validate.
+ * - **Asynchronously refreshes performance data** without delaying request.
+ * - **Fully decentralized** - does not depend on global caching.
  *
  * @returns A promise resolving to the best available gateway.
  */
@@ -299,63 +268,95 @@ export async function selectOptimalGateway(
 ): Promise<string> {
   if (!gar || Object.keys(gar).length === 0) {
     console.warn("⚠️ GAR is empty. Falling back to highest-staked gateway.");
-    const fallbackGateway = selectHighestStakedGateway(gar);
-    if (!fallbackGateway) throw new Error("❌ No viable gateways found.");
-    return `https://${fallbackGateway.settings.fqdn}`;
+    return `https://${selectHighestStakedGateway(gar).settings.fqdn}`;
   }
 
-  const { gatewayPerformance, cachedFastestGateway } =
-    await chrome.storage.local.get([
-      "gatewayPerformance",
-      "cachedFastestGateway",
-    ]);
+  // ✅ Fetch performance metrics from local storage
+  const { gatewayPerformance, lastBenchmarkTime } =
+    await chrome.storage.local.get(["gatewayPerformance", "lastBenchmarkTime"]);
 
-  if (cachedFastestGateway && gatewayPerformance?.[cachedFastestGateway]) {
-    const lastResponseTime =
-      gatewayPerformance[cachedFastestGateway].responseTimes.slice(-1)[0] ||
-      Infinity;
-    if (lastResponseTime < 2000) {
-      console.log(`🚀 Using Cached Fastest Gateway: ${cachedFastestGateway}`);
-      return `https://${cachedFastestGateway}`;
+  const now = Date.now();
+  const CACHE_EXPIRY = 5 * 60 * 1000; // 🔥 Expire cached data after 5 minutes
+
+  // ✅ 1️⃣ Select the **best on-chain gateways**
+  const topGateways = selectTopOnChainGateways(gar).slice(0, 25); // 🔥 **Top 25 for selection**
+
+  // ✅ 2️⃣ Filter out **unresponsive** gateways
+  const validGateways = topGateways.filter((gateway) => {
+    const fqdn = gateway.settings.fqdn;
+    const perf = gatewayPerformance?.[fqdn];
+
+    // ❌ Exclude if response time is Infinity (failed pings)
+    if (!perf || perf.avgResponseTime === Infinity || isNaN(perf.avgResponseTime)) return false;
+
+    // ❌ Exclude if gateway has failed too many times
+    if (perf.failures >= 10) return false;
+
+    return true;
+  });
+
+  if (validGateways.length === 0) {
+    console.warn("⚠️ All top-ranked gateways are failing. Running full benchmark...");
+    backgroundGatewayBenchmarking();
+    return `https://${selectHighestStakedGateway(gar).settings.fqdn}`;
+  }
+
+  // ✅ 3️⃣ Rank them by **lowest EMA response time**, filtering again to ensure no Infinity values
+  const rankedGateways = validGateways
+    .map((gateway) => ({
+      fqdn: gateway.settings.fqdn,
+      score: gateway.weights.compositeWeight || 0, // On-chain weight
+      avgResponseTime: gatewayPerformance?.[gateway.settings.fqdn]?.avgResponseTime || 5000, // Default to 5s if missing
+    }))
+    .filter(({ avgResponseTime }) => avgResponseTime < Infinity) // 🔥 Double check here
+    .sort((a, b) => a.avgResponseTime - b.avgResponseTime);
+
+  console.log("📊 Ranked Gateway Candidates:", rankedGateways);
+
+  // ✅ 4️⃣ Use lowest-latency gateway **if response time is valid**
+  for (const { fqdn, avgResponseTime } of rankedGateways) {
+    if (avgResponseTime < 5000) {
+      console.log(`🚀 Using Best Performing Gateway: ${fqdn} (${avgResponseTime.toFixed(2)}ms)`);
+
+      // 🔄 **Trigger background refresh if data is stale**
+      if (!lastBenchmarkTime || now - lastBenchmarkTime >= CACHE_EXPIRY) {
+        console.log("🔄 Scheduling background benchmark refresh...");
+        backgroundValidateCachedGateway();
+      }
+
+      return `https://${fqdn}`;
     }
   }
 
-  console.log("📡 Pinging top-ranked gateways for real-time response time...");
-  const topCandidates = selectTopOnChainGateways(gar).slice(0, 5); // 🔥 Now based on **on-chain score**
+  // ✅ 5️⃣ If no valid EMA exists, **run a quick validation ping**
+  console.warn("⚠️ No reliable EMA data. Running quick validation ping...");
+  for (const { fqdn } of rankedGateways.slice(0, 3)) {
+    const start = performance.now();
+    try {
+      await fetch(`https://${fqdn}`, { method: "HEAD", mode: "no-cors" });
+      const responseTime = performance.now() - start;
 
-  const pingResults = await Promise.all(
-    topCandidates.map(async (gateway) => {
-      const fqdn = gateway.settings.fqdn;
-      const start = performance.now();
-      try {
-        await fetch(`https://${fqdn}`, { method: "HEAD", mode: "no-cors" });
-        return { fqdn, responseTime: performance.now() - start };
-      } catch {
-        return { fqdn, responseTime: Infinity };
+      if (responseTime < 2000) {
+        console.log(`✅ New Fast Gateway Selected: ${fqdn} (${responseTime.toFixed(2)}ms)`);
+        await chrome.storage.local.set({ lastBenchmarkTime: now });
+        return `https://${fqdn}`;
       }
-    })
-  );
-
-  const fastestGateway = pingResults.sort(
-    (a, b) => a.responseTime - b.responseTime
-  )[0];
-
-  if (fastestGateway.responseTime < 2000) {
-    console.log(
-      `✅ Selected Real-Time Fastest Gateway: ${fastestGateway.fqdn}`
-    );
-    await chrome.storage.local.set({
-      cachedFastestGateway: fastestGateway.fqdn,
-    });
-    return `https://${fastestGateway.fqdn}`;
+    } catch {
+      console.warn(`❌ Failed to reach ${fqdn}`);
+    }
   }
 
-  console.warn(
-    "⚠️ No fast gateways found. Falling back to best on-chain gateway."
-  );
+  // ✅ 6️⃣ If **all fail**, trigger **full benchmark** asynchronously
+  console.warn("⚠️ No fast gateways found. Running full benchmark...");
+  backgroundGatewayBenchmarking();
+
+  // ✅ 7️⃣ Use **fallback best on-chain weighted gateway**
+  console.warn("⚠️ No real-time fast gateway found. Falling back to on-chain weighted gateway.");
   const fallbackGateway = await selectWeightedOnchainPerformanceGateway(gar);
   return `https://${fallbackGateway.settings.fqdn}`;
 }
+
+
 
 /**
  * Lookup the Arweave transaction ID for a given domain using DNS TXT records.
@@ -435,6 +436,7 @@ export async function getGatewayForRouting(): Promise<AoGatewayWithAddress> {
       gateway = selectHighestStakedGateway(filteredGar);
       break;
     case WEIGHTED_ONCHAIN_PERFORMANCE_ROUTE_METHOD:
+      console.log("⛓️ Using Select Weighted Onchain Performance Gateway...");
       gateway = await selectWeightedOnchainPerformanceGateway(filteredGar);
       break;
     case OPTIMAL_GATEWAY_ROUTE_METHOD:
@@ -542,7 +544,7 @@ export async function getRoutableGatewayUrl(arUrl: string): Promise<{
     console.error("🚨 Error in getRoutableGatewayUrl:", error);
 
     // Attempt to use highest-staked gateway as a last resort
-    const fallbackGateway = defaultGateway;
+    const fallbackGateway = DEFAULT_GATEWAY;
     if (!fallbackGateway) {
       throw new Error("❌ No viable gateway even for fallback.");
     }

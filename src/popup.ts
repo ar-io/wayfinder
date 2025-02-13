@@ -459,99 +459,79 @@ function saveStaticGateway(inputValue: string | URL) {
 }
 
 async function showMoreGatewayInfo(gateway: AoGateway, address: string) {
-  // Get modal elements
+  // Get modal elements safely
   const modal = document.getElementById("gatewayModal") as HTMLElement;
-  const modalUrl = document.getElementById(
-    "modal-gateway-url"
-  ) as HTMLAnchorElement;
+  if (!modal) {
+    console.error("❌ Modal not found.");
+    return;
+  }
+
+  const modalUrl = document.getElementById("modal-gateway-url") as HTMLAnchorElement;
   const modalORR = document.getElementById("modal-gateway-orr") as HTMLElement;
   const modalGRR = document.getElementById("modal-gateway-grr") as HTMLElement;
-  const modalGatewayWallet = document.getElementById(
-    "modal-gateway-wallet"
-  ) as HTMLAnchorElement;
-  const modalObserverWallet = document.getElementById(
-    "modal-observer-wallet"
-  ) as HTMLAnchorElement;
-  const modalOperatorStake = document.getElementById(
-    "modal-operator-stake"
-  ) as HTMLElement;
-  const modalDelegatedStake = document.getElementById(
-    "modal-delegated-stake"
-  ) as HTMLElement;
-  const modalTotalStake = document.getElementById(
-    "modal-total-stake"
-  ) as HTMLElement;
-  const modalStatus = document.getElementById("modal-status") as HTMLElement;
+  const modalGatewayWallet = document.getElementById("modal-gateway-wallet") as HTMLAnchorElement;
+  const modalTotalStake = document.getElementById("modal-total-stake") as HTMLElement;
   const modalStart = document.getElementById("modal-start") as HTMLElement;
-  const modalProperties = document.getElementById(
-    "modal-properties"
-  ) as HTMLAnchorElement;
   const modalNote = document.getElementById("modal-note") as HTMLElement;
+  const modalGatewayMoreInfo = document.getElementById("modal-gateway-more-info") as HTMLAnchorElement;
+  const blacklistButton = document.getElementById("blacklistButton") as HTMLElement;
 
-  // Calculate ORR
-  const orr =
-    gateway.stats.prescribedEpochCount > 0
-      ? (gateway.stats.observedEpochCount /
-          gateway.stats.prescribedEpochCount) *
-        100
-      : 100;
+  // Ensure all required elements exist before updating them
+  if (!modalUrl || !modalORR || !modalGRR || !modalGatewayWallet || !modalTotalStake || !modalStart || !modalNote || !modalGatewayMoreInfo || !blacklistButton) {
+    console.error("❌ One or more modal elements are missing. Check your HTML structure.");
+    return;
+  }
+
+  // Ensure gateway and its settings exist
+  if (!gateway || !gateway.settings || !gateway.stats) {
+    console.error("❌ Gateway data is missing or invalid.");
+    return;
+  }
+
+  // ✅ Calculate ORR and GRR
+  const orr = gateway.stats.prescribedEpochCount > 0
+    ? (gateway.stats.observedEpochCount / gateway.stats.prescribedEpochCount) * 100
+    : 100;
   modalORR.textContent = `${orr.toFixed(1)}%`;
 
-  // Calculate GRR
-  const grr = gateway.stats.totalEpochCount
+  const grr = gateway.stats.totalEpochCount > 0
     ? (gateway.stats.passedEpochCount / gateway.stats.totalEpochCount) * 100
     : 100;
   modalGRR.textContent = `${grr.toFixed(1)}%`;
 
-  // Assign values from the gateway object to modal elements
-  modalUrl.textContent = `${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}`;
-  modalUrl.href = `${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}`;
+  // ✅ Assign values to modal elements safely
+  const { protocol, fqdn, port, note } = gateway.settings;
+  const gatewayUrl = `${protocol}://${fqdn}:${port}`;
 
-  modalGatewayWallet.textContent = address.slice(0, 6) + "...";
+  modalUrl.textContent = gatewayUrl;
+  modalUrl.href = gatewayUrl;
+
+  modalGatewayWallet.textContent = `${address.slice(0, 6)}...`;
   modalGatewayWallet.href = `https://viewblock.io/arweave/address/${address}`;
 
-  modalObserverWallet.textContent = gateway.observerAddress.slice(0, 6) + "...";
-  modalObserverWallet.href = `https://viewblock.io/arweave/address/${gateway.observerAddress}`;
+  modalGatewayMoreInfo.textContent = "More info";
+  modalGatewayMoreInfo.href = `${protocol}://gateways.${fqdn}:${port}/#/gateways/${address}`;
 
-  // Display Stake Information
-  modalOperatorStake.textContent = `${new mARIOToken(gateway.operatorStake).toARIO()} ARIO`;
-  modalDelegatedStake.textContent = `${new mARIOToken(gateway.totalDelegatedStake).toARIO()} ARIO`;
+  // ✅ Display Stake Information
   const totalStake = gateway.operatorStake + gateway.totalDelegatedStake;
   modalTotalStake.textContent = `${new mARIOToken(totalStake).toARIO()} IO`;
 
-  modalStatus.textContent = gateway.status;
-  modalStart.textContent = `${new Date(gateway.startTimestamp).toLocaleDateString()}`;
+  // ✅ Format and Display Start Date
+  modalStart.textContent = new Date(gateway.startTimestamp).toLocaleDateString();
 
-  if (gateway.settings.properties) {
-    modalProperties.textContent =
-      gateway.settings.properties.slice(0, 6) + "...";
-    modalProperties.href = `https://viewblock.io/arweave/tx/${gateway.settings.properties}`;
-  } else {
-    modalProperties.textContent = "No properties set";
-    modalProperties.removeAttribute("href"); // Remove link if no properties
-  }
+  // ✅ Display Note (Handle missing note case)
+  modalNote.textContent = note || "No note provided";
 
-  modalNote.textContent = gateway.settings.note || "No note provided";
-
-  // Blacklist functionality
-  const blacklistButton = document.getElementById(
-    "blacklistButton"
-  ) as HTMLElement;
-
-  // Check if the gateway is already blacklisted
+  // ✅ Blacklist Functionality
   const isBlacklisted = await checkIfBlacklisted(address);
+  blacklistButton.textContent = isBlacklisted ? "Unblacklist Gateway" : "Blacklist Gateway";
 
-  blacklistButton.textContent = isBlacklisted
-    ? "Unblacklist Gateway"
-    : "Blacklist Gateway";
-
-  // Toggle blacklist status
   blacklistButton.onclick = async function () {
     await toggleBlacklist(address);
     await showMoreGatewayInfo(gateway, address);
   };
 
-  // Display the modal
+  // ✅ Show Modal
   modal.style.display = "block";
 }
 

@@ -4,15 +4,10 @@ import {
   ARIO_TESTNET_PROCESS_ID,
   ARIO,
 } from "@ar.io/sdk/web";
-import { getRoutableGatewayUrl, OPTIMAL_GATEWAY_ROUTE_METHOD } from "./routing";
-import { backgroundGatewayBenchmarking, saveToHistory } from "./helpers";
-
-type RedirectedTabInfo = {
-  originalGateway: string; // The original gateway FQDN (e.g., "permagate.io")
-  expectedSandboxRedirect: boolean; // Whether we expect a sandbox redirect
-  sandboxRedirectUrl?: string; // The final redirected URL (if applicable)
-  startTime: number; // Timestamp of when the request started
-};
+import { getRoutableGatewayUrl } from "./routing";
+import { backgroundGatewayBenchmarking, isKnownGateway, saveToHistory, updateGatewayPerformance } from "./helpers";
+import { OPTIMAL_GATEWAY_ROUTE_METHOD } from "./constants";
+import { RedirectedTabInfo } from "./types";
 
 // Global variables
 let redirectedTabs: Record<number, RedirectedTabInfo> = {};
@@ -31,10 +26,8 @@ chrome.storage.local.set({
 
 // Ensure we sync the registry before running benchmarking
 async function initializeWayfinder() {
-  console.log("🔄 Syncing Gateway Address Registry...");
+  console.log ("🔄 Initializing Wayfinder...")
   await syncGatewayAddressRegistry(); // **Wait for GAR sync to complete**
-
-  console.log("📡 Running Initial Benchmark...");
   await backgroundGatewayBenchmarking(); // **Benchmark after GAR is ready**
 }
 
@@ -46,60 +39,36 @@ initializeWayfinder().catch((err) =>
  * Handles browser navigation for `ar://` links.
  */
 chrome.webNavigation.onBeforeNavigate.addListener(
-  async (details) => {
-    try {
-      const url = new URL(details.url);
-      const arUrl = url.searchParams.get("q");
+  (details) => {
+    setTimeout(async () => {
+      try {
+        const url = new URL(details.url);
+        const arUrl = url.searchParams.get("q");
 
-      if (!arUrl || !arUrl.startsWith("ar://")) return;
+        if (!arUrl || !arUrl.startsWith("ar://")) return;
 
-      const startTime = performance.now();
-      const { url: redirectTo, gatewayFQDN } =
-        await getRoutableGatewayUrl(arUrl);
+        const { url: redirectTo, gatewayFQDN } =
+          await getRoutableGatewayUrl(arUrl);
 
-      if (redirectTo) {
-        chrome.tabs.update(details.tabId, { url: redirectTo }, async () => {
-          // Track performance
-          updateGatewayPerformance(gatewayFQDN, startTime);
-        });
+        if (redirectTo) {
+          const startTime = performance.now();
+          chrome.tabs.update(details.tabId, { url: redirectTo }, async () => {
+            updateGatewayPerformance(gatewayFQDN, startTime);
+          });
 
-        // Store redirect tracking information
-        redirectedTabs[details.tabId] = {
-          originalGateway: gatewayFQDN,
-          expectedSandboxRedirect: /^[a-z0-9_-]{43}$/i.test(arUrl.slice(5)), // True if it's a TxId
-          startTime,
-        };
+          // Store redirect tracking information
+          redirectedTabs[details.tabId] = {
+            originalGateway: gatewayFQDN,
+            expectedSandboxRedirect: /^[a-z0-9_-]{43}$/i.test(arUrl.slice(5)), // True if it's a TxId
+            startTime,
+          };
+        }
+      } catch (error) {
+        console.error("❌ Error processing ar:// navigation:", error);
       }
-    } catch (error) {
-      console.error("❌ Error processing ar:// navigation:", error);
-    }
+    }, 0); // 🔥 Defer execution to avoid blocking listener thread
   },
   { url: [{ schemes: ["http", "https"] }] }
-);
-
-/**
- * Handles failed gateway requests.
- */
-chrome.webRequest.onErrorOccurred.addListener(
-  async (details) => {
-    const gatewayFQDN = new URL(details.url).hostname;
-    if (!(await isKnownGateway(gatewayFQDN))) return;
-
-    console.warn(`❌ Gateway Request Failed: ${gatewayFQDN}`);
-
-    let { gatewayPerformance = {} } = await chrome.storage.local.get([
-      "gatewayPerformance",
-    ]);
-    gatewayPerformance[gatewayFQDN] = gatewayPerformance[gatewayFQDN] || {
-      failures: 0,
-      successCount: 0,
-    };
-
-    // Increment failure count and store
-    gatewayPerformance[gatewayFQDN].failures += 1;
-    await chrome.storage.local.set({ gatewayPerformance });
-  },
-  { urls: ["<all_urls>"] }
 );
 
 /**
@@ -107,7 +76,7 @@ chrome.webRequest.onErrorOccurred.addListener(
  */
 chrome.webRequest.onBeforeRequest.addListener(
   (details) => {
-    requestTimings.set(details.requestId, details.timeStamp);
+    requestTimings.set(details.requestId, performance.now());
   },
   { urls: ["<all_urls>"] }
 );
@@ -118,17 +87,18 @@ chrome.webRequest.onBeforeRequest.addListener(
 chrome.webRequest.onCompleted.addListener(
   async (details) => {
     const gatewayFQDN = new URL(details.url).hostname;
-    if (!(await isKnownGateway(gatewayFQDN))) return;
+    if (!(await isKnownGateway(gatewayFQDN))) return; // ✅ Ensure it's a real AR.IO gateway
 
     const startTime = requestTimings.get(details.requestId);
     if (!startTime) return;
 
-    const responseTime = details.timeStamp - startTime;
     requestTimings.delete(details.requestId);
 
-    console.log(
-      `✅ Gateway Request Completed: ${gatewayFQDN} in ${responseTime.toFixed(2)}ms`
-    );
+    // const responseTime = details.timeStamp - startTime;
+    // console.log(
+    // `✅ Gateway Request Completed: ${gatewayFQDN} in ${responseTime.toFixed(2)}ms`
+    // );
+
     updateGatewayPerformance(gatewayFQDN, startTime);
   },
   { urls: ["<all_urls>"] }
@@ -140,20 +110,65 @@ chrome.webRequest.onCompleted.addListener(
 chrome.webRequest.onHeadersReceived.addListener(
   (details) => {
     const tabInfo = redirectedTabs[details.tabId];
-    if (!tabInfo) return;
 
-    for (const header of details.responseHeaders || []) {
-      if (header.name.toLowerCase() === "x-arns-resolved-id") {
-        const timestamp = new Date().toISOString();
-        saveToHistory(details.url, header.value || "undefined", timestamp);
-        delete redirectedTabs[details.tabId]; // Cleanup
-        break;
+    if (tabInfo) {
+      for (const header of details.responseHeaders || []) {
+        if (header.name.toLowerCase() === "x-arns-resolved-id") {
+          const timestamp = new Date().toISOString();
+          saveToHistory(details.url, header.value || "undefined", timestamp);
+          break;
+        }
       }
+
+      // 🔥 Always remove tracking for this tab, regardless of headers
+      delete redirectedTabs[details.tabId];
     }
   },
   { urls: ["<all_urls>"] },
   ["responseHeaders"]
 );
+
+/**
+ * Handles failed gateway requests.
+ */
+chrome.webRequest.onErrorOccurred.addListener(
+  async (details) => {
+    const gatewayFQDN = new URL(details.url).hostname;
+    if (!(await isKnownGateway(gatewayFQDN))) return; // ✅ Ensure it's a real AR.IO gateway
+
+    console.warn(`❌ Gateway Request Failed: ${gatewayFQDN}`);
+
+    let { gatewayPerformance = {} } = await chrome.storage.local.get([
+      "gatewayPerformance",
+    ]);
+
+    if (!gatewayPerformance[gatewayFQDN]) {
+      gatewayPerformance[gatewayFQDN] = {
+        responseTimes: [],
+        failures: 0,
+        successCount: 0,
+      };
+    }
+
+    gatewayPerformance[gatewayFQDN].failures += 1;
+    console.log ("Gateway Error: ", details.error);
+
+    await chrome.storage.local.set({ gatewayPerformance });
+  },
+  { urls: ["<all_urls>"] }
+);
+
+/**
+ * Periodically cleans up requestTimings to prevent memory leaks.
+ */
+setInterval(() => {
+  const now = performance.now();
+  for (const [requestId, timestamp] of requestTimings.entries()) {
+    if (now - timestamp > 60000) {
+      requestTimings.delete(requestId); // Remove old requests older than 1 min
+    }
+  }
+}, 30000); // Runs every 30 seconds
 
 /**
  * Handles messages from content scripts for syncing gateway data.
@@ -208,7 +223,7 @@ async function syncGatewayAddressRegistry(): Promise<void> {
       throw new Error("❌ Process ID missing in local storage.");
     }
 
-    console.log("🔄 Fetching gateways with Process ID:", processId);
+    console.log("🔄 Fetching Gateway Adress Registry with Process ID:", processId);
 
     const registry: Record<WalletAddress, AoGateway> = {};
     let cursor: string | undefined = undefined;
@@ -255,53 +270,3 @@ async function reinitializeArIO(): Promise<void> {
   }
 }
 
-/**
- * Checks if a hostname belongs to a known AR.IO gateway.
- */
-export async function isKnownGateway(fqdn: string): Promise<boolean> {
-  const { localGatewayAddressRegistry = {} } = await chrome.storage.local.get([
-    "localGatewayAddressRegistry",
-  ]);
-  return Object.values(localGatewayAddressRegistry).some(
-    (gw: any) => gw.settings.fqdn === fqdn
-  );
-}
-
-/**
- * Updates gateway performance metrics.
- */
-export async function updateGatewayPerformance(
-  gatewayFQDN: string,
-  startTime: number
-) {
-  const responseTime = performance.now() - startTime;
-
-  // Ensure gatewayPerformance is initialized properly
-  const storage = await chrome.storage.local.get(["gatewayPerformance"]);
-  let gatewayPerformance = storage.gatewayPerformance || {};
-
-  // Ensure the specific gateway entry is initialized
-  if (!gatewayPerformance[gatewayFQDN]) {
-    gatewayPerformance[gatewayFQDN] = {
-      responseTimes: [],
-      failures: 0,
-      successCount: 0,
-    };
-  }
-
-  // Ensure responseTimes array is initialized
-  if (!Array.isArray(gatewayPerformance[gatewayFQDN].responseTimes)) {
-    gatewayPerformance[gatewayFQDN].responseTimes = [];
-  }
-
-  // Push new response time
-  gatewayPerformance[gatewayFQDN].responseTimes.push(responseTime);
-  gatewayPerformance[gatewayFQDN].successCount += 1;
-
-  // Trim responseTimes to keep the last 50 entries
-  if (gatewayPerformance[gatewayFQDN].responseTimes.length > 50) {
-    gatewayPerformance[gatewayFQDN].responseTimes.shift();
-  }
-
-  await chrome.storage.local.set({ gatewayPerformance });
-}
