@@ -20,7 +20,7 @@
     }
   ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self';"
+    "extension_pages": "script-src 'self'; object-src 'none'; font-src 'self' https://fonts.gstatic.com;"
   },
   "icons": {
     "16": "assets/icon16.png",

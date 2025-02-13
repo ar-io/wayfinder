@@ -5,7 +5,12 @@ import {
   ARIO,
 } from "@ar.io/sdk/web";
 import { getRoutableGatewayUrl } from "./routing";
-import { backgroundGatewayBenchmarking, isKnownGateway, saveToHistory, updateGatewayPerformance } from "./helpers";
+import {
+  backgroundGatewayBenchmarking,
+  isKnownGateway,
+  saveToHistory,
+  updateGatewayPerformance,
+} from "./helpers";
 import { OPTIMAL_GATEWAY_ROUTE_METHOD } from "./constants";
 import { RedirectedTabInfo } from "./types";
 
@@ -26,7 +31,7 @@ chrome.storage.local.set({
 
 // Ensure we sync the registry before running benchmarking
 async function initializeWayfinder() {
-  console.log ("🔄 Initializing Wayfinder...")
+  console.log("🔄 Initializing Wayfinder...");
   await syncGatewayAddressRegistry(); // **Wait for GAR sync to complete**
   await backgroundGatewayBenchmarking(); // **Benchmark after GAR is ready**
 }
@@ -151,7 +156,6 @@ chrome.webRequest.onErrorOccurred.addListener(
     }
 
     gatewayPerformance[gatewayFQDN].failures += 1;
-    console.log ("Gateway Error: ", details.error);
 
     await chrome.storage.local.set({ gatewayPerformance });
   },
@@ -174,6 +178,18 @@ setInterval(() => {
  * Handles messages from content scripts for syncing gateway data.
  */
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (!request || typeof request !== "object" || !request.message) return;
+  if (
+    ![
+      "syncGatewayAddressRegistry",
+      "setArIOProcessId",
+      "convertArUrlToHttpUrl",
+    ].includes(request.message)
+  ) {
+    console.warn("⚠️ Unauthorized message:", request);
+    return;
+  }
+
   if (request.message === "syncGatewayAddressRegistry") {
     syncGatewayAddressRegistry()
       .then(() => sendResponse({}))
@@ -223,7 +239,10 @@ async function syncGatewayAddressRegistry(): Promise<void> {
       throw new Error("❌ Process ID missing in local storage.");
     }
 
-    console.log("🔄 Fetching Gateway Adress Registry with Process ID:", processId);
+    console.log(
+      "🔄 Fetching Gateway Adress Registry with Process ID:",
+      processId
+    );
 
     const registry: Record<WalletAddress, AoGateway> = {};
     let cursor: string | undefined = undefined;
@@ -269,4 +288,3 @@ async function reinitializeArIO(): Promise<void> {
     console.error("❌ Failed to reinitialize AR.IO. Using default.");
   }
 }
-
