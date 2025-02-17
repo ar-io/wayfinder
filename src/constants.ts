@@ -45,6 +45,7 @@ export const DEFAULT_GATEWAY: AoGatewayWithAddress = {
   gatewayAddress: "DEFAULT",
 };
 
+export const DEFAULT_AO_CU_URL = "https://cu.ardrive.io";
 export const MAX_HISTORY_ITEMS = 20; // How many items are stored in wayfinder history
 export const TOP_ONCHAIN_GATEWAY_LIMIT = 25; // The top amount of gateways returned for onchain performance ranking
 export const DNS_LOOKUP_API = "https://dns.google/resolve";

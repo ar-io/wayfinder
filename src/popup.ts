@@ -1,4 +1,5 @@
 import { AoGateway, ARIO_TESTNET_PROCESS_ID, mARIOToken } from "@ar.io/sdk/web";
+import { DEFAULT_AO_CU_URL } from "./constants";
 
 // Check if the document is still loading, if not, call the function directly
 if (document.readyState === "loading") {
@@ -57,6 +58,9 @@ async function afterPopupDOMLoaded(): Promise<void> {
   const saveArIOProcessIdButton = document.getElementById(
     "saveArIOProcessId"
   ) as HTMLElement | null;
+  const saveAoCuUrlButton = document.getElementById(
+    "saveAoCuUrl"
+  ) as HTMLElement | null;
 
   if (
     showGatewaysBtn &&
@@ -74,6 +78,7 @@ async function afterPopupDOMLoaded(): Promise<void> {
     routingToggle &&
     saveStaticGatewayButton &&
     saveArIOProcessIdButton &&
+    saveAoCuUrlButton &&
     gatewayList
   ) {
     showGatewaysBtn.addEventListener("click", async function () {
@@ -391,6 +396,50 @@ async function afterPopupDOMLoaded(): Promise<void> {
           data.processId;
       }
     });
+
+    saveAoCuUrlButton.addEventListener("click", async function () {
+      const aoCuUrl = (document.getElementById("aoCuUrl") as HTMLInputElement)
+        .value;
+      if (aoCuUrl === "") {
+        const result = saveAoCuUrl(DEFAULT_AO_CU_URL);
+        (document.getElementById("aoCuUrl") as HTMLInputElement).value = "";
+        return new Promise((resolve, reject) => {
+          chrome.runtime.sendMessage(
+            { message: "setAoCuUrl" },
+            function (response) {
+              if (chrome.runtime.lastError) {
+                // Handle any error that might occur while sending the message
+                reject(chrome.runtime.lastError);
+              } else {
+                resolve(response);
+              }
+            }
+          );
+        });
+      } else {
+        const result = saveAoCuUrl(aoCuUrl);
+        return new Promise((resolve, reject) => {
+          chrome.runtime.sendMessage(
+            { message: "setAoCuUrl" },
+            function (response) {
+              if (chrome.runtime.lastError) {
+                // Handle any error that might occur while sending the message
+                reject(chrome.runtime.lastError);
+              } else {
+                resolve(response);
+              }
+            }
+          );
+        });
+      }
+    });
+
+    chrome.storage.local.get("aoCuUrl", function (data) {
+      if (data.aoCuUrl) {
+        (document.getElementById("aoCuUrl") as HTMLInputElement).value =
+          data.aoCuUrl;
+      }
+    });
   }
 }
 
@@ -466,19 +515,41 @@ async function showMoreGatewayInfo(gateway: AoGateway, address: string) {
     return;
   }
 
-  const modalUrl = document.getElementById("modal-gateway-url") as HTMLAnchorElement;
+  const modalUrl = document.getElementById(
+    "modal-gateway-url"
+  ) as HTMLAnchorElement;
   const modalORR = document.getElementById("modal-gateway-orr") as HTMLElement;
   const modalGRR = document.getElementById("modal-gateway-grr") as HTMLElement;
-  const modalGatewayWallet = document.getElementById("modal-gateway-wallet") as HTMLAnchorElement;
-  const modalTotalStake = document.getElementById("modal-total-stake") as HTMLElement;
+  const modalGatewayWallet = document.getElementById(
+    "modal-gateway-wallet"
+  ) as HTMLAnchorElement;
+  const modalTotalStake = document.getElementById(
+    "modal-total-stake"
+  ) as HTMLElement;
   const modalStart = document.getElementById("modal-start") as HTMLElement;
   const modalNote = document.getElementById("modal-note") as HTMLElement;
-  const modalGatewayMoreInfo = document.getElementById("modal-gateway-more-info") as HTMLAnchorElement;
-  const blacklistButton = document.getElementById("blacklistButton") as HTMLElement;
+  const modalGatewayMoreInfo = document.getElementById(
+    "modal-gateway-more-info"
+  ) as HTMLAnchorElement;
+  const blacklistButton = document.getElementById(
+    "blacklistButton"
+  ) as HTMLElement;
 
   // Ensure all required elements exist before updating them
-  if (!modalUrl || !modalORR || !modalGRR || !modalGatewayWallet || !modalTotalStake || !modalStart || !modalNote || !modalGatewayMoreInfo || !blacklistButton) {
-    console.error("❌ One or more modal elements are missing. Check your HTML structure.");
+  if (
+    !modalUrl ||
+    !modalORR ||
+    !modalGRR ||
+    !modalGatewayWallet ||
+    !modalTotalStake ||
+    !modalStart ||
+    !modalNote ||
+    !modalGatewayMoreInfo ||
+    !blacklistButton
+  ) {
+    console.error(
+      "❌ One or more modal elements are missing. Check your HTML structure."
+    );
     return;
   }
 
@@ -489,14 +560,18 @@ async function showMoreGatewayInfo(gateway: AoGateway, address: string) {
   }
 
   // ✅ Calculate ORR and GRR
-  const orr = gateway.stats.prescribedEpochCount > 0
-    ? (gateway.stats.observedEpochCount / gateway.stats.prescribedEpochCount) * 100
-    : 100;
+  const orr =
+    gateway.stats.prescribedEpochCount > 0
+      ? (gateway.stats.observedEpochCount /
+          gateway.stats.prescribedEpochCount) *
+        100
+      : 100;
   modalORR.textContent = `${orr.toFixed(1)}%`;
 
-  const grr = gateway.stats.totalEpochCount > 0
-    ? (gateway.stats.passedEpochCount / gateway.stats.totalEpochCount) * 100
-    : 100;
+  const grr =
+    gateway.stats.totalEpochCount > 0
+      ? (gateway.stats.passedEpochCount / gateway.stats.totalEpochCount) * 100
+      : 100;
   modalGRR.textContent = `${grr.toFixed(1)}%`;
 
   // ✅ Assign values to modal elements safely
@@ -517,14 +592,18 @@ async function showMoreGatewayInfo(gateway: AoGateway, address: string) {
   modalTotalStake.textContent = `${new mARIOToken(totalStake).toARIO()} IO`;
 
   // ✅ Format and Display Start Date
-  modalStart.textContent = new Date(gateway.startTimestamp).toLocaleDateString();
+  modalStart.textContent = new Date(
+    gateway.startTimestamp
+  ).toLocaleDateString();
 
   // ✅ Display Note (Handle missing note case)
   modalNote.textContent = note || "No note provided";
 
   // ✅ Blacklist Functionality
   const isBlacklisted = await checkIfBlacklisted(address);
-  blacklistButton.textContent = isBlacklisted ? "Unblacklist Gateway" : "Blacklist Gateway";
+  blacklistButton.textContent = isBlacklisted
+    ? "Unblacklist Gateway"
+    : "Blacklist Gateway";
 
   blacklistButton.onclick = async function () {
     await toggleBlacklist(address);
@@ -611,6 +690,17 @@ function saveArIOProcessId(processId: string) {
   } else {
     chrome.storage.local.set({ processId: processId });
     alert(`AR.IO Process ID set to ${processId}`);
+  }
+  return true;
+}
+
+function saveAoCuUrl(aoCuUrl: string) {
+  if (aoCuUrl === "") {
+    chrome.storage.local.set({ aoCuUrl: DEFAULT_AO_CU_URL });
+    alert(`AO CU Url set back to default.`);
+  } else {
+    chrome.storage.local.set({ aoCuUrl: aoCuUrl });
+    alert(`AO CU Url set to ${aoCuUrl}`);
   }
   return true;
 }

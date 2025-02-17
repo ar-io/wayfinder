@@ -3,6 +3,7 @@ import {
   AoGateway,
   ARIO_TESTNET_PROCESS_ID,
   ARIO,
+  AOProcess,
 } from "@ar.io/sdk/web";
 import { getRoutableGatewayUrl } from "./routing";
 import {
@@ -11,8 +12,9 @@ import {
   saveToHistory,
   updateGatewayPerformance,
 } from "./helpers";
-import { OPTIMAL_GATEWAY_ROUTE_METHOD } from "./constants";
+import { DEFAULT_AO_CU_URL, OPTIMAL_GATEWAY_ROUTE_METHOD } from "./constants";
 import { RedirectedTabInfo } from "./types";
+import { connect } from "@permaweb/aoconnect";
 
 // Global variables
 let redirectedTabs: Record<number, RedirectedTabInfo> = {};
@@ -27,6 +29,7 @@ chrome.storage.local.set({
   localGatewayAddressRegistry: {},
   blacklistedGateways: [],
   processId: ARIO_TESTNET_PROCESS_ID,
+  aoCuUrl: DEFAULT_AO_CU_URL,
 });
 
 // Ensure we sync the registry before running benchmarking
@@ -183,6 +186,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     ![
       "syncGatewayAddressRegistry",
       "setArIOProcessId",
+      "setAoCuUrl",
       "convertArUrlToHttpUrl",
     ].includes(request.message)
   ) {
@@ -205,8 +209,28 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       .then(() => syncGatewayAddressRegistry())
       .then(() => sendResponse({}))
       .catch((error) => {
-        console.error("❌ Failed to reinitialize AR.IO:", error);
-        sendResponse({ error: "Failed to reinitialize AR.IO." });
+        console.error(
+          "❌ Failed to set new Process ID and reinitialize AR.IO:",
+          error
+        );
+        sendResponse({
+          error: "Failed to set new Process ID and reinitialize AR.IO.",
+        });
+      });
+    return true;
+  }
+  if (request.message === "setAoCuUrl") {
+    reinitializeArIO()
+      .then(() => syncGatewayAddressRegistry())
+      .then(() => sendResponse({}))
+      .catch((error) => {
+        console.error(
+          "❌ Failed to set new AO CU Url and reinitialize AR.IO:",
+          error
+        );
+        sendResponse({
+          error: "Failed to set new AO CU Url and reinitialize AR.IO.",
+        });
       });
     return true;
   }
@@ -234,14 +258,21 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
  */
 async function syncGatewayAddressRegistry(): Promise<void> {
   try {
-    const { processId } = await chrome.storage.local.get(["processId"]);
+    const { processId, aoCuUrl } = await chrome.storage.local.get([
+      "processId",
+      "aoCuUrl",
+    ]);
+
     if (!processId) {
       throw new Error("❌ Process ID missing in local storage.");
     }
 
+    if (!aoCuUrl) {
+      throw new Error("❌ AO CU Url missing in local storage.");
+    }
+
     console.log(
-      "🔄 Fetching Gateway Adress Registry with Process ID:",
-      processId
+      `🔄 Fetching Gateway Adress Registry from ${aoCuUrl} with Process ID: ${processId}`
     );
 
     const registry: Record<WalletAddress, AoGateway> = {};
@@ -280,8 +311,16 @@ async function syncGatewayAddressRegistry(): Promise<void> {
  */
 async function reinitializeArIO(): Promise<void> {
   try {
-    const { processId } = await chrome.storage.local.get(["processId"]);
-    arIO = ARIO.init({ processId });
+    const { processId, aoCuUrl } = await chrome.storage.local.get([
+      "processId",
+      "aoCuUrl",
+    ]);
+    arIO = ARIO.init({
+      process: new AOProcess({
+        processId: processId,
+        ao: connect({ MODE: "legacy", CU_URL: aoCuUrl }),
+      }),
+    });
     console.log("🔄 AR.IO reinitialized with Process ID:", processId);
   } catch (error) {
     arIO = ARIO.init();
