@@ -1,5 +1,6 @@
 import { AoGateway, ARIO_TESTNET_PROCESS_ID, mARIOToken } from "@ar.io/sdk/web";
 import { DEFAULT_AO_CU_URL } from "./constants";
+import { isBase64URL, normalizeGatewayFQDN } from "./helpers";
 
 // Check if the document is still loading, if not, call the function directly
 if (document.readyState === "loading") {
@@ -95,6 +96,9 @@ async function afterPopupDOMLoaded(): Promise<void> {
         const { localGatewayAddressRegistry = {} } =
           await chrome.storage.local.get("localGatewayAddressRegistry");
         const sortedGateways = sortGatewaysByStake(localGatewayAddressRegistry);
+        const { gatewayPerformance } = await chrome.storage.local.get([
+          "gatewayPerformance",
+        ]);
         for (const sortedGateway of sortedGateways) {
           const gateway = sortedGateway.data;
 
@@ -109,23 +113,48 @@ async function afterPopupDOMLoaded(): Promise<void> {
           }
 
           listItem.onclick = async function () {
-            await showMoreGatewayInfo(gateway, sortedGateway.address);
+            await showMoreGatewayInfo(
+              gateway,
+              sortedGateway.address,
+              gatewayPerformance
+            );
           };
-
           let onlineStatus =
             '<span class="unknown" title="Gateway status unknown">?</span>';
-          if (gateway.hasOwnProperty("online")) {
-            onlineStatus = gateway.online
-              ? '<span class="online" title="Gateway is online">✔</span>'
-              : '<span class="offline" title="Gateway is offline">✖</span>';
+
+          const performanceData = gatewayPerformance[gateway.settings.fqdn];
+          if (performanceData) {
+            const { avgResponseTime, failures } = performanceData;
+
+            if (failures > 10) {
+              onlineStatus =
+                '<span class="offline" title="Gateway failed last checks">❌</span>';
+            } else if (avgResponseTime !== undefined) {
+              if (avgResponseTime <= 150) {
+                onlineStatus =
+                  '<span class="fastest" title="Fastest gateway">🔥🔥🔥</span>';
+              } else if (avgResponseTime <= 500) {
+                onlineStatus =
+                  '<span class="faster" title="Faster gateway">🔥🔥</span>';
+              } else if (avgResponseTime <= 2000) {
+                onlineStatus =
+                  '<span class="fast" title="Fast gateway">🔥</span>';
+              } else if (avgResponseTime <= 5000) {
+                onlineStatus =
+                  '<span class="slow" title="Moderate gateway">🟡</span>';
+              } else {
+                onlineStatus =
+                  '<span class="slow" title="Slow gateway">🐢</span>';
+              }
+            }
           }
 
-          const totalStake = new mARIOToken(
-            gateway.operatorStake + gateway.totalDelegatedStake
-          ).toARIO();
+          const totalStake = Math.floor(
+            (gateway.operatorStake + gateway.totalDelegatedStake) / 1000000
+          );
           listItem.innerHTML = `
                         <div class="gateway-header">
-                            <span class="gateway-url" title="Click to see gateway details">${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}</span>
+                            <span class="gateway-url" title="Click to see gateway details">${gateway.settings.fqdn}</span>
                             <span class="online-status">${onlineStatus}</span>
                         </div>
                         <div class="gateway-info">
@@ -185,6 +214,9 @@ async function afterPopupDOMLoaded(): Promise<void> {
         localGatewayAddressRegistry: Record<string, any>;
       };
       const sortedGateways = sortGatewaysByStake(localGatewayAddressRegistry);
+      const { gatewayPerformance } = await chrome.storage.local.get([
+        "gatewayPerformance",
+      ]);
       for (const sortedGateway of sortedGateways) {
         const gateway = sortedGateway.data;
 
@@ -199,24 +231,55 @@ async function afterPopupDOMLoaded(): Promise<void> {
         }
 
         listItem.onclick = async function () {
-          await showMoreGatewayInfo(gateway, sortedGateway.address);
+          await showMoreGatewayInfo(
+            gateway,
+            sortedGateway.address,
+            gatewayPerformance
+          );
         };
 
         let onlineStatus =
           '<span class="unknown" title="Gateway status unknown">?</span>';
-        if (gateway.hasOwnProperty("online")) {
-          onlineStatus = gateway.online
-            ? '<span class="online" title="Gateway is online">✔</span>'
-            : '<span class="offline" title="Gateway is offline">✖</span>';
+
+        const performanceData = gatewayPerformance[gateway.settings.fqdn];
+
+        if (performanceData) {
+          const { avgResponseTime, failures } = performanceData;
+
+          if (failures > 10) {
+            onlineStatus =
+              '<span class="offline" title="Gateway failed last checks">❌</span>';
+          } else if (avgResponseTime !== undefined) {
+            if (avgResponseTime <= 150) {
+              onlineStatus =
+                '<span class="fastest" title="Fastest gateway">🔥🔥🔥</span>';
+            } else if (avgResponseTime <= 500) {
+              onlineStatus =
+                '<span class="faster" title="Faster gateway">🔥🔥</span>';
+            } else if (avgResponseTime <= 2000) {
+              onlineStatus =
+                '<span class="fast" title="Fast gateway">🔥</span>';
+            } else if (avgResponseTime <= 5000) {
+              onlineStatus =
+                '<span class="slow" title="Moderate gateway">🟡</span>';
+            } else {
+              onlineStatus =
+                '<span class="slow" title="Slow gateway">🐢</span>';
+            }
+          }
         }
+
+        const totalStake = Math.floor(
+          (gateway.operatorStake + gateway.totalDelegatedStake) / 1000000
+        );
 
         listItem.innerHTML = `
                     <div class="gateway-header">
-                        <span class="gateway-url" title="Click to see gateway details">${gateway.settings.protocol}://${gateway.settings.fqdn}:${gateway.settings.port}</span>
+                        <span class="gateway-url" title="Click to see gateway details">${gateway.settings.fqdn}</span>
                         <span class="online-status">${onlineStatus}</span>
                     </div>
                     <div class="gateway-info">
-                        <span class="operator-stake">Stake: ${new mARIOToken(gateway.operatorStake).toARIO()} ARIO</span>
+                        <span class="operator-stake">Stake: ${totalStake} ARIO</span>
                     </div>
                 `;
         gatewayList.appendChild(listItem);
@@ -507,7 +570,11 @@ function saveStaticGateway(inputValue: string | URL) {
   }
 }
 
-async function showMoreGatewayInfo(gateway: AoGateway, address: string) {
+async function showMoreGatewayInfo(
+  gateway: AoGateway,
+  address: string,
+  gatewayPerformance: any
+) {
   // Get modal elements safely
   const modal = document.getElementById("gatewayModal") as HTMLElement;
   if (!modal) {
@@ -518,13 +585,14 @@ async function showMoreGatewayInfo(gateway: AoGateway, address: string) {
   const modalUrl = document.getElementById(
     "modal-gateway-url"
   ) as HTMLAnchorElement;
-  const modalORR = document.getElementById("modal-gateway-orr") as HTMLElement;
-  const modalGRR = document.getElementById("modal-gateway-grr") as HTMLElement;
   const modalGatewayWallet = document.getElementById(
     "modal-gateway-wallet"
   ) as HTMLAnchorElement;
   const modalTotalStake = document.getElementById(
     "modal-total-stake"
+  ) as HTMLElement;
+  const modalAverageResponseTime = document.getElementById(
+    "modal-gateway-avg-response-time"
   ) as HTMLElement;
   const modalStart = document.getElementById("modal-start") as HTMLElement;
   const modalNote = document.getElementById("modal-note") as HTMLElement;
@@ -538,10 +606,9 @@ async function showMoreGatewayInfo(gateway: AoGateway, address: string) {
   // Ensure all required elements exist before updating them
   if (
     !modalUrl ||
-    !modalORR ||
-    !modalGRR ||
     !modalGatewayWallet ||
     !modalTotalStake ||
+    !modalAverageResponseTime ||
     !modalStart ||
     !modalNote ||
     !modalGatewayMoreInfo ||
@@ -559,27 +626,11 @@ async function showMoreGatewayInfo(gateway: AoGateway, address: string) {
     return;
   }
 
-  // ✅ Calculate ORR and GRR
-  const orr =
-    gateway.stats.prescribedEpochCount > 0
-      ? (gateway.stats.observedEpochCount /
-          gateway.stats.prescribedEpochCount) *
-        100
-      : 100;
-  modalORR.textContent = `${orr.toFixed(1)}%`;
-
-  const grr =
-    gateway.stats.totalEpochCount > 0
-      ? (gateway.stats.passedEpochCount / gateway.stats.totalEpochCount) * 100
-      : 100;
-  modalGRR.textContent = `${grr.toFixed(1)}%`;
-
   // ✅ Assign values to modal elements safely
   const { protocol, fqdn, port, note } = gateway.settings;
-  const gatewayUrl = `${protocol}://${fqdn}:${port}`;
 
-  modalUrl.textContent = gatewayUrl;
-  modalUrl.href = gatewayUrl;
+  modalUrl.textContent = `${protocol}://${fqdn}`;
+  modalUrl.href = `${protocol}://${fqdn}:${port}`;
 
   modalGatewayWallet.textContent = `${address.slice(0, 6)}...`;
   modalGatewayWallet.href = `https://viewblock.io/arweave/address/${address}`;
@@ -589,7 +640,11 @@ async function showMoreGatewayInfo(gateway: AoGateway, address: string) {
 
   // ✅ Display Stake Information
   const totalStake = gateway.operatorStake + gateway.totalDelegatedStake;
-  modalTotalStake.textContent = `${new mARIOToken(totalStake).toARIO()} IO`;
+  modalTotalStake.textContent = `${Math.floor(totalStake / 1000000)} ARIO`;
+
+  const avgResponseTime = gatewayPerformance[fqdn]?.avgResponseTime;
+  modalAverageResponseTime.textContent =
+    avgResponseTime !== undefined ? `${Math.floor(avgResponseTime)} ms` : "N/A"; // Fallback value if missing
 
   // ✅ Format and Display Start Date
   modalStart.textContent = new Date(
@@ -607,7 +662,7 @@ async function showMoreGatewayInfo(gateway: AoGateway, address: string) {
 
   blacklistButton.onclick = async function () {
     await toggleBlacklist(address);
-    await showMoreGatewayInfo(gateway, address);
+    await showMoreGatewayInfo(gateway, address, gatewayPerformance);
   };
 
   // ✅ Show Modal
@@ -675,12 +730,6 @@ function sortGatewaysByStake(gateways: { [s: string]: any } | ArrayLike<any>) {
 
   // Sort the array based on total stake in descending order
   return gatewayArray.sort((a, b) => getTotalStake(b) - getTotalStake(a));
-}
-
-function isBase64URL(address: string): boolean {
-  const trimmedBase64URL = address.toString().trim();
-  const BASE_64_REXEX = new RegExp("^[a-zA-Z0-9-_s+]{43}$");
-  return BASE_64_REXEX.test(trimmedBase64URL);
 }
 
 function saveArIOProcessId(processId: string) {

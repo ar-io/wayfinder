@@ -60,11 +60,9 @@ chrome.webNavigation.onBeforeNavigate.addListener(
 
         if (redirectTo) {
           const startTime = performance.now();
-          chrome.tabs.update(details.tabId, { url: redirectTo }, async () => {
-            updateGatewayPerformance(gatewayFQDN, startTime);
-          });
+          chrome.tabs.update(details.tabId, { url: redirectTo });
 
-          // Store redirect tracking information
+          // ✅ Track that this tab was redirected, but don't update performance yet
           redirectedTabs[details.tabId] = {
             originalGateway: gatewayFQDN,
             expectedSandboxRedirect: /^[a-z0-9_-]{43}$/i.test(arUrl.slice(5)), // True if it's a TxId
@@ -95,19 +93,21 @@ chrome.webRequest.onBeforeRequest.addListener(
 chrome.webRequest.onCompleted.addListener(
   async (details) => {
     const gatewayFQDN = new URL(details.url).hostname;
-    if (!(await isKnownGateway(gatewayFQDN))) return; // ✅ Ensure it's a real AR.IO gateway
 
-    const startTime = requestTimings.get(details.requestId);
+    // ✅ Ignore non-ar:// navigations
+    if (!redirectedTabs[details.tabId]) return;
+
+    // ✅ Only track requests if they originated from an `ar://` redirection
+    if (!(await isKnownGateway(gatewayFQDN))) return;
+
+    const startTime = redirectedTabs[details.tabId].startTime;
     if (!startTime) return;
 
-    requestTimings.delete(details.requestId);
+    // ✅ Cleanup tracking after use
+    delete redirectedTabs[details.tabId];
 
-    // const responseTime = details.timeStamp - startTime;
-    // console.log(
-    // `✅ Gateway Request Completed: ${gatewayFQDN} in ${responseTime.toFixed(2)}ms`
-    // );
-
-    updateGatewayPerformance(gatewayFQDN, startTime);
+    // ✅ Update performance metrics
+    await updateGatewayPerformance(gatewayFQDN, startTime);
   },
   { urls: ["<all_urls>"] }
 );
@@ -139,12 +139,16 @@ chrome.webRequest.onHeadersReceived.addListener(
 /**
  * Handles failed gateway requests.
  */
+/**
+ * Handles failed gateway requests.
+ */
 chrome.webRequest.onErrorOccurred.addListener(
   async (details) => {
-    const gatewayFQDN = new URL(details.url).hostname;
-    if (!(await isKnownGateway(gatewayFQDN))) return; // ✅ Ensure it's a real AR.IO gateway
+    // ✅ Ignore background benchmark failures to avoid double counting
+    if (redirectedTabs[details.tabId]) return;
 
-    console.warn(`❌ Gateway Request Failed: ${gatewayFQDN}`);
+    const gatewayFQDN = new URL(details.url).hostname;
+    if (!(await isKnownGateway(gatewayFQDN))) return;
 
     let { gatewayPerformance = {} } = await chrome.storage.local.get([
       "gatewayPerformance",
@@ -196,29 +200,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   if (request.message === "syncGatewayAddressRegistry") {
     syncGatewayAddressRegistry()
+      .then(() => backgroundGatewayBenchmarking())
       .then(() => sendResponse({}))
       .catch((error) => {
         console.error("❌ Failed to sync GAR:", error);
         sendResponse({ error: "Failed to sync gateway address registry." });
       });
-    return true;
+
+    return true; // ✅ Keeps connection open for async response
   }
 
-  if (request.message === "setArIOProcessId") {
-    reinitializeArIO()
-      .then(() => syncGatewayAddressRegistry())
-      .then(() => sendResponse({}))
-      .catch((error) => {
-        console.error(
-          "❌ Failed to set new Process ID and reinitialize AR.IO:",
-          error
-        );
-        sendResponse({
-          error: "Failed to set new Process ID and reinitialize AR.IO.",
-        });
-      });
-    return true;
-  }
   if (request.message === "setAoCuUrl") {
     reinitializeArIO()
       .then(() => syncGatewayAddressRegistry())
@@ -272,7 +263,7 @@ async function syncGatewayAddressRegistry(): Promise<void> {
     }
 
     console.log(
-      `🔄 Fetching Gateway Adress Registry from ${aoCuUrl} with Process ID: ${processId}`
+      `🔄 Fetching Gateway Address Registry from ${aoCuUrl} with Process ID: ${processId}`
     );
 
     const registry: Record<WalletAddress, AoGateway> = {};

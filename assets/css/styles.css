@@ -26,8 +26,8 @@ h2 {
   font-size: 24px;
   border-bottom: 1px solid #323232;
   padding-bottom: 15px;
-  margin-bottom: 15px;
-  margin-top: 15px;
+  margin-bottom: 6px;
+  margin-top: 2px;
 }
 
 p {
@@ -43,15 +43,15 @@ button {
   background-color: #010905;
   border: 2px solid #ededed;
   color: #ededed;
-  padding: 12px;
+  padding: 6px;
   text-align: center;
-  font-size: 16px;
+  font-size: 14px;
   cursor: pointer;
   transition:
     background-color 0.3s,
     color 0.3s;
   border-radius: 4px;
-  margin-bottom: 20px;
+  margin-bottom: 6px;
 }
 
 button:hover {
@@ -110,7 +110,7 @@ ul::-webkit-scrollbar-track {
 }
 
 li {
-  padding: 8px 16px;
+  padding: 4px 4px;
   border-bottom: 1px solid #9e9e9e;
   background-color: #1f1f1f;
   transition: background-color 0.3s;
@@ -132,7 +132,7 @@ li a {
   text-decoration: none;
   color: inherit; /* This makes the link have the same color as the list item */
   display: block; /* Makes the entire list item area clickable */
-  padding: 8px 16px;
+  padding: 4px 4px;
   transition: background-color 0.3s;
 }
 
@@ -156,10 +156,11 @@ button:hover {
     transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   transform: translateY(0);
   opacity: 1;
-  max-height: 300px; /* The subtracted value here depends on the combined height of your other elements (like headers, paragraphs, buttons). You might need to adjust this value to fit your content perfectly. */
+  max-height: 365px; /* The subtracted value here depends on the combined height of your other elements (like headers, paragraphs, buttons). You might need to adjust this value to fit your content perfectly. */
   overflow-y: auto;
   margin-bottom: 20px; /* Adjust value as necessary */
   border-radius: 5px;
+  margin-top: 6px
 }
 
 .gatewayListHeader {
@@ -178,7 +179,7 @@ button:hover {
 .gateway {
   display: flex;
   flex-direction: column;
-  padding: 10px;
+  padding: 6px;
   border-bottom: 1px solid #9e9e9e;
   background-color: #1f1f1f;
   cursor: pointer;
@@ -279,10 +280,10 @@ button:hover {
   overflow: hidden;
 }
 .setting {
-  padding: 16px;
+  padding: 6px;
   border: 1px solid #e0e0e0;
   border-radius: 4px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   display: flex;
   align-items: center;
 }
@@ -319,7 +320,7 @@ button:hover {
 }
 
 select {
-  width: 75%;
+  width: 71%;
   padding: 8px 10px;
   border: 1px solid #ccc;
   border-radius: 5px;
@@ -339,7 +340,7 @@ select {
 footer {
   display: flex;
   justify-content: space-between;
-  padding-top: 20px;
+  padding-top: 10px;
   border-top: 2px solid #323232; /* Thin line separator */
   margin-top: 15px;
 }

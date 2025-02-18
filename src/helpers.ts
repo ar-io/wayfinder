@@ -3,10 +3,15 @@ import { getGarForRouting, selectTopOnChainGateways } from "./routing";
 import { TOP_ONCHAIN_GATEWAY_LIMIT, MAX_HISTORY_ITEMS } from "./constants";
 
 export async function backgroundGatewayBenchmarking() {
-  console.log("📡 Running Gateway benchmark...");
+  console.log(
+    `📡 Running Gateway benchmark against top ${TOP_ONCHAIN_GATEWAY_LIMIT} gateways...`
+  );
 
   const gar = await getGarForRouting();
-  const topGateways = selectTopOnChainGateways(gar).slice(0, TOP_ONCHAIN_GATEWAY_LIMIT); // ✅ Limit to **Top 25**, avoid over-pinging
+  const topGateways = selectTopOnChainGateways(gar).slice(
+    0,
+    TOP_ONCHAIN_GATEWAY_LIMIT
+  ); // ✅ Limit to **Top 25**, avoid over-pinging
 
   if (topGateways.length === 0) {
     console.warn("⚠️ No top-performing gateways available.");
@@ -17,21 +22,20 @@ export async function backgroundGatewayBenchmarking() {
   const pingResults = await Promise.allSettled(
     topGateways.map(async (gateway: AoGatewayWithAddress) => {
       const fqdn = gateway.settings.fqdn;
-      const start = performance.now();
+      const startTime = performance.now(); // ✅ Correctly record start time
+
       try {
         await fetch(`https://${fqdn}`, { method: "HEAD", mode: "no-cors" });
-        const responseTime = performance.now() - start;
-
-        updateGatewayPerformance(fqdn, responseTime); // ✅ Store EMA response time
-        return { fqdn, responseTime };
+        updateGatewayPerformance(fqdn, startTime); // ✅ Pass the original start time
+        return { fqdn, responseTime: performance.now() - startTime };
       } catch {
-        updateGatewayPerformance(fqdn, 0); // ❌ Store failure
+        updateGatewayPerformance(fqdn, startTime); // ❌ Still pass `startTime`, not 0
         return { fqdn, responseTime: Infinity };
       }
     })
   );
 
-  // 🔥 Update last benchmark timestamp (No longer storing cachedFastestGateway)
+  // 🔥 Update last benchmark timestamp
   await chrome.storage.local.set({ lastBenchmarkTime: now });
 
   console.log("✅ Gateway benchmark completed and metrics updated.");
@@ -67,8 +71,12 @@ export async function backgroundValidateCachedGateway() {
   );
 
   // 🔄 If all fail, schedule a **full benchmark** instead
-  if (pingResults.every((res) => (res as any).value?.responseTime === Infinity)) {
-    console.warn("⚠️ Background validation failed. Scheduling full benchmark...");
+  if (
+    pingResults.every((res) => (res as any).value?.responseTime === Infinity)
+  ) {
+    console.warn(
+      "⚠️ Background validation failed. Scheduling full benchmark..."
+    );
     await backgroundGatewayBenchmarking();
   } else {
     console.log("✅ Background validation completed.");
@@ -77,7 +85,6 @@ export async function backgroundValidateCachedGateway() {
   // 🔥 Update last validation timestamp
   await chrome.storage.local.set({ lastBenchmarkTime: now });
 }
-
 
 /**
  * Checks if a hostname belongs to a known AR.IO gateway.
@@ -116,7 +123,8 @@ export async function updateGatewayPerformance(
       successCount: 1, // First success
     };
   } else {
-    const prevAvg = gatewayPerformance[gatewayFQDN].avgResponseTime || responseTime;
+    const prevAvg =
+      gatewayPerformance[gatewayFQDN].avgResponseTime || responseTime;
     const alpha = 0.2; // **Smoothing factor (higher = reacts faster, lower = more stable)**
 
     // 🔥 Compute new EMA for response time
@@ -126,14 +134,13 @@ export async function updateGatewayPerformance(
     gatewayPerformance[gatewayFQDN].successCount += 1;
   }
 
-  //console.log(
-  //  `Updating Gateway Performance: ${gatewayFQDN} | New Avg Response Time: ${gatewayPerformance[gatewayFQDN].avgResponseTime.toFixed(2)}ms`
-  //);
+  // console.log(
+  //   `Updating Gateway Performance: ${gatewayFQDN} | New Response Time: ${responseTime} New Avg Response Time: ${gatewayPerformance[gatewayFQDN].avgResponseTime.toFixed(2)}ms`
+  // );
 
   // 🔥 Store under the **root** FQDN
   await chrome.storage.local.set({ gatewayPerformance });
 }
-
 
 /**
  * Extracts the base gateway FQDN from a potentially subdomain-prefixed FQDN.
@@ -182,4 +189,10 @@ export function saveToHistory(
     history = history.slice(0, MAX_HISTORY_ITEMS);
     chrome.storage.local.set({ history });
   });
+}
+
+export function isBase64URL(address: string): boolean {
+  const trimmedBase64URL = address.toString().trim();
+  const BASE_64_REXEX = new RegExp("^[a-zA-Z0-9-_s+]{43}$");
+  return BASE_64_REXEX.test(trimmedBase64URL);
 }
