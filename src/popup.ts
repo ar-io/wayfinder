@@ -122,7 +122,7 @@ async function afterPopupDOMLoaded(): Promise<void> {
           let onlineStatus =
             '<span class="unknown" title="Gateway status unknown">?</span>';
 
-          const performanceData = gatewayPerformance[gateway.settings.fqdn];
+          const performanceData = gatewayPerformance[gateway.settings?.fqdn];
           if (performanceData) {
             const { avgResponseTime, failures } = performanceData;
 

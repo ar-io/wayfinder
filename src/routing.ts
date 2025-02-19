@@ -13,8 +13,10 @@ import {
   STAKE_RANDOM_ROUTE_METHOD,
   WEIGHTED_ONCHAIN_PERFORMANCE_ROUTE_METHOD,
   DNS_LOOKUP_API,
+  GASLESS_ARNS_DNS_EXPIRATION_TIME,
 } from "./constants";
 import { GatewayRegistry } from "./types";
+import { fetchEnsArweaveTxId } from "./ens";
 
 /**
  * Fetch the filtered Gateway Address Registry (GAR) from storage.
@@ -96,7 +98,8 @@ export function selectHighestStakedGateway(
   const gateways = Object.values(gar);
 
   if (gateways.length === 0) {
-    throw new Error("❌ No gateways available for fallback.");
+    console.warn("❌ No gateways available for fallback. Using default.");
+    return DEFAULT_GATEWAY;
   }
 
   return gateways.reduce((prev, current) =>
@@ -393,27 +396,55 @@ export async function lookupArweaveTxIdForDomain(
   domain: string
 ): Promise<string | null> {
   const cacheKey = `dnsCache_${domain}`;
-  const cachedResult = await chrome.storage.local.get(cacheKey);
-  if (cachedResult[cacheKey]) return cachedResult[cacheKey];
 
   try {
-    const response = await fetch(`${DNS_LOOKUP_API}?name=${domain}&type=TXT`);
-    const data = await response.json();
-    const match = data.Answer?.find((record: any) =>
-      record.data.match(/ARTX ([a-zA-Z0-9_-]{43})/)
-    );
-    if (match) {
-      await chrome.storage.local.set({ [cacheKey]: match[1] });
-      return match[1];
+    // Check cache first
+    const cachedResult = await chrome.storage.local.get([cacheKey]);
+
+    if (cachedResult && cachedResult[cacheKey]) {
+      const { txId, timestamp } = cachedResult[cacheKey];
+
+      if (Date.now() - timestamp < GASLESS_ARNS_DNS_EXPIRATION_TIME) {
+        console.log(`Cache hit for ${domain}: ${txId}`);
+        return txId;
+      } else {
+        console.log(`Cache expired for ${domain}, removing entry.`);
+        await chrome.storage.local.remove(cacheKey);
+      }
     }
+
+    // Perform DNS lookup
+    console.log("Checking DNS TXT record for:", domain);
+    const response = await fetch(`${DNS_LOOKUP_API}?name=${domain}&type=TXT`);
+
+    if (!response.ok) {
+      console.error(`DNS lookup failed: ${response.statusText}`);
+      return null;
+    }
+
+    const data = await response.json();
+
+    // Extract Arweave transaction ID from TXT record
+    const match = data.Answer?.map((record: any) => {
+      const result = record.data.match(/ARTX ([a-zA-Z0-9_-]{43})/);
+      return result ? result[1] : null; // Directly return extracted txId
+    }).find((txId: string) => txId !== null);
+
+    if (match) {
+      // Cache result with timestamp
+      await chrome.storage.local.set({
+        [cacheKey]: { txId: match, timestamp: Date.now() },
+      });
+
+      console.log(`Cached result for ${domain}: ${match}`);
+      return match;
+    }
+
     return null;
   } catch (error) {
-    console.error(
-      "❌ Failed to lookup DNS TXT records:",
-      (error as Error).message
-    );
+    console.error("❌ Failed to lookup DNS TXT records:", error);
+    return null;
   }
-  return null;
 }
 
 /**
@@ -502,6 +533,7 @@ export async function getGatewayForRouting(): Promise<AoGatewayWithAddress> {
 /**
  * Convert an ar:// URL to a routable gateway URL and return gateway metadata.
  * Supports:
+ * - **ENS names** → `ar://example.eth` → Resolves to an Arweave TX
  * - **ArNS names** → `ar://example` → `https://example.{gatewayFQDN}`
  * - **Arweave TX IDs** → `ar://{txId}` → `https://{gatewayFQDN}/{txId}`
  *
@@ -522,7 +554,7 @@ export async function getRoutableGatewayUrl(arUrl: string): Promise<{
     }
 
     const arUrlParts = arUrl.slice(5).split("/");
-    const baseName = arUrlParts[0]; // Can be a TX ID or an ArNS name
+    const baseName = arUrlParts[0]; // Can be a TX ID, ArNS name, or ENS name
     const path =
       arUrlParts.length > 1 ? "/" + arUrlParts.slice(1).join("/") : "";
 
@@ -540,22 +572,33 @@ export async function getRoutableGatewayUrl(arUrl: string): Promise<{
     if (/^[a-z0-9_-]{43}$/i.test(baseName)) {
       // ✅ Case 1: Arweave Transaction ID
       redirectTo = `${gatewayProtocol}://${gatewayFQDN}${gatewayPort ? `:${gatewayPort}` : ""}/${baseName}${path}`;
+    } else if (baseName.endsWith(".eth")) {
+      // ✅ Case 2: ENS Name Resolution
+      console.log(`🔍 Resolving ENS name: ${baseName}`);
+
+      const txId = await fetchEnsArweaveTxId(baseName);
+      if (txId) {
+        redirectTo = `${gatewayProtocol}://${gatewayFQDN}${gatewayPort ? `:${gatewayPort}` : ""}/${txId}${path}`;
+      } else {
+        throw new Error(
+          `❌ ENS name ${baseName} does not have an Arweave TX ID.`
+        );
+      }
     } else if (baseName.includes(".")) {
-      // TO DO - CHECK FOR .ETH FOR ENS
-      // ✅ Case 2: Arweave domain (needs resolution)
-      console.log(`🔍 Resolving Arweave domain: ${baseName}`);
+      // ✅ Case 3: Arweave Domain (ArNS Resolution)
+      console.log(`🔍 Resolving Gasless ArNS domain: ${baseName}`);
 
       const txId = await lookupArweaveTxIdForDomain(baseName);
       if (txId) {
         redirectTo = `${gatewayProtocol}://${gatewayFQDN}${gatewayPort ? `:${gatewayPort}` : ""}/${txId}${path}`;
       } else {
         console.warn(
-          `⚠️ No transaction ID found for domain: ${baseName}. Falling back to direct subdomain access.`
+          `⚠️ No transaction ID found for domain: ${baseName}. Falling back to root gateway domain access.`
         );
-        redirectTo = `${gatewayProtocol}://${baseName}.${gatewayFQDN}${gatewayPort ? `:${gatewayPort}` : ""}${path}`;
+        redirectTo = `${gatewayProtocol}://${gatewayFQDN}${gatewayPort ? `:${gatewayPort}` : ""}${path}`;
       }
     } else {
-      // ✅ Case 3: ArNS name (subdomain resolution)
+      // ✅ Case 4: ArNS Name (Subdomain Resolution)
       redirectTo = `${gatewayProtocol}://${baseName}.${gatewayFQDN}${gatewayPort ? `:${gatewayPort}` : ""}${path}`;
     }
 

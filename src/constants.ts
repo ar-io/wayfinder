@@ -45,6 +45,7 @@ export const DEFAULT_GATEWAY: AoGatewayWithAddress = {
   gatewayAddress: "DEFAULT",
 };
 
+export const GASLESS_ARNS_DNS_EXPIRATION_TIME = 15 * 60 * 1000; // 15 minutes
 export const DEFAULT_AO_CU_URL = "https://cu.ardrive.io";
 export const MAX_HISTORY_ITEMS = 20; // How many items are stored in wayfinder history
 export const TOP_ONCHAIN_GATEWAY_LIMIT = 25; // The top amount of gateways returned for onchain performance ranking

@@ -185,14 +185,11 @@ setInterval(() => {
  * Handles messages from content scripts for syncing gateway data.
  */
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (!request || typeof request !== "object" || !request.message) return;
   if (
-    ![
-      "syncGatewayAddressRegistry",
-      "setArIOProcessId",
-      "setAoCuUrl",
-      "convertArUrlToHttpUrl",
-    ].includes(request.message)
+    !["syncGatewayAddressRegistry", "setArIOProcessId", "setAoCuUrl"].includes(
+      request.message
+    ) &&
+    request.type !== "convertArUrlToHttpUrl"
   ) {
     console.warn("⚠️ Unauthorized message:", request);
     return;
@@ -271,7 +268,10 @@ async function syncGatewayAddressRegistry(): Promise<void> {
     let totalFetched = 0;
 
     do {
-      const response = await arIO.getGateways({ cursor });
+      const response = await arIO.getGateways({
+        limit: 1000,
+        cursor,
+      });
 
       if (!response?.items || response.items.length === 0) {
         console.warn("⚠️ No gateways found in this batch.");
