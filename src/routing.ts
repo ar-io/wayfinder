@@ -569,10 +569,15 @@ export async function getRoutableGatewayUrl(arUrl: string): Promise<{
 
     let redirectTo: string;
 
+    const storedSettings = await chrome.storage.local.get([
+      "ensResolutionEnabled",
+    ]);
+    const ensResolutionEnabled = storedSettings.ensResolutionEnabled ?? false;
+
     if (/^[a-z0-9_-]{43}$/i.test(baseName)) {
       // ✅ Case 1: Arweave Transaction ID
       redirectTo = `${gatewayProtocol}://${gatewayFQDN}${gatewayPort ? `:${gatewayPort}` : ""}/${baseName}${path}`;
-    } else if (baseName.endsWith(".eth")) {
+    } else if (baseName.endsWith(".eth") && ensResolutionEnabled) {
       // ✅ Case 2: ENS Name Resolution
       console.log(`🔍 Resolving ENS name: ${baseName}`);
 

@@ -516,7 +516,7 @@ async function afterPopupDOMLoaded(): Promise<void> {
     });
 
     chrome.storage.local.get(["ensResolutionEnabled"], (data) => {
-      ensResolutionToggle.checked = data.ensResolutionEnabled ?? false;
+      ensResolutionToggle.checked = data.ensResolutionEnabled ?? true;
     });
   }
 }

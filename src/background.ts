@@ -30,6 +30,7 @@ chrome.storage.local.set({
   blacklistedGateways: [],
   processId: ARIO_TESTNET_PROCESS_ID,
   aoCuUrl: DEFAULT_AO_CU_URL,
+  ensResolutionEnabled: true,
 });
 
 // Ensure we sync the registry before running benchmarking
