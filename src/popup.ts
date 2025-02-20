@@ -62,6 +62,9 @@ async function afterPopupDOMLoaded(): Promise<void> {
   const saveAoCuUrlButton = document.getElementById(
     "saveAoCuUrl"
   ) as HTMLElement | null;
+  const ensResolutionToggle = document.getElementById(
+    "ensResolutionToggle"
+  ) as HTMLInputElement | null;
 
   if (
     showGatewaysBtn &&
@@ -80,6 +83,7 @@ async function afterPopupDOMLoaded(): Promise<void> {
     saveStaticGatewayButton &&
     saveArIOProcessIdButton &&
     saveAoCuUrlButton &&
+    ensResolutionToggle &&
     gatewayList
   ) {
     showGatewaysBtn.addEventListener("click", async function () {
@@ -502,6 +506,17 @@ async function afterPopupDOMLoaded(): Promise<void> {
         (document.getElementById("aoCuUrl") as HTMLInputElement).value =
           data.aoCuUrl;
       }
+    });
+
+    // Listen for toggle changes and save to storage
+    ensResolutionToggle.addEventListener("change", () => {
+      chrome.storage.local.set({
+        ensResolutionEnabled: ensResolutionToggle.checked,
+      });
+    });
+
+    chrome.storage.local.get(["ensResolutionEnabled"], (data) => {
+      ensResolutionToggle.checked = data.ensResolutionEnabled ?? false;
     });
   }
 }
