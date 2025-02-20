@@ -1,10 +1,4 @@
-import {
-  WalletAddress,
-  AoGateway,
-  ARIO_TESTNET_PROCESS_ID,
-  ARIO,
-  AOProcess,
-} from "@ar.io/sdk/web";
+import { WalletAddress, AoGateway, ARIO, AOProcess } from "@ar.io/sdk/web";
 import { getRoutableGatewayUrl } from "./routing";
 import {
   backgroundGatewayBenchmarking,
@@ -12,7 +6,11 @@ import {
   saveToHistory,
   updateGatewayPerformance,
 } from "./helpers";
-import { DEFAULT_AO_CU_URL, OPTIMAL_GATEWAY_ROUTE_METHOD } from "./constants";
+import {
+  ARIO_MAINNET_PROCESS_ID,
+  DEFAULT_AO_CU_URL,
+  OPTIMAL_GATEWAY_ROUTE_METHOD,
+} from "./constants";
 import { RedirectedTabInfo } from "./types";
 import { connect } from "@permaweb/aoconnect";
 
@@ -21,14 +19,22 @@ let redirectedTabs: Record<number, RedirectedTabInfo> = {};
 const requestTimings = new Map<string, number>();
 
 console.log("🚀 Initializing AR.IO...");
-let arIO = ARIO.init();
+let arIO = ARIO.init({
+  process: new AOProcess({
+    processId: ARIO_MAINNET_PROCESS_ID,
+    ao: connect({
+      CU_URL: DEFAULT_AO_CU_URL,
+      MODE: "legacy",
+    }),
+  }),
+});
 
 // Set default values in Chrome storage
 chrome.storage.local.set({
   routingMethod: OPTIMAL_GATEWAY_ROUTE_METHOD,
   localGatewayAddressRegistry: {},
   blacklistedGateways: [],
-  processId: ARIO_TESTNET_PROCESS_ID,
+  processId: ARIO_MAINNET_PROCESS_ID,
   aoCuUrl: DEFAULT_AO_CU_URL,
   ensResolutionEnabled: true,
 });

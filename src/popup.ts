@@ -1,6 +1,6 @@
-import { AoGateway, ARIO_TESTNET_PROCESS_ID, mARIOToken } from "@ar.io/sdk/web";
-import { DEFAULT_AO_CU_URL } from "./constants";
-import { isBase64URL, normalizeGatewayFQDN } from "./helpers";
+import { AoGateway } from "@ar.io/sdk/web";
+import { ARIO_MAINNET_PROCESS_ID, DEFAULT_AO_CU_URL } from "./constants";
+import { isBase64URL } from "./helpers";
 
 // Check if the document is still loading, if not, call the function directly
 if (document.readyState === "loading") {
@@ -420,7 +420,7 @@ async function afterPopupDOMLoaded(): Promise<void> {
         document.getElementById("arIOProcessId") as HTMLInputElement
       ).value;
       if (arIOProcessId === "") {
-        const result = saveArIOProcessId(ARIO_TESTNET_PROCESS_ID);
+        const result = saveArIOProcessId(ARIO_MAINNET_PROCESS_ID);
         (document.getElementById("arIOProcessId") as HTMLInputElement).value =
           "";
         return new Promise((resolve, reject) => {
@@ -749,7 +749,7 @@ function sortGatewaysByStake(gateways: { [s: string]: any } | ArrayLike<any>) {
 
 function saveArIOProcessId(processId: string) {
   if (processId === "") {
-    chrome.storage.local.set({ processId: ARIO_TESTNET_PROCESS_ID });
+    chrome.storage.local.set({ processId: ARIO_MAINNET_PROCESS_ID });
     alert(`AR.IO Process ID set back to default.`);
   } else {
     chrome.storage.local.set({ processId: processId });
