@@ -26,6 +26,10 @@ let wayfinder = new Wayfinder({
   routingStrategy
 })
 
+export const getArio = () => ario;
+export const getWayfinder = () => wayfinder;
+export const getRoutingStrategy = () => routingStrategy;
+
 // Set default values in Chrome storage
 chrome.storage.local.set({
   routingMethod: OPTIMAL_GATEWAY_ROUTE_METHOD,
@@ -65,7 +69,6 @@ chrome.webNavigation.onBeforeNavigate.addListener(
 
         const { url: redirectTo } = await getRoutableGatewayUrl({
           arUrl,
-          ario,
         });
 
         if (redirectTo) {
@@ -243,7 +246,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     const arUrl = request.arUrl;
     getRoutableGatewayUrl({
       arUrl,
-      ario,
     })
       .then((response) => {
         if (!response || !response.url) {
@@ -335,10 +337,14 @@ async function reinitializeArIO(): Promise<void> {
         ao: connect({ MODE: "legacy", CU_URL: aoCuUrl }),
       }),
     });
+    // TODO: add support for changing routing strategy
+    routingStrategy = new RandomGatewayStrategy({ ario });
     wayfinder = new Wayfinder({ ario, routingStrategy });
     console.log("🔄 AR.IO reinitialized with Process ID:", processId);
   } catch (error) {
-    ario = ARIO.init();
+    ario = ARIO.mainnet();
+    routingStrategy = new RandomGatewayStrategy({ ario });
+    wayfinder = new Wayfinder({ ario, routingStrategy });
     console.error("❌ Failed to reinitialize AR.IO. Using default.");
   }
 }

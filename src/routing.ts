@@ -1,4 +1,4 @@
-import { AoARIORead, AoGatewayWithAddress, RandomGatewayStrategy, Wayfinder } from "@ar.io/sdk/web";
+import { AoARIORead, AoGatewayWithAddress } from "@ar.io/sdk/web";
 import {
   backgroundGatewayBenchmarking,
 } from "./helpers";
@@ -10,7 +10,7 @@ import {
   GASLESS_ARNS_DNS_EXPIRATION_TIME,
 } from "./constants";
 import { GatewayRegistry } from "./types";
-import { fetchEnsArweaveTxId } from "./ens";
+import { getWayfinder } from "./background";
 
 /**
  * Fetch the filtered Gateway Address Registry (GAR) from storage.
@@ -203,9 +203,7 @@ export async function getGatewayForRouting({
   }
 
   // TODO: replace with local variable
-  const routingStrategy = new RandomGatewayStrategy({ ario });
-  const wayfinder = new Wayfinder({ ario, routingStrategy });
-  const gateway = await wayfinder.getTargetGateway();
+  const gateway = await getWayfinder().getTargetGateway();
 
   if (!gateway) {
     throw new Error("🚨 No viable gateway found.");
@@ -226,68 +224,22 @@ export async function getGatewayForRouting({
  */
 export async function getRoutableGatewayUrl({
   arUrl,
-  ario,
 }: {
   arUrl: string;
-  ario: AoARIORead;
 }): Promise<{
   url: string;
 }> {
   try {
-    if (!arUrl.startsWith("ar://")) {
-      throw new Error(`Invalid ar:// URL format: ${arUrl}`);
-    }
 
-    const arUrlParts = arUrl.slice(5).split("/");
-    const baseName = arUrlParts[0]; // Can be a TX ID, ArNS name, or ENS name
-    const path =
-      arUrlParts.length > 1 ? "/" + arUrlParts.slice(1).join("/") : "";
+    // const storedSettings = await chrome.storage.local.get([
+    //   "ensResolutionEnabled",
+    // ]);
+    // const ensResolutionEnabled = storedSettings.ensResolutionEnabled ?? false;
 
-    // Select the best gateway based on routing method
-    const gatewayFQDN = await getGatewayForRouting({ ario });
 
-    let redirectTo: string;
-
-    const storedSettings = await chrome.storage.local.get([
-      "ensResolutionEnabled",
-    ]);
-    const ensResolutionEnabled = storedSettings.ensResolutionEnabled ?? false;
-
-    if (/^[a-z0-9_-]{43}$/i.test(baseName)) {
-      // ✅ Case 1: Arweave Transaction ID
-      redirectTo = `https://${gatewayFQDN}${path}`;
-    } else if (baseName.endsWith(".eth") && ensResolutionEnabled) {
-      // ✅ Case 2: ENS Name Resolution
-      console.log(`🔍 Resolving ENS name: ${baseName}`);
-
-      const txId = await fetchEnsArweaveTxId(baseName);
-      if (txId) {
-        redirectTo = `https://${gatewayFQDN}${path}`;
-      } else {
-        throw new Error(
-          `❌ ENS name ${baseName} does not have an Arweave TX ID.`
-        );
-      }
-    } else if (baseName.includes(".")) {
-      // ✅ Case 3: Arweave Domain (ArNS Resolution)
-      console.log(`🔍 Resolving Gasless ArNS domain: ${baseName}`);
-
-      const txId = await lookupArweaveTxIdForDomain(baseName);
-      if (txId) {
-        redirectTo = `https://${gatewayFQDN}${path}`;
-      } else {
-        console.warn(
-          `⚠️ No transaction ID found for domain: ${baseName}. Falling back to root gateway domain access.`
-        );
-        redirectTo = `https://${gatewayFQDN}${path}`;
-      }
-    } else {
-      // ✅ Case 4: ArNS Name (Subdomain Resolution)
-      redirectTo = `https://${baseName}.${gatewayFQDN}${path}`;
-    }
-
+    const redirectTo = await getWayfinder().getRedirectUrl({ reference: arUrl });
     return {
-      url: redirectTo,
+      url: redirectTo.toString(),
     };
   } catch (error) {
     console.error("🚨 Error in getRoutableGatewayUrl:", error);
