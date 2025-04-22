@@ -1,8 +1,12 @@
-import { AoGatewayWithAddress } from "@ar.io/sdk";
+import { AoARIORead, AoGatewayWithAddress } from "@ar.io/sdk";
 import { getGarForRouting, selectTopOnChainGateways } from "./routing";
 import { TOP_ONCHAIN_GATEWAY_LIMIT, MAX_HISTORY_ITEMS } from "./constants";
 
-export async function backgroundGatewayBenchmarking() {
+export async function backgroundGatewayBenchmarking({
+  ario,
+}: {
+  ario: AoARIORead;
+}) {
   console.log(
     `📡 Running Gateway benchmark against top ${TOP_ONCHAIN_GATEWAY_LIMIT} gateways...`
   );
@@ -45,7 +49,11 @@ export async function backgroundGatewayBenchmarking() {
  * Runs a **background validation** for **top performing gateways** instead of a single cached one.
  * - If they are too slow, marks them as stale.
  */
-export async function backgroundValidateCachedGateway() {
+export async function backgroundValidateCachedGateway({
+  ario,
+}: {
+  ario: AoARIORead;
+}) {
   console.log("📡 Running lightweight background gateway validation...");
 
   const gar = await getGarForRouting();
@@ -77,7 +85,9 @@ export async function backgroundValidateCachedGateway() {
     console.warn(
       "⚠️ Background validation failed. Scheduling full benchmark..."
     );
-    await backgroundGatewayBenchmarking();
+    await backgroundGatewayBenchmarking({
+      ario,
+    });
   } else {
     console.log("✅ Background validation completed.");
   }

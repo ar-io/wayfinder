@@ -1,4 +1,4 @@
-import { WalletAddress, AoGateway, ARIO, AOProcess } from "@ar.io/sdk/web";
+import { WalletAddress, AoGateway, ARIO, AOProcess, Wayfinder, RandomGatewayStrategy, AoARIORead } from "@ar.io/sdk/web";
 import { getRoutableGatewayUrl } from "./routing";
 import {
   backgroundGatewayBenchmarking,
@@ -19,15 +19,12 @@ let redirectedTabs: Record<number, RedirectedTabInfo> = {};
 const requestTimings = new Map<string, number>();
 
 console.log("🚀 Initializing AR.IO...");
-let arIO = ARIO.init({
-  process: new AOProcess({
-    processId: ARIO_MAINNET_PROCESS_ID,
-    ao: connect({
-      CU_URL: DEFAULT_AO_CU_URL,
-      MODE: "legacy",
-    }),
-  }),
-});
+let ario = ARIO.mainnet();
+let routingStrategy = new RandomGatewayStrategy({ ario });
+let wayfinder = new Wayfinder({
+  ario,
+  routingStrategy
+})
 
 // Set default values in Chrome storage
 chrome.storage.local.set({
@@ -42,8 +39,12 @@ chrome.storage.local.set({
 // Ensure we sync the registry before running benchmarking
 async function initializeWayfinder() {
   console.log("🔄 Initializing Wayfinder...");
-  await syncGatewayAddressRegistry(); // **Wait for GAR sync to complete**
-  await backgroundGatewayBenchmarking(); // **Benchmark after GAR is ready**
+  await syncGatewayAddressRegistry({
+    ario,
+  }); // **Wait for GAR sync to complete**
+  await backgroundGatewayBenchmarking({
+    ario,
+  }); // **Benchmark after GAR is ready**
 }
 
 initializeWayfinder().catch((err) =>
@@ -62,8 +63,10 @@ chrome.webNavigation.onBeforeNavigate.addListener(
 
         if (!arUrl || !arUrl.startsWith("ar://")) return;
 
-        const { url: redirectTo, gatewayFQDN } =
-          await getRoutableGatewayUrl(arUrl);
+        const { url: redirectTo } = await getRoutableGatewayUrl({
+          arUrl,
+          ario,
+        });
 
         if (redirectTo) {
           const startTime = performance.now();
@@ -71,7 +74,7 @@ chrome.webNavigation.onBeforeNavigate.addListener(
 
           // ✅ Track that this tab was redirected, but don't update performance yet
           redirectedTabs[details.tabId] = {
-            originalGateway: gatewayFQDN,
+            originalGateway: new URL(redirectTo).hostname,
             expectedSandboxRedirect: /^[a-z0-9_-]{43}$/i.test(arUrl.slice(5)), // True if it's a TxId
             startTime,
           };
@@ -203,8 +206,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.message === "syncGatewayAddressRegistry") {
-    syncGatewayAddressRegistry()
-      .then(() => backgroundGatewayBenchmarking())
+    syncGatewayAddressRegistry({
+      ario,
+    })
+      .then(() => backgroundGatewayBenchmarking({
+        ario,
+      }))
       .then(() => sendResponse({}))
       .catch((error) => {
         console.error("❌ Failed to sync GAR:", error);
@@ -216,7 +223,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   if (request.message === "setAoCuUrl") {
     reinitializeArIO()
-      .then(() => syncGatewayAddressRegistry())
+      .then(() => syncGatewayAddressRegistry({
+        ario,
+      }))
       .then(() => sendResponse({}))
       .catch((error) => {
         console.error(
@@ -232,7 +241,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   if (request.type === "convertArUrlToHttpUrl") {
     const arUrl = request.arUrl;
-    getRoutableGatewayUrl(arUrl)
+    getRoutableGatewayUrl({
+      arUrl,
+      ario,
+    })
       .then((response) => {
         if (!response || !response.url) {
           throw new Error("URL resolution failed, response is invalid");
@@ -251,7 +263,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 /**
  * Fetches and stores the AR.IO Gateway Address Registry.
  */
-async function syncGatewayAddressRegistry(): Promise<void> {
+async function syncGatewayAddressRegistry({
+  ario,
+}: {
+  ario: AoARIORead;
+}): Promise<void> {
   try {
     const { processId, aoCuUrl } = await chrome.storage.local.get([
       "processId",
@@ -275,7 +291,7 @@ async function syncGatewayAddressRegistry(): Promise<void> {
     let totalFetched = 0;
 
     do {
-      const response = await arIO.getGateways({
+      const response = await ario.getGateways({
         limit: 1000,
         cursor,
       });
@@ -313,15 +329,16 @@ async function reinitializeArIO(): Promise<void> {
       "processId",
       "aoCuUrl",
     ]);
-    arIO = ARIO.init({
+    ario = ARIO.init({
       process: new AOProcess({
         processId: processId,
         ao: connect({ MODE: "legacy", CU_URL: aoCuUrl }),
       }),
     });
+    wayfinder = new Wayfinder({ ario, routingStrategy });
     console.log("🔄 AR.IO reinitialized with Process ID:", processId);
   } catch (error) {
-    arIO = ARIO.init();
+    ario = ARIO.init();
     console.error("❌ Failed to reinitialize AR.IO. Using default.");
   }
 }

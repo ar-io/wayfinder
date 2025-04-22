@@ -1,6 +1,7 @@
-import { AoGateway } from "@ar.io/sdk/web";
+
 import { ARIO_MAINNET_PROCESS_ID, DEFAULT_AO_CU_URL } from "./constants";
 import { isBase64URL } from "./helpers";
+import { AoGateway } from "@ar.io/sdk/web";
 
 // Check if the document is still loading, if not, call the function directly
 if (document.readyState === "loading") {
