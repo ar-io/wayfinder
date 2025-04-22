@@ -177,11 +177,11 @@ export async function getGatewayForRouting({
 }): Promise<string> {
   const {
     staticGateway,
-    routingMethod = OPTIMAL_GATEWAY_ROUTE_METHOD,
+    routingStrategy = OPTIMAL_GATEWAY_ROUTE_METHOD,
     lastGatewayBenchmark = 0, // Default to 0 if not set
   } = await chrome.storage.local.get([
     "staticGateway",
-    "routingMethod",
+    "routingStrategy",
     "lastGatewayBenchmark",
   ]);
 

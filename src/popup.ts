@@ -390,10 +390,10 @@ async function afterPopupDOMLoaded(): Promise<void> {
       saveRoutingMethod(selectedRoutingMethod);
     });
 
-    chrome.storage.local.get("routingMethod", function (data) {
-      if (data.routingMethod) {
+    chrome.storage.local.get("routingStrategy", function (data) {
+      if (data.routingStrategy) {
         (document.getElementById("routingToggle") as HTMLSelectElement).value =
-          data.routingMethod;
+          data.routingStrategy;
       }
     });
 
@@ -546,7 +546,7 @@ function saveThemeChoice(inputValue: any) {
 }
 
 function saveRoutingMethod(inputValue: any) {
-  chrome.storage.local.set({ routingMethod: inputValue }, function () {
+  chrome.storage.local.set({ routingStrategy: inputValue }, function () {
     alert(`Routing method set to ${inputValue}`);
   });
   return true;

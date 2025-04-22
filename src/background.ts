@@ -1,4 +1,4 @@
-import { WalletAddress, AoGateway, ARIO, AOProcess, Wayfinder, RandomGatewayStrategy, AoARIORead } from "@ar.io/sdk/web";
+import { WalletAddress, AoGateway, ARIO, AOProcess, Wayfinder, RandomGatewayStrategy, AoARIORead, WayfinderRoutingStrategy, WayfinderRoutingStrategies, WayfinderRoutingStrategyName } from "@ar.io/sdk/web";
 import { getRoutableGatewayUrl } from "./routing";
 import {
   backgroundGatewayBenchmarking,
@@ -9,7 +9,6 @@ import {
 import {
   ARIO_MAINNET_PROCESS_ID,
   DEFAULT_AO_CU_URL,
-  OPTIMAL_GATEWAY_ROUTE_METHOD,
 } from "./constants";
 import { RedirectedTabInfo } from "./types";
 import { connect } from "@permaweb/aoconnect";
@@ -23,7 +22,7 @@ let ario = ARIO.mainnet();
 let routingStrategy = new RandomGatewayStrategy({ ario });
 let wayfinder = new Wayfinder({
   ario,
-  routingStrategy
+  strategy: routingStrategy,
 })
 
 export const getArio = () => ario;
@@ -32,7 +31,7 @@ export const getRoutingStrategy = () => routingStrategy;
 
 // Set default values in Chrome storage
 chrome.storage.local.set({
-  routingMethod: OPTIMAL_GATEWAY_ROUTE_METHOD,
+  routingStrategy: routingStrategy.name,
   localGatewayAddressRegistry: {},
   blacklistedGateways: [],
   processId: ARIO_MAINNET_PROCESS_ID,
@@ -327,9 +326,10 @@ async function syncGatewayAddressRegistry({
  */
 async function reinitializeArIO(): Promise<void> {
   try {
-    const { processId, aoCuUrl } = await chrome.storage.local.get([
+    const { processId, aoCuUrl, routingStrategyString } = await chrome.storage.local.get([
       "processId",
       "aoCuUrl",
+      "routingStrategy",
     ]);
     ario = ARIO.init({
       process: new AOProcess({
@@ -337,14 +337,14 @@ async function reinitializeArIO(): Promise<void> {
         ao: connect({ MODE: "legacy", CU_URL: aoCuUrl }),
       }),
     });
-    // TODO: add support for changing routing strategy
-    routingStrategy = new RandomGatewayStrategy({ ario });
-    wayfinder = new Wayfinder({ ario, routingStrategy });
+    // @ts-ignore
+    routingStrategy = new WayfinderRoutingStrategies[routingStrategyString as WayfinderRoutingStrategyName]({ ario });
+    wayfinder = new Wayfinder({ ario, strategy: routingStrategy });
     console.log("🔄 AR.IO reinitialized with Process ID:", processId);
   } catch (error) {
     ario = ARIO.mainnet();
     routingStrategy = new RandomGatewayStrategy({ ario });
-    wayfinder = new Wayfinder({ ario, routingStrategy });
+    wayfinder = new Wayfinder({ ario, strategy: routingStrategy });
     console.error("❌ Failed to reinitialize AR.IO. Using default.");
   }
 }
