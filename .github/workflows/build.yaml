@@ -38,5 +38,3 @@ jobs:
             file-name: './dist.zip'
             app-id: ${{ secrets.APP_ID }}
             publish: true
-            
-

@@ -1,4 +1,21 @@
-import { AoARIORead, AoGatewayWithAddress } from "@ar.io/sdk";
+/**
+ * AR.IO Gateway
+ * Copyright (C) 2022-2023 Permanent Data Solutions, Inc. All Rights Reserved.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+import { AoGatewayWithAddress } from "@ar.io/sdk";
 import { selectTopOnChainGateways } from "./routing";
 import { TOP_ONCHAIN_GATEWAY_LIMIT, MAX_HISTORY_ITEMS } from "./constants";
 import { getGatewaysProvider } from "./background";
@@ -46,11 +63,7 @@ export async function backgroundGatewayBenchmarking() {
  * Runs a **background validation** for **top performing gateways** instead of a single cached one.
  * - If they are too slow, marks them as stale.
  */
-export async function backgroundValidateCachedGateway({
-  ario,
-}: {
-  ario: AoARIORead;
-}) {
+export async function backgroundValidateCachedGateway() {
   console.log("📡 Running lightweight background gateway validation...");
 
   const gar = await getGatewaysProvider().getGateways();
@@ -118,7 +131,7 @@ export async function updateGatewayPerformance(
 
   // Ensure performance storage is initialized
   const storage = await chrome.storage.local.get(["gatewayPerformance"]);
-  let gatewayPerformance = storage.gatewayPerformance || {};
+  const gatewayPerformance = storage.gatewayPerformance || {};
 
   // Ensure the gateway entry exists
   if (!gatewayPerformance[gatewayFQDN]) {

@@ -1,4 +1,21 @@
-import { WalletAddress, AoGateway, ARIO, AOProcess, Wayfinder, AoARIORead, RandomGatewayRouter, PriorityGatewayRouter, FixedGatewayRouter, WayfinderRouter, ARIOGatewaysProvider } from "@ar.io/sdk/web";
+/**
+ * AR.IO Gateway
+ * Copyright (C) 2022-2023 Permanent Data Solutions, Inc. All Rights Reserved.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+import { ARIO, AOProcess, Wayfinder, AoARIORead, RandomGatewayRouter, PriorityGatewayRouter, FixedGatewayRouter, WayfinderRouter, ARIOGatewaysProvider, SimpleCacheGatewaysProvider } from "@ar.io/sdk/web";
 import {
   backgroundGatewayBenchmarking,
   isKnownGateway,
@@ -13,12 +30,16 @@ import { RedirectedTabInfo } from "./types";
 import { connect } from "@permaweb/aoconnect";
 
 // Global variables
-let redirectedTabs: Record<number, RedirectedTabInfo> = {};
+const redirectedTabs: Record<number, RedirectedTabInfo> = {};
 const requestTimings = new Map<string, number>();
 
 console.log("🚀 Initializing AR.IO...");
 let ario = ARIO.mainnet();
-let gatewaysProvider = new ARIOGatewaysProvider({ ario });
+// cache the gateways for 1 hour
+let gatewaysProvider = new SimpleCacheGatewaysProvider({ 
+  gatewaysProvider: new ARIOGatewaysProvider({ ario }), 
+  ttlSeconds: 1000 * 60 * 60 
+});
 let wayfinder = new Wayfinder({
   // @ts-ignore
   httpClient: fetch,
@@ -161,7 +182,7 @@ chrome.webRequest.onErrorOccurred.addListener(
     const gatewayFQDN = new URL(details.url).hostname;
     if (!(await isKnownGateway(gatewayFQDN))) return;
 
-    let { gatewayPerformance = {} } = await chrome.storage.local.get([
+    const { gatewayPerformance = {} } = await chrome.storage.local.get([
       "gatewayPerformance",
     ]);
 
@@ -271,7 +292,10 @@ async function syncGatewayAddressRegistry({
       throw new Error("❌ AO CU Url missing in local storage.");
     }
 
-    gatewaysProvider = new ARIOGatewaysProvider({ ario });
+    gatewaysProvider = new SimpleCacheGatewaysProvider({ 
+      gatewaysProvider: new ARIOGatewaysProvider({ ario }), 
+      ttlSeconds: 1000 * 60 * 60 
+    });
     await gatewaysProvider.getGateways();
   } catch (error) {
     console.error("❌ Error syncing Gateway Address Registry:", error);
