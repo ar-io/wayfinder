@@ -1,43 +1,9 @@
-import { AoARIORead, AoGatewayWithAddress } from "@ar.io/sdk/web";
+import { AoGatewayWithAddress } from "@ar.io/sdk/web";
 import {
-  backgroundGatewayBenchmarking,
-} from "./helpers";
-import {
-  DEFAULT_GATEWAY,
   TOP_ONCHAIN_GATEWAY_LIMIT,
-  OPTIMAL_GATEWAY_ROUTE_METHOD,
   DNS_LOOKUP_API,
   GASLESS_ARNS_DNS_EXPIRATION_TIME,
 } from "./constants";
-import { GatewayRegistry } from "./types";
-import { getWayfinder } from "./background";
-
-/**
- * Fetch the filtered Gateway Address Registry (GAR) from storage.
- * Ensures blacklisted and unjoined gateways are removed before routing decisions.
- */
-export async function getGarForRouting(): Promise<GatewayRegistry> {
-  const { localGatewayAddressRegistry = {}, blacklistedGateways = [] } =
-    (await chrome.storage.local.get([
-      "localGatewayAddressRegistry",
-      "blacklistedGateways",
-    ])) as {
-      localGatewayAddressRegistry: GatewayRegistry;
-      blacklistedGateways: string[];
-    };
-
-  const filteredGar: GatewayRegistry = Object.fromEntries(
-    Object.entries(localGatewayAddressRegistry).filter(
-      ([gatewayAddress, gateway]) =>
-        !blacklistedGateways.includes(gatewayAddress) &&
-        gateway.status === "joined"
-    )
-  );
-
-  return Object.keys(filteredGar).length > 0 ? filteredGar : {};
-}
-
-
 
 /**
  * Computes a performance-based score for each gateway using on-chain metrics.
@@ -48,11 +14,11 @@ export async function getGarForRouting(): Promise<GatewayRegistry> {
  * - **Stability Boost (Log of Passed Consecutive Epochs) (15%)**
  * - **Failure Penalty (Logarithmic Penalty for Failed Consecutive Epochs) (-20%)**
  *
- * @param gar The Gateway Address Registry.
+ * @param gateways The Gateway Address Registry.
  * @returns An array of gateways with computed scores.
  */
 export function computeOnChainGatewayScores(
-  gar: GatewayRegistry
+  gateways: AoGatewayWithAddress[]
 ): { gateway: AoGatewayWithAddress; score: number }[] {
   const alpha = 0.5; // Stake weight (50%)
   const beta = 0.1; // Tenure weight (10%)
@@ -61,7 +27,7 @@ export function computeOnChainGatewayScores(
   const epsilon = 0.15; // Stability weight (log-based)
   const zeta = -0.2; // Failure penalty (-20% per failed epoch, capped at -0.8)
 
-  return Object.values(gar).map((gateway) => {
+  return gateways.map((gateway) => {
     const weights = gateway.weights ?? {};
     const stats = gateway.stats ?? {};
 
@@ -95,15 +61,15 @@ export function computeOnChainGatewayScores(
  * @returns The top 25 performing gateways based on their computed scores.
  */
 export function selectTopOnChainGateways(
-  gar: GatewayRegistry
+  gateways: AoGatewayWithAddress[]
 ): AoGatewayWithAddress[] {
-  const scoredGateways = computeOnChainGatewayScores(gar)
+  const scoredGateways = computeOnChainGatewayScores(gateways)
     .filter(({ score }) => score > 0)
     .sort((a, b) => b.score - a.score)
     .map(({ gateway }) => gateway)
     .slice(0, TOP_ONCHAIN_GATEWAY_LIMIT); // Take top 25
 
-  return scoredGateways.length > 0 ? scoredGateways : Object.values(gar);
+  return scoredGateways.length > 0 ? scoredGateways : gateways;
 }
 
 
@@ -164,94 +130,5 @@ export async function lookupArweaveTxIdForDomain(
   } catch (error) {
     console.error("❌ Failed to lookup DNS TXT records:", error);
     return null;
-  }
-}
-
-/**
- * Get an optimal gateway based on the configured routing method.
- */
-export async function getGatewayForRouting({
-  ario,
-}: {
-  ario: AoARIORead;
-}): Promise<string> {
-  const {
-    staticGateway,
-    routingStrategy = OPTIMAL_GATEWAY_ROUTE_METHOD,
-    lastGatewayBenchmark = 0, // Default to 0 if not set
-  } = await chrome.storage.local.get([
-    "staticGateway",
-    "routingStrategy",
-    "lastGatewayBenchmark",
-  ]);
-
-  if (staticGateway) {
-    console.log("🚀 Using Static Gateway:", staticGateway.settings.fqdn);
-    return staticGateway;
-  }
-
-  // Check if a refresh is needed (benchmark every 10 minutes)
-  const now = Date.now();
-  const TEN_MINUTES = 10 * 60 * 1000;
-
-  if (now - lastGatewayBenchmark > TEN_MINUTES) {
-    console.log("🔄 Running background benchmark in parallel...");
-    backgroundGatewayBenchmarking({
-      ario,
-    }); // Run in parallel
-    await chrome.storage.local.set({ lastGatewayBenchmark: now });
-  }
-
-  // TODO: replace with local variable
-  const gateway = await getWayfinder().getTargetGateway();
-
-  if (!gateway) {
-    throw new Error("🚨 No viable gateway found.");
-  }
-
-  return gateway;
-}
-
-/**
- * Convert an ar:// URL to a routable gateway URL and return gateway metadata.
- * Supports:
- * - **ENS names** → `ar://example.eth` → Resolves to an Arweave TX
- * - **ArNS names** → `ar://example` → `https://example.{gatewayFQDN}`
- * - **Arweave TX IDs** → `ar://{txId}` → `https://{gatewayFQDN}/{txId}`
- *
- * @param arUrl The ar:// URL to convert.
- * @returns A promise resolving to an object containing the routable URL and gateway metadata.
- */
-export async function getRoutableGatewayUrl({
-  arUrl,
-}: {
-  arUrl: string;
-}): Promise<{
-  url: string;
-}> {
-  try {
-
-    // const storedSettings = await chrome.storage.local.get([
-    //   "ensResolutionEnabled",
-    // ]);
-    // const ensResolutionEnabled = storedSettings.ensResolutionEnabled ?? false;
-
-
-    const redirectTo = await getWayfinder().getRedirectUrl({ reference: arUrl });
-    return {
-      url: redirectTo.toString(),
-    };
-  } catch (error) {
-    console.error("🚨 Error in getRoutableGatewayUrl:", error);
-
-    // Attempt to use highest-staked gateway as a last resort
-    const fallbackGateway = DEFAULT_GATEWAY;
-    if (!fallbackGateway) {
-      throw new Error("❌ No viable gateway even for fallback.");
-    }
-
-    return {
-      url: `https://${fallbackGateway.settings.fqdn}`,
-    };
   }
 }

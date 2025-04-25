@@ -1,17 +1,14 @@
 import { AoARIORead, AoGatewayWithAddress } from "@ar.io/sdk";
-import { getGarForRouting, selectTopOnChainGateways } from "./routing";
+import { selectTopOnChainGateways } from "./routing";
 import { TOP_ONCHAIN_GATEWAY_LIMIT, MAX_HISTORY_ITEMS } from "./constants";
+import { getGatewaysProvider } from "./background";
 
-export async function backgroundGatewayBenchmarking({
-  ario,
-}: {
-  ario: AoARIORead;
-}) {
+export async function backgroundGatewayBenchmarking() {
   console.log(
     `📡 Running Gateway benchmark against top ${TOP_ONCHAIN_GATEWAY_LIMIT} gateways...`
   );
 
-  const gar = await getGarForRouting();
+  const gar = await getGatewaysProvider().getGateways();
   const topGateways = selectTopOnChainGateways(gar).slice(
     0,
     TOP_ONCHAIN_GATEWAY_LIMIT
@@ -23,7 +20,7 @@ export async function backgroundGatewayBenchmarking({
   }
 
   const now = Date.now();
-  const pingResults = await Promise.allSettled(
+  await Promise.allSettled(
     topGateways.map(async (gateway: AoGatewayWithAddress) => {
       const fqdn = gateway.settings.fqdn;
       const startTime = performance.now(); // ✅ Correctly record start time
@@ -56,7 +53,7 @@ export async function backgroundValidateCachedGateway({
 }) {
   console.log("📡 Running lightweight background gateway validation...");
 
-  const gar = await getGarForRouting();
+  const gar = await getGatewaysProvider().getGateways();
   const topGateways = selectTopOnChainGateways(gar).slice(0, 5); // 🔥 Validate top **5** gateways
 
   const now = Date.now();
@@ -85,9 +82,7 @@ export async function backgroundValidateCachedGateway({
     console.warn(
       "⚠️ Background validation failed. Scheduling full benchmark..."
     );
-    await backgroundGatewayBenchmarking({
-      ario,
-    });
+    await backgroundGatewayBenchmarking();
   } else {
     console.log("✅ Background validation completed.");
   }
