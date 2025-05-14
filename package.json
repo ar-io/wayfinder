@@ -26,8 +26,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "clean": "rimraf dist",
-    "start": "vite preview",
+    "start": "vite --config vite.config.js",
     "build": "vite build --config vite.config.js",
+    "build:watch": "vite build --config vite.config.js --watch",
     "lint:fix": "biome check --write --unsafe && eslint --fix src",
     "lint:check": "biome check --unsafe && eslint src",
     "format:fix": "biome format --write",

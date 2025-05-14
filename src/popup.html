@@ -86,36 +86,42 @@
           >Routing Method:</label
         >
         <select id="routingToggle">
-          <option
+          <!-- <option
             value="optimalGateway"
             title="Route to the most optimal gateway based on onchain and offchain performance indicators."
           >
             Most Optimal Gateway
-          </option>
+          </option> -->
           <option
-            value="topFiveStake"
+            value="topFiveOperatorStake"
             title="Route to one of the top 5 staked gateways."
           >
-            Random Top 5 Stake
+            Top-5 Operator Stake
           </option>
-          <option
+          <!-- <option
             value="weightedOnchainPerformance"
             title="Route to a gateway based on its onchain performance."
           >
             Weighted Onchain Performance
-          </option>
+          </option> -->
           <option
-            value="stakeRandom"
+            value="topFiveDelegateStake"
             title="Route to gateways based on a weighted list by stake."
           >
-            Stake-weighted Random
+            Top-5 Delegate Stake
           </option>
           <option
-            value="highestStake"
-            title="Route to the gateway with the highest stake."
+            value="static"
+            title="Route to a static gateway."
           >
-            Highest Stake
+            Static Gateway
           </option>
+          <!-- <option
+            value="operatorStake"
+            title="Route to the gateway with the highest operator stake."
+          >
+            Highest Operator Stake
+          </option> -->
           <option value="random" title="Route to a random gateway.">
             Random
           </option>

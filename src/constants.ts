@@ -26,6 +26,8 @@ export const RANDOM_ROUTE_METHOD = "random";
 export const STAKE_RANDOM_ROUTE_METHOD = "stakeRandom";
 export const HIGHEST_STAKE_ROUTE_METHOD = "highestStake";
 export const RANDOM_TOP_FIVE_STAKED_ROUTE_METHOD = "topFiveStake";
-export const WEIGHTED_ONCHAIN_PERFORMANCE_ROUTE_METHOD =
-  "weightedOnchainPerformance";
-export const OPTIMAL_GATEWAY_ROUTE_METHOD = "optimalGateway";
+
+// TODO: implement these routers in wayfinder and add them to the strategy list
+// export const WEIGHTED_ONCHAIN_PERFORMANCE_ROUTE_METHOD =
+//   "weightedOnchainPerformance";
+// export const OPTIMAL_GATEWAY_ROUTE_METHOD = "optimalGateway";

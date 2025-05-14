@@ -4,9 +4,9 @@ import { viteStaticCopy } from "vite-plugin-static-copy";
 import { resolve } from "path";
 
 export default defineConfig({
-  plugins: [
-    nodePolyfills({
-      globals: {
+	plugins: [
+		nodePolyfills({
+			globals: {
         Buffer: true,
         global: true,
         process: true,

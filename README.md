@@ -56,3 +56,15 @@ To load the bundled app as an extension in Chrome:
 1. Navigate to `Manage Extensions`
 1. Click `Load unpacked`
 1. Select the `dist` directory and hit `Load`
+
+
+To inspect the service worker
+
+1. Navigate to `chrome://inspect/#service-workers`
+1. Find the ID of the service worker from `chrome://extensions/`
+1. Click `Inspect` on the service worker matching the ID
+1. If the service worker is not running, you can send a ping event to activate it
+
+```js
+chrome.runtime.sendMessage('<service-worker-id>', { type: 'PING' });
+```

@@ -36,6 +36,8 @@ export default [
 				project: 'tsconfig.json',
 			},
 		},
+		browser: true, // window, document, etc.
+		webextensions: true, // adds chrome, browser, etc.
 		rules: {
 			'@typescript-eslint/no-explicit-any': ['off'],
 			eqeqeq: ['error', 'smart'],
