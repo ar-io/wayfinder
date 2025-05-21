@@ -20,12 +20,12 @@ import {
 	AOProcess,
 	Wayfinder,
 	AoARIORead,
-	RandomGatewayRouter,
-	PriorityGatewayRouter,
-	WayfinderRouter,
 	NetworkGatewaysProvider,
-	StaticGatewayRouter,
 	Logger,
+	RandomRoutingStrategy,
+	StaticRoutingStrategy,
+	FastestPingRoutingStrategy,
+	RoutingStrategy,
 } from '@ar.io/sdk/web';
 import {
 	backgroundGatewayBenchmarking,
@@ -53,9 +53,7 @@ let gatewaysProvider = new NetworkGatewaysProvider({
 	ario,
 });
 let wayfinder = new Wayfinder({
-	// @ts-ignore
-	httpClient: fetch,
-	router: getRouterFromStrategy({ strategy: 'topFiveOperatorStake' }),
+	routingStrategy: getRouterFromStrategy({ strategy: 'topFiveOperatorStake' }),
 });
 
 export const getArio = () => ario;
@@ -66,7 +64,6 @@ chrome.storage.local.set({
 	routingStrategy: 'topFiveOperatorStake',
 	localGatewayAddressRegistry: {},
 	blacklistedGateways: [],
-	staticGateway: 'https://ardrive.net',
 	processId: ARIO_MAINNET_PROCESS_ID,
 	aoCuUrl: DEFAULT_AO_CU_URL,
 	ensResolutionEnabled: true,
@@ -95,6 +92,8 @@ chrome.webNavigation.onBeforeNavigate.addListener(
 				const redirectTo = await getWayfinder().resolveUrl({
 					originalUrl: details.url,
 				});
+
+				// alert('Redirecting to: ' + redirectTo.toString());
 
 				// modify the performance router to track response times
 				if (redirectTo) {
@@ -305,7 +304,6 @@ async function syncGatewayAddressRegistry({
 		});
 
 		// update the router with the new ario
-
 		gatewaysProvider = new NetworkGatewaysProvider({ ario });
 	} catch (error) {
 		console.error('❌ Error syncing Gateway Address Registry:', error);
@@ -318,32 +316,21 @@ async function syncGatewayAddressRegistry({
 function getRouterFromStrategy({
 	strategy,
 	staticGateway,
-}: { strategy: string, staticGateway?: string | URL }): WayfinderRouter {
+}: { strategy: string, staticGateway?: string | URL }): RoutingStrategy {
 	switch (strategy) {
 		case 'random':
-			return new RandomGatewayRouter({
-				gatewaysProvider: getGatewaysProvider(),
-			});
+			return new RandomRoutingStrategy()
 		case 'topFiveOperatorStake':
-			return new PriorityGatewayRouter({
-				ario,
-				sortBy: 'operatorStake',
-				sortOrder: 'desc',
-				limit: 5,
-			});
 		case 'topFiveDelegateStake':
-			return new PriorityGatewayRouter({
-				ario,
-				sortBy: 'totalDelegatedStake',
-				sortOrder: 'desc',
-				limit: 5,
-			});
+			return new FastestPingRoutingStrategy({
+				timeoutMs: 1000,
+			})
 		case 'static':
 			if (!staticGateway){
 				throw new Error('Static gateway must be set')
 			}
 			const staticGatewayUrl = new URL(staticGateway)
-			return new StaticGatewayRouter({
+			return new StaticRoutingStrategy({
 				gateway: staticGatewayUrl.toString(),
 			});
 		default:
@@ -368,27 +355,27 @@ async function reinitializeArIO(): Promise<void> {
 				ao: connect({ MODE: 'legacy', CU_URL: aoCuUrl }),
 			}),
 		});
-		const newRouter = getRouterFromStrategy({
+		const newRouter = getRouterFromStrategy({	
 			strategy: routingStrategyString,
 		});
 		wayfinder = new Wayfinder({
-			// @ts-ignore
-			httpClient: fetch,
-			router: newRouter,
+			routingStrategy: newRouter,
+		});
+		await chrome.storage?.local?.set({
+			routingStrategy: routingStrategyString,
 		});
 		console.log('🔄 AR.IO reinitialized with Process ID:', processId);
 	} catch (error) {
 		ario = ARIO.mainnet();
 		wayfinder = new Wayfinder({
-			// @ts-ignore
-			httpClient: fetch,
-			router: getRouterFromStrategy({ strategy: 'priority' }),
+			routingStrategy: getRouterFromStrategy({ strategy: 'priority' }),
+		});
+		await chrome.storage?.local?.set({
+			routingStrategy: 'priority',
 		});
 		console.error('❌ Failed to reinitialize AR.IO. Using default.', error);
 	} finally {
-		await chrome.storage?.local?.set({
-			routingStrategy: wayfinder.router.name,
-		});
+
 		// set the processId to the new processId
 		await chrome.storage?.local?.set({
 			processId: ario.process.processId,

@@ -22,12 +22,3 @@ export const DEFAULT_AO_CU_URL = "https://cu.ardrive.io";
 export const MAX_HISTORY_ITEMS = 20; // How many items are stored in wayfinder history
 export const TOP_ONCHAIN_GATEWAY_LIMIT = 25; // The top amount of gateways returned for onchain performance ranking
 export const DNS_LOOKUP_API = "https://dns.google/resolve";
-export const RANDOM_ROUTE_METHOD = "random";
-export const STAKE_RANDOM_ROUTE_METHOD = "stakeRandom";
-export const HIGHEST_STAKE_ROUTE_METHOD = "highestStake";
-export const RANDOM_TOP_FIVE_STAKED_ROUTE_METHOD = "topFiveStake";
-
-// TODO: implement these routers in wayfinder and add them to the strategy list
-// export const WEIGHTED_ONCHAIN_PERFORMANCE_ROUTE_METHOD =
-//   "weightedOnchainPerformance";
-// export const OPTIMAL_GATEWAY_ROUTE_METHOD = "optimalGateway";
