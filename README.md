@@ -1,29 +1,29 @@
-# What is it?
+# WayFinder
 
-WayFinder (alpha) is a simple, open source, Google Chrome extension that intelligently routes users to optimal AR.IO gateways, ensuring streamlined access to the permaweb on Arweave.
+WayFinder is a set of tools for intelligently routing users to optimal AR.IO gateways, ensuring streamlined access to the permaweb on Arweave.
 
-# Who is it built for?
+## Packages
+
+This monorepo contains the following packages:
+
+
+- **[@ar.io/wayfinder](./packages/core)**: Core library with routing functionality
+- **[@ar.io/wayfinder-react](./packages/react)**: React components for WayFinder
+- **[@ar.io/wayfinder-extension](./packages/extension)**: Chrome extension for WayFinder
+
+## What is it?
+
+WayFinder (beta) is a simple, open source, routing protocol for the permaweb. It is designed to leverage the ar.io network to route users to the most optimal gateway for a given request.
+
+## Who is it built for?
 
 - Anyone who wants to browse the Permaweb. Since no wallet is needed, the user does not have to have ever touched tokens or even uploaded data.
 - Developers who want to integrate ar:// protocol. Wayfinder shows how the ar:// protocol could be leveraged along with how to discover gateways on the ar.io network.
 
-# MVP Features
 
-- ar:// routing in the browser search bar and within pages that use ar:// hyperlinks, images, video, audio and embedded iframes, objects
-- Automatically routes ArNS names and Arweave Transaction IDs to an available gateway.
-- DNS TXT Record Redirection: Uses DNS TXT records to link Arweave transaction IDs with domains, thus offering a gasless, secure, and user-friendly method to navigate the permaweb with familiar URLs.
-- Algorithmic Gateway Selection: Utilizes basic algorithm to route users through the most optimal gateway.
-- Gateway Discovery: Synchronizes the AR.IO Gateway Address registry providing up to date gateway selection.
-- Static Gateway Configuration: Allows advanced users to pin their sessions to a specific gateway.
-- Continuous Gateway Health Checks: Monitors the health of gateways, by checking if they are online or offline.
-- Usage History: Logs gateway accesses, providing detailed metrics including timestamps and accessed URLs, along with referencing the resolved Arweave transaction ID served by the gateway.
-- UI Theming: Offers both light and dark themes with basic UI/UX.
-- Privacy-Preserving Design: Zero personal data logging, upholding user anonymity.
-- Open Source: The community can verify the code and contribute to the extension’s success.
+## Want to learn more?
 
-# Want to learn more?
-
-Join our discord for more information about WayFinder or how to contribute. https://discord.gg/zAZ8p9ARqC
+Join our discord for more information about WayFinder or how to contribute: https://discord.gg/zAZ8p9ARqC
 
 ## Developers
 
@@ -34,25 +34,28 @@ Join our discord for more information about WayFinder or how to contribute. http
 
 ### Dependencies
 
-Dependencies should be installed using [Yarn]
+Dependencies should be installed using Yarn
 
 ```bash
-yarn
+yarn install
 ```
 
 ### Build
 
-The extension uses [Webpack] to bundle extension files into minimized javascript.
-
 ```bash
+# Build all packages
 yarn build
 ```
 
-### Loading into Chrome
+### Loading the Extension into Chrome
 
 To load the bundled app as an extension in Chrome:
 
-1. Run `yarn build` to create a fresh `dist` directory
-1. Navigate to `Manage Extensions`
-1. Click `Load unpacked`
-1. Select the `dist` directory and hit `Load`
+1. Run `yarn build` to create a fresh `dist` directory in the extension package
+2. Navigate to `Manage Extensions`
+3. Click `Load unpacked`
+4. Select the `packages/extension/dist` directory and hit `Load`
+
+## License
+
+AGPL-3.0-only

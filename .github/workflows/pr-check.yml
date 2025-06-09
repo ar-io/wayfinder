@@ -1,0 +1,111 @@
+name: PR Check
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+    # This runs on all PRs regardless of paths changed
+
+jobs:
+  changed-files:
+    runs-on: ubuntu-latest
+    outputs:
+      core: ${{ steps.filter.outputs.core }}
+      extension: ${{ steps.filter.outputs.extension }}
+      react: ${{ steps.filter.outputs.react }}
+      any: ${{ steps.filter.outputs.any }}
+    
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    
+    - name: Check changed files
+      uses: dorny/paths-filter@v2
+      id: filter
+      with:
+        filters: |
+          core:
+            - 'packages/core/**'
+          extension:
+            - 'packages/extension/**'
+            - 'packages/core/**'
+          react:
+            - 'packages/react/**'
+            - 'packages/core/**'
+          any:
+            - '**'
+
+  core:
+    needs: changed-files
+    if: ${{ needs.changed-files.outputs.core == 'true' }}
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18.x'
+        cache: 'yarn'
+    
+    - name: Install dependencies
+      run: yarn install --frozen-lockfile
+    
+    - name: Lint
+      run: yarn workspace @ar.io/wayfinder-core lint:check
+    
+    - name: Build core library
+      run: yarn workspace @ar.io/wayfinder-core build
+
+  extension:
+    needs: changed-files
+    if: ${{ needs.changed-files.outputs.extension == 'true' }}
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18.x'
+        cache: 'yarn'
+    
+    - name: Install dependencies
+      run: yarn install --frozen-lockfile
+    
+    - name: Lint
+      run: yarn workspace @ar.io/wayfinder-extension lint:check
+    
+    - name: Build core library first
+      run: yarn workspace @ar.io/wayfinder-core build
+    
+    - name: Build extension
+      run: yarn workspace @ar.io/wayfinder-extension build
+
+  react:
+    needs: changed-files
+    if: ${{ needs.changed-files.outputs.react == 'true' }}
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18.x'
+        cache: 'yarn'
+    
+    - name: Install dependencies
+      run: yarn install --frozen-lockfile
+    
+    - name: Lint
+      run: yarn workspace @ar.io/wayfinder-react lint:check
+    
+    - name: Build core library first
+      run: yarn workspace @ar.io/wayfinder-core build
+    
+    - name: Build React components
+      run: yarn workspace @ar.io/wayfinder-react build
