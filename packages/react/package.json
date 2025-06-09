@@ -1,11 +1,14 @@
 {
   "name": "@ar.io/wayfinder-react",
-  "version": "0.0.14",
+  "version": "0.0.1",
   "description": "React components for WayFinder",
   "main": "dist/index.js",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc"
   },
