@@ -1,0 +1,27 @@
+{
+
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.fixAll.eslint": "always"
+    },
+    "editor.defaultFormatter": "biomejs.biome",
+    "[typescript]": {
+        "editor.formatOnSave": true
+    },
+    "[markdown]": {
+        "editor.formatOnSave": true
+    },
+    "[json]": {
+        "editor.formatOnSave": true
+    },
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/dist": true,
+        "**/coverage": true,
+        "**/cache": true
+    },
+    "cSpell.words": [
+        "ARIO",
+        "wayfinder"
+    ]
+}

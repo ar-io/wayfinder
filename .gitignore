@@ -27,7 +27,6 @@ tmp/
 temp/
 
 # Ignore IDE and editor specific files
-.vscode/
 .idea/
 *.sublime-project
 *.sublime-workspace
@@ -37,3 +36,9 @@ temp/
 
 # Ignore Chrome extension files that shouldn't be committed
 chrome-profile/
+
+# coverage files
+coverage/
+
+# claude
+.claude/
