@@ -1,0 +1,48 @@
+name: React Components
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'packages/react/**'
+      - 'packages/core/**'
+      - '.github/workflows/react.yml'
+      - 'package.json'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'packages/react/**'
+      - 'packages/core/**'
+      - '.github/workflows/react.yml'
+      - 'package.json'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18.x'
+        cache: 'yarn'
+
+    - name: Install dependencies
+      run: yarn install --frozen-lockfile
+
+    - name: Lint
+      run: yarn lint:check
+      
+    - name: Build core library first
+      run: yarn workspace @ar.io/wayfinder-core build
+      
+    - name: Build React components
+      run: yarn workspace @ar.io/wayfinder-react build
+      
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: wayfinder-react-dist
+        path: packages/react/dist/

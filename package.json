@@ -1,35 +1,27 @@
 {
-  "name": "wayfinder",
+  "name": "@ar.io/wayfinder-monorepo",
   "version": "0.0.14",
-  "description": "WayFinder (alpha) is a simple, open source, Google Chrome extension that intelligently routes users to optimal AR.IO gateways, ensuring streamlined access to the permaweb on Arweave.",
-  "main": "dist/index.js",
-  "browser": "dist/index.js",
+  "description": "WayFinder monorepo containing the Chrome extension, core library, and React components",
+  "private": true,
   "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
   "devDependencies": {
-    "@types/chrome": "^0.0.268",
-    "@types/node": "^20.12.12",
     "@typescript-eslint/eslint-plugin": "^8.29.0",
     "@typescript-eslint/parser": "^8.29.0",
-    "@vitejs/plugin-react": "^4.3.1",
-    "@vitejs/plugin-react-swc": "^3.7.0",
     "biome": "^0.3.3",
     "eslint": "^9.25.1",
     "eslint-plugin-header": "^3.1.1",
-    "prettier": "^3.3.1",
-    "typescript": "^5.4.5",
-    "vite": "^5.2.10",
-    "vite-plugin-copy": "^0.1.6",
-    "vite-plugin-html": "^3.2.2",
-    "vite-plugin-node-polyfills": "^0.22.0",
-    "vite-plugin-static-copy": "^1.0.6"
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "clean": "rimraf dist",
-    "start": "vite preview",
-    "build": "vite build --config vite.config.js",
-    "lint:fix": "biome check --write --unsafe && eslint --fix src",
-    "lint:check": "biome check --unsafe && eslint src",
+    "clean": "rimraf packages/*/dist",
+    "build": "yarn workspaces run build",
+    "lint:fix": "biome check --write --unsafe && eslint --fix packages/*/src",
+    "lint:check": "biome check --unsafe && eslint packages/*/src",
     "format:fix": "biome format --write",
     "format:check": "biome format"
   },
@@ -44,9 +36,5 @@
     "url": "https://github.com/ar-io/wayfinder/issues"
   },
   "homepage": "https://github.com/ar-io/wayfinder#readme",
-  "dependencies": {
-    "@ar.io/sdk": "^3.5.0",
-    "@permaweb/aoconnect": "^0.0.69"
-  },
   "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }

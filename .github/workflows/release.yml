@@ -1,0 +1,59 @@
+name: Release
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18.x'
+        registry-url: 'https://registry.npmjs.org'
+        cache: 'yarn'
+    
+    - name: Install dependencies
+      run: yarn install --frozen-lockfile
+    
+    - name: Build all packages
+      run: yarn build
+    
+    # Package extension for Chrome Web Store
+    - name: Package Chrome extension
+      run: |
+        cd packages/extension/dist
+        zip -r ../../../wayfinder-extension.zip *
+    
+    - name: Upload extension package
+      uses: actions/upload-artifact@v3
+      with:
+        name: wayfinder-extension-release
+        path: wayfinder-extension.zip
+    
+    # Publish NPM packages
+    - name: Publish core package
+      run: cd packages/core && npm publish --access public
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    
+    - name: Publish React package
+      run: cd packages/react && npm publish --access public
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    
+    # Attach extension to GitHub release
+    - name: Upload Extension to Release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./wayfinder-extension.zip
+        asset_name: wayfinder-extension-${{ github.event.release.tag_name }}.zip
+        asset_content_type: application/zip

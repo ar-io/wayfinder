@@ -1,0 +1,61 @@
+name: Chrome Extension
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'packages/extension/**'
+      - 'packages/core/**'
+      - '.github/workflows/extension.yml'
+      - 'package.json'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'packages/extension/**'
+      - 'packages/core/**'
+      - '.github/workflows/extension.yml'
+      - 'package.json'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18.x'
+        cache: 'yarn'
+
+    - name: Install dependencies
+      run: yarn install --frozen-lockfile
+
+    - name: Lint
+      run: yarn lint:check
+      
+    - name: Build core library first
+      run: yarn workspace @ar.io/wayfinder-core build
+      
+    - name: Build extension
+      run: yarn workspace @ar.io/wayfinder-extension build
+      
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: wayfinder-extension-dist
+        path: packages/extension/dist/
+        
+    - name: Package Chrome extension
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: |
+        cd packages/extension/dist
+        zip -r ../../../wayfinder-extension.zip *
+        
+    - name: Upload packaged extension
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      uses: actions/upload-artifact@v3
+      with:
+        name: wayfinder-extension-zip
+        path: wayfinder-extension.zip
