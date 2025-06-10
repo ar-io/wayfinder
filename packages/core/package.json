@@ -1,6 +1,6 @@
 {
   "name": "@ar.io/wayfinder-core",
-  "version": "0.0.1",
+  "version": "0.0.0",
   "description": "WayFinder core library for intelligently routing to optimal AR.IO gateways",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -9,7 +9,11 @@
   "publishConfig": {
     "access": "public"
   },
-  "files": ["dist", "package.json", "README.md"],
+  "files": [
+    "dist",
+    "package.json",
+    "README.md"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -38,7 +42,12 @@
     "@ar.io/sdk": "^3.13.0",
     "@types/node": "^24.0.0"
   },
-  "keywords": ["ar-io", "arweave", "wayfinder", "ar://"],
+  "keywords": [
+    "ar-io",
+    "arweave",
+    "wayfinder",
+    "ar://"
+  ],
   "author": "AR.IO",
   "license": "Apache-2.0"
 }
