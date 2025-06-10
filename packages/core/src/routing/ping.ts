@@ -58,7 +58,7 @@ export class FastestPingRoutingStrategy implements RoutingStrategy {
       },
     );
 
-    const throttle = pLimit(this.maxConcurrency);
+    const throttle = pLimit(Math.min(this.maxConcurrency, gateways.length));
     const pingPromises = gateways.map(
       async (gateway): Promise<{ gateway: URL; durationMs: number }> => {
         return throttle(async () => {
