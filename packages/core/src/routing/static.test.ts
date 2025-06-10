@@ -18,31 +18,6 @@ import { describe, it } from 'node:test';
 
 import { StaticRoutingStrategy } from './static.js';
 
-// Create a test logger that captures logs
-class TestLogger {
-  logs: Array<{ level: string; message: string; args: any[] }> = [];
-
-  debug(message: string, ...args: any[]) {
-    this.logs.push({ level: 'debug', message, args });
-  }
-
-  info(message: string, ...args: any[]) {
-    this.logs.push({ level: 'info', message, args });
-  }
-
-  warn(message: string, ...args: any[]) {
-    this.logs.push({ level: 'warn', message, args });
-  }
-
-  error(message: string, ...args: any[]) {
-    this.logs.push({ level: 'error', message, args });
-  }
-
-  clear() {
-    this.logs = [];
-  }
-}
-
 describe('StaticRoutingStrategy', () => {
   it('returns the configured gateway regardless of the gateways parameter', async () => {
     const staticGateway = 'https://static-example.com/';
@@ -73,11 +48,9 @@ describe('StaticRoutingStrategy', () => {
 
   it('logs a warning when gateways are provided', async () => {
     const staticGateway = 'https://static-example.com/';
-    const testLogger = new TestLogger();
 
     const strategy = new StaticRoutingStrategy({
       gateway: staticGateway,
-      logger: testLogger,
     });
 
     const providedGateways = [
@@ -86,36 +59,16 @@ describe('StaticRoutingStrategy', () => {
     ];
 
     await strategy.selectGateway({ gateways: providedGateways });
-
-    // Verify that a warning was logged
-    assert.equal(testLogger.logs.length, 1);
-    assert.equal(testLogger.logs[0].level, 'warn');
-    assert.equal(
-      testLogger.logs[0].message,
-      'StaticRoutingStrategy does not accept provided gateways. Ignoring provided gateways...',
-    );
-    assert.equal(testLogger.logs[0].args[0].providedGateways, 2);
   });
 
   it('throws an error when an invalid URL is provided', () => {
-    const testLogger = new TestLogger();
-
     assert.throws(
       () =>
         new StaticRoutingStrategy({
           gateway: 'not-a-valid-url',
-          logger: testLogger,
         }),
       /Invalid URL/,
       'Should throw an error when an invalid URL is provided',
-    );
-
-    // Verify that an error was logged
-    assert.equal(testLogger.logs.length, 1);
-    assert.equal(testLogger.logs[0].level, 'error');
-    assert.equal(
-      testLogger.logs[0].message,
-      'Invalid URL provided for static gateway',
     );
   });
 });

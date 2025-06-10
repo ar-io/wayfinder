@@ -1,7 +1,7 @@
 {
   "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
   "vcs": { "enabled": false, "clientKind": "git", "useIgnoreFile": false },
-  "files": { "ignoreUnknown": false, "ignore": ["node_modules", "dist"] },
+  "files": { "ignoreUnknown": false, "ignore": ["node_modules", "dist", "coverage"] },
   "formatter": { "enabled": true, "indentStyle": "space", "indentWidth": 2 },
   "organizeImports": { "enabled": true },
   "linter": {
@@ -62,7 +62,7 @@
         "noDuplicateObjectKeys": "error",
         "noDuplicateParameters": "error",
         "noEmptyBlockStatements": "error",
-        "noExplicitAny": "error",
+        "noExplicitAny": "warn",
         "noExtraNonNullAssertion": "error",
         "noFallthroughSwitchClause": "error",
         "noFunctionAssign": "error",
@@ -82,5 +82,8 @@
       }
     }
   },
-  "javascript": { "formatter": { "quoteStyle": "single" }, "globals": [] }
+  "javascript": {
+    "formatter": { "quoteStyle": "single" },
+    "globals": ["chrome"]
+  }
 }

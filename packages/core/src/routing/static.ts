@@ -1,3 +1,4 @@
+import { RoutingStrategy } from '../../types/wayfinder.js';
 /**
  * WayFinder
  * Copyright (C) 2022-2025 Permanent Data Solutions, Inc. All Rights Reserved.
@@ -16,7 +17,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { Logger, defaultLogger } from '../wayfinder.js';
-import { RoutingStrategy } from '../../types/wayfinder.js';
 
 export class StaticRoutingStrategy implements RoutingStrategy {
   public readonly name = 'static';
@@ -32,15 +32,7 @@ export class StaticRoutingStrategy implements RoutingStrategy {
   }) {
     this.logger = logger;
 
-    try {
-      this.gateway = new URL(gateway);
-    } catch (error: any) {
-      this.logger.error('Invalid URL provided for static gateway', {
-        gateway,
-        error: error.message,
-      });
-      throw error;
-    }
+    this.gateway = new URL(gateway);
   }
 
   // provided gateways are ignored

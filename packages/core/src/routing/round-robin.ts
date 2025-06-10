@@ -1,3 +1,4 @@
+import { RoutingStrategy } from '../../types/wayfinder.js';
 /**
  * WayFinder
  * Copyright (C) 2022-2025 Permanent Data Solutions, Inc. All Rights Reserved.
@@ -16,7 +17,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { Logger, defaultLogger } from '../wayfinder.js';
-import { RoutingStrategy } from '../../types/wayfinder.js';
 
 export class RoundRobinRoutingStrategy implements RoutingStrategy {
   public readonly name = 'round-robin';

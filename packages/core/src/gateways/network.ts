@@ -16,8 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { ARIOReadable } from '@ar.io/sdk';
-import { Logger, defaultLogger } from '../wayfinder.js';
 import { GatewaysProvider } from '../../types/wayfinder.js';
+import { Logger, defaultLogger } from '../wayfinder.js';
 
 export class NetworkGatewaysProvider implements GatewaysProvider {
   private ario: ARIOReadable;

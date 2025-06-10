@@ -1,22 +1,22 @@
 import { AoGatewayWithAddress } from '@ar.io/sdk/web';
 import {
-  backgroundGatewayBenchmarking,
-  backgroundValidateCachedGateway,
-} from './helpers';
-import {
   DEFAULT_GATEWAY,
-  TOP_ONCHAIN_GATEWAY_LIMIT,
+  DNS_LOOKUP_API,
+  GASLESS_ARNS_DNS_EXPIRATION_TIME,
   HIGHEST_STAKE_ROUTE_METHOD,
   OPTIMAL_GATEWAY_ROUTE_METHOD,
   RANDOM_ROUTE_METHOD,
   RANDOM_TOP_FIVE_STAKED_ROUTE_METHOD,
   STAKE_RANDOM_ROUTE_METHOD,
+  TOP_ONCHAIN_GATEWAY_LIMIT,
   WEIGHTED_ONCHAIN_PERFORMANCE_ROUTE_METHOD,
-  DNS_LOOKUP_API,
-  GASLESS_ARNS_DNS_EXPIRATION_TIME,
 } from './constants';
-import { GatewayRegistry } from './types';
 import { fetchEnsArweaveTxId } from './ens';
+import {
+  backgroundGatewayBenchmarking,
+  backgroundValidateCachedGateway,
+} from './helpers';
+import { GatewayRegistry } from './types';
 
 /**
  * Fetch the filtered Gateway Address Registry (GAR) from storage.
@@ -247,7 +247,7 @@ export async function selectWeightedOnchainPerformanceGateway(
   const totalWeight = weightedGateways.reduce((sum, gw) => sum + gw.weight, 0);
 
   // Generate a random number in the range [0, totalWeight]
-  let randomNum = Math.random() * totalWeight;
+  const randomNum = Math.random() * totalWeight;
 
   // Precompute cumulative weights for selection
   let cumulativeWeight = 0;

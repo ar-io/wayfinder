@@ -1,21 +1,21 @@
-import { WalletAddress, AoGateway, ARIO, AOProcess } from '@ar.io/sdk/web';
-import { getRoutableGatewayUrl } from './routing';
+import { AOProcess, ARIO, AoGateway, WalletAddress } from '@ar.io/sdk/web';
+import { connect } from '@permaweb/aoconnect';
+import {
+  ARIO_MAINNET_PROCESS_ID,
+  DEFAULT_AO_CU_URL,
+  OPTIMAL_GATEWAY_ROUTE_METHOD,
+} from './constants';
 import {
   backgroundGatewayBenchmarking,
   isKnownGateway,
   saveToHistory,
   updateGatewayPerformance,
 } from './helpers';
-import {
-  ARIO_MAINNET_PROCESS_ID,
-  DEFAULT_AO_CU_URL,
-  OPTIMAL_GATEWAY_ROUTE_METHOD,
-} from './constants';
+import { getRoutableGatewayUrl } from './routing';
 import { RedirectedTabInfo } from './types';
-import { connect } from '@permaweb/aoconnect';
 
 // Global variables
-let redirectedTabs: Record<number, RedirectedTabInfo> = {};
+const redirectedTabs: Record<number, RedirectedTabInfo> = {};
 const requestTimings = new Map<string, number>();
 
 console.log('🚀 Initializing AR.IO...');
@@ -157,7 +157,7 @@ chrome.webRequest.onErrorOccurred.addListener(
     const gatewayFQDN = new URL(details.url).hostname;
     if (!(await isKnownGateway(gatewayFQDN))) return;
 
-    let { gatewayPerformance = {} } = await chrome.storage.local.get([
+    const { gatewayPerformance = {} } = await chrome.storage.local.get([
       'gatewayPerformance',
     ]);
 
@@ -191,7 +191,7 @@ setInterval(() => {
 /**
  * Handles messages from content scripts for syncing gateway data.
  */
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   if (
     !['syncGatewayAddressRegistry', 'setArIOProcessId', 'setAoCuUrl'].includes(
       request.message,
@@ -320,7 +320,7 @@ async function reinitializeArIO(): Promise<void> {
       }),
     });
     console.log('🔄 AR.IO reinitialized with Process ID:', processId);
-  } catch (error) {
+  } catch (error: any) {
     arIO = ARIO.init();
     console.error('❌ Failed to reinitialize AR.IO. Using default.');
   }

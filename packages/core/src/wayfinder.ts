@@ -23,9 +23,9 @@ import {
   GatewaysProvider,
   RoutingStrategy,
 } from '../types/wayfinder.js';
+import { TrustedGatewaysProvider } from './gateways/trusted.js';
 import { FastestPingRoutingStrategy } from './routing/ping.js';
 import { HashVerificationStrategy } from './verification/hash-verifier.js';
-import { TrustedGatewaysProvider } from './gateways/trusted.js';
 
 // local types for wayfinder
 type WayfinderHttpClient = typeof fetch;

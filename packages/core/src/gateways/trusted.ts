@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { DataDigestProvider, DataRootProvider } from '../../types/wayfinder.js';
-import { sandboxFromId } from '../wayfinder.js';
+import { Logger, defaultLogger, sandboxFromId } from '../wayfinder.js';
 
 const arioGatewayHeaders = {
   digest: 'x-ar-io-digest',
@@ -29,14 +29,18 @@ export class TrustedGatewaysProvider
   implements DataDigestProvider, DataRootProvider
 {
   private trustedGateways: URL[];
+  private logger: Logger;
 
   constructor({
     trustedGateways,
+    logger = defaultLogger,
     // TODO: add threshold for allowed hash difference (i.e. by count or ratio of total gateways checked)
   }: {
     trustedGateways: URL[];
+    logger?: Logger;
   }) {
     this.trustedGateways = trustedGateways;
+    this.logger = logger;
   }
 
   /**
@@ -52,6 +56,7 @@ export class TrustedGatewaysProvider
     // get the hash from every gateway, and ensure they all match
     const hashSet = new Set();
     const hashResults: { gateway: string; txIdHash: string }[] = [];
+    this.logger.debug('Getting digest for txId', { txId });
     const hashes = await Promise.all(
       this.trustedGateways.map(
         async (gateway: URL): Promise<string | undefined> => {
@@ -107,16 +112,31 @@ export class TrustedGatewaysProvider
     }
 
     if (hashSet.size === 0) {
+      this.logger.error('No trusted gateways returned a hash for txId', {
+        txId,
+        hashResults,
+      });
       throw new Error(`No trusted gateways returned a hash for txId ${txId}`);
     }
 
     if (hashSet.size > 1) {
+      this.logger.error(
+        'Failed to get consistent hash from all trusted gateways',
+        {
+          txId,
+          hashResults,
+        },
+      );
       throw new Error(
         `Failed to get consistent hash from all trusted gateways. ${JSON.stringify(
           hashResults,
         )}`,
       );
     }
+    this.logger.debug('Successfully fetched digest for txId', {
+      txId,
+      hash: hashResults[0].txIdHash,
+    });
     return { hash: hashResults[0].txIdHash, algorithm: 'sha256' };
   }
 

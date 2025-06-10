@@ -34,15 +34,9 @@ export class PreferredWithFallbackRoutingStrategy implements RoutingStrategy {
     fallbackStrategy?: RoutingStrategy;
     logger?: Logger;
   }) {
-    try {
-      this.preferredGateway = new URL(preferredGateway);
-    } catch (error: any) {
-      throw new Error(
-        `Invalid URL provided for preferred gateway: ${preferredGateway}`,
-      );
-    }
-    this.fallbackStrategy = fallbackStrategy;
     this.logger = logger;
+    this.fallbackStrategy = fallbackStrategy;
+    this.preferredGateway = new URL(preferredGateway);
   }
 
   async selectGateway({ gateways = [] }: { gateways: URL[] }): Promise<URL> {
