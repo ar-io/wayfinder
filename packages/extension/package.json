@@ -21,7 +21,8 @@
   },
   "dependencies": {
     "@ar.io/sdk": "^3.5.0",
-    "@ar.io/wayfinder": "*"
+    "@ar.io/wayfinder": "*",
+    "@permaweb/aoconnect": "0.0.69"
   },
   "license": "AGPL-3.0-only"
 }
