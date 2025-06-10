@@ -16,5 +16,5 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-export * from './components';
-export * from './hooks';
+export * from './components/index.js';
+export * from './hooks/index.js';

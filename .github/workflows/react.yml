@@ -33,7 +33,7 @@ jobs:
       run: yarn install --frozen-lockfile
 
     - name: Lint
-      run: yarn lint:check
+      run: yarn workspace @ar.io/wayfinder-react lint:check
       
     - name: Build core library first
       run: yarn workspace @ar.io/wayfinder-core build

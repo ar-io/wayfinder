@@ -13,11 +13,18 @@
     "vite-plugin-copy": "^0.1.6",
     "vite-plugin-html": "^3.2.2",
     "vite-plugin-node-polyfills": "^0.22.0",
-    "vite-plugin-static-copy": "^1.0.6"
+    "vite-plugin-static-copy": "^1.0.6",
+    "@biomejs/biome": "1.9.4",
+    "rimraf": "^6.0.1"
   },
   "scripts": {
     "start": "vite preview",
-    "build": "vite build --config vite.config.js"
+    "build": "vite build --config vite.config.js",
+    "clean": "rimraf dist",
+    "lint:fix": "biome check --write --unsafe",
+    "lint:check": "biome check --unsafe",
+    "format:fix": "biome format --write",
+    "format:check": "biome format"
   },
   "dependencies": {
     "@ar.io/sdk": "^3.5.0",
