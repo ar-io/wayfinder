@@ -15,6 +15,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+import { pLimit } from 'plimit-lit';
 import { RoutingStrategy } from '../../types/wayfinder.js';
 import { Logger, defaultLogger } from '../wayfinder.js';
 
@@ -22,19 +23,23 @@ export class FastestPingRoutingStrategy implements RoutingStrategy {
   private timeoutMs: number;
   private probePath: string;
   private logger: Logger;
+  private maxConcurrency: number;
 
   constructor({
     timeoutMs = 500,
+    maxConcurrency = 50,
     probePath = '/ar-io/info', // TODO: limit to allowed /ar-io and arweave node endpoints
     logger = defaultLogger,
   }: {
     timeoutMs?: number;
+    maxConcurrency?: number;
     probePath?: string;
     logger?: Logger;
   } = {}) {
     this.timeoutMs = timeoutMs;
     this.probePath = probePath;
     this.logger = logger;
+    this.maxConcurrency = maxConcurrency;
   }
 
   async selectGateway({ gateways }: { gateways: URL[] }): Promise<URL> {
@@ -53,117 +58,47 @@ export class FastestPingRoutingStrategy implements RoutingStrategy {
       },
     );
 
-    try {
-      const results = await Promise.allSettled(
-        gateways.map(async (gateway) => {
-          try {
-            const startTime = Date.now();
-            const pingUrl = `${gateway.toString().replace(/\/$/, '')}${this.probePath}`;
+    const throttle = pLimit(this.maxConcurrency);
+    const pingPromises = gateways.map(
+      async (gateway): Promise<{ gateway: URL; durationMs: number }> => {
+        return throttle(async () => {
+          const pingUrl = `${gateway.toString().replace(/\/$/, '')}${this.probePath}`;
 
-            this.logger.debug(`Pinging gateway ${gateway.toString()}`, {
-              gateway: gateway.toString(),
-              pingUrl,
-            });
+          this.logger.debug(`Pinging gateway ${gateway.toString()}`, {
+            gateway: gateway.toString(),
+            pingUrl,
+          });
 
-            const response = await fetch(pingUrl, {
-              method: 'HEAD',
-              signal: AbortSignal.timeout(this.timeoutMs),
-            });
+          const startTime = Date.now();
+          const response = await fetch(pingUrl, {
+            method: 'HEAD',
+            signal: AbortSignal.timeout(this.timeoutMs),
+          });
 
-            const endTime = Date.now();
-            const durationMs = endTime - startTime;
-
-            this.logger.debug(
-              `Received response from gateway ${gateway.toString()}`,
-              {
-                gateway: gateway.toString(),
-                status: response.status,
-                durationMs,
-              },
-            );
-
-            return {
-              gateway,
-              status: response.status,
-              durationMs,
-              error: null,
-            };
-          } catch (error) {
-            // Handle network errors
-            this.logger.debug(`Failed to ping gateway ${gateway.toString()}`, {
-              gateway: gateway.toString(),
-              error,
-            });
-
-            return {
-              gateway,
-              status: 'rejected',
-              durationMs: Infinity,
-              error,
-            };
+          if (response.ok) {
+            // clear the queue to prevent the next gateway from being pinged
+            throttle.clearQueue();
+            return { gateway, durationMs: Date.now() - startTime };
           }
-        }),
-      );
 
-      // Process results
-      const processedResults = results.map((result, index) => {
-        if (result.status === 'fulfilled') {
-          return result.value;
-        } else {
-          return {
-            gateway: gateways[index],
-            status: 'rejected',
-            durationMs: Infinity,
-            error: result.reason,
-          };
-        }
-      });
+          throw new Error('Failed to ping gateway', {
+            cause: {
+              gateway: gateway.toString(),
+              probePath: this.probePath,
+              status: response.status,
+            },
+          });
+        });
+      },
+    );
 
-      // Filter healthy gateways and sort by latency
-      const healthyGateways = processedResults
-        .filter((result) => result.status === 200)
-        .sort((a, b) => a.durationMs - b.durationMs);
+    const { gateway, durationMs } = await Promise.any(pingPromises);
 
-      this.logger.debug(`Found ${healthyGateways.length} healthy gateways`, {
-        healthyGateways: healthyGateways.map((g) => ({
-          gateway: g.gateway.toString(),
-          durationMs: g.durationMs,
-        })),
-      });
+    this.logger.debug('Successfully selected fastest gateway', {
+      gateway: gateway.toString(),
+      durationMs,
+    });
 
-      if (healthyGateways.length > 0) {
-        const selectedGateway = healthyGateways[0].gateway;
-
-        this.logger.info(
-          `Selected fastest gateway: ${selectedGateway.toString()}`,
-          {
-            gateway: selectedGateway.toString(),
-            durationMs: healthyGateways[0].durationMs,
-          },
-        );
-
-        return selectedGateway;
-      }
-
-      const noHealthyGatewaysError = new Error('No healthy gateways found');
-      this.logger.error('Failed to select gateway', {
-        error: noHealthyGatewaysError.message,
-        results: processedResults.map((r) => ({
-          gateway: r.gateway.toString(),
-          status: r.status,
-          error: r.error,
-        })),
-      });
-
-      throw noHealthyGatewaysError;
-    } catch (error) {
-      const errorMessage =
-        'Failed to ping gateways: ' +
-        (error instanceof Error ? error.message : String(error));
-
-      this.logger.error('Failed to select gateway', { error: errorMessage });
-
-      throw new Error(errorMessage);
-    }
+    return gateway;
   }
 }
