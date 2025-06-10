@@ -49,7 +49,7 @@ jobs:
       run: yarn install --frozen-lockfile
 
     - name: Test
-      run: yarn test:unit
+      run: yarn workspace @ar.io/wayfinder-core test:unit
 
   build:
     runs-on: ubuntu-latest
