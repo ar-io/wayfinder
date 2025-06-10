@@ -13,9 +13,7 @@
     "vite-plugin-copy": "^0.1.6",
     "vite-plugin-html": "^3.2.2",
     "vite-plugin-node-polyfills": "^0.22.0",
-    "vite-plugin-static-copy": "^1.0.6",
-    "@biomejs/biome": "1.9.4",
-    "rimraf": "^6.0.1"
+    "vite-plugin-static-copy": "^1.0.6"
   },
   "scripts": {
     "start": "vite preview",
