@@ -15,16 +15,16 @@ on:
       - 'package.json'
 
 jobs:
-  build:
+  lint:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Setup Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
-        node-version: '18.x'
+        node-version-file: '.nvmrc'
         cache: 'yarn'
 
     - name: Install dependencies
@@ -32,12 +32,41 @@ jobs:
 
     - name: Lint
       run: yarn lint:check
-      
+
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version-file: '.nvmrc'
+        cache: 'yarn'
+
+    - name: Install dependencies
+      run: yarn install --frozen-lockfile
+
+    - name: Test
+      run: yarn test:unit
+
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version-file: '.nvmrc'
+        cache: 'yarn'
+
+    - name: Install dependencies
+      run: yarn install --frozen-lockfile
+
     - name: Build core library
       run: yarn workspace @ar.io/wayfinder-core build
       
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v3
-      with:
-        name: wayfinder-core-dist
-        path: packages/core/dist/
+    # TODO: Upload artifacts and use changeset for publishing new versions

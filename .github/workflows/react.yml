@@ -1,4 +1,4 @@
-name: React Components
+name: React Components & Hooks
 
 on:
   push:
@@ -21,12 +21,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Setup Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
-        node-version: '18.x'
+        node-version-file: '.nvmrc'
         cache: 'yarn'
 
     - name: Install dependencies
@@ -40,9 +40,5 @@ jobs:
       
     - name: Build React components
       run: yarn workspace @ar.io/wayfinder-react build
-      
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v3
-      with:
-        name: wayfinder-react-dist
-        path: packages/react/dist/
+    
+    # TODO: Upload artifacts and use changeset for publishing new versions
