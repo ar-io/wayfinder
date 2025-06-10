@@ -1,3 +1,20 @@
+/**
+ * WayFinder
+ * Copyright (C) 2022-2025 Permanent Data Solutions, Inc. All Rights Reserved.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 import { AoGateway } from '@ar.io/sdk/web';
 import { ARIO_MAINNET_PROCESS_ID, DEFAULT_AO_CU_URL } from './constants';
 import { isBase64URL } from './helpers';
@@ -420,7 +437,7 @@ async function afterPopupDOMLoaded(): Promise<void> {
         document.getElementById('arIOProcessId') as HTMLInputElement
       ).value;
       if (arIOProcessId === '') {
-        const result = saveArIOProcessId(ARIO_MAINNET_PROCESS_ID);
+        saveArIOProcessId(ARIO_MAINNET_PROCESS_ID);
         (document.getElementById('arIOProcessId') as HTMLInputElement).value =
           '';
         return new Promise((resolve, reject) => {
@@ -437,7 +454,7 @@ async function afterPopupDOMLoaded(): Promise<void> {
           );
         });
       } else if (isBase64URL(arIOProcessId)) {
-        const result = saveArIOProcessId(arIOProcessId);
+        saveArIOProcessId(arIOProcessId);
         return new Promise((resolve, reject) => {
           chrome.runtime.sendMessage(
             { message: 'setArIOProcessId' },
@@ -468,7 +485,7 @@ async function afterPopupDOMLoaded(): Promise<void> {
       const aoCuUrl = (document.getElementById('aoCuUrl') as HTMLInputElement)
         .value;
       if (aoCuUrl === '') {
-        const result = saveAoCuUrl(DEFAULT_AO_CU_URL);
+        saveAoCuUrl(DEFAULT_AO_CU_URL);
         (document.getElementById('aoCuUrl') as HTMLInputElement).value = '';
         return new Promise((resolve, reject) => {
           chrome.runtime.sendMessage(
@@ -484,7 +501,7 @@ async function afterPopupDOMLoaded(): Promise<void> {
           );
         });
       } else {
-        const result = saveAoCuUrl(aoCuUrl);
+        saveAoCuUrl(aoCuUrl);
         return new Promise((resolve, reject) => {
           chrome.runtime.sendMessage(
             { message: 'setAoCuUrl' },
@@ -580,7 +597,7 @@ function saveStaticGateway(inputValue: string | URL) {
       });
       return staticGateway;
     }
-  } catch (error) {
+  } catch {
     alert(`Invalid URL entered: ${inputValue}`);
   }
 }

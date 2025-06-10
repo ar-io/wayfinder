@@ -1,6 +1,23 @@
+/**
+ * WayFinder
+ * Copyright (C) 2022-2025 Permanent Data Solutions, Inc. All Rights Reserved.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 import { AoGatewayWithAddress } from '@ar.io/sdk';
+import { MAX_HISTORY_ITEMS, TOP_ONCHAIN_GATEWAY_LIMIT } from './constants';
 import { getGarForRouting, selectTopOnChainGateways } from './routing';
-import { TOP_ONCHAIN_GATEWAY_LIMIT, MAX_HISTORY_ITEMS } from './constants';
 
 export async function backgroundGatewayBenchmarking() {
   console.log(
@@ -19,7 +36,7 @@ export async function backgroundGatewayBenchmarking() {
   }
 
   const now = Date.now();
-  const pingResults = await Promise.allSettled(
+  await Promise.allSettled(
     topGateways.map(async (gateway: AoGatewayWithAddress) => {
       const fqdn = gateway.settings.fqdn;
       const startTime = performance.now(); // ✅ Correctly record start time
@@ -113,7 +130,7 @@ export async function updateGatewayPerformance(
 
   // Ensure performance storage is initialized
   const storage = await chrome.storage.local.get(['gatewayPerformance']);
-  let gatewayPerformance = storage.gatewayPerformance || {};
+  const gatewayPerformance = storage.gatewayPerformance || {};
 
   // Ensure the gateway entry exists
   if (!gatewayPerformance[gatewayFQDN]) {

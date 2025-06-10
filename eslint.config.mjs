@@ -35,13 +35,14 @@ const compat = new FlatCompat({
 });
 
 export default [
+  ...compat.extends(
+    'eslint:recommended',
+    'plugin:@typescript-eslint/eslint-recommended',
+    'plugin:@typescript-eslint/recommended',
+  ),
   {
     files: ['**/*.ts', '**/*.tsx'],
-    ...compat.extends(
-      'eslint:recommended',
-      'plugin:@typescript-eslint/eslint-recommended',
-      'plugin:@typescript-eslint/recommended',
-    ),
+
     plugins: {
       '@typescript-eslint': typescriptEslint,
       header,
