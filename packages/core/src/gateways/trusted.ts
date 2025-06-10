@@ -15,6 +15,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+import { pLimit } from 'plimit-lit';
 import { DataDigestProvider, DataRootProvider } from '../../types/wayfinder.js';
 import { Logger, defaultLogger, sandboxFromId } from '../wayfinder.js';
 
@@ -30,17 +31,21 @@ export class TrustedGatewaysProvider
 {
   private trustedGateways: URL[];
   private logger: Logger;
+  private maxConcurrency: number;
 
   constructor({
     trustedGateways,
+    maxConcurrency = 1,
     logger = defaultLogger,
     // TODO: add threshold for allowed hash difference (i.e. by count or ratio of total gateways checked)
   }: {
     trustedGateways: URL[];
     logger?: Logger;
+    maxConcurrency?: number;
   }) {
     this.trustedGateways = trustedGateways;
     this.logger = logger;
+    this.maxConcurrency = maxConcurrency;
   }
 
   /**
@@ -53,16 +58,19 @@ export class TrustedGatewaysProvider
   }: {
     txId: string;
   }): Promise<{ hash: string; algorithm: 'sha256' }> {
-    // get the hash from every gateway, and ensure they all match
-    const hashSet = new Set();
-    const hashResults: { gateway: string; txIdHash: string }[] = [];
-    this.logger.debug('Getting digest for txId', { txId });
-    const hashes = await Promise.all(
-      this.trustedGateways.map(
-        async (gateway: URL): Promise<string | undefined> => {
+    this.logger.debug('Getting digest for txId', {
+      txId,
+      maxConcurrency: this.maxConcurrency,
+      trustedGateways: this.trustedGateways,
+    });
+
+    // TODO: shuffle gateways to avoid bias
+    const throttle = pLimit(this.maxConcurrency);
+    const hashPromises = this.trustedGateways.map(
+      async (gateway: URL): Promise<{ hash: string; gateway: URL }> => {
+        return throttle(async () => {
           const sandbox = sandboxFromId(txId);
           const urlWithSandbox = `${gateway.protocol}//${sandbox}.${gateway.hostname}/${txId}`;
-          let txIdHash: string | undefined;
           /**
            * This is a problem because we're not able to verify the hash of the data item if the gateway doesn't have the data in its cache. We start with a HEAD request, if it fails, we do a GET request to hydrate the cache and then a HEAD request again to get the cached digest.
            */
@@ -77,67 +85,45 @@ export class TrustedGatewaysProvider
             });
             if (!response.ok) {
               // skip if the request failed or the digest is not present
-              return;
+              throw new Error('Failed to fetch digest for txId', {
+                cause: {
+                  txId,
+                  gateway: gateway.toString(),
+                },
+              });
             }
 
             const fetchedTxIdHash = response.headers.get(
               arioGatewayHeaders.digest,
             );
 
-            if (fetchedTxIdHash !== null && fetchedTxIdHash !== undefined) {
-              txIdHash = fetchedTxIdHash;
-              break;
+            if (fetchedTxIdHash) {
+              // avoid hitting other gateways if we've found the hash
+              throttle.clearQueue();
+              return { hash: fetchedTxIdHash, gateway };
             }
           }
 
-          if (txIdHash === undefined) {
-            // skip this gateway if we didn't get a hash
-            return undefined;
-          }
-
-          hashResults.push({
-            gateway: gateway.hostname,
-            txIdHash,
+          throw new Error('No hash found for txId', {
+            cause: {
+              txId,
+              gateway: gateway.toString(),
+            },
           });
-
-          return txIdHash;
-        },
-      ),
+        });
+      },
     );
 
-    for (const hash of hashes) {
-      if (hash !== undefined) {
-        hashSet.add(hash);
-      }
-    }
-
-    if (hashSet.size === 0) {
-      this.logger.error('No trusted gateways returned a hash for txId', {
+    const { hash, gateway } = await Promise.any(hashPromises);
+    this.logger.debug(
+      'Successfully fetched digest for txId from trusted gateway',
+      {
         txId,
-        hashResults,
-      });
-      throw new Error(`No trusted gateways returned a hash for txId ${txId}`);
-    }
-
-    if (hashSet.size > 1) {
-      this.logger.error(
-        'Failed to get consistent hash from all trusted gateways',
-        {
-          txId,
-          hashResults,
-        },
-      );
-      throw new Error(
-        `Failed to get consistent hash from all trusted gateways. ${JSON.stringify(
-          hashResults,
-        )}`,
-      );
-    }
-    this.logger.debug('Successfully fetched digest for txId', {
-      txId,
-      hash: hashResults[0].txIdHash,
-    });
-    return { hash: hashResults[0].txIdHash, algorithm: 'sha256' };
+        hash,
+        gateway: gateway.toString(),
+      },
+    );
+    return { hash, algorithm: 'sha256' };
   }
 
   /**
@@ -146,40 +132,41 @@ export class TrustedGatewaysProvider
    * @returns The data root for the given txId.
    */
   async getDataRoot({ txId }: { txId: string }): Promise<string> {
-    const dataRootSet = new Set();
-    const dataRootResults: { gateway: string; dataRoot: string }[] = [];
-    const dataRoots = await Promise.all(
-      this.trustedGateways.map(async (gateway): Promise<string | undefined> => {
-        const response = await fetch(
-          `${gateway.toString()}tx/${txId}/data_root`,
-        );
-        if (!response.ok) {
-          // skip this gateway
-          return undefined;
-        }
-        const dataRoot = await response.text();
-        dataRootResults.push({
-          gateway: gateway.hostname,
-          dataRoot,
+    this.logger.debug('Getting data root for txId', {
+      txId,
+      maxConcurrency: this.maxConcurrency,
+      trustedGateways: this.trustedGateways,
+    });
+
+    // TODO: shuffle gateways to avoid bias
+    const throttle = pLimit(this.maxConcurrency);
+    const dataRootPromises = this.trustedGateways.map(
+      async (gateway): Promise<{ dataRoot: string; gateway: URL }> => {
+        return throttle(async () => {
+          const response = await fetch(
+            `${gateway.toString()}tx/${txId}/data_root`,
+          );
+          if (!response.ok) {
+            // skip this gateway
+            throw new Error('Failed to fetch data root for txId', {
+              cause: {
+                txId,
+                gateway: gateway.toString(),
+              },
+            });
+          }
+          const dataRoot = await response.text();
+          return { dataRoot, gateway };
         });
-        return dataRoot;
-      }),
+      },
     );
 
-    for (const dataRoot of dataRoots) {
-      if (dataRoot !== undefined) {
-        dataRootSet.add(dataRoot);
-      }
-    }
-
-    if (dataRootSet.size > 1) {
-      throw new Error(
-        `Failed to get consistent data root from all trusted gateways. ${JSON.stringify(
-          dataRootResults,
-        )}`,
-      );
-    }
-
-    return dataRootSet.values().next().value as string;
+    const { dataRoot, gateway } = await Promise.any(dataRootPromises);
+    this.logger.debug('Successfully fetched data root for txId', {
+      txId,
+      dataRoot,
+      gateway: gateway.toString(),
+    });
+    return dataRoot;
   }
 }

@@ -28,6 +28,7 @@
   "dependencies": {
     "arweave": "^1.14.0",
     "eventemitter3": "^5.0.1",
+    "plimit-lit": "^3.0.1",
     "rfc4648": "^1.5.4"
   },
   "peerDependencies": {
