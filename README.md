@@ -1,61 +1,21 @@
 # WayFinder
 
-WayFinder is a set of tools for intelligently routing users to optimal AR.IO gateways, ensuring streamlined access to the permaweb on Arweave.
+WayFinder is a set of tools for intelligently routing users to optimal AR.IO gateways, supporting client-side, cryptographic verification of data retrieved from the Arweave network, and ensuring streamlined access to the permaweb.
 
 ## Packages
 
 This monorepo contains the following packages:
 
-
-- **[@ar.io/wayfinder](./packages/core)**: Core library with routing functionality
-- **[@ar.io/wayfinder-react](./packages/react)**: React components for WayFinder
+- **[@ar.io/wayfinder-core](./packages/core)**: Core JavaScript library for the Wayfinder routing and verification protocol
+- **[@ar.io/wayfinder-react](./packages/react)**: React components for WayFinder, including Hooks and Context provider
 - **[@ar.io/wayfinder-extension](./packages/extension)**: Chrome extension for WayFinder
+- **[@ar.io/wayfinder-cli](./packages/cli)**: CLI for interacting with Wayfinder in the terminal
 
 ## What is it?
 
-WayFinder (beta) is a simple, open source, routing protocol for the permaweb. It is designed to leverage the ar.io network to route users to the most optimal gateway for a given request.
+WayFinder (beta) is a simple, open-source client-side routing and verification protocol for the permaweb. It is designed to leverage the [ar.io network](https://ar.io) to route users to the most optimal gateway for a given request.
 
 ## Who is it built for?
 
-- Anyone who wants to browse the Permaweb. Since no wallet is needed, the user does not have to have ever touched tokens or even uploaded data.
-- Developers who want to integrate ar:// protocol. Wayfinder shows how the ar:// protocol could be leveraged along with how to discover gateways on the ar.io network.
-
-
-## Want to learn more?
-
-Join our discord for more information about WayFinder or how to contribute: https://discord.gg/zAZ8p9ARqC
-
-## Developers
-
-### Requirements
-
-- `node` - v18+
-- `yarn` - v1.4
-
-### Dependencies
-
-Dependencies should be installed using Yarn
-
-```bash
-yarn install
-```
-
-### Build
-
-```bash
-# Build all packages
-yarn build
-```
-
-### Loading the Extension into Chrome
-
-To load the bundled app as an extension in Chrome:
-
-1. Run `yarn build` to create a fresh `dist` directory in the extension package
-2. Navigate to `Manage Extensions`
-3. Click `Load unpacked`
-4. Select the `packages/extension/dist` directory and hit `Load`
-
-## License
-
-AGPL-3.0-only
+- Anyone who wants to browse the Permaweb. Since no wallet is required, the user does not need to have ever touched tokens or uploaded data.
+- Developers who want to integrate ar:// protocol. Wayfinder allows developers to retrieve data from Arweave via the [ar.io network], ensuring decentralized access to all assets of your permaweb app.
