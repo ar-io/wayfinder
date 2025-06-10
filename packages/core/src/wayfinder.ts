@@ -313,7 +313,10 @@ export const createWayfinderClient = ({
   emitter?: WayfinderEmitter;
   strict?: boolean;
 }) => {
-  return async (input: URL | RequestInfo, init?: RequestInit): Promise<Response> => {
+  return async (
+    input: URL | RequestInfo,
+    init?: RequestInit,
+  ): Promise<Response> => {
     const url = input instanceof URL ? input.toString() : input.toString();
 
     if (typeof url !== 'string') {
@@ -464,29 +467,29 @@ export interface WayfinderOptions {
    * @default defaultLogger (standard console logger)
    */
   logger?: Logger;
-  
+
   /**
    * The gateways provider to use for routing requests
    */
   gatewaysProvider: GatewaysProvider;
-  
+
   /**
    * The routing strategy to use for selecting gateways
    * @default FastestPingRoutingStrategy with timeoutMs=1000
    */
   routingStrategy?: RoutingStrategy;
-  
+
   /**
    * The verification strategy to use for verifying data
    * @default HashVerificationStrategy with TrustedGatewaysHashProvider
    */
   verificationStrategy?: DataVerificationStrategy;
-  
+
   /**
    * Event handlers for verification events
    */
   events?: WayfinderEventArgs;
-  
+
   /**
    * Whether verification should be strict (blocking)
    * If true, verification failures will cause requests to fail
@@ -655,13 +658,17 @@ export class Wayfinder {
       }),
     }),
     events = {
-      onVerificationSucceeded: (event: WayfinderEvent['verification-succeeded']) => {
+      onVerificationSucceeded: (
+        event: WayfinderEvent['verification-succeeded'],
+      ) => {
         logger.debug('Verification passed!', event);
       },
       onVerificationFailed: (event: WayfinderEvent['verification-failed']) => {
         logger.error('Verification failed!', event);
       },
-      onVerificationProgress: (event: WayfinderEvent['verification-progress']) => {
+      onVerificationProgress: (
+        event: WayfinderEvent['verification-progress'],
+      ) => {
         logger.debug('Verification progress!', event);
       },
     },
@@ -701,6 +708,8 @@ export class Wayfinder {
       strict,
     });
 
-    logger.debug(`Wayfinder initialized with ${routingStrategy.constructor.name} routing strategy`);
+    logger.debug(
+      `Wayfinder initialized with ${routingStrategy.constructor.name} routing strategy`,
+    );
   }
 }

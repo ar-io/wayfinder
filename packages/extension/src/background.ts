@@ -1,30 +1,30 @@
-import { WalletAddress, AoGateway, ARIO, AOProcess } from "@ar.io/sdk/web";
-import { getRoutableGatewayUrl } from "./routing";
+import { WalletAddress, AoGateway, ARIO, AOProcess } from '@ar.io/sdk/web';
+import { getRoutableGatewayUrl } from './routing';
 import {
   backgroundGatewayBenchmarking,
   isKnownGateway,
   saveToHistory,
   updateGatewayPerformance,
-} from "./helpers";
+} from './helpers';
 import {
   ARIO_MAINNET_PROCESS_ID,
   DEFAULT_AO_CU_URL,
   OPTIMAL_GATEWAY_ROUTE_METHOD,
-} from "./constants";
-import { RedirectedTabInfo } from "./types";
-import { connect } from "@permaweb/aoconnect";
+} from './constants';
+import { RedirectedTabInfo } from './types';
+import { connect } from '@permaweb/aoconnect';
 
 // Global variables
 let redirectedTabs: Record<number, RedirectedTabInfo> = {};
 const requestTimings = new Map<string, number>();
 
-console.log("🚀 Initializing AR.IO...");
+console.log('🚀 Initializing AR.IO...');
 let arIO = ARIO.init({
   process: new AOProcess({
     processId: ARIO_MAINNET_PROCESS_ID,
     ao: connect({
       CU_URL: DEFAULT_AO_CU_URL,
-      MODE: "legacy",
+      MODE: 'legacy',
     }),
   }),
 });
@@ -41,13 +41,13 @@ chrome.storage.local.set({
 
 // Ensure we sync the registry before running benchmarking
 async function initializeWayfinder() {
-  console.log("🔄 Initializing Wayfinder...");
+  console.log('🔄 Initializing Wayfinder...');
   await syncGatewayAddressRegistry(); // **Wait for GAR sync to complete**
   await backgroundGatewayBenchmarking(); // **Benchmark after GAR is ready**
 }
 
 initializeWayfinder().catch((err) =>
-  console.error("🚨 Error during Wayfinder initialization:", err)
+  console.error('🚨 Error during Wayfinder initialization:', err),
 );
 
 /**
@@ -58,9 +58,9 @@ chrome.webNavigation.onBeforeNavigate.addListener(
     setTimeout(async () => {
       try {
         const url = new URL(details.url);
-        const arUrl = url.searchParams.get("q");
+        const arUrl = url.searchParams.get('q');
 
-        if (!arUrl || !arUrl.startsWith("ar://")) return;
+        if (!arUrl || !arUrl.startsWith('ar://')) return;
 
         const { url: redirectTo, gatewayFQDN } =
           await getRoutableGatewayUrl(arUrl);
@@ -77,11 +77,11 @@ chrome.webNavigation.onBeforeNavigate.addListener(
           };
         }
       } catch (error) {
-        console.error("❌ Error processing ar:// navigation:", error);
+        console.error('❌ Error processing ar:// navigation:', error);
       }
     }, 0); // 🔥 Defer execution to avoid blocking listener thread
   },
-  { url: [{ schemes: ["http", "https"] }] }
+  { url: [{ schemes: ['http', 'https'] }] },
 );
 
 /**
@@ -91,7 +91,7 @@ chrome.webRequest.onBeforeRequest.addListener(
   (details) => {
     requestTimings.set(details.requestId, performance.now());
   },
-  { urls: ["<all_urls>"] }
+  { urls: ['<all_urls>'] },
 );
 
 /**
@@ -116,7 +116,7 @@ chrome.webRequest.onCompleted.addListener(
     // ✅ Update performance metrics
     await updateGatewayPerformance(gatewayFQDN, startTime);
   },
-  { urls: ["<all_urls>"] }
+  { urls: ['<all_urls>'] },
 );
 
 /**
@@ -128,9 +128,9 @@ chrome.webRequest.onHeadersReceived.addListener(
 
     if (tabInfo) {
       for (const header of details.responseHeaders || []) {
-        if (header.name.toLowerCase() === "x-arns-resolved-id") {
+        if (header.name.toLowerCase() === 'x-arns-resolved-id') {
           const timestamp = new Date().toISOString();
-          saveToHistory(details.url, header.value || "undefined", timestamp);
+          saveToHistory(details.url, header.value || 'undefined', timestamp);
           break;
         }
       }
@@ -139,8 +139,8 @@ chrome.webRequest.onHeadersReceived.addListener(
       delete redirectedTabs[details.tabId];
     }
   },
-  { urls: ["<all_urls>"] },
-  ["responseHeaders"]
+  { urls: ['<all_urls>'] },
+  ['responseHeaders'],
 );
 
 /**
@@ -158,7 +158,7 @@ chrome.webRequest.onErrorOccurred.addListener(
     if (!(await isKnownGateway(gatewayFQDN))) return;
 
     let { gatewayPerformance = {} } = await chrome.storage.local.get([
-      "gatewayPerformance",
+      'gatewayPerformance',
     ]);
 
     if (!gatewayPerformance[gatewayFQDN]) {
@@ -173,7 +173,7 @@ chrome.webRequest.onErrorOccurred.addListener(
 
     await chrome.storage.local.set({ gatewayPerformance });
   },
-  { urls: ["<all_urls>"] }
+  { urls: ['<all_urls>'] },
 );
 
 /**
@@ -193,54 +193,54 @@ setInterval(() => {
  */
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (
-    !["syncGatewayAddressRegistry", "setArIOProcessId", "setAoCuUrl"].includes(
-      request.message
+    !['syncGatewayAddressRegistry', 'setArIOProcessId', 'setAoCuUrl'].includes(
+      request.message,
     ) &&
-    request.type !== "convertArUrlToHttpUrl"
+    request.type !== 'convertArUrlToHttpUrl'
   ) {
-    console.warn("⚠️ Unauthorized message:", request);
+    console.warn('⚠️ Unauthorized message:', request);
     return;
   }
 
-  if (request.message === "syncGatewayAddressRegistry") {
+  if (request.message === 'syncGatewayAddressRegistry') {
     syncGatewayAddressRegistry()
       .then(() => backgroundGatewayBenchmarking())
       .then(() => sendResponse({}))
       .catch((error) => {
-        console.error("❌ Failed to sync GAR:", error);
-        sendResponse({ error: "Failed to sync gateway address registry." });
+        console.error('❌ Failed to sync GAR:', error);
+        sendResponse({ error: 'Failed to sync gateway address registry.' });
       });
 
     return true; // ✅ Keeps connection open for async response
   }
 
-  if (request.message === "setAoCuUrl") {
+  if (request.message === 'setAoCuUrl') {
     reinitializeArIO()
       .then(() => syncGatewayAddressRegistry())
       .then(() => sendResponse({}))
       .catch((error) => {
         console.error(
-          "❌ Failed to set new AO CU Url and reinitialize AR.IO:",
-          error
+          '❌ Failed to set new AO CU Url and reinitialize AR.IO:',
+          error,
         );
         sendResponse({
-          error: "Failed to set new AO CU Url and reinitialize AR.IO.",
+          error: 'Failed to set new AO CU Url and reinitialize AR.IO.',
         });
       });
     return true;
   }
 
-  if (request.type === "convertArUrlToHttpUrl") {
+  if (request.type === 'convertArUrlToHttpUrl') {
     const arUrl = request.arUrl;
     getRoutableGatewayUrl(arUrl)
       .then((response) => {
         if (!response || !response.url) {
-          throw new Error("URL resolution failed, response is invalid");
+          throw new Error('URL resolution failed, response is invalid');
         }
         sendResponse({ url: response.url }); // ✅ Extract only the URL
       })
       .catch((error) => {
-        console.error("Error in message listener:", error);
+        console.error('Error in message listener:', error);
         sendResponse({ error: error.message });
       });
 
@@ -254,20 +254,20 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 async function syncGatewayAddressRegistry(): Promise<void> {
   try {
     const { processId, aoCuUrl } = await chrome.storage.local.get([
-      "processId",
-      "aoCuUrl",
+      'processId',
+      'aoCuUrl',
     ]);
 
     if (!processId) {
-      throw new Error("❌ Process ID missing in local storage.");
+      throw new Error('❌ Process ID missing in local storage.');
     }
 
     if (!aoCuUrl) {
-      throw new Error("❌ AO CU Url missing in local storage.");
+      throw new Error('❌ AO CU Url missing in local storage.');
     }
 
     console.log(
-      `🔄 Fetching Gateway Address Registry from ${aoCuUrl} with Process ID: ${processId}`
+      `🔄 Fetching Gateway Address Registry from ${aoCuUrl} with Process ID: ${processId}`,
     );
 
     const registry: Record<WalletAddress, AoGateway> = {};
@@ -281,7 +281,7 @@ async function syncGatewayAddressRegistry(): Promise<void> {
       });
 
       if (!response?.items || response.items.length === 0) {
-        console.warn("⚠️ No gateways found in this batch.");
+        console.warn('⚠️ No gateways found in this batch.');
         break;
       }
 
@@ -294,13 +294,13 @@ async function syncGatewayAddressRegistry(): Promise<void> {
     } while (cursor);
 
     if (totalFetched === 0) {
-      console.warn("⚠️ No gateways found after full sync.");
+      console.warn('⚠️ No gateways found after full sync.');
     } else {
       await chrome.storage.local.set({ localGatewayAddressRegistry: registry });
       console.log(`✅ Synced ${totalFetched} gateways.`);
     }
   } catch (error) {
-    console.error("❌ Error syncing Gateway Address Registry:", error);
+    console.error('❌ Error syncing Gateway Address Registry:', error);
   }
 }
 
@@ -310,18 +310,18 @@ async function syncGatewayAddressRegistry(): Promise<void> {
 async function reinitializeArIO(): Promise<void> {
   try {
     const { processId, aoCuUrl } = await chrome.storage.local.get([
-      "processId",
-      "aoCuUrl",
+      'processId',
+      'aoCuUrl',
     ]);
     arIO = ARIO.init({
       process: new AOProcess({
         processId: processId,
-        ao: connect({ MODE: "legacy", CU_URL: aoCuUrl }),
+        ao: connect({ MODE: 'legacy', CU_URL: aoCuUrl }),
       }),
     });
-    console.log("🔄 AR.IO reinitialized with Process ID:", processId);
+    console.log('🔄 AR.IO reinitialized with Process ID:', processId);
   } catch (error) {
     arIO = ARIO.init();
-    console.error("❌ Failed to reinitialize AR.IO. Using default.");
+    console.error('❌ Failed to reinitialize AR.IO. Using default.');
   }
 }

@@ -174,7 +174,6 @@ describe('hashDataStreamToB64Url', { timeout: 5000 }, () => {
     const expectedHash = 'm8GyooiyavclejYneuOBan1PFuicHn530KXEi61is2A';
     assert.equal(nodeResult, expectedHash);
 
-
     // Test with Web ReadableStream
     const encoder = new TextEncoder();
     // Create chunks to simulate streaming

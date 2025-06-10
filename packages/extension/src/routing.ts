@@ -1,8 +1,8 @@
-import { AoGatewayWithAddress } from "@ar.io/sdk/web";
+import { AoGatewayWithAddress } from '@ar.io/sdk/web';
 import {
   backgroundGatewayBenchmarking,
   backgroundValidateCachedGateway,
-} from "./helpers";
+} from './helpers';
 import {
   DEFAULT_GATEWAY,
   TOP_ONCHAIN_GATEWAY_LIMIT,
@@ -14,9 +14,9 @@ import {
   WEIGHTED_ONCHAIN_PERFORMANCE_ROUTE_METHOD,
   DNS_LOOKUP_API,
   GASLESS_ARNS_DNS_EXPIRATION_TIME,
-} from "./constants";
-import { GatewayRegistry } from "./types";
-import { fetchEnsArweaveTxId } from "./ens";
+} from './constants';
+import { GatewayRegistry } from './types';
+import { fetchEnsArweaveTxId } from './ens';
 
 /**
  * Fetch the filtered Gateway Address Registry (GAR) from storage.
@@ -25,8 +25,8 @@ import { fetchEnsArweaveTxId } from "./ens";
 export async function getGarForRouting(): Promise<GatewayRegistry> {
   const { localGatewayAddressRegistry = {}, blacklistedGateways = [] } =
     (await chrome.storage.local.get([
-      "localGatewayAddressRegistry",
-      "blacklistedGateways",
+      'localGatewayAddressRegistry',
+      'blacklistedGateways',
     ])) as {
       localGatewayAddressRegistry: GatewayRegistry;
       blacklistedGateways: string[];
@@ -36,8 +36,8 @@ export async function getGarForRouting(): Promise<GatewayRegistry> {
     Object.entries(localGatewayAddressRegistry).filter(
       ([gatewayAddress, gateway]) =>
         !blacklistedGateways.includes(gatewayAddress) &&
-        gateway.status === "joined"
-    )
+        gateway.status === 'joined',
+    ),
   );
 
   return Object.keys(filteredGar).length > 0 ? filteredGar : {};
@@ -47,12 +47,12 @@ export async function getGarForRouting(): Promise<GatewayRegistry> {
  * Selects a random gateway from the stored Gateway Address Registry.
  */
 export function selectRandomGateway(
-  gar: GatewayRegistry
+  gar: GatewayRegistry,
 ): AoGatewayWithAddress {
   const gateways = Object.values(gar);
 
   if (gateways.length === 0) {
-    console.warn("⚠️ No gateways found in GAR.");
+    console.warn('⚠️ No gateways found in GAR.');
     return selectHighestStakedGateway(gar);
   }
 
@@ -63,7 +63,7 @@ export function selectRandomGateway(
  * Select a weighted random gateway based on total stake (operator + delegated).
  */
 export function selectWeightedGateway(
-  gar: GatewayRegistry
+  gar: GatewayRegistry,
 ): AoGatewayWithAddress {
   const gateways = Object.values(gar);
 
@@ -73,7 +73,7 @@ export function selectWeightedGateway(
   const totalStake = gateways.reduce((sum, gw) => sum + getTotalStake(gw), 0);
 
   if (totalStake === 0) {
-    console.warn("⚠️ No gateways with stake available.");
+    console.warn('⚠️ No gateways with stake available.');
     return selectHighestStakedGateway(gar);
   }
 
@@ -85,7 +85,7 @@ export function selectWeightedGateway(
     }
   }
 
-  console.warn("⚠️ Unexpected failure in weighted selection.");
+  console.warn('⚠️ Unexpected failure in weighted selection.');
   return selectHighestStakedGateway(gar);
 }
 
@@ -93,12 +93,12 @@ export function selectWeightedGateway(
  * Select the highest-staked gateway from the stored GAR.
  */
 export function selectHighestStakedGateway(
-  gar: GatewayRegistry
+  gar: GatewayRegistry,
 ): AoGatewayWithAddress {
   const gateways = Object.values(gar);
 
   if (gateways.length === 0) {
-    console.warn("❌ No gateways available for fallback. Using default.");
+    console.warn('❌ No gateways available for fallback. Using default.');
     return DEFAULT_GATEWAY;
   }
 
@@ -106,7 +106,7 @@ export function selectHighestStakedGateway(
     current.operatorStake + current.totalDelegatedStake >
     prev.operatorStake + prev.totalDelegatedStake
       ? current
-      : prev
+      : prev,
   );
 }
 
@@ -114,19 +114,19 @@ export function selectHighestStakedGateway(
  * Selects a random gateway from the top five staked gateways.
  */
 export function selectRandomTopFiveStakedGateway(
-  gar: GatewayRegistry
+  gar: GatewayRegistry,
 ): AoGatewayWithAddress {
   const gateways = Object.values(gar)
     .sort(
       (a, b) =>
         b.operatorStake +
         b.totalDelegatedStake -
-        (a.operatorStake + a.totalDelegatedStake)
+        (a.operatorStake + a.totalDelegatedStake),
     )
     .slice(0, 5);
 
   if (gateways.length === 0) {
-    console.warn("⚠️ No top-staked gateways found.");
+    console.warn('⚠️ No top-staked gateways found.');
     return selectHighestStakedGateway(gar);
   }
 
@@ -146,7 +146,7 @@ export function selectRandomTopFiveStakedGateway(
  * @returns An array of gateways with computed scores.
  */
 export function computeOnChainGatewayScores(
-  gar: GatewayRegistry
+  gar: GatewayRegistry,
 ): { gateway: AoGatewayWithAddress; score: number }[] {
   const alpha = 0.5; // Stake weight (50%)
   const beta = 0.1; // Tenure weight (10%)
@@ -189,7 +189,7 @@ export function computeOnChainGatewayScores(
  * @returns The top 25 performing gateways based on their computed scores.
  */
 export function selectTopOnChainGateways(
-  gar: GatewayRegistry
+  gar: GatewayRegistry,
 ): AoGatewayWithAddress[] {
   const scoredGateways = computeOnChainGatewayScores(gar)
     .filter(({ score }) => score > 0)
@@ -207,24 +207,24 @@ export function selectTopOnChainGateways(
  * @returns A randomly selected on-chain weighted gateway.
  */
 export async function selectWeightedOnchainPerformanceGateway(
-  gar: GatewayRegistry
+  gar: GatewayRegistry,
 ): Promise<AoGatewayWithAddress> {
   const scoredGateways = computeOnChainGatewayScores(gar)
     .filter(({ score }) => score > 0)
     .sort((a, b) => b.score - a.score); // Sort in descending order
 
   if (scoredGateways.length === 0) {
-    console.warn("⚠️ No valid weighted gateways. Falling back.");
+    console.warn('⚠️ No valid weighted gateways. Falling back.');
     return selectHighestStakedGateway(gar);
   }
 
   // Debug log gateway score distribution (no normalization)
   console.log(
-    "🎯 Scored Gateway Selection Candidates:",
+    '🎯 Scored Gateway Selection Candidates:',
     scoredGateways.map((gw) => ({
       fqdn: gw.gateway.settings.fqdn,
       rawScore: gw.score.toFixed(2),
-    }))
+    })),
   );
 
   // Apply an exponential weight boost to favor top-performing gateways
@@ -236,11 +236,11 @@ export async function selectWeightedOnchainPerformanceGateway(
 
   // Debug log gateway score distribution (no normalization)
   console.log(
-    "🎯 Weighted Gateway Selection Candidates:",
+    '🎯 Weighted Gateway Selection Candidates:',
     weightedGateways.map((gw) => ({
       fqdn: gw.gateway.settings.fqdn,
       rawScore: gw.weight.toFixed(2),
-    }))
+    })),
   );
 
   // Compute the total weight (sum of all scores after transformation)
@@ -260,7 +260,7 @@ export async function selectWeightedOnchainPerformanceGateway(
   }
 
   // Fallback to highest-staked gateway (should never happen)
-  console.warn("⚠️ Weighted selection failed unexpectedly, falling back.");
+  console.warn('⚠️ Weighted selection failed unexpectedly, falling back.');
   return selectHighestStakedGateway(gar);
 }
 
@@ -278,16 +278,16 @@ export async function selectWeightedOnchainPerformanceGateway(
  * @returns A promise resolving to the best available gateway.
  */
 export async function selectOptimalGateway(
-  gar: GatewayRegistry
+  gar: GatewayRegistry,
 ): Promise<string> {
   if (!gar || Object.keys(gar).length === 0) {
-    console.warn("⚠️ GAR is empty. Falling back to highest-staked gateway.");
+    console.warn('⚠️ GAR is empty. Falling back to highest-staked gateway.');
     return `https://${selectHighestStakedGateway(gar).settings.fqdn}`;
   }
 
   // ✅ Fetch performance metrics from local storage
   const { gatewayPerformance, lastBenchmarkTime } =
-    await chrome.storage.local.get(["gatewayPerformance", "lastBenchmarkTime"]);
+    await chrome.storage.local.get(['gatewayPerformance', 'lastBenchmarkTime']);
 
   const now = Date.now();
   const CACHE_EXPIRY = 5 * 60 * 1000; // 🔥 Expire cached data after 5 minutes
@@ -295,7 +295,7 @@ export async function selectOptimalGateway(
   // ✅ 1️⃣ Select the **best on-chain gateways**
   const topGateways = selectTopOnChainGateways(gar).slice(
     0,
-    TOP_ONCHAIN_GATEWAY_LIMIT
+    TOP_ONCHAIN_GATEWAY_LIMIT,
   ); // 🔥 **Top 25 for selection**
 
   // ✅ 2️⃣ Filter out **unresponsive** gateways
@@ -319,7 +319,7 @@ export async function selectOptimalGateway(
 
   if (validGateways.length === 0) {
     console.warn(
-      "⚠️ All top-ranked gateways are failing. Running full benchmark..."
+      '⚠️ All top-ranked gateways are failing. Running full benchmark...',
     );
     backgroundGatewayBenchmarking();
     return `https://${selectHighestStakedGateway(gar).settings.fqdn}`;
@@ -336,18 +336,18 @@ export async function selectOptimalGateway(
     .filter(({ avgResponseTime }) => avgResponseTime < Infinity) // 🔥 Double check here
     .sort((a, b) => a.avgResponseTime - b.avgResponseTime);
 
-  console.log("📊 Ranked Gateway Candidates:", rankedGateways);
+  console.log('📊 Ranked Gateway Candidates:', rankedGateways);
 
   // ✅ 4️⃣ Use lowest-latency gateway **if response time is valid**
   for (const { fqdn, avgResponseTime } of rankedGateways) {
     if (avgResponseTime < 5000) {
       console.log(
-        `🚀 Using Best Performing Gateway: ${fqdn} (${avgResponseTime.toFixed(2)}ms)`
+        `🚀 Using Best Performing Gateway: ${fqdn} (${avgResponseTime.toFixed(2)}ms)`,
       );
 
       // 🔄 **Trigger background refresh if data is stale**
       if (!lastBenchmarkTime || now - lastBenchmarkTime >= CACHE_EXPIRY) {
-        console.log("🔄 Scheduling background benchmark refresh...");
+        console.log('🔄 Scheduling background benchmark refresh...');
         backgroundValidateCachedGateway();
       }
 
@@ -356,16 +356,16 @@ export async function selectOptimalGateway(
   }
 
   // ✅ 5️⃣ If no valid EMA exists, **run a quick validation ping**
-  console.warn("⚠️ No reliable EMA data. Running quick validation ping...");
+  console.warn('⚠️ No reliable EMA data. Running quick validation ping...');
   for (const { fqdn } of rankedGateways.slice(0, 3)) {
     const start = performance.now();
     try {
-      await fetch(`https://${fqdn}`, { method: "HEAD", mode: "no-cors" });
+      await fetch(`https://${fqdn}`, { method: 'HEAD', mode: 'no-cors' });
       const responseTime = performance.now() - start;
 
       if (responseTime < 2000) {
         console.log(
-          `✅ New Fast Gateway Selected: ${fqdn} (${responseTime.toFixed(2)}ms)`
+          `✅ New Fast Gateway Selected: ${fqdn} (${responseTime.toFixed(2)}ms)`,
         );
         await chrome.storage.local.set({ lastBenchmarkTime: now });
         return `https://${fqdn}`;
@@ -376,12 +376,12 @@ export async function selectOptimalGateway(
   }
 
   // ✅ 6️⃣ If **all fail**, trigger **full benchmark** asynchronously
-  console.warn("⚠️ No fast gateways found. Running full benchmark...");
+  console.warn('⚠️ No fast gateways found. Running full benchmark...');
   backgroundGatewayBenchmarking();
 
   // ✅ 7️⃣ Use **fallback best on-chain weighted gateway**
   console.warn(
-    "⚠️ No real-time fast gateway found. Falling back to on-chain weighted gateway."
+    '⚠️ No real-time fast gateway found. Falling back to on-chain weighted gateway.',
   );
   const fallbackGateway = await selectWeightedOnchainPerformanceGateway(gar);
   return `https://${fallbackGateway.settings.fqdn}`;
@@ -393,7 +393,7 @@ export async function selectOptimalGateway(
  * @returns A promise that resolves to the Arweave transaction ID or null if not found.
  */
 export async function lookupArweaveTxIdForDomain(
-  domain: string
+  domain: string,
 ): Promise<string | null> {
   const cacheKey = `dnsCache_${domain}`;
 
@@ -414,7 +414,7 @@ export async function lookupArweaveTxIdForDomain(
     }
 
     // Perform DNS lookup
-    console.log("Checking DNS TXT record for:", domain);
+    console.log('Checking DNS TXT record for:', domain);
     const response = await fetch(`${DNS_LOOKUP_API}?name=${domain}&type=TXT`);
 
     if (!response.ok) {
@@ -442,7 +442,7 @@ export async function lookupArweaveTxIdForDomain(
 
     return null;
   } catch (error) {
-    console.error("❌ Failed to lookup DNS TXT records:", error);
+    console.error('❌ Failed to lookup DNS TXT records:', error);
     return null;
   }
 }
@@ -456,13 +456,13 @@ export async function getGatewayForRouting(): Promise<AoGatewayWithAddress> {
     routingMethod = OPTIMAL_GATEWAY_ROUTE_METHOD,
     lastGatewayBenchmark = 0, // Default to 0 if not set
   } = await chrome.storage.local.get([
-    "staticGateway",
-    "routingMethod",
-    "lastGatewayBenchmark",
+    'staticGateway',
+    'routingMethod',
+    'lastGatewayBenchmark',
   ]);
 
   if (staticGateway) {
-    console.log("🚀 Using Static Gateway:", staticGateway.settings.fqdn);
+    console.log('🚀 Using Static Gateway:', staticGateway.settings.fqdn);
     return staticGateway;
   }
 
@@ -474,7 +474,7 @@ export async function getGatewayForRouting(): Promise<AoGatewayWithAddress> {
   const TEN_MINUTES = 10 * 60 * 1000;
 
   if (now - lastGatewayBenchmark > TEN_MINUTES) {
-    console.log("🔄 Running background benchmark in parallel...");
+    console.log('🔄 Running background benchmark in parallel...');
     backgroundGatewayBenchmarking(); // Run in parallel
     await chrome.storage.local.set({ lastGatewayBenchmark: now });
   }
@@ -493,24 +493,24 @@ export async function getGatewayForRouting(): Promise<AoGatewayWithAddress> {
       gateway = selectHighestStakedGateway(filteredGar);
       break;
     case WEIGHTED_ONCHAIN_PERFORMANCE_ROUTE_METHOD:
-      console.log("⛓️ Using Select Weighted Onchain Performance Gateway...");
+      console.log('⛓️ Using Select Weighted Onchain Performance Gateway...');
       gateway = await selectWeightedOnchainPerformanceGateway(filteredGar);
       break;
     case OPTIMAL_GATEWAY_ROUTE_METHOD:
-      console.log("🚀 Using Select Optimal Gateway Method...");
+      console.log('🚀 Using Select Optimal Gateway Method...');
       try {
         const bestGatewayFQDN = await selectOptimalGateway(filteredGar);
         gateway =
           Object.values(filteredGar).find(
-            (g) => g.settings.fqdn === bestGatewayFQDN.replace("https://", "")
+            (g) => g.settings.fqdn === bestGatewayFQDN.replace('https://', ''),
           ) || null;
       } catch (error) {
-        console.error("❌ Error selecting optimal gateway:", error);
+        console.error('❌ Error selecting optimal gateway:', error);
       }
       break;
     default:
       console.warn(
-        `⚠️ Unknown routing method: ${routingMethod}, defaulting to RANDOM_ROUTE_METHOD.`
+        `⚠️ Unknown routing method: ${routingMethod}, defaulting to RANDOM_ROUTE_METHOD.`,
       );
       gateway = selectRandomGateway(filteredGar);
       break;
@@ -518,13 +518,13 @@ export async function getGatewayForRouting(): Promise<AoGatewayWithAddress> {
 
   if (!gateway) {
     console.error(
-      "❌ No valid gateway found. Falling back to highest-staked gateway."
+      '❌ No valid gateway found. Falling back to highest-staked gateway.',
     );
     gateway = selectHighestStakedGateway(filteredGar);
   }
 
   if (!gateway) {
-    throw new Error("🚨 No viable gateway found.");
+    throw new Error('🚨 No viable gateway found.');
   }
 
   return gateway;
@@ -549,14 +549,14 @@ export async function getRoutableGatewayUrl(arUrl: string): Promise<{
   selectedGateway: AoGatewayWithAddress;
 }> {
   try {
-    if (!arUrl.startsWith("ar://")) {
+    if (!arUrl.startsWith('ar://')) {
       throw new Error(`Invalid ar:// URL format: ${arUrl}`);
     }
 
-    const arUrlParts = arUrl.slice(5).split("/");
+    const arUrlParts = arUrl.slice(5).split('/');
     const baseName = arUrlParts[0]; // Can be a TX ID, ArNS name, or ENS name
     const path =
-      arUrlParts.length > 1 ? "/" + arUrlParts.slice(1).join("/") : "";
+      arUrlParts.length > 1 ? '/' + arUrlParts.slice(1).join('/') : '';
 
     // Select the best gateway based on routing method
     const selectedGateway = await getGatewayForRouting();
@@ -565,46 +565,46 @@ export async function getRoutableGatewayUrl(arUrl: string): Promise<{
     const gatewayFQDN = selectedGateway.settings.fqdn;
     const gatewayProtocol = selectedGateway.settings.protocol;
     const gatewayPort = selectedGateway.settings.port || null;
-    const gatewayAddress = selectedGateway.gatewayAddress || "UNKNOWN";
+    const gatewayAddress = selectedGateway.gatewayAddress || 'UNKNOWN';
 
     let redirectTo: string;
 
     const storedSettings = await chrome.storage.local.get([
-      "ensResolutionEnabled",
+      'ensResolutionEnabled',
     ]);
     const ensResolutionEnabled = storedSettings.ensResolutionEnabled ?? false;
 
     if (/^[a-z0-9_-]{43}$/i.test(baseName)) {
       // ✅ Case 1: Arweave Transaction ID
-      redirectTo = `${gatewayProtocol}://${gatewayFQDN}${gatewayPort ? `:${gatewayPort}` : ""}/${baseName}${path}`;
-    } else if (baseName.endsWith(".eth") && ensResolutionEnabled) {
+      redirectTo = `${gatewayProtocol}://${gatewayFQDN}${gatewayPort ? `:${gatewayPort}` : ''}/${baseName}${path}`;
+    } else if (baseName.endsWith('.eth') && ensResolutionEnabled) {
       // ✅ Case 2: ENS Name Resolution
       console.log(`🔍 Resolving ENS name: ${baseName}`);
 
       const txId = await fetchEnsArweaveTxId(baseName);
       if (txId) {
-        redirectTo = `${gatewayProtocol}://${gatewayFQDN}${gatewayPort ? `:${gatewayPort}` : ""}/${txId}${path}`;
+        redirectTo = `${gatewayProtocol}://${gatewayFQDN}${gatewayPort ? `:${gatewayPort}` : ''}/${txId}${path}`;
       } else {
         throw new Error(
-          `❌ ENS name ${baseName} does not have an Arweave TX ID.`
+          `❌ ENS name ${baseName} does not have an Arweave TX ID.`,
         );
       }
-    } else if (baseName.includes(".")) {
+    } else if (baseName.includes('.')) {
       // ✅ Case 3: Arweave Domain (ArNS Resolution)
       console.log(`🔍 Resolving Gasless ArNS domain: ${baseName}`);
 
       const txId = await lookupArweaveTxIdForDomain(baseName);
       if (txId) {
-        redirectTo = `${gatewayProtocol}://${gatewayFQDN}${gatewayPort ? `:${gatewayPort}` : ""}/${txId}${path}`;
+        redirectTo = `${gatewayProtocol}://${gatewayFQDN}${gatewayPort ? `:${gatewayPort}` : ''}/${txId}${path}`;
       } else {
         console.warn(
-          `⚠️ No transaction ID found for domain: ${baseName}. Falling back to root gateway domain access.`
+          `⚠️ No transaction ID found for domain: ${baseName}. Falling back to root gateway domain access.`,
         );
-        redirectTo = `${gatewayProtocol}://${gatewayFQDN}${gatewayPort ? `:${gatewayPort}` : ""}${path}`;
+        redirectTo = `${gatewayProtocol}://${gatewayFQDN}${gatewayPort ? `:${gatewayPort}` : ''}${path}`;
       }
     } else {
       // ✅ Case 4: ArNS Name (Subdomain Resolution)
-      redirectTo = `${gatewayProtocol}://${baseName}.${gatewayFQDN}${gatewayPort ? `:${gatewayPort}` : ""}${path}`;
+      redirectTo = `${gatewayProtocol}://${baseName}.${gatewayFQDN}${gatewayPort ? `:${gatewayPort}` : ''}${path}`;
     }
 
     return {
@@ -616,12 +616,12 @@ export async function getRoutableGatewayUrl(arUrl: string): Promise<{
       selectedGateway,
     };
   } catch (error) {
-    console.error("🚨 Error in getRoutableGatewayUrl:", error);
+    console.error('🚨 Error in getRoutableGatewayUrl:', error);
 
     // Attempt to use highest-staked gateway as a last resort
     const fallbackGateway = DEFAULT_GATEWAY;
     if (!fallbackGateway) {
-      throw new Error("❌ No viable gateway even for fallback.");
+      throw new Error('❌ No viable gateway even for fallback.');
     }
 
     return {
@@ -629,7 +629,7 @@ export async function getRoutableGatewayUrl(arUrl: string): Promise<{
       gatewayFQDN: fallbackGateway.settings.fqdn,
       gatewayProtocol: fallbackGateway.settings.protocol,
       gatewayPort: fallbackGateway.settings.port || null,
-      gatewayAddress: fallbackGateway.gatewayAddress || "UNKNOWN",
+      gatewayAddress: fallbackGateway.gatewayAddress || 'UNKNOWN',
       selectedGateway: fallbackGateway,
     };
   }

@@ -81,8 +81,6 @@ describe('RoundRobinRoutingStrategy', () => {
       'Should use the internal list even when a different list is provided',
     );
 
-    
-    
     const selection2 = await strategy.selectGateway({
       gateways: newGateways,
     });
@@ -95,7 +93,7 @@ describe('RoundRobinRoutingStrategy', () => {
 
   it('handles a single gateway by returning it repeatedly', async () => {
     const gateways = [new URL('https://example1.com')];
-    const strategy = new RoundRobinRoutingStrategy({ 
+    const strategy = new RoundRobinRoutingStrategy({
       gateways,
     });
 

@@ -70,11 +70,11 @@ export async function hashDataStreamToB64Url({
 
     const hash = createHash(algorithm);
     let bytesProcessed = 0;
-    
+
     for await (const chunk of asyncIterable) {
       hash.update(chunk);
       bytesProcessed += chunk.length;
-      
+
       // Log progress occasionally (every ~1MB)
       if (bytesProcessed % (1024 * 1024) < chunk.length) {
         logger.debug('Hashing progress', {
@@ -83,14 +83,14 @@ export async function hashDataStreamToB64Url({
         });
       }
     }
-    
+
     const hashResult = toB64Url(new Uint8Array(hash.digest()));
     logger.debug('Finished hashing data stream', {
       bytesProcessed,
       algorithm,
       hashResult,
     });
-    
+
     return hashResult;
   } catch (error: any) {
     logger.error('Error hashing data stream', {

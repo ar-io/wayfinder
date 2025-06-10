@@ -15,10 +15,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import {
-  DataDigestProvider,
-  DataRootProvider,
-} from '../../types/wayfinder.js';
+import { DataDigestProvider, DataRootProvider } from '../../types/wayfinder.js';
 import { sandboxFromId } from '../wayfinder.js';
 
 const arioGatewayHeaders = {
@@ -56,49 +53,51 @@ export class TrustedGatewaysProvider
     const hashSet = new Set();
     const hashResults: { gateway: string; txIdHash: string }[] = [];
     const hashes = await Promise.all(
-      this.trustedGateways.map(async (gateway: URL): Promise<string | undefined> => {
-        const sandbox = sandboxFromId(txId);
-        const urlWithSandbox = `${gateway.protocol}//${sandbox}.${gateway.hostname}/${txId}`;
-        let txIdHash: string | undefined;
-        /**
-         * This is a problem because we're not able to verify the hash of the data item if the gateway doesn't have the data in its cache. We start with a HEAD request, if it fails, we do a GET request to hydrate the cache and then a HEAD request again to get the cached digest.
-         */
-        for (const method of ['HEAD', 'GET', 'HEAD']) {
-          const response = await fetch(urlWithSandbox, {
-            method,
-            redirect: 'follow',
-            mode: 'cors',
-            headers: {
-              'Cache-Control': 'no-cache',
-            },
+      this.trustedGateways.map(
+        async (gateway: URL): Promise<string | undefined> => {
+          const sandbox = sandboxFromId(txId);
+          const urlWithSandbox = `${gateway.protocol}//${sandbox}.${gateway.hostname}/${txId}`;
+          let txIdHash: string | undefined;
+          /**
+           * This is a problem because we're not able to verify the hash of the data item if the gateway doesn't have the data in its cache. We start with a HEAD request, if it fails, we do a GET request to hydrate the cache and then a HEAD request again to get the cached digest.
+           */
+          for (const method of ['HEAD', 'GET', 'HEAD']) {
+            const response = await fetch(urlWithSandbox, {
+              method,
+              redirect: 'follow',
+              mode: 'cors',
+              headers: {
+                'Cache-Control': 'no-cache',
+              },
+            });
+            if (!response.ok) {
+              // skip if the request failed or the digest is not present
+              return;
+            }
+
+            const fetchedTxIdHash = response.headers.get(
+              arioGatewayHeaders.digest,
+            );
+
+            if (fetchedTxIdHash !== null && fetchedTxIdHash !== undefined) {
+              txIdHash = fetchedTxIdHash;
+              break;
+            }
+          }
+
+          if (txIdHash === undefined) {
+            // skip this gateway if we didn't get a hash
+            return undefined;
+          }
+
+          hashResults.push({
+            gateway: gateway.hostname,
+            txIdHash,
           });
-          if (!response.ok) {
-            // skip if the request failed or the digest is not present
-            return;
-          }
 
-          const fetchedTxIdHash = response.headers.get(
-            arioGatewayHeaders.digest,
-          );
-
-          if (fetchedTxIdHash !== null && fetchedTxIdHash !== undefined) {
-            txIdHash = fetchedTxIdHash;
-            break;
-          }
-        }
-
-        if (txIdHash === undefined) {
-          // skip this gateway if we didn't get a hash
-          return undefined;
-        }
-
-        hashResults.push({
-          gateway: gateway.hostname,
-          txIdHash,
-        });
-
-        return txIdHash;
-      }),
+          return txIdHash;
+        },
+      ),
     );
 
     for (const hash of hashes) {

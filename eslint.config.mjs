@@ -29,35 +29,35 @@ const __dirname = path.dirname(__filename);
 // workaround: https://github.com/Stuk/eslint-plugin-header/issues/57#issuecomment-2378485611
 header.rules.header.meta.schema = false;
 const compat = new FlatCompat({
-	baseDirectory: __dirname,
-	recommendedConfig: js.configs.recommended,
-	allConfig: js.configs.all,
+  baseDirectory: __dirname,
+  recommendedConfig: js.configs.recommended,
+  allConfig: js.configs.all,
 });
 
 export default [
-	{
-		files: ['**/*.ts', '**/*.tsx'],
-		...compat.extends(
-			'eslint:recommended',
-			'plugin:@typescript-eslint/eslint-recommended',
-			'plugin:@typescript-eslint/recommended',
-		),
-		plugins: {
-			'@typescript-eslint': typescriptEslint,
-			header,
-		},
-		languageOptions: {
-			parser: tsParser,
-			ecmaVersion: 2022,
-			sourceType: 'module',
-			parserOptions: {
-				project: './tsconfig.json',
-			},
-		},
-		rules: {
-			'@typescript-eslint/no-explicit-any': ['off'],
-			eqeqeq: ['error', 'smart'],
-			'header/header': [2, './resources/license.header.mjs'],
-		},
-	},
+  {
+    files: ['**/*.ts', '**/*.tsx'],
+    ...compat.extends(
+      'eslint:recommended',
+      'plugin:@typescript-eslint/eslint-recommended',
+      'plugin:@typescript-eslint/recommended',
+    ),
+    plugins: {
+      '@typescript-eslint': typescriptEslint,
+      header,
+    },
+    languageOptions: {
+      parser: tsParser,
+      ecmaVersion: 2022,
+      sourceType: 'module',
+      parserOptions: {
+        project: './tsconfig.json',
+      },
+    },
+    rules: {
+      '@typescript-eslint/no-explicit-any': ['off'],
+      eqeqeq: ['error', 'smart'],
+      'header/header': [2, './resources/license.header.mjs'],
+    },
+  },
 ];

@@ -44,11 +44,14 @@ export class FastestPingRoutingStrategy implements RoutingStrategy {
       throw error;
     }
 
-    this.logger.debug(`Pinging ${gateways.length} gateways with timeout ${this.timeoutMs}ms`, {
-      gateways: gateways.map(g => g.toString()),
-      timeoutMs: this.timeoutMs,
-      probePath: this.probePath,
-    });
+    this.logger.debug(
+      `Pinging ${gateways.length} gateways with timeout ${this.timeoutMs}ms`,
+      {
+        gateways: gateways.map((g) => g.toString()),
+        timeoutMs: this.timeoutMs,
+        probePath: this.probePath,
+      },
+    );
 
     try {
       const results = await Promise.allSettled(
@@ -56,26 +59,29 @@ export class FastestPingRoutingStrategy implements RoutingStrategy {
           try {
             const startTime = Date.now();
             const pingUrl = `${gateway.toString().replace(/\/$/, '')}${this.probePath}`;
-            
+
             this.logger.debug(`Pinging gateway ${gateway.toString()}`, {
               gateway: gateway.toString(),
               pingUrl,
             });
-            
+
             const response = await fetch(pingUrl, {
               method: 'HEAD',
               signal: AbortSignal.timeout(this.timeoutMs),
             });
-            
+
             const endTime = Date.now();
             const durationMs = endTime - startTime;
-            
-            this.logger.debug(`Received response from gateway ${gateway.toString()}`, {
-              gateway: gateway.toString(),
-              status: response.status,
-              durationMs,
-            });
-            
+
+            this.logger.debug(
+              `Received response from gateway ${gateway.toString()}`,
+              {
+                gateway: gateway.toString(),
+                status: response.status,
+                durationMs,
+              },
+            );
+
             return {
               gateway,
               status: response.status,
@@ -88,7 +94,7 @@ export class FastestPingRoutingStrategy implements RoutingStrategy {
               gateway: gateway.toString(),
               error,
             });
-            
+
             return {
               gateway,
               status: 'rejected',
@@ -119,7 +125,7 @@ export class FastestPingRoutingStrategy implements RoutingStrategy {
         .sort((a, b) => a.durationMs - b.durationMs);
 
       this.logger.debug(`Found ${healthyGateways.length} healthy gateways`, {
-        healthyGateways: healthyGateways.map(g => ({
+        healthyGateways: healthyGateways.map((g) => ({
           gateway: g.gateway.toString(),
           durationMs: g.durationMs,
         })),
@@ -127,32 +133,36 @@ export class FastestPingRoutingStrategy implements RoutingStrategy {
 
       if (healthyGateways.length > 0) {
         const selectedGateway = healthyGateways[0].gateway;
-        
-        this.logger.info(`Selected fastest gateway: ${selectedGateway.toString()}`, {
-          gateway: selectedGateway.toString(),
-          durationMs: healthyGateways[0].durationMs,
-        });
-        
+
+        this.logger.info(
+          `Selected fastest gateway: ${selectedGateway.toString()}`,
+          {
+            gateway: selectedGateway.toString(),
+            durationMs: healthyGateways[0].durationMs,
+          },
+        );
+
         return selectedGateway;
       }
 
       const noHealthyGatewaysError = new Error('No healthy gateways found');
-      this.logger.error('Failed to select gateway', { 
+      this.logger.error('Failed to select gateway', {
         error: noHealthyGatewaysError.message,
-        results: processedResults.map(r => ({
+        results: processedResults.map((r) => ({
           gateway: r.gateway.toString(),
           status: r.status,
           error: r.error,
         })),
       });
-      
+
       throw noHealthyGatewaysError;
     } catch (error) {
-      const errorMessage = 'Failed to ping gateways: ' +
+      const errorMessage =
+        'Failed to ping gateways: ' +
         (error instanceof Error ? error.message : String(error));
-      
+
       this.logger.error('Failed to select gateway', { error: errorMessage });
-      
+
       throw new Error(errorMessage);
     }
   }

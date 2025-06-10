@@ -29,7 +29,10 @@ export interface DataVerificationStrategy {
 }
 
 export interface DataDigestProvider {
-  getDigest(params: { txId: string }): Promise<{ hash: string; algorithm: string }>;
+  getDigest(params: { txId: string }): Promise<{
+    hash: string;
+    algorithm: string;
+  }>;
 }
 
 export interface DataRootProvider {

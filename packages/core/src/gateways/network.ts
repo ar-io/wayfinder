@@ -55,17 +55,17 @@ export class NetworkGatewaysProvider implements GatewaysProvider {
     let cursor: string | undefined;
     let attempts = 0;
     const gateways: any[] = [];
-    
+
     this.logger.debug('Starting to fetch gateways from AR.IO network', {
       sortBy: this.sortBy,
       sortOrder: this.sortOrder,
       limit: this.limit,
     });
-    
+
     do {
       try {
         this.logger.debug('Fetching gateways batch', { cursor, attempts });
-        
+
         const { items: newGateways = [], nextCursor } =
           await this.ario.getGateways({
             limit: 1000,
@@ -73,15 +73,15 @@ export class NetworkGatewaysProvider implements GatewaysProvider {
             sortBy: this.sortBy,
             sortOrder: this.sortOrder,
           });
-          
+
         gateways.push(...newGateways);
         cursor = nextCursor;
         attempts = 0; // reset attempts if we get a new cursor
-        
-        this.logger.debug('Fetched gateways batch', { 
-          batchSize: newGateways.length, 
+
+        this.logger.debug('Fetched gateways batch', {
+          batchSize: newGateways.length,
           totalFetched: gateways.length,
-          nextCursor: cursor
+          nextCursor: cursor,
         });
       } catch (error: any) {
         this.logger.error('Error fetching gateways', {
@@ -93,15 +93,15 @@ export class NetworkGatewaysProvider implements GatewaysProvider {
         attempts++;
       }
     } while (cursor !== undefined && attempts < 3);
-    
+
     // filter out any gateways that are not joined
     const filteredGateways = gateways.filter(this.filter).slice(0, this.limit);
-    
+
     this.logger.debug('Finished fetching gateways', {
       totalFetched: gateways.length,
       filteredCount: filteredGateways.length,
     });
-    
+
     return filteredGateways.map(
       (g) =>
         new URL(

@@ -74,7 +74,7 @@ describe('StaticRoutingStrategy', () => {
   it('logs a warning when gateways are provided', async () => {
     const staticGateway = 'https://static-example.com/';
     const testLogger = new TestLogger();
-    
+
     const strategy = new StaticRoutingStrategy({
       gateway: staticGateway,
       logger: testLogger,
@@ -84,9 +84,9 @@ describe('StaticRoutingStrategy', () => {
       new URL('https://example1.com'),
       new URL('https://example2.com'),
     ];
-    
+
     await strategy.selectGateway({ gateways: providedGateways });
-    
+
     // Verify that a warning was logged
     assert.equal(testLogger.logs.length, 1);
     assert.equal(testLogger.logs[0].level, 'warn');
@@ -99,16 +99,17 @@ describe('StaticRoutingStrategy', () => {
 
   it('throws an error when an invalid URL is provided', () => {
     const testLogger = new TestLogger();
-    
+
     assert.throws(
-      () => new StaticRoutingStrategy({ 
-        gateway: 'not-a-valid-url',
-        logger: testLogger,
-      }),
+      () =>
+        new StaticRoutingStrategy({
+          gateway: 'not-a-valid-url',
+          logger: testLogger,
+        }),
       /Invalid URL/,
       'Should throw an error when an invalid URL is provided',
     );
-    
+
     // Verify that an error was logged
     assert.equal(testLogger.logs.length, 1);
     assert.equal(testLogger.logs[0].level, 'error');

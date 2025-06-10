@@ -15,9 +15,9 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { defineConfig } from "vite";
-import { nodePolyfills } from "vite-plugin-node-polyfills";
-import { viteStaticCopy } from "vite-plugin-static-copy";
+import { defineConfig } from 'vite';
+import { nodePolyfills } from 'vite-plugin-node-polyfills';
+import { viteStaticCopy } from 'vite-plugin-static-copy';
 
 export default defineConfig({
   plugins: [
@@ -31,39 +31,39 @@ export default defineConfig({
     viteStaticCopy({
       targets: [
         {
-          src: "src/popup.html",
-          dest: ".",
+          src: 'src/popup.html',
+          dest: '.',
         },
 
         {
-          src: "manifest.json",
-          dest: ".",
+          src: 'manifest.json',
+          dest: '.',
         },
         {
-          src: "assets",
-          dest: "",
+          src: 'assets',
+          dest: '',
         },
         {
-          src: "package.json",
-          dest: ".",
+          src: 'package.json',
+          dest: '.',
         },
       ],
     }),
   ],
   build: {
     sourcemap: true,
-    outDir: "dist",
+    outDir: 'dist',
     emptyOutDir: true,
     rollupOptions: {
       input: {
-        background: "./src/background.ts",
-        content: "./src/content.ts",
-        popup: "./src/popup.ts",
+        background: './src/background.ts',
+        content: './src/content.ts',
+        popup: './src/popup.ts',
       },
       output: {
-        entryFileNames: "[name].js",
-        chunkFileNames: "[name].js",
-        assetFileNames: "[name].[ext]",
+        entryFileNames: '[name].js',
+        chunkFileNames: '[name].js',
+        assetFileNames: '[name].[ext]',
       },
     },
   },

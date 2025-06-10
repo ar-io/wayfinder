@@ -39,7 +39,7 @@ function base64urlToBase64(str: string): string {
 export function fromB64Url(str: string): Uint8Array {
   const b64Str = base64urlToBase64(str);
   const binaryStr = atob(b64Str);
-  return new Uint8Array([...binaryStr].map(c => c.charCodeAt(0)));
+  return new Uint8Array([...binaryStr].map((c) => c.charCodeAt(0)));
 }
 
 export function toB64Url(bytes: Uint8Array): string {
@@ -57,6 +57,3 @@ function base64urlFromBase64(str: string) {
 export function sha256B64Url(input: Uint8Array): string {
   return toB64Url(new Uint8Array(createHash('sha256').update(input).digest()));
 }
-
-
-

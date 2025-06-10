@@ -1,20 +1,20 @@
-import { AoGatewayWithAddress } from "@ar.io/sdk";
-import { getGarForRouting, selectTopOnChainGateways } from "./routing";
-import { TOP_ONCHAIN_GATEWAY_LIMIT, MAX_HISTORY_ITEMS } from "./constants";
+import { AoGatewayWithAddress } from '@ar.io/sdk';
+import { getGarForRouting, selectTopOnChainGateways } from './routing';
+import { TOP_ONCHAIN_GATEWAY_LIMIT, MAX_HISTORY_ITEMS } from './constants';
 
 export async function backgroundGatewayBenchmarking() {
   console.log(
-    `📡 Running Gateway benchmark against top ${TOP_ONCHAIN_GATEWAY_LIMIT} gateways...`
+    `📡 Running Gateway benchmark against top ${TOP_ONCHAIN_GATEWAY_LIMIT} gateways...`,
   );
 
   const gar = await getGarForRouting();
   const topGateways = selectTopOnChainGateways(gar).slice(
     0,
-    TOP_ONCHAIN_GATEWAY_LIMIT
+    TOP_ONCHAIN_GATEWAY_LIMIT,
   ); // ✅ Limit to **Top 25**, avoid over-pinging
 
   if (topGateways.length === 0) {
-    console.warn("⚠️ No top-performing gateways available.");
+    console.warn('⚠️ No top-performing gateways available.');
     return;
   }
 
@@ -25,20 +25,20 @@ export async function backgroundGatewayBenchmarking() {
       const startTime = performance.now(); // ✅ Correctly record start time
 
       try {
-        await fetch(`https://${fqdn}`, { method: "HEAD", mode: "no-cors" });
+        await fetch(`https://${fqdn}`, { method: 'HEAD', mode: 'no-cors' });
         updateGatewayPerformance(fqdn, startTime); // ✅ Pass the original start time
         return { fqdn, responseTime: performance.now() - startTime };
       } catch {
         updateGatewayPerformance(fqdn, startTime); // ❌ Still pass `startTime`, not 0
         return { fqdn, responseTime: Infinity };
       }
-    })
+    }),
   );
 
   // 🔥 Update last benchmark timestamp
   await chrome.storage.local.set({ lastBenchmarkTime: now });
 
-  console.log("✅ Gateway benchmark completed and metrics updated.");
+  console.log('✅ Gateway benchmark completed and metrics updated.');
 }
 
 /**
@@ -46,7 +46,7 @@ export async function backgroundGatewayBenchmarking() {
  * - If they are too slow, marks them as stale.
  */
 export async function backgroundValidateCachedGateway() {
-  console.log("📡 Running lightweight background gateway validation...");
+  console.log('📡 Running lightweight background gateway validation...');
 
   const gar = await getGarForRouting();
   const topGateways = selectTopOnChainGateways(gar).slice(0, 5); // 🔥 Validate top **5** gateways
@@ -57,7 +57,7 @@ export async function backgroundValidateCachedGateway() {
       const fqdn = gateway.settings.fqdn;
       const start = performance.now();
       try {
-        await fetch(`https://${fqdn}`, { method: "HEAD", mode: "no-cors" });
+        await fetch(`https://${fqdn}`, { method: 'HEAD', mode: 'no-cors' });
         const responseTime = performance.now() - start;
 
         updateGatewayPerformance(fqdn, responseTime); // ✅ Update EMA
@@ -67,7 +67,7 @@ export async function backgroundValidateCachedGateway() {
         updateGatewayPerformance(fqdn, 0); // ❌ Register failure
         return { fqdn, responseTime: Infinity };
       }
-    })
+    }),
   );
 
   // 🔄 If all fail, schedule a **full benchmark** instead
@@ -75,11 +75,11 @@ export async function backgroundValidateCachedGateway() {
     pingResults.every((res) => (res as any).value?.responseTime === Infinity)
   ) {
     console.warn(
-      "⚠️ Background validation failed. Scheduling full benchmark..."
+      '⚠️ Background validation failed. Scheduling full benchmark...',
     );
     await backgroundGatewayBenchmarking();
   } else {
-    console.log("✅ Background validation completed.");
+    console.log('✅ Background validation completed.');
   }
 
   // 🔥 Update last validation timestamp
@@ -93,11 +93,11 @@ export async function isKnownGateway(fqdn: string): Promise<boolean> {
   const normalizedFQDN = await normalizeGatewayFQDN(fqdn);
 
   const { localGatewayAddressRegistry = {} } = await chrome.storage.local.get([
-    "localGatewayAddressRegistry",
+    'localGatewayAddressRegistry',
   ]);
 
   return Object.values(localGatewayAddressRegistry).some(
-    (gw: any) => gw.settings.fqdn === normalizedFQDN
+    (gw: any) => gw.settings.fqdn === normalizedFQDN,
   );
 }
 
@@ -106,13 +106,13 @@ export async function isKnownGateway(fqdn: string): Promise<boolean> {
  */
 export async function updateGatewayPerformance(
   rawFQDN: string, // The full hostname from the request
-  startTime: number
+  startTime: number,
 ) {
   const gatewayFQDN = await normalizeGatewayFQDN(rawFQDN); // ✅ Normalize before storage
   const responseTime = Math.max(0, performance.now() - startTime); // Prevent negatives
 
   // Ensure performance storage is initialized
-  const storage = await chrome.storage.local.get(["gatewayPerformance"]);
+  const storage = await chrome.storage.local.get(['gatewayPerformance']);
   let gatewayPerformance = storage.gatewayPerformance || {};
 
   // Ensure the gateway entry exists
@@ -151,11 +151,11 @@ export async function updateGatewayPerformance(
  */
 export async function normalizeGatewayFQDN(fqdn: string): Promise<string> {
   const { localGatewayAddressRegistry = {} } = await chrome.storage.local.get([
-    "localGatewayAddressRegistry",
+    'localGatewayAddressRegistry',
   ]);
 
   const knownGateways = Object.values(localGatewayAddressRegistry).map(
-    (gw: any) => gw.settings.fqdn
+    (gw: any) => gw.settings.fqdn,
   );
 
   // ✅ Direct match (e.g., `arweave.net`)
@@ -181,9 +181,9 @@ export async function normalizeGatewayFQDN(fqdn: string): Promise<string> {
 export function saveToHistory(
   url: string,
   resolvedId: string,
-  timestamp: string
+  timestamp: string,
 ) {
-  chrome.storage.local.get("history", (data) => {
+  chrome.storage.local.get('history', (data) => {
     let history = data.history || [];
     history.unshift({ url, resolvedId, timestamp });
     history = history.slice(0, MAX_HISTORY_ITEMS);
@@ -193,6 +193,6 @@ export function saveToHistory(
 
 export function isBase64URL(address: string): boolean {
   const trimmedBase64URL = address.toString().trim();
-  const BASE_64_REXEX = new RegExp("^[a-zA-Z0-9-_s+]{43}$");
+  const BASE_64_REXEX = new RegExp('^[a-zA-Z0-9-_s+]{43}$');
   return BASE_64_REXEX.test(trimmedBase64URL);
 }

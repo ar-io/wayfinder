@@ -4,9 +4,7 @@ body {
   color: #e0e0e0;
   padding: 20px;
   width: 325px;
-  max-height: calc(
-    100vh - 40px
-  ); /* 100vh is the full viewport height. We subtract some pixels to give a little room. */
+  max-height: calc(100vh - 40px); /* 100vh is the full viewport height. We subtract some pixels to give a little room. */
   overflow: hidden;
   margin: 1px;
 }
@@ -47,9 +45,7 @@ button {
   text-align: center;
   font-size: 14px;
   cursor: pointer;
-  transition:
-    background-color 0.3s,
-    color 0.3s;
+  transition: background-color 0.3s, color 0.3s;
   border-radius: 4px;
   margin-bottom: 6px;
 }
@@ -151,16 +147,15 @@ button:hover {
 }
 
 #gatewayList {
-  transition:
-    opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-    transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s
+    cubic-bezier(0.4, 0, 0.2, 1);
   transform: translateY(0);
   opacity: 1;
   max-height: 365px; /* The subtracted value here depends on the combined height of your other elements (like headers, paragraphs, buttons). You might need to adjust this value to fit your content perfectly. */
   overflow-y: auto;
   margin-bottom: 20px; /* Adjust value as necessary */
   border-radius: 5px;
-  margin-top: 6px
+  margin-top: 6px;
 }
 
 .gatewayListHeader {
@@ -261,9 +256,8 @@ button:hover {
 }
 
 #historyList {
-  transition:
-    opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-    transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s
+    cubic-bezier(0.4, 0, 0.2, 1);
   transform: translateY(0);
   opacity: 1;
   max-height: 310px; /* The subtracted value here depends on the combined height of your other elements (like headers, paragraphs, buttons). You might need to adjust this value to fit your content perfectly. */
@@ -271,9 +265,8 @@ button:hover {
   margin-bottom: 20px; /* Adjust value as necessary */
 }
 #aboutSection {
-  transition:
-    opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-    transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s
+    cubic-bezier(0.4, 0, 0.2, 1);
   transform: translateY(0);
   opacity: 1;
   max-height: 400px; /* You can adjust this based on your needs */
@@ -298,9 +291,7 @@ button:hover {
   text-align: center;
   font-size: 12px;
   cursor: pointer;
-  transition:
-    background-color 0.3s,
-    color 0.3s;
+  transition: background-color 0.3s, color 0.3s;
   border-radius: 4px;
   margin-bottom: 0px;
 }
@@ -399,9 +390,7 @@ footer a {
   text-decoration: none;
   font-size: 16px;
   font-weight: 500; /* Slightly bolder font */
-  transition:
-    color 0.3s,
-    transform 0.3s; /* Added transform for hover effect */
+  transition: color 0.3s, transform 0.3s; /* Added transform for hover effect */
   padding: 5px; /* Padding for a larger clickable area and spacing */
   border-radius: 4px; /* For the hover effect */
   position: relative; /* To place the icons if added later */

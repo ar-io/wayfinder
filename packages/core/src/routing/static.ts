@@ -31,7 +31,7 @@ export class StaticRoutingStrategy implements RoutingStrategy {
     logger?: Logger;
   }) {
     this.logger = logger;
-    
+
     try {
       this.gateway = new URL(gateway);
     } catch (error: any) {

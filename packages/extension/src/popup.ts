@@ -1,10 +1,10 @@
-import { AoGateway } from "@ar.io/sdk/web";
-import { ARIO_MAINNET_PROCESS_ID, DEFAULT_AO_CU_URL } from "./constants";
-import { isBase64URL } from "./helpers";
+import { AoGateway } from '@ar.io/sdk/web';
+import { ARIO_MAINNET_PROCESS_ID, DEFAULT_AO_CU_URL } from './constants';
+import { isBase64URL } from './helpers';
 
 // Check if the document is still loading, if not, call the function directly
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", afterPopupDOMLoaded);
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', afterPopupDOMLoaded);
 } else {
   afterPopupDOMLoaded();
 }
@@ -12,58 +12,58 @@ if (document.readyState === "loading") {
 // Define the function to be called after the DOM is fully loaded
 async function afterPopupDOMLoaded(): Promise<void> {
   const gatewayList = document.getElementById(
-    "gatewayList"
+    'gatewayList',
   ) as HTMLElement | null;
   const gatewayListTitle = document.getElementById(
-    "gatewayListTitle"
+    'gatewayListTitle',
   ) as HTMLElement | null;
   const gatewayListHeader = document.getElementById(
-    "gatewayListHeader"
+    'gatewayListHeader',
   ) as HTMLElement | null;
   const refreshGateways = document.getElementById(
-    "refreshGateways"
+    'refreshGateways',
   ) as HTMLElement | null;
   const showGatewaysBtn = document.getElementById(
-    "showGateways"
+    'showGateways',
   ) as HTMLElement | null;
   const showSettingsBtn = document.getElementById(
-    "showSettings"
+    'showSettings',
   ) as HTMLElement | null;
   const aboutSection = document.getElementById(
-    "aboutSection"
+    'aboutSection',
   ) as HTMLElement | null;
   const settingsSection = document.getElementById(
-    "settingsSection"
+    'settingsSection',
   ) as HTMLElement | null;
   const settingsListTitle = document.getElementById(
-    "settingsListTitle"
+    'settingsListTitle',
   ) as HTMLElement | null;
   const showHistoryBtn = document.getElementById(
-    "showHistory"
+    'showHistory',
   ) as HTMLElement | null;
   const historyList = document.getElementById(
-    "historyList"
+    'historyList',
   ) as HTMLElement | null;
   const historyListTitle = document.getElementById(
-    "historyListTitle"
+    'historyListTitle',
   ) as HTMLElement | null;
   const themeToggle = document.getElementById(
-    "themeToggle"
+    'themeToggle',
   ) as HTMLSelectElement | null;
   const routingToggle = document.getElementById(
-    "routingToggle"
+    'routingToggle',
   ) as HTMLSelectElement | null;
   const saveStaticGatewayButton = document.getElementById(
-    "saveStaticGateway"
+    'saveStaticGateway',
   ) as HTMLElement | null;
   const saveArIOProcessIdButton = document.getElementById(
-    "saveArIOProcessId"
+    'saveArIOProcessId',
   ) as HTMLElement | null;
   const saveAoCuUrlButton = document.getElementById(
-    "saveAoCuUrl"
+    'saveAoCuUrl',
   ) as HTMLElement | null;
   const ensResolutionToggle = document.getElementById(
-    "ensResolutionToggle"
+    'ensResolutionToggle',
   ) as HTMLInputElement | null;
 
   if (
@@ -86,41 +86,41 @@ async function afterPopupDOMLoaded(): Promise<void> {
     ensResolutionToggle &&
     gatewayList
   ) {
-    showGatewaysBtn.addEventListener("click", async function () {
-      if (gatewayList.style.display === "block") {
-        aboutSection.style.display = "block";
-        showSettingsBtn.style.display = "block";
-        showHistoryBtn.style.display = "block";
-        gatewayListHeader.style.display = "none";
-        gatewayListTitle.style.display = "none";
-        gatewayList.style.display = "none";
-        showGatewaysBtn.innerText = "Gateway Address Registry";
+    showGatewaysBtn.addEventListener('click', async function () {
+      if (gatewayList.style.display === 'block') {
+        aboutSection.style.display = 'block';
+        showSettingsBtn.style.display = 'block';
+        showHistoryBtn.style.display = 'block';
+        gatewayListHeader.style.display = 'none';
+        gatewayListTitle.style.display = 'none';
+        gatewayList.style.display = 'none';
+        showGatewaysBtn.innerText = 'Gateway Address Registry';
       } else {
-        gatewayList.innerHTML = "";
+        gatewayList.innerHTML = '';
         const { localGatewayAddressRegistry = {} } =
-          await chrome.storage.local.get("localGatewayAddressRegistry");
+          await chrome.storage.local.get('localGatewayAddressRegistry');
         const sortedGateways = sortGatewaysByStake(localGatewayAddressRegistry);
         const { gatewayPerformance } = await chrome.storage.local.get([
-          "gatewayPerformance",
+          'gatewayPerformance',
         ]);
         for (const sortedGateway of sortedGateways) {
           const gateway = sortedGateway.data;
 
           // Create a new element for each gateway
-          const listItem = document.createElement("div");
-          listItem.className = "gateway";
-          listItem.setAttribute("data-address", sortedGateway.address); // Binding the address to the row
+          const listItem = document.createElement('div');
+          listItem.className = 'gateway';
+          listItem.setAttribute('data-address', sortedGateway.address); // Binding the address to the row
 
           // Check if the gateway is blacklisted and apply the blacklisted class
           if (await checkIfBlacklisted(sortedGateway.address)) {
-            listItem.classList.add("blacklisted");
+            listItem.classList.add('blacklisted');
           }
 
           listItem.onclick = async function () {
             await showMoreGatewayInfo(
               gateway,
               sortedGateway.address,
-              gatewayPerformance
+              gatewayPerformance,
             );
           };
           let onlineStatus =
@@ -154,7 +154,7 @@ async function afterPopupDOMLoaded(): Promise<void> {
           }
 
           const totalStake = Math.floor(
-            (gateway.operatorStake + gateway.totalDelegatedStake) / 1000000
+            (gateway.operatorStake + gateway.totalDelegatedStake) / 1000000,
           );
           listItem.innerHTML = `
                         <div class="gateway-header">
@@ -170,75 +170,75 @@ async function afterPopupDOMLoaded(): Promise<void> {
         }
 
         const activeCount = Object.values(localGatewayAddressRegistry).filter(
-          (gateway: any) => gateway.status === "joined"
+          (gateway: any) => gateway.status === 'joined',
         ).length;
 
-        document.getElementById("activeGatewayCount")!.textContent =
+        document.getElementById('activeGatewayCount')!.textContent =
           `${activeCount}`;
-        document.getElementById("totalGatewayCount")!.textContent = Object.keys(
-          localGatewayAddressRegistry
+        document.getElementById('totalGatewayCount')!.textContent = Object.keys(
+          localGatewayAddressRegistry,
         ).length.toString();
 
         // Close the modal when the close button is clicked
         (
-          document.getElementsByClassName("close-btn")[0] as HTMLElement
+          document.getElementsByClassName('close-btn')[0] as HTMLElement
         ).onclick = function () {
           (
-            document.getElementById("gatewayModal") as HTMLElement
-          ).style.display = "none";
+            document.getElementById('gatewayModal') as HTMLElement
+          ).style.display = 'none';
         };
 
         // Also close the modal if clicked outside the modal content
         window.onclick = function (event) {
-          if (event.target === document.getElementById("gatewayModal")) {
+          if (event.target === document.getElementById('gatewayModal')) {
             (
-              document.getElementById("gatewayModal") as HTMLElement
-            ).style.display = "none";
+              document.getElementById('gatewayModal') as HTMLElement
+            ).style.display = 'none';
           }
         };
 
-        showSettingsBtn.style.display = "none";
-        aboutSection.style.display = "none"; // hide the "about" section
-        showHistoryBtn.style.display = "none";
-        showSettingsBtn.style.display = "hide";
-        gatewayListHeader.style.display = "block";
-        gatewayList.style.display = "block";
-        gatewayListTitle.style.display = "block";
-        showGatewaysBtn.innerText = "Hide Gateway Address Registry";
+        showSettingsBtn.style.display = 'none';
+        aboutSection.style.display = 'none'; // hide the "about" section
+        showHistoryBtn.style.display = 'none';
+        showSettingsBtn.style.display = 'hide';
+        gatewayListHeader.style.display = 'block';
+        gatewayList.style.display = 'block';
+        gatewayListTitle.style.display = 'block';
+        showGatewaysBtn.innerText = 'Hide Gateway Address Registry';
       }
     });
 
-    refreshGateways.addEventListener("click", async function () {
+    refreshGateways.addEventListener('click', async function () {
       gatewayList.innerHTML = '<span class="refreshing-text"></span>'; // use class here
       await syncGatewayAddressRegistryPopup();
-      gatewayList.innerHTML = "";
+      gatewayList.innerHTML = '';
       const { localGatewayAddressRegistry } = (await chrome.storage.local.get(
-        "localGatewayAddressRegistry"
+        'localGatewayAddressRegistry',
       )) as {
         localGatewayAddressRegistry: Record<string, any>;
       };
       const sortedGateways = sortGatewaysByStake(localGatewayAddressRegistry);
       const { gatewayPerformance } = await chrome.storage.local.get([
-        "gatewayPerformance",
+        'gatewayPerformance',
       ]);
       for (const sortedGateway of sortedGateways) {
         const gateway = sortedGateway.data;
 
         // Create a new element for each gateway
-        const listItem = document.createElement("div");
-        listItem.className = "gateway";
-        listItem.setAttribute("data-address", sortedGateway.address); // Binding the address to the row
+        const listItem = document.createElement('div');
+        listItem.className = 'gateway';
+        listItem.setAttribute('data-address', sortedGateway.address); // Binding the address to the row
 
         // Check if the gateway is blacklisted and apply the blacklisted class
         if (await checkIfBlacklisted(sortedGateway.address)) {
-          listItem.classList.add("blacklisted");
+          listItem.classList.add('blacklisted');
         }
 
         listItem.onclick = async function () {
           await showMoreGatewayInfo(
             gateway,
             sortedGateway.address,
-            gatewayPerformance
+            gatewayPerformance,
           );
         };
 
@@ -274,7 +274,7 @@ async function afterPopupDOMLoaded(): Promise<void> {
         }
 
         const totalStake = Math.floor(
-          (gateway.operatorStake + gateway.totalDelegatedStake) / 1000000
+          (gateway.operatorStake + gateway.totalDelegatedStake) / 1000000,
         );
 
         listItem.innerHTML = `
@@ -290,142 +290,142 @@ async function afterPopupDOMLoaded(): Promise<void> {
       }
 
       const activeCount = Object.values(localGatewayAddressRegistry).filter(
-        (gateway: any) => gateway.status === "joined"
+        (gateway: any) => gateway.status === 'joined',
       ).length;
 
-      document.getElementById("activeGatewayCount")!.textContent =
+      document.getElementById('activeGatewayCount')!.textContent =
         `${activeCount}`;
-      document.getElementById("totalGatewayCount")!.textContent = Object.keys(
-        localGatewayAddressRegistry
+      document.getElementById('totalGatewayCount')!.textContent = Object.keys(
+        localGatewayAddressRegistry,
       ).length.toString();
     });
 
-    showHistoryBtn.addEventListener("click", function () {
-      if (historyList.style.display === "none") {
-        chrome.storage.local.get("history", function (data) {
+    showHistoryBtn.addEventListener('click', function () {
+      if (historyList.style.display === 'none') {
+        chrome.storage.local.get('history', function (data) {
           const history = data.history || [];
-          historyList.innerHTML = ""; // Clear previous items
+          historyList.innerHTML = ''; // Clear previous items
           history.forEach(
             (item: {
               resolvedId: any;
               url: any;
               timestamp: string | number | Date;
             }) => {
-              const listItem = document.createElement("li");
+              const listItem = document.createElement('li');
               listItem.innerHTML = `<a href="https://viewblock.io/arweave/tx/${
                 item.resolvedId
               }" target="_blank">${item.url}</a>${new Date(
-                item.timestamp
+                item.timestamp,
               ).toLocaleString()}`;
               historyList.appendChild(listItem);
-            }
+            },
           );
-          historyList.style.display = "block";
-          historyListTitle.style.display = "block";
-          showHistoryBtn.innerText = "Hide Usage History";
-          showSettingsBtn.style.display = "none";
-          aboutSection.style.display = "none";
-          showSettingsBtn.style.display = "none";
-          showGatewaysBtn.style.display = "none";
+          historyList.style.display = 'block';
+          historyListTitle.style.display = 'block';
+          showHistoryBtn.innerText = 'Hide Usage History';
+          showSettingsBtn.style.display = 'none';
+          aboutSection.style.display = 'none';
+          showSettingsBtn.style.display = 'none';
+          showGatewaysBtn.style.display = 'none';
         });
       } else {
-        historyList.style.display = "none";
-        historyListTitle.style.display = "none";
-        showHistoryBtn.innerText = "Usage History";
-        showSettingsBtn.style.display = "block";
-        aboutSection.style.display = "block";
-        showSettingsBtn.style.display = "block";
-        showGatewaysBtn.style.display = "block";
+        historyList.style.display = 'none';
+        historyListTitle.style.display = 'none';
+        showHistoryBtn.innerText = 'Usage History';
+        showSettingsBtn.style.display = 'block';
+        aboutSection.style.display = 'block';
+        showSettingsBtn.style.display = 'block';
+        showGatewaysBtn.style.display = 'block';
       }
     });
 
-    showSettingsBtn.addEventListener("click", function () {
-      if (settingsSection.style.display === "none") {
-        aboutSection.style.display = "none"; // hide the "about" section
-        showGatewaysBtn.style.display = "none";
-        showHistoryBtn.style.display = "none";
-        settingsSection.style.display = "block"; // show the "settings" section
-        settingsListTitle.style.display = "block";
-        showSettingsBtn.innerText = "Hide Settings";
+    showSettingsBtn.addEventListener('click', function () {
+      if (settingsSection.style.display === 'none') {
+        aboutSection.style.display = 'none'; // hide the "about" section
+        showGatewaysBtn.style.display = 'none';
+        showHistoryBtn.style.display = 'none';
+        settingsSection.style.display = 'block'; // show the "settings" section
+        settingsListTitle.style.display = 'block';
+        showSettingsBtn.innerText = 'Hide Settings';
       } else {
-        aboutSection.style.display = "block"; // show the "about" section
-        showGatewaysBtn.style.display = "block";
-        showHistoryBtn.style.display = "block";
-        settingsListTitle.style.display = "none";
-        settingsSection.style.display = "none"; // hide the "settings" sections
-        showSettingsBtn.innerText = "Settings";
+        aboutSection.style.display = 'block'; // show the "about" section
+        showGatewaysBtn.style.display = 'block';
+        showHistoryBtn.style.display = 'block';
+        settingsListTitle.style.display = 'none';
+        settingsSection.style.display = 'none'; // hide the "settings" sections
+        showSettingsBtn.innerText = 'Settings';
       }
     });
 
     const body = document.body;
 
-    themeToggle.addEventListener("change", function () {
+    themeToggle.addEventListener('change', function () {
       const selectedTheme = (this as HTMLSelectElement).value;
-      if (selectedTheme === "dark") {
-        body.classList.remove("light-mode");
-        body.classList.add("dark-mode");
-      } else if (selectedTheme === "light") {
-        body.classList.remove("dark-mode");
-        body.classList.add("light-mode");
+      if (selectedTheme === 'dark') {
+        body.classList.remove('light-mode');
+        body.classList.add('dark-mode');
+      } else if (selectedTheme === 'light') {
+        body.classList.remove('dark-mode');
+        body.classList.add('light-mode');
       }
       saveThemeChoice(selectedTheme);
     });
-    chrome.storage.local.get("theme", function (data) {
+    chrome.storage.local.get('theme', function (data) {
       if (data.theme) {
-        (document.getElementById("themeToggle") as HTMLSelectElement).value =
+        (document.getElementById('themeToggle') as HTMLSelectElement).value =
           data.theme;
-        if (data.theme === "dark") {
-          body.classList.remove("light-mode");
-          body.classList.add("dark-mode");
-        } else if (data.theme === "light") {
-          body.classList.remove("dark-mode");
-          body.classList.add("light-mode");
+        if (data.theme === 'dark') {
+          body.classList.remove('light-mode');
+          body.classList.add('dark-mode');
+        } else if (data.theme === 'light') {
+          body.classList.remove('dark-mode');
+          body.classList.add('light-mode');
         }
       }
     });
 
-    routingToggle.addEventListener("change", function () {
+    routingToggle.addEventListener('change', function () {
       const selectedRoutingMethod = (this as HTMLSelectElement).value;
       saveRoutingMethod(selectedRoutingMethod);
     });
 
-    chrome.storage.local.get("routingMethod", function (data) {
+    chrome.storage.local.get('routingMethod', function (data) {
       if (data.routingMethod) {
-        (document.getElementById("routingToggle") as HTMLSelectElement).value =
+        (document.getElementById('routingToggle') as HTMLSelectElement).value =
           data.routingMethod;
       }
     });
 
-    saveStaticGatewayButton.addEventListener("click", function () {
+    saveStaticGatewayButton.addEventListener('click', function () {
       const gatewayValue = (
-        document.getElementById("staticGateway") as HTMLInputElement
+        document.getElementById('staticGateway') as HTMLInputElement
       ).value;
       const result = saveStaticGateway(gatewayValue);
       if (!result) {
-        (document.getElementById("staticGateway") as HTMLInputElement).value =
-          "";
+        (document.getElementById('staticGateway') as HTMLInputElement).value =
+          '';
       }
     });
 
-    chrome.storage.local.get("staticGateway", function (data) {
+    chrome.storage.local.get('staticGateway', function (data) {
       if (data.staticGateway) {
         const staticGatewayUrl = `${data.staticGateway.settings.protocol}://${data.staticGateway.settings.fqdn}:${data.staticGateway.settings.port}/`;
-        (document.getElementById("staticGateway") as HTMLInputElement).value =
+        (document.getElementById('staticGateway') as HTMLInputElement).value =
           staticGatewayUrl;
       }
     });
 
-    saveArIOProcessIdButton.addEventListener("click", async function () {
+    saveArIOProcessIdButton.addEventListener('click', async function () {
       const arIOProcessId = (
-        document.getElementById("arIOProcessId") as HTMLInputElement
+        document.getElementById('arIOProcessId') as HTMLInputElement
       ).value;
-      if (arIOProcessId === "") {
+      if (arIOProcessId === '') {
         const result = saveArIOProcessId(ARIO_MAINNET_PROCESS_ID);
-        (document.getElementById("arIOProcessId") as HTMLInputElement).value =
-          "";
+        (document.getElementById('arIOProcessId') as HTMLInputElement).value =
+          '';
         return new Promise((resolve, reject) => {
           chrome.runtime.sendMessage(
-            { message: "setArIOProcessId" },
+            { message: 'setArIOProcessId' },
             function (response) {
               if (chrome.runtime.lastError) {
                 // Handle any error that might occur while sending the message
@@ -433,14 +433,14 @@ async function afterPopupDOMLoaded(): Promise<void> {
               } else {
                 resolve(response);
               }
-            }
+            },
           );
         });
       } else if (isBase64URL(arIOProcessId)) {
         const result = saveArIOProcessId(arIOProcessId);
         return new Promise((resolve, reject) => {
           chrome.runtime.sendMessage(
-            { message: "setArIOProcessId" },
+            { message: 'setArIOProcessId' },
             function (response) {
               if (chrome.runtime.lastError) {
                 // Handle any error that might occur while sending the message
@@ -448,31 +448,31 @@ async function afterPopupDOMLoaded(): Promise<void> {
               } else {
                 resolve(response);
               }
-            }
+            },
           );
         });
       } else {
-        (document.getElementById("arIOProcessId") as HTMLInputElement).value =
-          "";
+        (document.getElementById('arIOProcessId') as HTMLInputElement).value =
+          '';
       }
     });
 
-    chrome.storage.local.get("processId", function (data) {
+    chrome.storage.local.get('processId', function (data) {
       if (data.processId) {
-        (document.getElementById("arIOProcessId") as HTMLInputElement).value =
+        (document.getElementById('arIOProcessId') as HTMLInputElement).value =
           data.processId;
       }
     });
 
-    saveAoCuUrlButton.addEventListener("click", async function () {
-      const aoCuUrl = (document.getElementById("aoCuUrl") as HTMLInputElement)
+    saveAoCuUrlButton.addEventListener('click', async function () {
+      const aoCuUrl = (document.getElementById('aoCuUrl') as HTMLInputElement)
         .value;
-      if (aoCuUrl === "") {
+      if (aoCuUrl === '') {
         const result = saveAoCuUrl(DEFAULT_AO_CU_URL);
-        (document.getElementById("aoCuUrl") as HTMLInputElement).value = "";
+        (document.getElementById('aoCuUrl') as HTMLInputElement).value = '';
         return new Promise((resolve, reject) => {
           chrome.runtime.sendMessage(
-            { message: "setAoCuUrl" },
+            { message: 'setAoCuUrl' },
             function (response) {
               if (chrome.runtime.lastError) {
                 // Handle any error that might occur while sending the message
@@ -480,14 +480,14 @@ async function afterPopupDOMLoaded(): Promise<void> {
               } else {
                 resolve(response);
               }
-            }
+            },
           );
         });
       } else {
         const result = saveAoCuUrl(aoCuUrl);
         return new Promise((resolve, reject) => {
           chrome.runtime.sendMessage(
-            { message: "setAoCuUrl" },
+            { message: 'setAoCuUrl' },
             function (response) {
               if (chrome.runtime.lastError) {
                 // Handle any error that might occur while sending the message
@@ -495,27 +495,27 @@ async function afterPopupDOMLoaded(): Promise<void> {
               } else {
                 resolve(response);
               }
-            }
+            },
           );
         });
       }
     });
 
-    chrome.storage.local.get("aoCuUrl", function (data) {
+    chrome.storage.local.get('aoCuUrl', function (data) {
       if (data.aoCuUrl) {
-        (document.getElementById("aoCuUrl") as HTMLInputElement).value =
+        (document.getElementById('aoCuUrl') as HTMLInputElement).value =
           data.aoCuUrl;
       }
     });
 
     // Listen for toggle changes and save to storage
-    ensResolutionToggle.addEventListener("change", () => {
+    ensResolutionToggle.addEventListener('change', () => {
       chrome.storage.local.set({
         ensResolutionEnabled: ensResolutionToggle.checked,
       });
     });
 
-    chrome.storage.local.get(["ensResolutionEnabled"], (data) => {
+    chrome.storage.local.get(['ensResolutionEnabled'], (data) => {
       ensResolutionToggle.checked = data.ensResolutionEnabled ?? true;
     });
   }
@@ -524,7 +524,7 @@ async function afterPopupDOMLoaded(): Promise<void> {
 async function syncGatewayAddressRegistryPopup() {
   return new Promise((resolve, reject) => {
     chrome.runtime.sendMessage(
-      { message: "syncGatewayAddressRegistry" },
+      { message: 'syncGatewayAddressRegistry' },
       function (response) {
         if (chrome.runtime.lastError) {
           // Handle any error that might occur while sending the message
@@ -532,7 +532,7 @@ async function syncGatewayAddressRegistryPopup() {
         } else {
           resolve(response);
         }
-      }
+      },
     );
   });
 }
@@ -553,18 +553,18 @@ function saveRoutingMethod(inputValue: any) {
 
 function saveStaticGateway(inputValue: string | URL) {
   try {
-    if (inputValue === "") {
+    if (inputValue === '') {
       chrome.storage.local.set({ staticGateway: null });
       alert(`Static gateway removed. Back to dynamic gateway selection.`);
       return null;
     } else {
       const url = new URL(inputValue.toString()); // Ensure inputValue is treated as a string
-      const protocol = url.protocol.replace(":", ""); // Removes the trailing colon
+      const protocol = url.protocol.replace(':', ''); // Removes the trailing colon
       const fqdn = url.hostname;
       let port = url.port;
 
       if (!port) {
-        port = (protocol === "https" ? 443 : 80).toString(); // Default port values based on protocol
+        port = (protocol === 'https' ? 443 : 80).toString(); // Default port values based on protocol
       }
 
       const staticGateway = {
@@ -588,34 +588,34 @@ function saveStaticGateway(inputValue: string | URL) {
 async function showMoreGatewayInfo(
   gateway: AoGateway,
   address: string,
-  gatewayPerformance: any
+  gatewayPerformance: any,
 ) {
   // Get modal elements safely
-  const modal = document.getElementById("gatewayModal") as HTMLElement;
+  const modal = document.getElementById('gatewayModal') as HTMLElement;
   if (!modal) {
-    console.error("❌ Modal not found.");
+    console.error('❌ Modal not found.');
     return;
   }
 
   const modalUrl = document.getElementById(
-    "modal-gateway-url"
+    'modal-gateway-url',
   ) as HTMLAnchorElement;
   const modalGatewayWallet = document.getElementById(
-    "modal-gateway-wallet"
+    'modal-gateway-wallet',
   ) as HTMLAnchorElement;
   const modalTotalStake = document.getElementById(
-    "modal-total-stake"
+    'modal-total-stake',
   ) as HTMLElement;
   const modalAverageResponseTime = document.getElementById(
-    "modal-gateway-avg-response-time"
+    'modal-gateway-avg-response-time',
   ) as HTMLElement;
-  const modalStart = document.getElementById("modal-start") as HTMLElement;
-  const modalNote = document.getElementById("modal-note") as HTMLElement;
+  const modalStart = document.getElementById('modal-start') as HTMLElement;
+  const modalNote = document.getElementById('modal-note') as HTMLElement;
   const modalGatewayMoreInfo = document.getElementById(
-    "modal-gateway-more-info"
+    'modal-gateway-more-info',
   ) as HTMLAnchorElement;
   const blacklistButton = document.getElementById(
-    "blacklistButton"
+    'blacklistButton',
   ) as HTMLElement;
 
   // Ensure all required elements exist before updating them
@@ -630,14 +630,14 @@ async function showMoreGatewayInfo(
     !blacklistButton
   ) {
     console.error(
-      "❌ One or more modal elements are missing. Check your HTML structure."
+      '❌ One or more modal elements are missing. Check your HTML structure.',
     );
     return;
   }
 
   // Ensure gateway and its settings exist
   if (!gateway || !gateway.settings || !gateway.stats) {
-    console.error("❌ Gateway data is missing or invalid.");
+    console.error('❌ Gateway data is missing or invalid.');
     return;
   }
 
@@ -650,7 +650,7 @@ async function showMoreGatewayInfo(
   modalGatewayWallet.textContent = `${address.slice(0, 6)}...`;
   modalGatewayWallet.href = `https://viewblock.io/arweave/address/${address}`;
 
-  modalGatewayMoreInfo.textContent = "More info";
+  modalGatewayMoreInfo.textContent = 'More info';
   modalGatewayMoreInfo.href = `${protocol}://gateways.${fqdn}:${port}/#/gateways/${address}`;
 
   // ✅ Display Stake Information
@@ -659,21 +659,21 @@ async function showMoreGatewayInfo(
 
   const avgResponseTime = gatewayPerformance[fqdn]?.avgResponseTime;
   modalAverageResponseTime.textContent =
-    avgResponseTime !== undefined ? `${Math.floor(avgResponseTime)} ms` : "N/A"; // Fallback value if missing
+    avgResponseTime !== undefined ? `${Math.floor(avgResponseTime)} ms` : 'N/A'; // Fallback value if missing
 
   // ✅ Format and Display Start Date
   modalStart.textContent = new Date(
-    gateway.startTimestamp
+    gateway.startTimestamp,
   ).toLocaleDateString();
 
   // ✅ Display Note (Handle missing note case)
-  modalNote.textContent = note || "No note provided";
+  modalNote.textContent = note || 'No note provided';
 
   // ✅ Blacklist Functionality
   const isBlacklisted = await checkIfBlacklisted(address);
   blacklistButton.textContent = isBlacklisted
-    ? "Unblacklist Gateway"
-    : "Blacklist Gateway";
+    ? 'Unblacklist Gateway'
+    : 'Blacklist Gateway';
 
   blacklistButton.onclick = async function () {
     await toggleBlacklist(address);
@@ -681,13 +681,13 @@ async function showMoreGatewayInfo(
   };
 
   // ✅ Show Modal
-  modal.style.display = "block";
+  modal.style.display = 'block';
 }
 
 async function checkIfBlacklisted(address: string) {
   // Check from local storage or other data source if the gateway is blacklisted
   const { blacklistedGateways = [] } = await chrome.storage.local.get([
-    "blacklistedGateways",
+    'blacklistedGateways',
   ]);
   return blacklistedGateways.includes(address);
 }
@@ -695,20 +695,20 @@ async function checkIfBlacklisted(address: string) {
 async function toggleBlacklist(address: any) {
   // Get blacklistedGateways from chrome storage
   let { blacklistedGateways = [] } = await chrome.storage.local.get([
-    "blacklistedGateways",
+    'blacklistedGateways',
   ]);
   if (blacklistedGateways.includes(address)) {
     // Removing the address from blacklist
     blacklistedGateways = blacklistedGateways.filter(
-      (gatewayAddress: any) => gatewayAddress !== address
+      (gatewayAddress: any) => gatewayAddress !== address,
     );
 
     // Find the corresponding row and remove the 'blacklisted' class
     const gatewayRow = document.querySelector(
-      `.gateway[data-address='${address}']`
+      `.gateway[data-address='${address}']`,
     );
     if (gatewayRow) {
-      gatewayRow.classList.remove("blacklisted");
+      gatewayRow.classList.remove('blacklisted');
     }
   } else {
     // Adding the address to blacklist
@@ -716,14 +716,14 @@ async function toggleBlacklist(address: any) {
 
     // Find the corresponding row and add the 'blacklisted' class
     const gatewayRow = document.querySelector(
-      `.gateway[data-address='${address}']`
+      `.gateway[data-address='${address}']`,
     );
     if (gatewayRow) {
-      gatewayRow.classList.add("blacklisted");
+      gatewayRow.classList.add('blacklisted');
     }
   }
   // Set updated blacklistedGateways back to chrome storage
-  console.log("Current black list: ", blacklistedGateways);
+  console.log('Current black list: ', blacklistedGateways);
   chrome.storage.local.set({ blacklistedGateways: blacklistedGateways });
 }
 
@@ -748,7 +748,7 @@ function sortGatewaysByStake(gateways: { [s: string]: any } | ArrayLike<any>) {
 }
 
 function saveArIOProcessId(processId: string) {
-  if (processId === "") {
+  if (processId === '') {
     chrome.storage.local.set({ processId: ARIO_MAINNET_PROCESS_ID });
     alert(`AR.IO Process ID set back to default.`);
   } else {
@@ -759,7 +759,7 @@ function saveArIOProcessId(processId: string) {
 }
 
 function saveAoCuUrl(aoCuUrl: string) {
-  if (aoCuUrl === "") {
+  if (aoCuUrl === '') {
     chrome.storage.local.set({ aoCuUrl: DEFAULT_AO_CU_URL });
     alert(`AO CU Url set back to default.`);
   } else {

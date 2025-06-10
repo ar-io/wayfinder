@@ -52,12 +52,12 @@ export class SimpleCacheGatewaysProvider implements GatewaysProvider {
           cacheAge: now - this.lastUpdated,
           ttlSeconds: this.ttlSeconds,
         });
-        
+
         // preserve the cache if the fetch fails
         const allGateways = await this.gatewaysProvider.getGateways();
         this.gatewaysCache = allGateways;
         this.lastUpdated = now;
-        
+
         this.logger.debug('Updated gateways cache', {
           gatewayCount: allGateways.length,
         });
