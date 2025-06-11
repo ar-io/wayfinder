@@ -23,19 +23,16 @@ import {
   stringToBuffer,
 } from '@dha-team/arbundles';
 
-import {
-  DataStream,
-  VerificationStrategy,
-} from '../../types/wayfinder.js';
-import { Logger, defaultLogger } from '../wayfinder.js';
+import { pLimit } from 'plimit-lit';
+import { DataStream, VerificationStrategy } from '../../types/wayfinder.js';
+import { arioGatewayHeaders } from '../utils/ario.js';
+import { fromB64Url } from '../utils/base64.js';
 import {
   isAsyncIterable,
   readableStreamToAsyncIterable,
 } from '../utils/hash.js';
-import { pLimit } from 'plimit-lit';
-import { arioGatewayHeaders } from '../utils/ario.js';
-import { bufferTob64Url } from 'arweave/node/lib/utils.js';
-import { toB64Url } from '../utils/base64.js';
+import { Logger, defaultLogger } from '../wayfinder.js';
+import { convertDataStreamToDataRoot } from './data-root-verifier.js';
 
 /**
  * Implementation of DataVerificationStrategy that verifies data item signatures
@@ -47,7 +44,11 @@ export class Ans104SignatureVerificationStrategy
   private readonly trustedGateways: URL[];
   private readonly maxConcurrency: number;
   private readonly logger: Logger;
-  constructor({ trustedGateways, maxConcurrency = 1, logger = defaultLogger }: { trustedGateways: URL[], maxConcurrency?: number, logger?: Logger }) {
+  constructor({
+    trustedGateways,
+    maxConcurrency = 1,
+    logger = defaultLogger,
+  }: { trustedGateways: URL[]; maxConcurrency?: number; logger?: Logger }) {
     this.trustedGateways = trustedGateways;
     this.maxConcurrency = maxConcurrency;
     this.logger = logger;
@@ -218,9 +219,10 @@ export class Ans104SignatureVerificationStrategy
           continue;
         }
 
-        
         // create the data item object from just the signature bytes, so we can get the components easily
-        const trustedDataItemHeaderBytes = Buffer.from(await response.arrayBuffer());
+        const trustedDataItemHeaderBytes = Buffer.from(
+          await response.arrayBuffer(),
+        );
         const dataItem = new DataItem(trustedDataItemHeaderBytes);
 
         // first verify the data item id matches the txId before we do any other verification
@@ -247,7 +249,6 @@ export class Ans104SignatureVerificationStrategy
           anchor,
           tags,
         };
-
       } catch (error: any) {
         this.logger.debug('Failed to fetch data item signature bytes', {
           error: error.message,
@@ -298,7 +299,8 @@ export class Ans104SignatureVerificationStrategy
       ? data
       : readableStreamToAsyncIterable(data);
 
-    const { signatureType, signature, owner, target, anchor, tags } = trustedSignatureData;
+    const { signatureType, signature, owner, target, anchor, tags } =
+      trustedSignatureData;
 
     // calculate the deep hash of all components including the data stream
     // this follows the arbundles DataItem.verify() approach but prevents loading the entire data stream into memory
@@ -362,15 +364,16 @@ export class TransactionSignatureVerificationStrategy
     txId: string;
   }): Promise<{
     format: number;
-    owner: Uint8Array;
-    target: Uint8Array;
-    anchor: Uint8Array;
-    quantity: Uint8Array;
-    reward: Uint8Array;
-    data_root: Uint8Array;
-    last_tx: Uint8Array;
-    tags: Uint8Array;
-    signature: Uint8Array;
+    owner: string;
+    target: string;
+    anchor: string;
+    quantity: string;
+    reward: string;
+    dataRoot: string;
+    dataSize: number;
+    lastTx: string;
+    tags: { name: string; value: string }[];
+    signature: string;
   }> {
     this.logger.debug('Getting signature data for txId', {
       txId,
@@ -380,24 +383,40 @@ export class TransactionSignatureVerificationStrategy
     // Try each gateway sequentially until we get the signature data
     for (const gateway of this.trustedGateways) {
       try {
-        const arweave = new Arweave({
-          host: gateway.hostname,
-          port: gateway.port,
-          protocol: gateway.protocol.replace(':', ''),
+        const url = `${gateway.toString()}tx/${txId}`;
+        const response = await fetch(url, {
+          method: 'GET',
+          redirect: 'follow',
+          mode: 'cors',
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Content-Type': 'application/json',
+          },
         });
 
-        const tx = await arweave.transactions.get(txId);
+        if (!response.ok) {
+          throw new Error(
+            'Failed to fetch signature data from trusted gateway',
+            {
+              cause: { txId, gateway: gateway.toString() },
+            },
+          );
+        }
+
+        const tx = await response.json();
+
         return {
           format: tx.format,
-          owner: tx.rawOwner,
-          target: tx.rawTarget,
-          anchor: tx.rawAnchor,
-          quantity: tx.rawQuantity,
-          reward: tx.rawReward,
-          data_root: tx.rawDataRoot,
-          last_tx: tx.rawLastTx,
-          tags: tx.rawTags,
-          signature: tx.rawSignature,
+          owner: tx.owner,
+          target: tx.target,
+          anchor: tx.anchor,
+          quantity: tx.quantity,
+          reward: tx.reward,
+          dataRoot: tx.data_root,
+          dataSize: tx.data_size,
+          lastTx: tx.last_tx,
+          tags: tx.tags,
+          signature: tx.signature,
         };
       } catch (error: any) {
         this.logger.debug('Error fetching signature data', {
@@ -416,37 +435,53 @@ export class TransactionSignatureVerificationStrategy
     });
   }
 
-  async verifyData({ data, txId }: { data: DataStream; txId: string }): Promise<void> {
+  async verifyData({
+    data,
+    txId,
+  }: { data: DataStream; txId: string }): Promise<void> {
+    const {
+      format,
+      owner,
+      target,
+      quantity,
+      reward,
+      dataSize,
+      lastTx,
+      tags,
+      signature,
+    } = await this.getSignatureData({ txId });
 
-    const { format, owner, target, anchor, quantity, reward, data_root, last_tx, tags, signature } = await this.getSignatureData({ txId });
+    const tagList: [Uint8Array, Uint8Array][] = tags.map(
+      (tag: { name: string; value: string }) => [
+        fromB64Url(tag.name),
+        fromB64Url(tag.value),
+      ],
+    );
 
-    const asyncIterable = isAsyncIterable(data)
-      ? data
-      : readableStreamToAsyncIterable(data);
+    // use the provided data stream to compute the data root for the signature data
+    const computedDataRoot = await convertDataStreamToDataRoot({
+      stream: data,
+    });
 
+    // compute the signature data using the computed data root and retrieved signature data
     const signatureData = await deepHash([
-      stringToBuffer(`${format}`),
-      stringToBuffer(`${quantity}`),
-      stringToBuffer(`${reward}`),
-      stringToBuffer(`${data_root}`),
-      stringToBuffer(`${last_tx}`),
-      new Uint8Array(owner),
-      new Uint8Array(target),
-      new Uint8Array(anchor),
-      new Uint8Array(tags),
-      asyncIterable as unknown as AsyncIterable<Buffer>,
+      stringToBuffer(format.toString()),
+      fromB64Url(owner),
+      fromB64Url(target),
+      stringToBuffer(quantity),
+      stringToBuffer(reward),
+      fromB64Url(lastTx),
+      tagList,
+      stringToBuffer(dataSize.toString()),
+      fromB64Url(computedDataRoot),
     ]);
 
-    const computedId = bufferTob64Url(signatureData);
-
-    if (txId !== computedId) {
-      throw new Error('Transaction ID does not match the computed ID', {
-        cause: { txId, computedId },
-      });
-    }
-
-    // TODO; use crypto.verify to verify the signature
-    const isValid = await Arweave.crypto.verify(toB64Url(owner), signatureData, signature);
+    // verify the signature using the computed signature data and the computed signature data
+    const isValid = await Arweave.crypto.verify(
+      owner,
+      signatureData,
+      fromB64Url(signature),
+    );
     if (!isValid) {
       throw new Error('Transaction signature verification failed', {
         cause: { txId },
@@ -464,18 +499,55 @@ export const SignatureVerificationStrategies = {
 export class SignatureVerificationStrategy {
   private readonly ans104: Ans104SignatureVerificationStrategy;
   private readonly transaction: TransactionSignatureVerificationStrategy;
-  constructor({ trustedGateways, maxConcurrency = 1, logger = defaultLogger }: { trustedGateways: URL[], maxConcurrency?: number, logger?: Logger }) {
-    this.ans104 = new Ans104SignatureVerificationStrategy({ trustedGateways, maxConcurrency, logger });
-    this.transaction = new TransactionSignatureVerificationStrategy({ trustedGateways, logger });
+  private readonly maxConcurrency: number;
+  private readonly trustedGateways: URL[];
+  constructor({
+    trustedGateways,
+    maxConcurrency = 1,
+    logger = defaultLogger,
+  }: { trustedGateways: URL[]; maxConcurrency?: number; logger?: Logger }) {
+    this.ans104 = new Ans104SignatureVerificationStrategy({
+      trustedGateways,
+      maxConcurrency,
+      logger,
+    });
+    this.transaction = new TransactionSignatureVerificationStrategy({
+      trustedGateways,
+      logger,
+    });
+    this.maxConcurrency = maxConcurrency;
+    this.trustedGateways = trustedGateways;
   }
 
-  async classify({ txId }: { txId: string }): Promise<'ans104' | 'transaction'> {
-    console.log('classifying', txId);
-    // TODO: implement classification logic
-    return 'transaction';
+  async classify({
+    txId,
+  }: { txId: string }): Promise<'ans104' | 'transaction'> {
+    const throttle = pLimit(this.maxConcurrency);
+    // for now just hit the head request on the gateway and if it has an x-ar-io-root-transaction-id header, return 'ans104' - we could have different classifers like going to gql
+    const requests = this.trustedGateways.map(async (gateway: URL) => {
+      return throttle(async () => {
+        const url = `${gateway.toString()}tx/${txId}`;
+        const response = await fetch(url, {
+          method: 'HEAD',
+          redirect: 'follow',
+          mode: 'cors',
+          headers: {
+            'Cache-Control': 'no-cache',
+          },
+        });
+        return response.headers.get('x-ar-io-root-transaction-id')
+          ? 'ans104'
+          : 'transaction';
+      });
+    });
+    const result = await Promise.any(requests);
+    return result === 'ans104' ? 'ans104' : 'transaction';
   }
 
-  async verifyData({ data, txId }: { data: DataStream; txId: string }): Promise<void> {
+  async verifyData({
+    data,
+    txId,
+  }: { data: DataStream; txId: string }): Promise<void> {
     const strategy = await this.classify({ txId });
     switch (strategy) {
       case 'ans104':
