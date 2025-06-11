@@ -19,11 +19,10 @@ import { EventEmitter } from 'eventemitter3';
 import { base32 } from 'rfc4648';
 
 import {
-  DataVerificationStrategy,
   GatewaysProvider,
   RoutingStrategy,
+  VerificationStrategy,
 } from '../types/wayfinder.js';
-import { TrustedGatewaysProvider } from './gateways/trusted.js';
 import { FastestPingRoutingStrategy } from './routing/ping.js';
 import { HashVerificationStrategy } from './verification/hash-verifier.js';
 
@@ -187,7 +186,7 @@ export function tapAndVerifyReadableStream({
 }: {
   originalStream: ReadableStream;
   contentLength: number;
-  verifyData: DataVerificationStrategy['verifyData'];
+  verifyData: VerificationStrategy['verifyData'];
   txId: string;
   emitter?: WayfinderEmitter;
   strict?: boolean;
@@ -238,7 +237,7 @@ export function tapAndVerifyReadableStream({
               .then(() => {
                 emitter?.emit('verification-succeeded', { txId });
               })
-              .catch((error) => {
+              .catch((error: unknown) => {
                 emitter?.emit('verification-failed', error);
               });
             // in non-strict mode, we close the controller immediately and handle verification asynchronously
@@ -308,7 +307,7 @@ export const createWayfinderClient = ({
     selectedGateway: URL;
     logger?: Logger;
   }) => URL;
-  verifyData?: DataVerificationStrategy['verifyData'];
+  verifyData?: VerificationStrategy['verifyData'];
   logger?: Logger;
   emitter?: WayfinderEmitter;
   strict?: boolean;
@@ -483,7 +482,7 @@ export interface WayfinderOptions {
    * The verification strategy to use for verifying data
    * @default HashVerificationStrategy with TrustedGatewaysHashProvider
    */
-  verificationStrategy?: DataVerificationStrategy;
+  verificationStrategy?: VerificationStrategy;
 
   /**
    * Event handlers for verification events
@@ -555,11 +554,7 @@ export class Wayfinder {
    * @example
    * const wayfinder = new Wayfinder({
    *   verificationStrategy: new HashVerificationStrategy({
-   *     trustedHashProvider: new TrustedGatewaysHashProvider({
-   *       gatewaysProvider: new StaticGatewaysProvider({
-   *         gateways: ['https://permagate.io'],
-   *       }),
-   *     }),
+   *     trustedGateways: [new URL('https://permagate.io')],
    *   }),
    * })
    *
@@ -594,7 +589,7 @@ export class Wayfinder {
    *   },
    * });
    */
-  public readonly verifyData: DataVerificationStrategy['verifyData'];
+  public readonly verifyData: VerificationStrategy['verifyData'];
 
   /**
    * Whether verification should be strict (blocking) or not.
@@ -653,9 +648,7 @@ export class Wayfinder {
       logger,
     }),
     verificationStrategy = new HashVerificationStrategy({
-      trustedHashProvider: new TrustedGatewaysProvider({
-        trustedGateways: [new URL('https://permagate.io')],
-      }),
+      trustedGateways: [new URL('https://permagate.io')],
     }),
     events = {
       onVerificationSucceeded: (

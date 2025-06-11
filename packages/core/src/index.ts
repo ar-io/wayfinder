@@ -29,10 +29,7 @@ export * from './gateways/network.js';
 export * from './gateways/simple-cache.js';
 export * from './gateways/static.js';
 
-// trusted gateways
-export * from './gateways/trusted.js';
-
-// hash providers
+// verification strategies
 export * from './verification/data-root-verifier.js';
 export * from './verification/hash-verifier.js';
 

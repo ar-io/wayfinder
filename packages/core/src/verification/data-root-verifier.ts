@@ -24,16 +24,14 @@ import {
   generateLeaves,
 } from 'arweave/node/lib/merkle.js';
 
-import {
-  DataRootProvider,
-  DataStream,
-  DataVerificationStrategy,
-} from '../../types/wayfinder.js';
+import { pLimit } from 'plimit-lit';
+import { DataStream, VerificationStrategy } from '../../types/wayfinder.js';
 import { toB64Url } from '../utils/base64.js';
 import {
   isAsyncIterable,
   readableStreamToAsyncIterable,
 } from '../utils/hash.js';
+import { Logger, defaultLogger } from '../wayfinder.js';
 
 export const convertDataStreamToDataRoot = async ({
   stream,
@@ -97,15 +95,68 @@ export const convertDataStreamToDataRoot = async ({
   return toB64Url(new Uint8Array(root.id));
 };
 
-export class DataRootVerificationStrategy implements DataVerificationStrategy {
-  private readonly trustedDataRootProvider: DataRootProvider;
+export class DataRootVerificationStrategy implements VerificationStrategy {
+  private readonly trustedGateways: URL[];
+  private readonly maxConcurrency: number;
+  private readonly logger: Logger;
   constructor({
-    trustedDataRootProvider,
+    trustedGateways,
+    maxConcurrency = 1,
+    logger = defaultLogger,
   }: {
-    trustedDataRootProvider: DataRootProvider;
+    trustedGateways: URL[];
+    maxConcurrency?: number;
+    logger?: Logger;
   }) {
-    this.trustedDataRootProvider = trustedDataRootProvider;
+    this.trustedGateways = trustedGateways;
+    this.maxConcurrency = maxConcurrency;
+    this.logger = logger;
   }
+
+  /**
+   * Get the data root for a given txId from all trusted gateways and ensure they all match.
+   * @param txId - The txId to get the data root for.
+   * @returns The data root for the given txId.
+   */
+  async getDataRoot({ txId }: { txId: string }): Promise<string> {
+    this.logger.debug('Getting data root for txId', {
+      txId,
+      maxConcurrency: this.maxConcurrency,
+      trustedGateways: this.trustedGateways,
+    });
+
+    // TODO: shuffle gateways to avoid bias
+    const throttle = pLimit(this.maxConcurrency);
+    const dataRootPromises = this.trustedGateways.map(
+      async (gateway): Promise<{ dataRoot: string; gateway: URL }> => {
+        return throttle(async () => {
+          const response = await fetch(
+            `${gateway.toString()}tx/${txId}/data_root`,
+          );
+          if (!response.ok) {
+            // skip this gateway
+            throw new Error('Failed to fetch data root for txId', {
+              cause: {
+                txId,
+                gateway: gateway.toString(),
+              },
+            });
+          }
+          const dataRoot = await response.text();
+          return { dataRoot, gateway };
+        });
+      },
+    );
+
+    const { dataRoot, gateway } = await Promise.any(dataRootPromises);
+    this.logger.debug('Successfully fetched data root for txId', {
+      txId,
+      dataRoot,
+      gateway: gateway.toString(),
+    });
+    return dataRoot;
+  }
+
   async verifyData({
     data,
     txId,
@@ -117,7 +168,7 @@ export class DataRootVerificationStrategy implements DataVerificationStrategy {
       convertDataStreamToDataRoot({
         stream: data,
       }),
-      this.trustedDataRootProvider.getDataRoot({
+      this.getDataRoot({
         txId,
       }),
     ]);

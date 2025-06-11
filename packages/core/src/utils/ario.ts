@@ -15,17 +15,13 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
-export type DataStream = ReadableStream<Uint8Array> | AsyncIterable<Uint8Array>;
-
-export interface GatewaysProvider {
-  getGateways(): Promise<URL[]>;
-}
-
-export interface RoutingStrategy {
-  selectGateway(params: { gateways: URL[] }): Promise<URL>;
-}
-
-export interface VerificationStrategy {
-  verifyData(params: { data: DataStream; txId: string }): Promise<void>;
-}
+export const arioGatewayHeaders = {
+  digest: 'x-ar-io-digest',
+  verified: 'x-ar-io-verified',
+  txId: 'x-arns-resolved-tx-id',
+  processId: 'x-arns-resolved-process-id',
+  dataItemOffset: 'x-ar-io-data-item-offset',
+  dataItemDataOffset: 'x-ar-io-data-item-data-offset',
+  dataItemSize: 'x-ar-io-data-item-size',
+  rootTransactionId: 'x-ar-io-root-transaction-id',
+};
