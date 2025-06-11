@@ -25,13 +25,13 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version-file: '.nvmrc'
-        cache: 'yarn'
+        cache: 'npm'
 
     - name: Install dependencies
-      run: yarn install --frozen-lockfile
+      run: npm install --frozen-lockfile
 
     - name: Lint
-      run: yarn workspace @ar.io/wayfinder-core lint:check
+      run: npm run lint:check -w @ar.io/wayfinder-core
 
   test:
     runs-on: ubuntu-latest
@@ -43,13 +43,13 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version-file: '.nvmrc'
-        cache: 'yarn'
+        cache: 'npm'
 
     - name: Install dependencies
-      run: yarn install --frozen-lockfile
+      run: npm install --frozen-lockfile
 
     - name: Test
-      run: yarn workspace @ar.io/wayfinder-core test:unit
+      run: npm run test:unit -w @ar.io/wayfinder-core
 
   build:
     runs-on: ubuntu-latest
@@ -61,12 +61,12 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version-file: '.nvmrc'
-        cache: 'yarn'
+        cache: 'npm'
 
     - name: Install dependencies
-      run: yarn install --frozen-lockfile
+      run: npm install --frozen-lockfile
 
     - name: Build core library
-      run: yarn workspace @ar.io/wayfinder-core build
+      run: npm run build -w @ar.io/wayfinder-core
       
     # TODO: Upload artifacts and use changeset for publishing new versions

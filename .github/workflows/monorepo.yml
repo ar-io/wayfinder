@@ -31,13 +31,13 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version-file: '.nvmrc'
-        cache: 'yarn'
+        cache: 'npm'
 
     - name: Install dependencies
-      run: yarn install --frozen-lockfile
+      run: npm install --frozen-lockfile
 
     - name: Lint
-      run: yarn lint:check
+      run: npm run lint:check --workspaces
       
     - name: Build all packages
-      run: yarn build
+      run: npm run build --workspaces

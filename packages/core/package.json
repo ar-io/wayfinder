@@ -9,11 +9,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "files": [
-    "dist",
-    "package.json",
-    "README.md"
-  ],
+  "files": ["dist", "package.json", "README.md"],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -21,7 +17,7 @@
     }
   },
   "scripts": {
-    "build": "yarn clean && tsc",
+    "build": "npm run clean && tsc",
     "clean": "rimraf dist",
     "test:unit": "c8 node --import=../../register.mjs --test --enable-source-maps --trace-warnings 'src/**/*.test.ts'",
     "lint:fix": "biome check --write --unsafe",
@@ -42,12 +38,7 @@
     "@ar.io/sdk": "^3.13.0",
     "@types/node": "^24.0.0"
   },
-  "keywords": [
-    "ar-io",
-    "arweave",
-    "wayfinder",
-    "ar://"
-  ],
+  "keywords": ["ar-io", "arweave", "wayfinder", "ar://"],
   "author": "AR.IO",
   "license": "Apache-2.0"
 }

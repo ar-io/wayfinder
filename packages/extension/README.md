@@ -19,14 +19,14 @@ The WayFinder Chrome extension intelligently routes users to optimal AR.IO gatew
 
 ### Requirements
 
-- `node` - v18+
-- `yarn` - v1.4
+- `node` - v22+
+- `npm` - v10.9.2
 
 ### Build
 
 ```bash
 # Install dependencies
-yarn install
+npm install
 
 # Build the extension
 yarn build

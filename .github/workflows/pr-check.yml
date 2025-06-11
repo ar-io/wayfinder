@@ -47,16 +47,16 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version-file: '.nvmrc'
-        cache: 'yarn'
+        cache: 'npm'
     
     - name: Install dependencies
-      run: yarn install --frozen-lockfile
+      run: npm install --frozen-lockfile
     
     - name: Lint
-      run: yarn workspace @ar.io/wayfinder-core lint:check
+      run: npm run lint:check -w @ar.io/wayfinder-core
     
     - name: Build core library
-      run: yarn workspace @ar.io/wayfinder-core build
+      run: npm run build -w @ar.io/wayfinder-core
 
   extension:
     needs: changed-files
@@ -70,19 +70,19 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version-file: '.nvmrc'
-        cache: 'yarn'
+        cache: 'npm'
     
     - name: Install dependencies
-      run: yarn install --frozen-lockfile
+      run: npm install --frozen-lockfile
     
     - name: Lint
-      run: yarn workspace @ar.io/wayfinder-extension lint:check
+      run: npm run lint:check -w @ar.io/wayfinder-extension
     
     - name: Build core library first
-      run: yarn workspace @ar.io/wayfinder-core build
+      run: npm run build -w @ar.io/wayfinder-core
     
     - name: Build extension
-      run: yarn workspace @ar.io/wayfinder-extension build
+      run: npm run build -w @ar.io/wayfinder-extension
 
   react:
     needs: changed-files
@@ -96,16 +96,16 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version-file: '.nvmrc'
-        cache: 'yarn'
+        cache: 'npm'
     
     - name: Install dependencies
-      run: yarn install --frozen-lockfile
+      run: npm install --frozen-lockfile
     
     - name: Lint
-      run: yarn workspace @ar.io/wayfinder-react lint:check
+      run: npm run lint:check -w @ar.io/wayfinder-react
     
     - name: Build core library first
-      run: yarn workspace @ar.io/wayfinder-core build
+      run: npm run build -w @ar.io/wayfinder-core
     
-    - name: Build React components
-      run: yarn workspace @ar.io/wayfinder-react build
+    - name: Build react components
+      run: npm run build -w @ar.io/wayfinder-react
