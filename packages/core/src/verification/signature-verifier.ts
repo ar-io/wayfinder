@@ -24,7 +24,12 @@ import {
 } from '@dha-team/arbundles';
 
 import { pLimit } from 'plimit-lit';
-import { DataClassifier, DataStream, VerificationStrategy } from '../../types/wayfinder.js';
+import {
+  DataClassifier,
+  DataStream,
+  VerificationStrategy,
+} from '../../types/wayfinder.js';
+import { GqlClassifier } from '../classifiers/gql-classifier.js';
 import { arioGatewayHeaders } from '../utils/ario.js';
 import { fromB64Url } from '../utils/base64.js';
 import {
@@ -33,7 +38,6 @@ import {
 } from '../utils/hash.js';
 import { Logger, defaultLogger } from '../wayfinder.js';
 import { convertDataStreamToDataRoot } from './data-root-verifier.js';
-import { GqlClassifier } from '../classifiers/gql-classifier.js';
 
 /**
  * Implementation of DataVerificationStrategy that verifies data item signatures
@@ -503,7 +507,12 @@ export class SignatureVerificationStrategy {
     maxConcurrency = 1,
     logger = defaultLogger,
     classifier = new GqlClassifier({ logger }),
-  }: { trustedGateways: URL[]; maxConcurrency?: number; logger?: Logger; classifier?: DataClassifier }) {
+  }: {
+    trustedGateways: URL[];
+    maxConcurrency?: number;
+    logger?: Logger;
+    classifier?: DataClassifier;
+  }) {
     this.ans104 = new Ans104SignatureVerificationStrategy({
       trustedGateways,
       maxConcurrency,

@@ -24,7 +24,12 @@ import {
 } from 'arweave/node/lib/merkle.js';
 
 import { pLimit } from 'plimit-lit';
-import { DataStream, VerificationStrategy } from '../../types/wayfinder.js';
+import {
+  DataClassifier,
+  DataStream,
+  VerificationStrategy,
+} from '../../types/wayfinder.js';
+import { GqlClassifier } from '../classifiers/gql-classifier.js';
 import { toB64Url } from '../utils/base64.js';
 import {
   isAsyncIterable,
@@ -94,22 +99,27 @@ export const convertDataStreamToDataRoot = async ({
   return toB64Url(new Uint8Array(root.id));
 };
 
+// TODO: this is a TransactionDataRootVerificationStrategy, we will hold of on implementing Ans104DataRootVerificationStrategy for now
 export class DataRootVerificationStrategy implements VerificationStrategy {
   private readonly trustedGateways: URL[];
   private readonly maxConcurrency: number;
   private readonly logger: Logger;
+  private readonly classifier: DataClassifier;
   constructor({
     trustedGateways,
     maxConcurrency = 1,
     logger = defaultLogger,
+    classifier = new GqlClassifier({ logger }),
   }: {
     trustedGateways: URL[];
     maxConcurrency?: number;
     logger?: Logger;
+    classifier?: DataClassifier;
   }) {
     this.trustedGateways = trustedGateways;
     this.maxConcurrency = maxConcurrency;
     this.logger = logger;
+    this.classifier = classifier;
   }
 
   /**
@@ -163,6 +173,17 @@ export class DataRootVerificationStrategy implements VerificationStrategy {
     data: DataStream;
     txId: string;
   }): Promise<void> {
+    // classify the data, if ans104 throw an error
+    const dataType = await this.classifier.classify({ txId });
+    if (dataType === 'ans104') {
+      throw new Error(
+        'ANS-104 data is not supported for data root verification',
+        {
+          cause: { txId },
+        },
+      );
+    }
+
     const [computedDataRoot, trustedDataRoot] = await Promise.all([
       convertDataStreamToDataRoot({
         stream: data,
