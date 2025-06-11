@@ -29,3 +29,7 @@ export interface RoutingStrategy {
 export interface VerificationStrategy {
   verifyData(params: { data: DataStream; txId: string }): Promise<void>;
 }
+
+export interface DataClassifier {
+  classify(params: { txId: string }): Promise<'ans104' | 'transaction'>;
+}

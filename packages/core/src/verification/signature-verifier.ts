@@ -24,7 +24,7 @@ import {
 } from '@dha-team/arbundles';
 
 import { pLimit } from 'plimit-lit';
-import { DataStream, VerificationStrategy } from '../../types/wayfinder.js';
+import { DataClassifier, DataStream, VerificationStrategy } from '../../types/wayfinder.js';
 import { arioGatewayHeaders } from '../utils/ario.js';
 import { fromB64Url } from '../utils/base64.js';
 import {
@@ -33,6 +33,7 @@ import {
 } from '../utils/hash.js';
 import { Logger, defaultLogger } from '../wayfinder.js';
 import { convertDataStreamToDataRoot } from './data-root-verifier.js';
+import { GqlClassifier } from '../classifiers/gql-classifier.js';
 
 /**
  * Implementation of DataVerificationStrategy that verifies data item signatures
@@ -191,9 +192,6 @@ export class Ans104SignatureVerificationStrategy
     anchor: Uint8Array;
     tags: Uint8Array;
   }> {
-    // TODO: classify if the tx id is an L1 transaction of ANS-104 data item
-    // For ANS-104 data items, we get the data item attributes directly from trusted gateways
-    // For L1 transactions, we can go to the network to get signature data of the transaction
     const { rootTransactionId, dataItemOffset, dataItemDataOffset } =
       await this.getDataItemAttributes(txId);
 
@@ -499,13 +497,13 @@ export const SignatureVerificationStrategies = {
 export class SignatureVerificationStrategy {
   private readonly ans104: Ans104SignatureVerificationStrategy;
   private readonly transaction: TransactionSignatureVerificationStrategy;
-  private readonly maxConcurrency: number;
-  private readonly trustedGateways: URL[];
+  private readonly classifier: DataClassifier;
   constructor({
     trustedGateways,
     maxConcurrency = 1,
     logger = defaultLogger,
-  }: { trustedGateways: URL[]; maxConcurrency?: number; logger?: Logger }) {
+    classifier = new GqlClassifier({ logger }),
+  }: { trustedGateways: URL[]; maxConcurrency?: number; logger?: Logger; classifier?: DataClassifier }) {
     this.ans104 = new Ans104SignatureVerificationStrategy({
       trustedGateways,
       maxConcurrency,
@@ -515,48 +513,22 @@ export class SignatureVerificationStrategy {
       trustedGateways,
       logger,
     });
-    this.maxConcurrency = maxConcurrency;
-    this.trustedGateways = trustedGateways;
-  }
-
-  async classify({
-    txId,
-  }: { txId: string }): Promise<'ans104' | 'transaction'> {
-    const throttle = pLimit(this.maxConcurrency);
-    // for now just hit the head request on the gateway and if it has an x-ar-io-root-transaction-id header, return 'ans104' - we could have different classifers like going to gql
-    const requests = this.trustedGateways.map(async (gateway: URL) => {
-      return throttle(async () => {
-        const url = `${gateway.toString()}tx/${txId}`;
-        const response = await fetch(url, {
-          method: 'HEAD',
-          redirect: 'follow',
-          mode: 'cors',
-          headers: {
-            'Cache-Control': 'no-cache',
-          },
-        });
-        return response.headers.get('x-ar-io-root-transaction-id')
-          ? 'ans104'
-          : 'transaction';
-      });
-    });
-    const result = await Promise.any(requests);
-    return result === 'ans104' ? 'ans104' : 'transaction';
+    this.classifier = classifier;
   }
 
   async verifyData({
     data,
     txId,
   }: { data: DataStream; txId: string }): Promise<void> {
-    const strategy = await this.classify({ txId });
-    switch (strategy) {
+    const dataType = await this.classifier.classify({ txId });
+    switch (dataType) {
       case 'ans104':
         return this.ans104.verifyData({ data, txId });
       case 'transaction':
         return this.transaction.verifyData({ data, txId });
       default:
-        throw new Error('Unknown strategy', {
-          cause: { strategy },
+        throw new Error('Unknown data type', {
+          cause: { dataType },
         });
     }
   }
