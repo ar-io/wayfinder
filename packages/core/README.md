@@ -53,9 +53,7 @@ const wayfinder = new Wayfinder({
   }),
   // verify the data using the hash of the data against a list of trusted gateways
   verificationStrategy: new HashVerificationStrategy({
-    trustedHashProvider: new TrustedGatewaysProvider({
-      trustedGateways: ['https://permagate.io'],
-    }),
+    trustedGateways: ['https://permagate.io'],
   }),
 });
 ```
@@ -183,17 +181,11 @@ Wayfinder includes verification mechanisms to ensure the integrity of retrieved 
 Verifies data integrity using SHA-256 hash comparison. This is the default verification strategy and is recommended for most users looking for a balance between security and performance.
 
 ```javascript
-import {
-  HashVerificationStrategy,
-  StaticGatewaysProvider,
-  TrustedGatewaysHashProvider,
-} from '@ar-io/sdk';
+import { Wayfinder, HashVerificationStrategy } from '@ar-io/sdk';
 
 const wayfinder = new Wayfinder({
   verificationStrategy: new HashVerificationStrategy({
-    trustedHashProvider: new TrustedGatewaysProvider({
-      trustedGateways: ['https://permagate.io'],
-    }),
+    trustedGateways: ['https://permagate.io'],
   }),
 });
 ```
@@ -203,17 +195,11 @@ const wayfinder = new Wayfinder({
 Verifies data integrity using Arweave by computing the data root for the transaction. This is useful for L1 transactions and is recommended for users who want to ensure the integrity of their data.
 
 ```javascript
-import {
-  DataRootVerificationStrategy,
-  StaticGatewaysProvider,
-  TrustedGatewaysDataRootProvider,
-} from '@ar-io/sdk';
+import { Wayfinder, DataRootVerificationStrategy } from '@ar-io/sdk';
 
 const wayfinder = new Wayfinder({
   verificationStrategy: new DataRootVerificationStrategy({
-    trustedDataRootProvider: new TrustedGatewaysProvider({
-      trustedGateways: ['https://permagate.io'],
-    }),
+    trustedGateways: ['https://permagate.io'],
   }),
 });
 ```
