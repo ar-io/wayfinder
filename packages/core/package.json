@@ -6,10 +6,13 @@
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
+  "license": "Apache-2.0",
+  "keywords": ["ar-io", "arweave", "wayfinder", "ar://"],
+  "author": "Permanent Data Solutions, Inc.",
   "publishConfig": {
     "access": "public"
   },
-  "files": ["dist", "package.json", "README.md"],
+  "files": ["dist", "package.json", "README.md", "LICENSE"],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -37,8 +40,5 @@
   "devDependencies": {
     "@ar.io/sdk": "^3.13.0",
     "@types/node": "^24.0.0"
-  },
-  "keywords": ["ar-io", "arweave", "wayfinder", "ar://"],
-  "author": "AR.IO",
-  "license": "Apache-2.0"
+  }
 }

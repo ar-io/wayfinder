@@ -4,6 +4,7 @@
   "description": "WayFinder Chrome extension that intelligently routes users to optimal AR.IO gateways",
   "private": true,
   "type": "module",
+  "license": "Apache-2.0",
   "devDependencies": {
     "@types/chrome": "^0.0.268",
     "@types/node": "^20.12.12",
@@ -28,6 +29,5 @@
     "@ar.io/sdk": "^3.5.0",
     "@ar.io/wayfinder-core": "*",
     "@permaweb/aoconnect": "0.0.69"
-  },
-  "license": "AGPL-3.0-only"
+  }
 }
