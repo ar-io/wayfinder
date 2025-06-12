@@ -17,7 +17,7 @@ yarn add @ar.io/wayfinder@beta
 ### Basic Usage
 
 ```javascript
-import { Wayfinder } from '@ar.io/wayfinder';
+import { Wayfinder } from '@ar.io/wayfinder-core';
 
 // create a new Wayfinder instance with default settings
 const wayfinder = new Wayfinder();
@@ -181,7 +181,7 @@ Wayfinder includes verification mechanisms to ensure the integrity of retrieved 
 Verifies data integrity using SHA-256 hash comparison. This is the default verification strategy and is recommended for most users looking for a balance between security and performance.
 
 ```javascript
-import { Wayfinder, HashVerificationStrategy } from '@ar-io/sdk';
+import { Wayfinder, HashVerificationStrategy } from '@ar.io/wayfinder-core';
 
 const wayfinder = new Wayfinder({
   verificationStrategy: new HashVerificationStrategy({
@@ -195,7 +195,7 @@ const wayfinder = new Wayfinder({
 Verifies data integrity using Arweave by computing the data root for the transaction. This is useful for L1 transactions and is recommended for users who want to ensure the integrity of their data.
 
 ```javascript
-import { Wayfinder, DataRootVerificationStrategy } from '@ar-io/sdk';
+import { Wayfinder, DataRootVerificationStrategy } from '@ar.io/wayfinder-core';
 
 const wayfinder = new Wayfinder({
   verificationStrategy: new DataRootVerificationStrategy({
