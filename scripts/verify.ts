@@ -128,9 +128,23 @@ async function main() {
           const percentage = Math.round(
             (event.processedBytes / event.totalBytes) * 100,
           );
-          process.stdout.write(
+          console.log(
             `Verifying: ${percentage}% (${event.processedBytes}/${event.totalBytes} bytes)\r`,
           );
+        },
+      },
+      logger: {
+        debug: (_message: string, _data: Record<string, any>) => {
+          // noop
+        },
+        info: (message: string, data: Record<string, any>) => {
+          console.log(message, data);
+        },
+        warn: (message: string, data: Record<string, any>) => {
+          console.log(message, data);
+        },
+        error: (message: string, data: Record<string, any>) => {
+          console.error(message, data);
         },
       },
     });
@@ -139,11 +153,7 @@ async function main() {
     const response = await wayfinder.request(`ar://${txId}`);
 
     // Consume the response to ensure verification completes
-    const data = await response.text();
-
-    // Show success message with some stats
-    console.log(`\nSuccessfully verified ${txId} (${data.length} bytes)`);
-    console.log(`Content type: ${response.headers.get('content-type')}`);
+    await response.text();
   } catch (error) {
     console.error('Error during verification:');
     console.error(error);
