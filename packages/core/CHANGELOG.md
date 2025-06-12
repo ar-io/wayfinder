@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-core
 
+## 0.0.2
+
+### Patch Changes
+
+- updated build outputs
+
 ## 0.0.2-beta.0
 
 ### Patch Changes
