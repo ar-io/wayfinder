@@ -1,8 +1,9 @@
-name: PR Check
+name: Diff Check
 
 on:
+  workflow_call:
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main, alpha ]
     # This runs on all PRs regardless of paths changed
 
 jobs:
@@ -15,7 +16,7 @@ jobs:
       any: ${{ steps.filter.outputs.any }}
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 0
     

@@ -19,7 +19,7 @@
     "typescript": "^5.4.5"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "npm run test --workspaces",
     "clean": "rimraf packages/*/dist",
     "build": "npm run build --workspaces",
     "lint:fix": "biome check --write --unsafe && eslint --fix packages/*/src",

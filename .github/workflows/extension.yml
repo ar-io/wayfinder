@@ -2,14 +2,14 @@ name: Chrome Extension
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, alpha ]
     paths:
       - 'packages/extension/**'
       - 'packages/core/**'
       - '.github/workflows/extension.yml'
       - 'package.json'
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main, alpha ]
     paths:
       - 'packages/extension/**'
       - 'packages/core/**'

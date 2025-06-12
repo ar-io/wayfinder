@@ -40,6 +40,7 @@
   "scripts": {
     "build": "npm run clean && tsc",
     "clean": "rimraf dist",
+    "test": "npm run test:unit",
     "test:unit": "c8 node --import=../../register.mjs --test --enable-source-maps --trace-warnings 'src/**/*.test.ts'",
     "lint:fix": "biome check --write --unsafe",
     "lint:check": "biome check --unsafe",

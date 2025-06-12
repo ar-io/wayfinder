@@ -2,7 +2,7 @@ name: Monorepo
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, alpha ]
     paths-ignore:
       - 'packages/core/**'
       - 'packages/extension/**'
@@ -11,7 +11,7 @@ on:
       - '.github/workflows/extension.yml'
       - '.github/workflows/react.yml'
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main, alpha ]
     paths-ignore:
       - 'packages/core/**'
       - 'packages/extension/**'
@@ -41,3 +41,6 @@ jobs:
       
     - name: Build all packages
       run: npm run build --workspaces
+
+    - name: Run tests
+      run: npm run test --workspaces

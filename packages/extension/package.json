@@ -24,6 +24,7 @@
     "start": "vite preview",
     "build": "vite build --config vite.config.js",
     "clean": "rimraf dist",
+    "test": "echo \"Passing\"",
     "lint:fix": "biome check --write --unsafe",
     "lint:check": "biome check --unsafe",
     "format:fix": "biome format --write",

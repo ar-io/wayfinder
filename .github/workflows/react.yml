@@ -2,14 +2,14 @@ name: React Components & Hooks
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, alpha ]
     paths:
       - 'packages/react/**'
       - 'packages/core/**'
       - '.github/workflows/react.yml'
       - 'package.json'
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main, alpha ]
     paths:
       - 'packages/react/**'
       - 'packages/core/**'

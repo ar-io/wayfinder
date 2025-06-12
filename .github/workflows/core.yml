@@ -2,13 +2,13 @@ name: Core Library
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, alpha ]
     paths:
       - 'packages/core/**'
       - '.github/workflows/core.yml'
       - 'package.json'
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main, alpha ]
     paths:
       - 'packages/core/**'
       - '.github/workflows/core.yml'
