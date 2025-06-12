@@ -19,3 +19,85 @@ WayFinder (beta) is a simple, open-source client-side routing and verification p
 
 - Anyone who wants to browse the Permaweb. Since no wallet is required, the user does not need to have ever touched tokens or uploaded data.
 - Developers who want to integrate ar:// protocol. Wayfinder allows developers to retrieve data from Arweave via the [ar.io network], ensuring decentralized access to all assets of your permaweb app.
+
+## Releases
+
+This project uses [Changesets](https://github.com/changesets/changesets) to manage versioning and package releases.
+
+### Creating a Changeset
+
+To create a changeset when making changes:
+
+```bash
+npx changeset
+```
+
+This will guide you through the process of documenting your changes and selecting which packages are affected. Changesets will be used during the release process to update package versions and generate changelogs.
+
+### Normal Releases
+
+To release a new version:
+
+1. Ensure all changes are documented with changesets
+2. Run the version command to update package versions and changelogs:
+
+```bash
+npx changeset version
+```
+
+3. Review the version changes and changelogs
+4. Commit the changes:
+
+```bash
+git add .
+git commit -m "chore(release): version packages"
+```
+
+5. Publish the packages to npm:
+
+```bash
+npm run build
+npx changeset publish
+```
+
+6. Push the changes and tags:
+
+```bash
+git push origin main --follow-tags
+```
+
+### Prerelease Mode
+
+For prerelease versions (e.g., beta, alpha):
+
+1. Enter prerelease mode specifying the tag:
+
+```bash
+npx changeset pre enter beta
+```
+
+2. Create changesets as normal:
+
+```bash
+npx changeset
+```
+
+3. Version and publish as normal:
+
+```bash
+npx changeset version
+# Review changes
+git add .
+git commit -m "chore(release): prerelease version packages"
+npm run build
+npx changeset publish
+git push origin main --follow-tags
+```
+
+4. Exit prerelease mode when ready for a stable release:
+
+```bash
+npx changeset pre exit
+```
+
+5. Follow the normal release process for the stable version.

@@ -6,7 +6,7 @@
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
-  "license": "Apache-2.0",
+  "license": "MIT",
   "publishConfig": {
     "access": "public"
   },
@@ -16,6 +16,11 @@
     "README.md",
     "LICENSE"
   ],
+  "author": {
+    "name": "Permanent Data Solutions Inc",
+    "email": "info@ar.io",
+    "website": "https://ar.io"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ar-io/wayfinder.git"

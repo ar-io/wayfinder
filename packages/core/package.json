@@ -13,7 +13,11 @@
     "wayfinder",
     "ar://"
   ],
-  "author": "Permanent Data Solutions, Inc.",
+  "author": {
+    "name": "Permanent Data Solutions Inc",
+    "email": "info@ar.io",
+    "website": "https://ar.io"
+  },
   "publishConfig": {
     "access": "public"
   },
