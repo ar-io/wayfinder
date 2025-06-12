@@ -1,19 +1,19 @@
-# WayFinder
+# Wayfinder
 
-WayFinder is a set of tools and libraries that enable decentralized and cryptographically verified access to data stored on Arweave via the [AR.IO Network](https://ar.io).
+Wayfinder is a set of tools and libraries that enable decentralized and cryptographically verified access to data stored on Arweave via the [AR.IO Network](https://ar.io).
 
 ## Packages
 
 This monorepo contains the following packages:
 
 - **[@ar.io/wayfinder-core](./packages/core)**: Core JavaScript library for the Wayfinder routing and verification protocol
-- **[@ar.io/wayfinder-react](./packages/react)**: React components for WayFinder, including Hooks and Context provider
-- **[@ar.io/wayfinder-extension](./packages/extension)**: Chrome extension for WayFinder
+- **[@ar.io/wayfinder-react](./packages/react)**: React components for Wayfinder, including Hooks and Context provider
+- **[@ar.io/wayfinder-extension](./packages/extension)**: Chrome extension for Wayfinder
 - **[@ar.io/wayfinder-cli](./packages/cli)**: CLI for interacting with Wayfinder in the terminal
 
 ## What is it?
 
-WayFinder (beta) is a simple, open-source client-side routing and verification protocol for the permaweb. It leverages the [AR.IO Network](https://ar.io) to route users to the most optimal gateway for a given request.
+Wayfinder is a simple, open-source client-side routing and verification protocol for the permaweb. It leverages the [AR.IO Network](https://ar.io) to route users to the most optimal gateway for a given request.
 
 ## Who is it built for?
 
