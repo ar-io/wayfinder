@@ -44,12 +44,15 @@ jobs:
       - name: Enter Prerelease Mode for Alpha Branch
         if: github.ref == 'refs/heads/alpha'
         run: npx changeset pre enter alpha
+
+      - name: Build all packages
+        run: npm run build --workspaces
         
       - name: Create Release Pull Request or Publish to npm
         id: changesets
         uses: changesets/action@v1
         with:
-          publish: npm run build && npx changeset publish
+          publish: npx changeset publish
           commit: "chore(release): version packages"
           title: "chore(release): version packages"
         env:
