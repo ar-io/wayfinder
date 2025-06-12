@@ -1,6 +1,6 @@
 # WayFinder
 
-WayFinder is a set of tools and libraries that enable decentralized and cryptographically verified access to data stored on Arweave leveraging the [AR.IO Network](https://ar.io) via the Wayfinder protocol.
+WayFinder is a set of tools and libraries that enable decentralized and cryptographically verified access to data stored on Arweave via the [AR.IO Network](https://ar.io).
 
 ## Packages
 
