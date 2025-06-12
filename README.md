@@ -34,7 +34,31 @@ npx changeset
 
 This will guide you through the process of documenting your changes and selecting which packages are affected. Changesets will be used during the release process to update package versions and generate changelogs.
 
-### Normal Releases
+### Automated Releases
+
+This repository is configured with GitHub Actions workflows that automate the release process:
+
+- **Main Branch**: When changes are merged to `main`, a standard release is created
+- **Alpha Branch**: When changes are merged to `alpha`, a prerelease (beta tagged) is created
+
+The workflow automatically:
+1. Determines whether to create a prerelease or standard release based on the branch
+2. Versions packages using changesets
+3. Publishes to npm
+4. Creates GitHub releases
+5. Pushes tags back to the repository
+
+To use the automated process:
+1. Create changesets for your changes
+2. Push your changes to a feature branch
+3. Create a pull request to `alpha` (for prereleases) or `main` (for standard releases)
+4. When the PR is merged, the release will be automatically created
+
+### Manual Release Process
+
+If you need to release manually, follow these steps:
+
+#### Normal Releases
 
 To release a new version:
 
@@ -66,7 +90,7 @@ npx changeset publish
 git push origin main --follow-tags
 ```
 
-### Prerelease Mode
+#### Prerelease Mode
 
 For prerelease versions (e.g., beta, alpha):
 
