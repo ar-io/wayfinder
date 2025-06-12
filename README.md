@@ -13,7 +13,7 @@ This monorepo contains the following packages:
 
 ## What is it?
 
-WayFinder (beta) is a simple, open-source client-side routing and verification protocol for the permaweb. It is designed to leverage the [ar.io network](https://ar.io) to route users to the most optimal gateway for a given request.
+WayFinder (beta) is a simple, open-source client-side routing and verification protocol for the permaweb. It leverages the [AR.IO Network](https://ar.io) to route users to the most optimal gateway for a given request.
 
 ## Who is it built for?
 
