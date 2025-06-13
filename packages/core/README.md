@@ -206,7 +206,7 @@ const wayfinder = new Wayfinder({
 
 ### SignatureVerificationStrategy
 
-Verifies the signature of an Arweave transaction or data item using offsets provided by trusted gateways.
+Verifies signatures of Arweave transactions and data items. Headers are retrieved from trusted gateways for use during verification. For a transaction, its data root is computed while streaming its data and then utilized alongside its headers for verification. For data items, the ANS-104 deep hash method of signature verification is used.
 
 ```javascript
 import { Wayfinder, SignatureVerificationStrategy } from '@ar-io/sdk';
