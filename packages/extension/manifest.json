@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "name": "AR.IO WayFinder",
-  "version": "0.0.14",
+  "version": "0.1.0",
   "description": "WayFinder (Alpha) streamlines access to the Permaweb through the AR.IO Network and Arweave Name System.",
-  "permissions": ["storage", "webNavigation", "webRequest"],
+  "permissions": ["storage", "webNavigation", "webRequest", "scripting"],
   "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "background.js",

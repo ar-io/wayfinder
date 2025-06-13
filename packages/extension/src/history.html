@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wayfinder History</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="assets/css/variables.css" />
+    <link rel="stylesheet" href="assets/css/history.css" />
+    <script type="module" src="history.js"></script>
+  </head>
+  <body>
+    <div class="history-container">
+      <!-- Header -->
+      <header class="history-header">
+        <div class="header-content">
+          <button class="back-button" id="backToMain">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <h1>Gateway History</h1>
+          <div class="header-actions">
+            <button class="clear-button" id="clearHistory">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>Clear</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Time Filter -->
+      <section class="filter-section">
+        <div class="time-filter">
+          <button class="filter-btn active" data-period="today">Today</button>
+          <button class="filter-btn" data-period="week">7 Days</button>
+          <button class="filter-btn" data-period="month">30 Days</button>
+          <button class="filter-btn" data-period="all">All Time</button>
+        </div>
+        
+        <div class="sort-options">
+          <label for="sortBy">Sort by:</label>
+          <select id="sortBy" class="sort-select">
+            <option value="requests">Most Used</option>
+            <option value="recent">Most Recent</option>
+            <option value="performance">Best Performance</option>
+            <option value="success">Success Rate</option>
+          </select>
+        </div>
+      </section>
+
+      <!-- Summary Stats -->
+      <section class="summary-section">
+        <div class="summary-cards">
+          <div class="summary-card">
+            <div class="summary-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+              </svg>
+            </div>
+            <div class="summary-content">
+              <div class="summary-value" id="totalRequests">0</div>
+              <div class="summary-label">AR.IO Requests</div>
+            </div>
+          </div>
+          
+          <div class="summary-card">
+            <div class="summary-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+              </svg>
+            </div>
+            <div class="summary-content">
+              <div class="summary-value" id="uniqueGateways">0</div>
+              <div class="summary-label">AR.IO Gateways</div>
+            </div>
+          </div>
+          
+          <div class="summary-card">
+            <div class="summary-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+              </svg>
+            </div>
+            <div class="summary-content">
+              <div class="summary-value" id="avgResponseTime">--</div>
+              <div class="summary-label">Avg Response Time</div>
+            </div>
+          </div>
+
+          <div class="summary-card">
+            <div class="summary-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                <path d="M2 17l10 5 10-5"/>
+                <path d="M2 12l10 5 10-5"/>
+              </svg>
+            </div>
+            <div class="summary-content">
+              <div class="summary-value" id="permawebRatio">--</div>
+              <div class="summary-label">Permaweb Usage</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Gateway Usage List -->
+      <main class="history-content">
+        <div class="section-header">
+          <h2>Gateway Usage</h2>
+          <p id="periodLabel">Showing usage for today</p>
+        </div>
+        
+        <div class="gateway-usage-list" id="gatewayUsageList">
+          <!-- Gateway usage cards will be populated here -->
+        </div>
+        
+        <div class="empty-state" id="emptyState" style="display: none;">
+          <svg class="empty-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" opacity="0.5">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+          <h3>No History Found</h3>
+          <p>Start browsing ar:// links to see gateway usage statistics.</p>
+        </div>
+        
+        <div class="loading-state" id="loadingState" style="display: none;">
+          <div class="loading-spinner"></div>
+          <p>Loading history...</p>
+        </div>
+      </main>
+
+      <!-- Footer -->
+      <footer class="history-footer">
+        <div class="footer-content">
+          <div class="footer-info">
+            <span id="dataRange">--</span>
+          </div>
+          <div class="version-info">
+            <span id="extensionVersion">v0.1.0</span>
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Gateway Details Modal -->
+    <div id="gatewayModal" class="modal" style="display: none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div class="modal-title-section">
+            <h2>Gateway Details</h2>
+            <div class="gateway-status-badge" id="modalStatusBadge">
+              <div class="status-dot"></div>
+              <span>Unknown</span>
+            </div>
+          </div>
+          <button class="close-btn" id="closeModal">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2"/>
+              <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </button>
+        </div>
+        
+        <div class="modal-body">
+          <!-- Basic Information -->
+          <div class="modal-section">
+            <div class="section-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M2 12h20"/>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+              </svg>
+              <h3>Gateway Information</h3>
+            </div>
+            
+            <div class="modal-field-group">
+              <div class="modal-field">
+                <label>Gateway URL</label>
+                <a id="modal-gateway-url" class="value-link" href="#" target="_blank">
+                  <span>--</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/>
+                  </svg>
+                </a>
+              </div>
+              
+              <div class="modal-field">
+                <label>Wallet Address</label>
+                <a id="modal-gateway-wallet" class="value-link" href="#" target="_blank">
+                  <span>--</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/>
+                  </svg>
+                </a>
+              </div>
+              
+              <div class="modal-field">
+                <label>Total Stake</label>
+                <span id="modal-total-stake" class="field-value">--</span>
+              </div>
+              
+              <div class="modal-field">
+                <label>Avg Response Time</label>
+                <span id="modal-gateway-avg-response-time" class="field-value">--</span>
+              </div>
+              
+              <div class="modal-field">
+                <label>Start Date</label>
+                <span id="modal-start" class="field-value">--</span>
+              </div>
+              
+              <div class="modal-field">
+                <label>Usage Count</label>
+                <span id="modal-usage-count" class="field-value">--</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Usage Statistics -->
+          <div class="modal-section">
+            <div class="section-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+              </svg>
+              <h3>Usage Statistics</h3>
+            </div>
+            
+            <div class="usage-stats-grid">
+              <div class="stat-card">
+                <div class="stat-label">Success Rate</div>
+                <div id="modal-success-rate" class="stat-value">--</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">Failed Requests</div>
+                <div id="modal-failed-requests" class="stat-value">--</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">Last Used</div>
+                <div id="modal-last-used" class="stat-value">--</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

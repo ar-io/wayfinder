@@ -1,0 +1,342 @@
+/* Compact Settings Override - Reduces vertical spacing while maintaining clarity */
+
+/* Reduce section spacing */
+.settings-section {
+  margin-bottom: var(--spacing-md) !important; /* was var(--spacing-lg) */
+}
+
+.section-header {
+  margin-bottom: var(--spacing-md) !important; /* was var(--spacing-lg) */
+}
+
+/* Make routing and verification strategy cards more compact */
+.strategy-option {
+  margin-bottom: var(--spacing-sm); /* Add small gap between options */
+  transition: all 0.3s ease; /* Smooth transition for selection */
+}
+
+.strategy-header {
+  padding: var(--spacing-md) !important; /* was var(--spacing-lg) */
+  position: relative;
+  overflow: hidden;
+}
+
+.strategy-details {
+  padding: 0 var(--spacing-md) var(--spacing-md) !important; /* was var(--spacing-lg) */
+}
+
+/* Highlight selected strategy more prominently */
+.strategy-option:has(input:checked) {
+  border-color: var(--accent-primary) !important;
+  background: var(--bg-tertiary) !important;
+  box-shadow: 0 0 0 3px rgba(0, 208, 132, 0.2) !important;
+}
+
+.strategy-option:has(input:checked) .strategy-info h3 {
+  color: var(--accent-primary) !important;
+}
+
+/* Add visual checkmark for selected strategy */
+.strategy-option:has(input:checked) .strategy-header::before {
+  content: "✓";
+  position: absolute;
+  right: var(--spacing-md);
+  top: var(--spacing-md);
+  color: var(--accent-primary);
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+.strategy-option {
+  position: relative;
+}
+
+/* Compact option cards */
+.option-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md); /* was var(--radius-lg) */
+  padding: var(--spacing-md) !important; /* was var(--spacing-lg) */
+  margin-bottom: var(--spacing-sm);
+}
+
+.option-header {
+  gap: var(--spacing-sm) !important; /* Reduce gap */
+}
+
+/* Verification mode improvements */
+.mode-label {
+  background: var(--bg-tertiary);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--accent-primary);
+  margin-left: 8px;
+}
+
+.mode-label.strict-mode {
+  color: var(--warning);
+}
+
+.verification-explanation {
+  margin-top: var(--spacing-sm);
+  padding-top: var(--spacing-sm);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.mode-indicator {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-xs);
+  font-size: var(--font-size-sm);
+}
+
+.mode-indicator .mode-off {
+  color: var(--text-secondary);
+}
+
+.mode-indicator .mode-on {
+  color: var(--text-muted);
+}
+
+/* Show/hide based on toggle state */
+.option-header:has(input#verificationStrict:not(:checked))
+  + .verification-explanation
+  .mode-off {
+  color: var(--success);
+  font-weight: 600;
+}
+
+.option-header:has(input#verificationStrict:not(:checked))
+  + .verification-explanation
+  .mode-on {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.option-header:has(input#verificationStrict:checked)
+  + .verification-explanation
+  .mode-off {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.option-header:has(input#verificationStrict:checked)
+  + .verification-explanation
+  .mode-on {
+  color: var(--warning);
+  font-weight: 600;
+}
+
+.mode-description {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* Compact config cards */
+.config-card {
+  padding: var(--spacing-md) !important; /* was var(--spacing-lg) */
+}
+
+.config-details {
+  margin-top: var(--spacing-sm) !important; /* was var(--spacing-md) */
+}
+
+/* Compact performance cards */
+.perf-card {
+  padding: var(--spacing-md) !important; /* was var(--spacing-lg) */
+}
+
+.perf-stats {
+  gap: var(--spacing-md) !important; /* was var(--spacing-lg) */
+  margin-top: var(--spacing-sm);
+}
+
+/* Reduce spacing in expandable sections */
+.expandable-content {
+  padding-top: var(--spacing-md) !important; /* was var(--spacing-lg) */
+}
+
+/* Make radio buttons more visible */
+input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  cursor: pointer;
+}
+
+/* Fix verification options spacing */
+.verification-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm); /* was implicit larger gap */
+  margin-top: var(--spacing-md);
+}
+
+/* Compact the static gateway config */
+.static-gateway-config {
+  margin-top: var(--spacing-sm) !important;
+  display: none; /* Hidden by default, shown via JS when static is selected */
+}
+
+/* Make switches align better in compact mode */
+.switch {
+  margin-left: auto;
+}
+
+/* Reduce overall content padding */
+.settings-content {
+  padding: var(--spacing-md) !important; /* was var(--spacing-lg) */
+  padding-bottom: var(--spacing-xl) !important; /* Keep some bottom space */
+}
+
+/* Make feature lists more compact */
+.feature-list {
+  gap: 2px !important; /* was var(--spacing-xs) */
+  margin-top: var(--spacing-sm) !important;
+}
+
+.feature {
+  line-height: 1.3;
+}
+
+/* Highlight effect for navigation from popup */
+.settings-section.highlight {
+  animation: highlightSection 2s ease-out;
+}
+
+@keyframes highlightSection {
+  0% {
+    background-color: rgba(0, 208, 132, 0.1);
+    transform: scale(1.01);
+  }
+  100% {
+    background-color: transparent;
+    transform: scale(1);
+  }
+}
+
+/* Smooth scrolling for the entire page */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Add some top padding to sections for better scroll positioning */
+.settings-section {
+  scroll-margin-top: 20px;
+}
+
+/* Three-state verification mode selector */
+.verification-mode-selector {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin: var(--spacing-md) 0;
+}
+
+.mode-option {
+  flex: 1;
+  background: var(--bg-secondary);
+  border: 2px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+  position: relative;
+}
+
+.mode-option:hover {
+  border-color: var(--border-default);
+  transform: translateY(-1px);
+}
+
+.mode-option input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.mode-option:has(input:checked) {
+  border-color: var(--accent-primary);
+  background: var(--bg-tertiary);
+  box-shadow: 0 0 0 3px rgba(0, 208, 132, 0.2);
+}
+
+.mode-option.recommended::after {
+  content: "Recommended";
+  position: absolute;
+  top: -8px;
+  right: 8px;
+  background: var(--accent-primary);
+  color: white;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.mode-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.mode-icon {
+  font-size: 1.5rem;
+}
+
+.mode-info h4 {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.mode-info p {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.verification-mode-description {
+  margin-top: var(--spacing-sm);
+  padding-top: var(--spacing-sm);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.verification-mode-description p {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  text-align: center;
+  margin: 0;
+}
+
+/* Hide verification strategy when mode is off */
+.verification-strategy-wrapper {
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.verification-strategy-wrapper.hidden {
+  display: none;
+}
+
+/* Adjust section header within wrapper */
+.verification-strategy-wrapper .section-header h3 {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.verification-strategy-wrapper .section-header p {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}

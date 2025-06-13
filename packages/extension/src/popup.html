@@ -3,237 +3,214 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AR.IO WayFinder</title>
+    <title>Wayfinder</title>
     <link
-      href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="assets/css/styles.css" />
+    <link rel="stylesheet" href="assets/css/variables.css" />
+    <link rel="stylesheet" href="assets/css/popup.css" />
     <script type="module" src="popup.js"></script>
   </head>
   <body>
-    <div id="aboutSection">
-      <h2>About the ar:// protocol</h2>
-      <p>
-        WayFinder uses the <code>ar://</code> protocol. This is a unique web
-        address schema powered by the
-        <a href="https://ar.io" target="_blank" id="arioLink">AR.IO Network</a>
-        and used to access content stored on the Arweave Permaweb. By using this
-        protocol, users can directly navigate to and interact with decentralized
-        web pages and applications via their
-        <a href="https://ar.io/arns" target="_blank" id="arioLink">ArNS Name</a>
-        or Arweave transaction ID.
-      </p>
+    <div class="popup-container">
+      <!-- Header -->
+      <header class="popup-header">
+        <div class="header-content">
+          <div class="logo-section">
+            <div class="logo-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                <path d="M2 12h20"/>
+              </svg>
+            </div>
+            <div class="logo-text">
+              <h1>Wayfinder</h1>
+              <p>Gateway Management</p>
+            </div>
+          </div>
+          <div class="connection-status" id="connectionStatus">
+            <svg class="status-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
+              <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
+              <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+              <path d="M12 20h.01"/>
+            </svg>
+            <span class="status-text">Connected</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Content -->
+      <main class="popup-content">
+        
+        <!-- Stats Section -->
+        <section class="stats-section">
+          <div class="stats-grid">
+            <div class="stat-item">
+              <svg class="stat-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect width="20" height="8" x="2" y="2" rx="2" ry="2"/>
+                <rect width="20" height="8" x="2" y="14" rx="2" ry="2"/>
+                <line x1="6" x2="6.01" y1="6" y2="6"/>
+                <line x1="6" x2="6.01" y1="18" y2="18"/>
+              </svg>
+              <div class="stat-content">
+                <div class="stat-value" id="activeGatewayCount">--</div>
+                <div class="stat-label">Active Gateways</div>
+              </div>
+            </div>
+            <div class="stat-item">
+              <svg class="stat-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+              </svg>
+              <div class="stat-content">
+                <div class="stat-value" id="requestsToday">--</div>
+                <div class="stat-label">Requests Today</div>
+              </div>
+            </div>
+            <div class="stat-item">
+              <svg class="stat-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="13,2 3,14 12,14 11,22 21,10 12,10 13,2"/>
+              </svg>
+              <div class="stat-content">
+                <div class="stat-value" id="avgResponseTime">--</div>
+                <div class="stat-label">Avg Response</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Current Strategy Section -->
+        <section class="current-strategy-section">
+          <div class="strategy-card">
+            <div class="strategy-header">
+              <svg class="strategy-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                <path d="M3 3v5h5"/>
+                <path d="M12 7v5l4 2"/>
+              </svg>
+              <div class="strategy-content">
+                <div class="strategy-label">Routing Strategy</div>
+                <div class="strategy-name" id="currentStrategy">Optimal Performance</div>
+              </div>
+              <button class="change-strategy-btn" id="changeStrategy">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 20h9"/>
+                  <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Current Verification Section -->
+        <section class="current-verification-section">
+          <div class="verification-card">
+            <div class="verification-header">
+              <svg class="verification-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                <path d="M9 12l2 2 4-4"/>
+              </svg>
+              <div class="verification-content">
+                <div class="verification-label">Data Verification</div>
+                <div class="verification-name" id="currentVerification">Background Mode</div>
+              </div>
+              <button class="change-verification-btn" id="changeVerification">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 20h9"/>
+                  <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Navigation Section -->
+        <section class="navigation-section">
+          <div class="nav-cards">
+            <div class="nav-card" id="showGateways">
+              <svg class="nav-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect width="20" height="8" x="2" y="2" rx="2" ry="2"/>
+                <rect width="20" height="8" x="2" y="14" rx="2" ry="2"/>
+                <line x1="6" x2="6.01" y1="6" y2="6"/>
+                <line x1="6" x2="6.01" y1="18" y2="18"/>
+              </svg>
+              <div class="nav-content">
+                <h3>Gateways</h3>
+                <p>Manage gateway connections</p>
+              </div>
+              <svg class="nav-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 18l6-6-6-6"/>
+              </svg>
+            </div>
+
+            <div class="nav-card" id="showHistory">
+              <svg class="nav-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="1 4 1 10 7 10"/>
+                <polyline points="23 20 23 14 17 14"/>
+                <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
+              </svg>
+              <div class="nav-content">
+                <h3>History</h3>
+                <p>View gateway usage stats</p>
+              </div>
+              <svg class="nav-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 18l6-6-6-6"/>
+              </svg>
+            </div>
+
+            <div class="nav-card" id="showSettings">
+              <svg class="nav-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+              </svg>
+              <div class="nav-content">
+                <h3>Settings</h3>
+                <p>Configure preferences</p>
+              </div>
+              <svg class="nav-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 18l6-6-6-6"/>
+              </svg>
+            </div>
+          </div>
+        </section>
+
+
+      </main>
+
+      <!-- Footer -->
+      <footer class="popup-footer">
+        <div class="footer-content">
+          <div class="footer-links">
+            <a href="https://discord.gg/zAZ8p9ARqC" target="_blank" title="Join our Discord" class="footer-link">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                <circle cx="9" cy="10" r="1"/>
+                <circle cx="15" cy="10" r="1"/>
+              </svg>
+            </a>
+            <a href="https://github.com/ar-io/wayfinder" target="_blank" title="View source code" class="footer-link">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
+              </svg>
+            </a>
+            <a href="https://ar.io" target="_blank" title="AR.IO Network" class="footer-link">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                <path d="M2 12h20"/>
+              </svg>
+            </a>
+          </div>
+          <div class="version-info">
+            <span id="extensionVersion">v0.1.0</span>
+          </div>
+        </div>
+      </footer>
     </div>
-    <div id="gatewayAddressRegistrySection">
-      <h2 id="gatewayListTitle" style="display: none">
-        Gateway Address Registry
-      </h2>
-      <div id="gatewayListHeader" style="display: none">
-        <span class="active-gateways"
-          >Active: <span id="activeGatewayCount">0</span></span
-        >
-        <span class="total-gateways"
-          >Total: <span id="totalGatewayCount">0</span></span
-        >
-        <span class="refresh-gateways"
-          ><span id="refreshGateways"
-            ><a
-              href="#"
-              id="refreshIcon"
-              title="Refresh the gateway address registry"
-              >↺</a
-            ></span
-          ></span
-        >
-      </div>
-      <ul id="gatewayList" style="display: none">
-        <li class="gateway-header">
-          <span class="gateway-url">Gateway</span>
-          <span class="online-status">Status</span>
-          <span class="response-time">Response Time</span>
-        </li>
-      </ul>
-    </div>
-    <h2 id="historyListTitle" style="display: none">Usage History</h2>
-    <ul id="historyList" style="display: none"></ul>
-    <h2 id="settingsListTitle" style="display: none">Settings</h2>
-    <ul id="settingsList" style="display: none"></ul>
-    <div id="settingsSection" style="display: none">
-      <div class="setting">
-        <label for="themeToggle" title="Switch between light and dark themes."
-          >Theme:</label
-        >
-        <select id="themeToggle">
-          <option value="dark">Dark Mode</option>
-          <option value="light">Light Mode</option>
-        </select>
-      </div>
-      <div class="setting">
-        <label for="ensResolutionToggle" title="Enable or disable experimental ENS name resolution.">
-          Experimental ENS Resolution:
-        </label>
-        <label class="switch">
-          <input type="checkbox" id="ensResolutionToggle">
-          <span class="slider round"></span>
-        </label>
-      </div>
-      
-      <div class="setting">
-        <label
-          for="routingToggle"
-          title="Switch the ar:// routing protocol Wayfinder uses."
-          >Routing Method:</label
-        >
-        <select id="routingToggle">
-          <option
-            value="optimalGateway"
-            title="Route to the most optimal gateway based on onchain and offchain performance indicators."
-          >
-            Most Optimal Gateway
-          </option>
-          <option
-            value="topFiveStake"
-            title="Route to one of the top 5 staked gateways."
-          >
-            Random Top 5 Stake
-          </option>
-          <option
-            value="weightedOnchainPerformance"
-            title="Route to a gateway based on its onchain performance."
-          >
-            Weighted Onchain Performance
-          </option>
-          <option
-            value="stakeRandom"
-            title="Route to gateways based on a weighted list by stake."
-          >
-            Stake-weighted Random
-          </option>
-          <option
-            value="highestStake"
-            title="Route to the gateway with the highest stake."
-          >
-            Highest Stake
-          </option>
-          <option value="random" title="Route to a random gateway.">
-            Random
-          </option>
-        </select>
-      </div>
-      <div class="setting">
-        <label
-          for="staticGateway"
-          title="Route all ar:// requests to a single, static gateway"
-          >Static Gateway:</label
-        >
-        <input
-          type="text"
-          id="staticGateway"
-          placeholder="e.g. https://ar-io.dev"
-        />
-        <button id="saveStaticGateway">✔</button>
-      </div>
-      <div class="setting">
-        <label
-          for="arIOProcessId"
-          title="Configure a different AR.IO Process ID for the Gateway Address Registry."
-          >AR.IO Process ID:</label
-        >
-        <input
-          type="text"
-          id="arIOProcessId"
-          placeholder="e.g. agYcCFJtrMG6cqMuZfskIkFTGvUPddICmtQSBIoPdiA"
-        />
-        <button id="saveArIOProcessId">✔</button>
-      </div>
-      <div class="setting">
-        <label
-          for="aoCuUrl"
-          title="Configure a different AO Compute Unit URL that serves as the source for the Gateway Address Registry."
-          >AO CU Url:</label
-        >
-        <input
-          type="text"
-          id="aoCuUrl"
-          placeholder="e.g. https://cu.ardrive.io"
-        />
-        <button id="saveAoCuUrl">✔</button>
-      </div>
-    </div>
-    <button id="showGateways">Gateway Address Registry</button>
-    <button id="showHistory">Usage History</button>
-    <button id="showSettings">Settings</button>
-    <div id="gatewayModal" class="modal">
-      <div class="modal-content">
-        <span class="close-btn" tabindex="0" title="Close">&times;</span>
-        <h2>Gateway Details</h2>
-        <p title="The root domain of this gateway.  Click to view details.">
-          <strong
-            ><a id="modal-gateway-url" href="#" target="_blank"
-              >url...</a
-            ></strong
-          >
-        </p>
-        <p
-          title="The unique wallet address of the gateway. Click to view details on from Viewblock."
-        >
-          <strong>Gateway Address:</strong>
-          <a id="modal-gateway-wallet" href="#" target="_blank"
-            >shortened_address...</a
-          >
-        </p>
-        <p
-          title="The amount of stake committed by this gateway. This indicates the gateway's vested interest in the network."
-        >
-          <strong>Total Stake:</strong>
-          <span id="modal-total-stake">placeholder_stake_value</span>
-        </p>
-        <p
-        title="The average response time for this gateway."
-      >
-        <strong>Avg Response Time:</strong>
-        <span id="modal-gateway-avg-response-time">placeholder_gateway_average_response_time</span>
-      </p>
-        <p title="When this gateway joined the network.">
-          <strong>Joined Since:</strong>
-          <span id="modal-start">placeholder_start_date</span>
-        </p>
-        <p title="A note from the gateway operator." id="modal-note">
-          placeholder_note
-        </p>
-        <p title="Find more information about this gateway from the AR.IO Network App."
-        >
-        <strong>
-        <a id="modal-gateway-more-info" href="#" target="_blank"
-          >more_info_link...</a
-        ></strong>
-        </p>
-        <button id="blacklistButton">Blacklist Gateway</button>
-      </div>
-    </div>
-    <footer>
-      <a
-        href="https://discord.gg/zAZ8p9ARqC"
-        target="_blank"
-        id="discordLink"
-        title="Join the community discussion"
-        >Discord</a
-      >
-      <a
-        href="https://github.com/ar-io/wayfinder"
-        target="_blank"
-        id="githubLink"
-        title="Wayfinder Source Code"
-        >Github</a
-      >
-      <a
-        href="https://github.com/ar-io/ar-io-network-process"
-        target="_blank"
-        id="contractCodeLink"
-        title="AR.IO Network Testnet AO Process"
-        >Network</a
-      >
-    </footer>
+
+    <!-- Toast Notifications -->
+    <div id="toastContainer" class="toast-container"></div>
   </body>
 </html>
