@@ -1,0 +1,522 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wayfinder Settings</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="assets/css/variables.css" />
+    <link rel="stylesheet" href="assets/css/settings.css" />
+    <link rel="stylesheet" href="assets/css/settings-compact.css" />
+    <script type="module" src="settings.js"></script>
+  </head>
+  <body>
+    <div class="settings-container">
+      <!-- Header -->
+      <header class="settings-header">
+        <div class="header-content">
+          <button class="back-button" id="backToMain">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <h1>Wayfinder Settings</h1>
+          <div class="status-indicator" id="connectionStatus">
+            <div class="status-dot"></div>
+            <span>Connected</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Settings Content -->
+      <main class="settings-content">
+        
+
+        <!-- Routing Configuration -->
+        <section class="settings-section routing-config" id="routing">
+          <div class="section-header">
+            <h2>Routing Strategy</h2>
+            <p>How Wayfinder selects the best gateway for your requests</p>
+          </div>
+          
+          <div class="routing-strategy-selector">
+            <div class="strategy-option" data-strategy="fastestPing">
+              <div class="strategy-header">
+                <input type="radio" name="routingStrategy" value="fastestPing" id="fastestPing">
+                <label for="fastestPing">
+                  <div class="strategy-icon">⚡</div>
+                  <div class="strategy-info">
+                    <h3>Fastest Ping</h3>
+                    <p>Select gateway based on lowest latency response</p>
+                  </div>
+                  <div class="strategy-badge recommended">Recommended</div>
+                </label>
+              </div>
+              <div class="strategy-details">
+                <div class="feature-list">
+                  <div class="feature">✓ Parallel ping testing</div>
+                  <div class="feature">✓ Sub-second gateway selection</div>
+                  <div class="feature">✓ Optimal for performance</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="strategy-option" data-strategy="random">
+              <div class="strategy-header">
+                <input type="radio" name="routingStrategy" value="random" id="random">
+                <label for="random">
+                  <div class="strategy-icon">🎲</div>
+                  <div class="strategy-info">
+                    <h3>Random Selection</h3>
+                    <p>Randomly select from available gateways</p>
+                  </div>
+                </label>
+              </div>
+              <div class="strategy-details">
+                <div class="feature-list">
+                  <div class="feature">✓ Good for load balancing</div>
+                  <div class="feature">✓ Simple and reliable</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="strategy-option" data-strategy="roundRobin">
+              <div class="strategy-header">
+                <input type="radio" name="routingStrategy" value="roundRobin" id="roundRobin">
+                <label for="roundRobin">
+                  <div class="strategy-icon">🔄</div>
+                  <div class="strategy-info">
+                    <h3>Round Robin</h3>
+                    <p>Cycle through gateways in sequence</p>
+                  </div>
+                </label>
+              </div>
+              <div class="strategy-details">
+                <div class="feature-list">
+                  <div class="feature">✓ Even load distribution</div>
+                  <div class="feature">✓ Predictable routing</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="strategy-option" data-strategy="static">
+              <div class="strategy-header">
+                <input type="radio" name="routingStrategy" value="static" id="static">
+                <label for="static">
+                  <div class="strategy-icon">📌</div>
+                  <div class="strategy-info">
+                    <h3>Static Gateway</h3>
+                    <p>Always use a specific gateway</p>
+                  </div>
+                </label>
+              </div>
+              <div class="strategy-details">
+                <div class="static-gateway-config">
+                  <div class="input-group">
+                    <label for="staticGatewayUrl">Gateway URL</label>
+                    <input type="url" id="staticGatewayUrl" placeholder="https://arweave.net" />
+                    <button class="test-button" id="testStaticGateway">Test</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Verification Settings -->
+        <section class="settings-section verification-config" id="verification">
+          <div class="section-header">
+            <h2>Data Verification</h2>
+            <p>Cryptographic verification ensures data integrity from the Arweave network</p>
+          </div>
+          
+          <div class="verification-strategy-wrapper" id="verificationStrategyWrapper">
+            <div class="section-header">
+              <h3>Verification Strategy</h3>
+              <p>Choose how to verify data integrity</p>
+            </div>
+            
+            <div class="verification-strategy-selector">
+              <div class="strategy-option" data-strategy="hash">
+              <div class="strategy-header">
+                <input type="radio" name="verificationStrategy" value="hash" id="hashVerification">
+                <label for="hashVerification">
+                  <div class="strategy-icon">🔐</div>
+                  <div class="strategy-info">
+                    <h3>Hash Verification</h3>
+                    <p>Compare SHA-256 hash with trusted gateways</p>
+                  </div>
+                  <div class="strategy-badge recommended">Recommended</div>
+                </label>
+              </div>
+              <div class="strategy-details">
+                <div class="feature-list">
+                  <div class="feature">✓ Low complexity, high performance</div>
+                  <div class="feature">✓ Fast verification</div>
+                  <div class="feature">✓ Good for most use cases</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="strategy-option" data-strategy="dataRoot">
+              <div class="strategy-header">
+                <input type="radio" name="verificationStrategy" value="dataRoot" id="dataRootVerification">
+                <label for="dataRootVerification">
+                  <div class="strategy-icon">🌳</div>
+                  <div class="strategy-info">
+                    <h3>Data Root Verification</h3>
+                    <p>Verify using Arweave's merkle tree data root</p>
+                  </div>
+                </label>
+              </div>
+              <div class="strategy-details">
+                <div class="feature-list">
+                  <div class="feature">✓ Medium complexity and performance</div>
+                  <div class="feature">✓ Uses Arweave protocol method</div>
+                  <div class="feature">✓ Higher security than hash</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          </div>
+
+          <div class="verification-options">
+            <div class="option-card verification-mode-card">
+              <div class="option-header">
+                <div class="option-main">
+                  <div class="option-icon">⚡</div>
+                  <div class="option-info">
+                    <h3>Verification Mode</h3>
+                    <p>Control how data verification is performed</p>
+                  </div>
+                </div>
+              </div>
+              <div class="verification-mode-selector">
+                <label class="mode-option" data-mode="off">
+                  <input type="radio" name="verificationMode" value="off" id="verificationOff">
+                  <div class="mode-content">
+                    <div class="mode-icon">🚫</div>
+                    <div class="mode-info">
+                      <h4>Off</h4>
+                      <p>No verification</p>
+                    </div>
+                  </div>
+                </label>
+                <label class="mode-option recommended" data-mode="background">
+                  <input type="radio" name="verificationMode" value="background" id="verificationBackground" checked>
+                  <div class="mode-content">
+                    <div class="mode-icon">✓</div>
+                    <div class="mode-info">
+                      <h4>Background</h4>
+                      <p>Non-blocking</p>
+                    </div>
+                  </div>
+                </label>
+                <label class="mode-option" data-mode="strict">
+                  <input type="radio" name="verificationMode" value="strict" id="verificationStrict">
+                  <div class="mode-content">
+                    <div class="mode-icon">🔒</div>
+                    <div class="mode-info">
+                      <h4>Strict</h4>
+                      <p>Blocks requests</p>
+                    </div>
+                  </div>
+                </label>
+              </div>
+              <div class="verification-mode-description">
+                <p id="verificationModeDesc">Verifies data in the background without blocking requests (recommended)</p>
+              </div>
+            </div>
+
+            <div class="option-card">
+              <div class="option-header">
+                <div class="option-icon">🔍</div>
+                <div class="option-info">
+                  <h3>Verification Indicators</h3>
+                  <p>Show verification status on web pages</p>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="showVerificationIndicators" checked>
+                  <span class="switch-slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <div class="option-card">
+              <div class="option-header">
+                <div class="option-icon">💬</div>
+                <div class="option-info">
+                  <h3>Verification Toasts</h3>
+                  <p>Show popup notifications during verification</p>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="showVerificationToasts">
+                  <span class="switch-slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <div class="option-card">
+              <div class="option-header">
+                <div class="option-icon">🌐</div>
+                <div class="option-info">
+                  <h3>ENS Resolution</h3>
+                  <p>Resolve Ethereum Name Service domains (experimental)</p>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="ensResolution">
+                  <span class="switch-slider"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Network Configuration -->
+        <section class="settings-section network-config">
+          <div class="section-header">
+            <h2>Network Configuration</h2>
+            <p>Advanced settings for connecting to the AR.IO network</p>
+          </div>
+          
+          <div class="config-options">
+            <div class="config-card">
+              <div class="config-header">
+                <h3>Gateway Registry</h3>
+                <div class="status-badge" id="registryStatus">
+                  <span class="status-dot"></span>
+                  <span>Active</span>
+                </div>
+              </div>
+              <div class="config-details">
+                <div class="detail-row">
+                  <span class="detail-label">Total Gateways:</span>
+                  <span class="detail-value" id="totalGateways">0</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Active Gateways:</span>
+                  <span class="detail-value" id="activeGateways">0</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Last Updated:</span>
+                  <span class="detail-value" id="lastUpdated">Never</span>
+                </div>
+              </div>
+              <div class="config-actions">
+                <button class="primary-button" id="syncGatewayRegistry">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 2v6h-6M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8M3 22v-6h6M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                  </svg>
+                  <span>Sync Gateway Registry</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="config-card expandable">
+              <div class="config-header" id="advancedConfigToggle">
+                <h3>Advanced Network Settings</h3>
+                <svg class="expand-icon" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <div class="config-details expandable-content">
+                <div class="input-group">
+                  <label for="processId">AR.IO Process ID</label>
+                  <input type="text" id="processId" placeholder="Custom process ID">
+                  <div class="input-description">
+                    Advanced: Override the default AR.IO network process
+                  </div>
+                </div>
+                <div class="input-group">
+                  <label for="aoCuUrl">AO Compute Unit URL</label>
+                  <input type="url" id="aoCuUrl" placeholder="https://cu.ardrive.io">
+                  <div class="input-description">
+                    Advanced: Custom AO compute unit endpoint
+                  </div>
+                </div>
+                <div class="input-actions">
+                  <button class="secondary-button" id="resetToDefaults">Reset to Defaults</button>
+                  <button class="primary-button" id="saveAdvancedSettings">Save Changes</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Performance & Monitoring -->
+        <section class="settings-section performance-config">
+          <div class="section-header">
+            <h2>Performance & Monitoring</h2>
+            <p>Monitor Wayfinder's performance and adjust optimization settings</p>
+          </div>
+          
+          <div class="performance-cards">
+            <div class="perf-card">
+              <div class="perf-header">
+                <div class="perf-icon">📊</div>
+                <h3>Gateway Performance</h3>
+              </div>
+              <div class="perf-stats">
+                <div class="stat">
+                  <span class="stat-value" id="avgResponseTime">--</span>
+                  <span class="stat-label">Avg Response Time</span>
+                </div>
+                <div class="stat">
+                  <span class="stat-value" id="successRate">--</span>
+                  <span class="stat-label">Success Rate</span>
+                </div>
+                <div class="stat">
+                  <span class="stat-value" id="requestsToday">--</span>
+                  <span class="stat-label">Requests Today</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="perf-card">
+              <div class="perf-header">
+                <div class="perf-icon">🔒</div>
+                <h3>Verification Stats</h3>
+              </div>
+              <div class="perf-stats">
+                <div class="stat">
+                  <span class="stat-value" id="verifiedTransactions">--</span>
+                  <span class="stat-label">Verified Transactions</span>
+                </div>
+                <div class="stat">
+                  <span class="stat-value" id="verificationSuccessRate">--</span>
+                  <span class="stat-label">Verification Success</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="performance-options">
+            <div class="option-card">
+              <div class="option-header">
+                <div class="option-icon">🧹</div>
+                <div class="option-info">
+                  <h3>Clear Performance Data</h3>
+                  <p>Reset all cached performance metrics</p>
+                </div>
+                <button class="danger-button" id="clearPerformanceData">Clear Data</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Appearance -->
+        <section class="settings-section appearance-config">
+          <div class="section-header">
+            <h2>Appearance</h2>
+            <p>Customize the look and feel of Wayfinder</p>
+          </div>
+          
+          <div class="appearance-options">
+            <div class="option-card">
+              <div class="option-header">
+                <div class="option-icon">🌙</div>
+                <div class="option-info">
+                  <h3>Theme</h3>
+                  <p>Choose your preferred color scheme</p>
+                </div>
+                <div class="theme-selector">
+                  <label class="theme-option">
+                    <input type="radio" name="theme" value="dark" id="darkTheme">
+                    <div class="theme-preview dark">
+                      <div class="theme-colors">
+                        <div class="color bg"></div>
+                        <div class="color primary"></div>
+                        <div class="color text"></div>
+                      </div>
+                      <span>Dark</span>
+                    </div>
+                  </label>
+                  <label class="theme-option">
+                    <input type="radio" name="theme" value="light" id="lightTheme">
+                    <div class="theme-preview light">
+                      <div class="theme-colors">
+                        <div class="color bg"></div>
+                        <div class="color primary"></div>
+                        <div class="color text"></div>
+                      </div>
+                      <span>Light</span>
+                    </div>
+                  </label>
+                  <label class="theme-option">
+                    <input type="radio" name="theme" value="auto" id="autoTheme">
+                    <div class="theme-preview auto">
+                      <div class="theme-colors">
+                        <div class="color bg"></div>
+                        <div class="color primary"></div>
+                        <div class="color text"></div>
+                      </div>
+                      <span>Auto</span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Reset Section (at bottom) -->
+        <section class="settings-section reset-section">
+          <div class="section-header">
+            <h2>Reset</h2>
+            <p>Reset Wayfinder to factory defaults</p>
+          </div>
+          
+          <div class="reset-options">
+            <div class="option-card">
+              <div class="option-header">
+                <div class="option-icon">⚠️</div>
+                <div class="option-info">
+                  <h3>Reset Wayfinder</h3>
+                  <p>Clear all settings, cache, and performance data. This cannot be undone.</p>
+                </div>
+                <button class="danger-button" id="resetSettings">Reset All</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+
+      <!-- Footer -->
+      <footer class="settings-footer">
+        <div class="footer-content">
+          <div class="footer-links">
+            <a href="https://discord.gg/zAZ8p9ARqC" target="_blank" title="Join our Discord" class="footer-link">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                <circle cx="9" cy="10" r="1"/>
+                <circle cx="15" cy="10" r="1"/>
+              </svg>
+            </a>
+            <a href="https://github.com/ar-io/wayfinder" target="_blank" title="View source code" class="footer-link">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
+              </svg>
+            </a>
+            <a href="https://ar.io" target="_blank" title="AR.IO Network" class="footer-link">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                <path d="M2 12h20"/>
+              </svg>
+            </a>
+          </div>
+          <div class="version-info">
+            <span id="extensionVersion">v0.1.0</span>
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toastContainer" class="toast-container"></div>
+  </body>
+</html>

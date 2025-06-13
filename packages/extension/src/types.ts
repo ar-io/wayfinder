@@ -21,6 +21,7 @@ export type RedirectedTabInfo = {
   expectedSandboxRedirect: boolean; // Whether we expect a sandbox redirect
   sandboxRedirectUrl?: string; // The final redirected URL (if applicable)
   startTime: number; // Timestamp of when the request started
+  arUrl?: string; // Original ar:// URL that was processed
 };
 
 export type GatewayRegistry = Record<string, AoGatewayWithAddress>;

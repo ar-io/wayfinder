@@ -34,6 +34,18 @@ export default defineConfig({
           src: 'src/popup.html',
           dest: '.',
         },
+        {
+          src: 'src/settings.html',
+          dest: '.',
+        },
+        {
+          src: 'src/gateways.html',
+          dest: '.',
+        },
+        {
+          src: 'src/history.html',
+          dest: '.',
+        },
 
         {
           src: 'manifest.json',
@@ -58,7 +70,10 @@ export default defineConfig({
       input: {
         background: './src/background.ts',
         content: './src/content.ts',
-        popup: './src/popup.ts',
+        popup: './src/popup.js',
+        settings: './src/settings.js',
+        gateways: './src/gateways.js',
+        history: './src/history.js',
       },
       output: {
         entryFileNames: '[name].js',
