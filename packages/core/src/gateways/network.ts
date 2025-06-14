@@ -50,7 +50,7 @@ export class NetworkGatewaysProvider implements GatewaysProvider {
     this.logger = logger;
   }
 
-  async getGateways(): Promise<URL[]> {
+  async getGateways(_params?: { path?: string; subdomain?: string }): Promise<URL[]> {
     let cursor: string | undefined;
     let attempts = 0;
     const gateways: any[] = [];

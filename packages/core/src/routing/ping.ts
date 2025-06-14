@@ -20,28 +20,32 @@ import { Logger, defaultLogger } from '../wayfinder.js';
 
 export class FastestPingRoutingStrategy implements RoutingStrategy {
   private timeoutMs: number;
-  private probePath: string;
   private logger: Logger;
   private maxConcurrency: number;
 
   constructor({
     timeoutMs = 500,
     maxConcurrency = 50,
-    probePath = '/ar-io/info', // TODO: limit to allowed /ar-io and arweave node endpoints
     logger = defaultLogger,
   }: {
     timeoutMs?: number;
     maxConcurrency?: number;
-    probePath?: string;
     logger?: Logger;
   } = {}) {
     this.timeoutMs = timeoutMs;
-    this.probePath = probePath;
     this.logger = logger;
     this.maxConcurrency = maxConcurrency;
   }
 
-  async selectGateway({ gateways }: { gateways: URL[] }): Promise<URL> {
+  async selectGateway({
+    gateways,
+    path = '',
+    subdomain,
+  }: {
+    gateways: URL[];
+    path?: string;
+    subdomain?: string;
+  }): Promise<URL> {
     if (gateways.length === 0) {
       const error = new Error('No gateways provided');
       this.logger.error('Failed to select gateway', { error: error.message });
@@ -53,7 +57,7 @@ export class FastestPingRoutingStrategy implements RoutingStrategy {
       {
         gateways: gateways.map((g) => g.toString()),
         timeoutMs: this.timeoutMs,
-        probePath: this.probePath,
+        probePath: path,
       },
     );
 
@@ -61,7 +65,11 @@ export class FastestPingRoutingStrategy implements RoutingStrategy {
     const pingPromises = gateways.map(
       async (gateway): Promise<{ gateway: URL; durationMs: number }> => {
         return throttle(async () => {
-          const pingUrl = `${gateway.toString().replace(/\/$/, '')}${this.probePath}`;
+          const url = new URL(gateway.toString());
+          if (subdomain) {
+            url.hostname = `${subdomain}.${url.hostname}`;
+          }
+          const pingUrl = new URL(path.replace(/^\//, ''), url).toString();
 
           this.logger.debug(`Pinging gateway ${gateway.toString()}`, {
             gateway: gateway.toString(),
@@ -83,7 +91,7 @@ export class FastestPingRoutingStrategy implements RoutingStrategy {
           throw new Error('Failed to ping gateway', {
             cause: {
               gateway: gateway.toString(),
-              probePath: this.probePath,
+              probePath: path,
               status: response.status,
             },
           });

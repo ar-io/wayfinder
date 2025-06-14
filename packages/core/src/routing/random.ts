@@ -18,7 +18,13 @@ import { RoutingStrategy } from '../../types/wayfinder.js';
 import { randomInt } from '../utils/random.js';
 
 export class RandomRoutingStrategy implements RoutingStrategy {
-  async selectGateway({ gateways }: { gateways: URL[] }): Promise<URL> {
+  async selectGateway({
+    gateways,
+  }: {
+    gateways: URL[];
+    path?: string;
+    subdomain?: string;
+  }): Promise<URL> {
     if (gateways.length === 0) {
       throw new Error('No gateways available');
     }

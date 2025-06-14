@@ -57,7 +57,7 @@ export class SimpleCacheGatewaysProvider implements GatewaysProvider {
     this.logger = logger;
   }
 
-  async getGateways(): Promise<URL[]> {
+  async getGateways(params?: { path?: string; subdomain?: string }): Promise<URL[]> {
     const now = Date.now();
     if (
       this.gatewaysCache.length === 0 ||
@@ -70,7 +70,7 @@ export class SimpleCacheGatewaysProvider implements GatewaysProvider {
         });
 
         // preserve the cache if the fetch fails
-        const allGateways = await this.gatewaysProvider.getGateways();
+        const allGateways = await this.gatewaysProvider.getGateways(params);
         this.gatewaysCache = allGateways;
         this.lastUpdated = now;
 
