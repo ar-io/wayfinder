@@ -21,7 +21,12 @@ yarn add @ar.io/wayfinder-react @ar.io/wayfinder-core
 ## Usage
 
 ```jsx
-import { WayfinderProvider, ArweaveLink, useWayfinder } from '@ar.io/wayfinder-react';
+import {
+  WayfinderProvider,
+  ArweaveLink,
+  useWayfinder,
+  useWayfinderRequest,
+} from '@ar.io/wayfinder-react';
 
 // Wrap your app with the provider
 function App() {
@@ -51,6 +56,20 @@ function GatewaySelector() {
       <button onClick={() => selectGateway()}>Change Gateway</button>
     </div>
   );
+}
+
+// Make requests using the Wayfinder client
+function FetchData({ txId }: { txId: string }) {
+  const request = useWayfinderRequest();
+
+  React.useEffect(() => {
+    (async () => {
+      const res = await request(`ar://${txId}`);
+      console.log(await res.text());
+    })();
+  }, [request, txId]);
+
+  return null;
 }
 ```
 

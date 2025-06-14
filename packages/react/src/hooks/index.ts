@@ -15,4 +15,4 @@
  * limitations under the License.
  */
 
-// Export hooks here
+export { useWayfinder, useWayfinderRequest } from '../components/wayfinder-provider.js';
