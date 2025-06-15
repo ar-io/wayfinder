@@ -293,6 +293,7 @@ export function sandboxFromId(id: string): string {
  * @returns a wrapped fetch function that supports ar:// protocol and always returns Response
  */
 export const createWayfinderClient = ({
+  getGateways,
   resolveUrl,
   verifyData,
   selectGateway,
@@ -300,7 +301,8 @@ export const createWayfinderClient = ({
   logger = defaultLogger,
   strict = false,
 }: {
-  selectGateway: () => Promise<URL>;
+  getGateways: GatewaysProvider['getGateways'];
+  selectGateway: RoutingStrategy['selectGateway'];
   resolveUrl: (params: {
     originalUrl: string;
     selectedGateway: URL;
@@ -315,17 +317,18 @@ export const createWayfinderClient = ({
     input: URL | RequestInfo,
     init?: RequestInit,
   ): Promise<Response> => {
-    const url = input instanceof URL ? input.toString() : input.toString();
 
-    if (typeof url !== 'string') {
+    if (!(input instanceof URL)) {
       logger?.debug('URL is not a string, skipping routing', {
-        url,
+        input,
       });
       emitter?.emit('routing-skipped', {
-        originalUrl: JSON.stringify(url),
+        originalUrl: JSON.stringify(input),
       });
-      return fetch(url, init);
+      return fetch(input, init);
     }
+
+    const url = input.toString(); 
 
     emitter?.emit('routing-started', {
       originalUrl: url,
@@ -337,7 +340,11 @@ export const createWayfinderClient = ({
     for (let i = 0; i < maxRetries; i++) {
       try {
         // select the target gateway
-        const selectedGateway = await selectGateway();
+        const selectedGateway = await selectGateway({
+          gateways: await getGateways(),
+          path: input.pathname.split('/')[1],
+          subdomain: input.hostname.split('.')[0],
+        });
 
         logger?.debug('Selected gateway', {
           originalUrl: url,
@@ -688,11 +695,8 @@ export class Wayfinder {
 
     // create a wayfinder client with the routing strategy and gateways provider
     this.request = createWayfinderClient({
-      selectGateway: async () => {
-        return this.routingStrategy.selectGateway({
-          gateways: await this.gatewaysProvider.getGateways(),
-        });
-      },
+      getGateways: this.gatewaysProvider.getGateways.bind(this.gatewaysProvider),
+      selectGateway: this.routingStrategy.selectGateway.bind(this.routingStrategy),
       resolveUrl: resolveWayfinderUrl,
       verifyData: this.verifyData,
       emitter: this.emitter,

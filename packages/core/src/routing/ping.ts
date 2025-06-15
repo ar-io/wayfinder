@@ -91,7 +91,7 @@ export class FastestPingRoutingStrategy implements RoutingStrategy {
           throw new Error('Failed to ping gateway', {
             cause: {
               gateway: gateway.toString(),
-              probePath: path,
+              path: path,
               status: response.status,
             },
           });

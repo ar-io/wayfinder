@@ -99,6 +99,61 @@ describe('FastestPingRoutingStrategy', () => {
     );
   });
 
+  // test for subdomain
+  it('selects the gateway with the lowest latency for a subdomain', async () => {
+    const gateways = [
+      new URL('https://slow.com'),
+      new URL('https://fast.com'),
+      new URL('https://medium.com'),
+    ];
+
+    // configure mock responses
+    mockResponses.set('https://subdomain.slow.com', { status: 200, delayMs: 300 });
+    mockResponses.set('https://subdomain.fast.com', { status: 200, delayMs: 50 });
+    mockResponses.set('https://subdomain.medium.com', { status: 200, delayMs: 150 });
+
+    const strategy = new FastestPingRoutingStrategy({ timeoutMs: 500 });
+
+    // select the gateway with the lowest latency
+    const selectedGateway = await strategy.selectGateway({
+      gateways,
+      subdomain: 'subdomain',
+    });
+
+    assert.equal(
+      selectedGateway.toString(),
+      'https://fast.com/',
+      'Should select the gateway with the lowest latency for a subdomain',
+    );
+  });
+
+  it('selects the gateway with the lowest latency for a path', async () => {
+    const gateways = [
+      new URL('https://slow.com'),
+      new URL('https://fast.com'),
+      new URL('https://medium.com'),
+    ];
+
+    // configure mock responses
+    mockResponses.set('https://slow.com/path', { status: 200, delayMs: 300 });
+    mockResponses.set('https://fast.com/path', { status: 200, delayMs: 50 });
+    mockResponses.set('https://medium.com/path', { status: 200, delayMs: 150 });
+
+    const strategy = new FastestPingRoutingStrategy({ timeoutMs: 500 });
+
+    // select the gateway with the lowest latency
+    const selectedGateway = await strategy.selectGateway({
+      gateways,
+      path: '/path',
+    });
+
+    assert.equal(
+      selectedGateway.toString(),
+      'https://fast.com/',
+      'Should select the gateway with the lowest latency for a path',
+    );
+  });
+
   it('ignores gateways that return non-200 status codes', async () => {
     const gateways = [
       new URL('https://error.com'),
