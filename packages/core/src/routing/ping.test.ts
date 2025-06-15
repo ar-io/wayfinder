@@ -108,9 +108,18 @@ describe('FastestPingRoutingStrategy', () => {
     ];
 
     // configure mock responses
-    mockResponses.set('https://subdomain.slow.com', { status: 200, delayMs: 300 });
-    mockResponses.set('https://subdomain.fast.com', { status: 200, delayMs: 50 });
-    mockResponses.set('https://subdomain.medium.com', { status: 200, delayMs: 150 });
+    mockResponses.set('https://subdomain.slow.com', {
+      status: 200,
+      delayMs: 300,
+    });
+    mockResponses.set('https://subdomain.fast.com', {
+      status: 200,
+      delayMs: 50,
+    });
+    mockResponses.set('https://subdomain.medium.com', {
+      status: 200,
+      delayMs: 150,
+    });
 
     const strategy = new FastestPingRoutingStrategy({ timeoutMs: 500 });
 

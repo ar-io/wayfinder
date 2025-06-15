@@ -22,7 +22,7 @@ export class StaticGatewaysProvider implements GatewaysProvider {
     this.gateways = gateways.map((g) => new URL(g));
   }
 
-  async getGateways(_params?: { path?: string; subdomain?: string }): Promise<URL[]> {
+  async getGateways(): Promise<URL[]> {
     return this.gateways;
   }
 }

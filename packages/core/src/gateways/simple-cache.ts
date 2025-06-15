@@ -57,7 +57,9 @@ export class SimpleCacheGatewaysProvider implements GatewaysProvider {
     this.logger = logger;
   }
 
-  async getGateways(params?: { path?: string; subdomain?: string }): Promise<URL[]> {
+  async getGateways(params?: { path?: string; subdomain?: string }): Promise<
+    URL[]
+  > {
     const now = Date.now();
     if (
       this.gatewaysCache.length === 0 ||

@@ -317,7 +317,6 @@ export const createWayfinderClient = ({
     input: URL | RequestInfo,
     init?: RequestInit,
   ): Promise<Response> => {
-
     if (!(input instanceof URL)) {
       logger?.debug('URL is not a string, skipping routing', {
         input,
@@ -328,7 +327,7 @@ export const createWayfinderClient = ({
       return fetch(input, init);
     }
 
-    const url = input.toString(); 
+    const url = input.toString();
 
     emitter?.emit('routing-started', {
       originalUrl: url,
@@ -695,8 +694,12 @@ export class Wayfinder {
 
     // create a wayfinder client with the routing strategy and gateways provider
     this.request = createWayfinderClient({
-      getGateways: this.gatewaysProvider.getGateways.bind(this.gatewaysProvider),
-      selectGateway: this.routingStrategy.selectGateway.bind(this.routingStrategy),
+      getGateways: this.gatewaysProvider.getGateways.bind(
+        this.gatewaysProvider,
+      ),
+      selectGateway: this.routingStrategy.selectGateway.bind(
+        this.routingStrategy,
+      ),
       resolveUrl: resolveWayfinderUrl,
       verifyData: this.verifyData,
       emitter: this.emitter,
