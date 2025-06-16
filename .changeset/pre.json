@@ -7,6 +7,8 @@
     "@ar.io/wayfinder-react": "0.0.3-beta.0"
   },
   "changesets": [
-    "five-rats-trade"
+    "breezy-actors-boil",
+    "five-rats-trade",
+    "little-memes-obey"
   ]
 }
