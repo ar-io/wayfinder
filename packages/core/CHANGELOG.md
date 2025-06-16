@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-core
 
+## 0.0.3-alpha.6
+
+### Patch Changes
+
+- 1ceb8df: Import crypto default for browser compatiability with polyfills'
+
 ## 0.0.3-alpha.5
 
 ### Patch Changes
