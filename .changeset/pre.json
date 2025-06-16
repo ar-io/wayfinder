@@ -1,10 +1,10 @@
 {
   "mode": "pre",
-  "tag": "beta",
+  "tag": "alpha",
   "initialVersions": {
-    "@ar.io/wayfinder-core": "0.0.2",
-    "@ar.io/wayfinder-extension": "0.0.15",
-    "@ar.io/wayfinder-react": "0.0.2"
+    "@ar.io/wayfinder-core": "0.0.3-beta.0",
+    "@ar.io/wayfinder-extension": "0.0.16-beta.0",
+    "@ar.io/wayfinder-react": "0.0.3-beta.0"
   },
   "changesets": [
     "five-rats-trade"

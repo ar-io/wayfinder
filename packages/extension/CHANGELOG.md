@@ -1,5 +1,13 @@
 # @ar.io/wayfinder-extension
 
+## 0.0.16-alpha.1
+
+### Patch Changes
+
+- Updated dependencies [c12a8f8]
+- Updated dependencies [2605cdb]
+  - @ar.io/wayfinder-core@0.0.3-alpha.1
+
 ## 0.0.16-beta.0
 
 ### Patch Changes
