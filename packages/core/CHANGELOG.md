@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-core
 
+## 0.0.3-alpha.4
+
+### Patch Changes
+
+- 8e7facb: Publish new alpha for roam
+
 ## 0.0.3-alpha.3
 
 ### Patch Changes
