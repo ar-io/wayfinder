@@ -1,10 +1,14 @@
 {
-  "mode": "pre",
+  "mode": "exit",
   "tag": "alpha",
   "initialVersions": {
     "@ar.io/wayfinder-core": "0.0.3-beta.0",
     "@ar.io/wayfinder-extension": "0.0.16-beta.0",
     "@ar.io/wayfinder-react": "0.0.3-beta.0"
   },
-  "changesets": ["breezy-actors-boil", "five-rats-trade", "little-memes-obey"]
+  "changesets": [
+    "breezy-actors-boil",
+    "five-rats-trade",
+    "little-memes-obey"
+  ]
 }
