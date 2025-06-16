@@ -56,6 +56,8 @@ export class StaticRoutingStrategy implements RoutingStrategy {
     gateways = [],
   }: {
     gateways?: URL[];
+    path?: string;
+    subdomain?: string;
   } = {}): Promise<URL> {
     if (gateways.length > 0) {
       this.logger.warn(

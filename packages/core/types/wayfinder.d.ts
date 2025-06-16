@@ -19,11 +19,15 @@
 export type DataStream = ReadableStream<Uint8Array> | AsyncIterable<Uint8Array>;
 
 export interface GatewaysProvider {
-  getGateways(): Promise<URL[]>;
+  getGateways(params?: { path?: string; subdomain?: string }): Promise<URL[]>;
 }
 
 export interface RoutingStrategy {
-  selectGateway(params: { gateways: URL[] }): Promise<URL>;
+  selectGateway(params: {
+    gateways: URL[];
+    path?: string;
+    subdomain?: string;
+  }): Promise<URL>;
 }
 
 export interface VerificationStrategy {

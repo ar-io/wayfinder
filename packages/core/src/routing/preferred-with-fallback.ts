@@ -38,14 +38,27 @@ export class PreferredWithFallbackRoutingStrategy implements RoutingStrategy {
     this.preferredGateway = new URL(preferredGateway);
   }
 
-  async selectGateway({ gateways = [] }: { gateways: URL[] }): Promise<URL> {
+  async selectGateway({
+    gateways = [],
+    path = '',
+    subdomain,
+  }: {
+    gateways: URL[];
+    path?: string;
+    subdomain?: string;
+  }): Promise<URL> {
     this.logger.debug('Attempting to connect to preferred gateway', {
       preferredGateway: this.preferredGateway.toString(),
     });
 
     try {
       // Check if the preferred gateway is responsive
-      const response = await fetch(this.preferredGateway.toString(), {
+      const url = new URL(this.preferredGateway.toString());
+      if (subdomain) {
+        url.hostname = `${subdomain}.${url.hostname}`;
+      }
+      const probeUrl = path ? new URL(path.replace(/^\//, ''), url) : url;
+      const response = await fetch(probeUrl.toString(), {
         method: 'HEAD',
         signal: AbortSignal.timeout(1000),
       });
@@ -71,7 +84,11 @@ export class PreferredWithFallbackRoutingStrategy implements RoutingStrategy {
       );
 
       // Fall back to the provided routing strategy
-      return this.fallbackStrategy.selectGateway({ gateways });
+      return this.fallbackStrategy.selectGateway({
+        gateways,
+        path,
+        subdomain,
+      });
     }
   }
 }
