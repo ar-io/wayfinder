@@ -31,5 +31,4 @@ export * from './gateways/static.js';
 // verification strategies
 export * from './verification/data-root-verifier.js';
 export * from './verification/hash-verifier.js';
-
-// TODO: signature verification
+export * from './verification/signature-verifier.js';

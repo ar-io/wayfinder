@@ -174,7 +174,7 @@ Wayfinder includes verification mechanisms to ensure the integrity of retrieved 
 | ------------------------------- | ---------- | ----------- | -------- | ------------------------------------------------------------------------------------------------------------ |
 | `HashVerificationStrategy`      | Low        | High        | Low      | Verifies data integrity using SHA-256 hash comparison of the returned data                                   |
 | `DataRootVerificationStrategy`  | Medium     | Medium      | Low      | Verifies data using Arweave by computing the data root for the transaction (most useful for L1 transactions) |
-| `SignatureVerificationStrategy` | Medium     | Medium      | Medium   | Verifies signature of an Arweave transaction or data item using offsets provided by trusted gateway          |
+| `SignatureVerificationStrategy` | Medium     | Medium      | Medium   | Verifies signature of an Arweave transaction or data item using signature data provided by the Arweave network, or trusted gateways|
 
 ### HashVerificationStrategy
 
@@ -199,6 +199,20 @@ import { Wayfinder, DataRootVerificationStrategy } from '@ar.io/wayfinder-core';
 
 const wayfinder = new Wayfinder({
   verificationStrategy: new DataRootVerificationStrategy({
+    trustedGateways: ['https://permagate.io'],
+  }),
+});
+```
+
+### SignatureVerificationStrategy
+
+Verifies signatures of Arweave transactions and data items. Headers are retrieved from trusted gateways for use during verification. For a transaction, its data root is computed while streaming its data and then utilized alongside its headers for verification. For data items, the ANS-104 deep hash method of signature verification is used.
+
+```javascript
+import { Wayfinder, SignatureVerificationStrategy } from '@ar-io/sdk';
+
+const wayfinder = new Wayfinder({
+  verificationStrategy: new SignatureVerificationStrategy({
     trustedGateways: ['https://permagate.io'],
   }),
 });

@@ -38,6 +38,7 @@
     "format:check": "biome format"
   },
   "dependencies": {
+    "@dha-team/arbundles": "^1.0.3",
     "arweave": "^1.14.0",
     "eventemitter3": "^5.0.1",
     "plimit-lit": "^3.0.1",
