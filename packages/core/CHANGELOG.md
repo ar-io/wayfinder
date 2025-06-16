@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-core
 
+## 0.0.3-alpha.5
+
+### Patch Changes
+
+- 53613fb: Fix router logic when handling input as ar://
+
 ## 0.0.3-alpha.4
 
 ### Patch Changes
