@@ -178,7 +178,7 @@ export class Ans104SignatureVerificationStrategy
   }
 
   /**
-   * Fetches just the bytes needed for signature verification from the root transaction
+   * Fetches just the bytes header data of a data item from a trusted gateway needed for signature verification.
    *
    * @param txId - The transaction ID to get signature data for
    * @returns The bytes containing the data item up to the data section
@@ -198,7 +198,7 @@ export class Ans104SignatureVerificationStrategy
     const { rootTransactionId, dataItemOffset, dataItemDataOffset } =
       await this.getDataItemAttributes(txId);
 
-    // Calculate the byte range for the request
+    // this byte range is the header data of the data item within it's parent transaction, containing all the header data needed for signature verification
     const rangeStart = dataItemOffset;
     const rangeEnd = dataItemDataOffset - 1;
 
@@ -220,7 +220,8 @@ export class Ans104SignatureVerificationStrategy
           continue;
         }
 
-        // create the data item object from just the signature bytes, so we can get the components easily
+        // create the data item object from just the headers, so we can get the components easily
+        // this is somewhat of a hack as we are not including the data when creating the DataItem object
         const trustedDataItemHeaderBytes = Buffer.from(
           await response.arrayBuffer(),
         );
@@ -256,8 +257,6 @@ export class Ans104SignatureVerificationStrategy
           stack: error.stack,
           txId,
         });
-        // Continue to the next gateway if there's an error
-        continue;
       }
     }
 
@@ -381,7 +380,7 @@ export class TransactionSignatureVerificationStrategy
       trustedGateways: this.trustedGateways,
     });
 
-    // Try each gateway sequentially until we get the signature data
+    // TODO: shuffle gateways before iterating through each and potentially allow for concurrent requests
     for (const gateway of this.trustedGateways) {
       try {
         const url = `${gateway.toString()}tx/${txId}`;
@@ -426,8 +425,6 @@ export class TransactionSignatureVerificationStrategy
           txId,
           gateway: gateway.toString(),
         });
-        // Continue to the next gateway if there's an error
-        continue;
       }
     }
 
