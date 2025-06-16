@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-core
 
+## 0.0.3-alpha.2
+
+### Patch Changes
+
+- 2109250: Publishing new alpha with updated sha256
+
 ## 0.0.3-alpha.1
 
 ### Patch Changes
