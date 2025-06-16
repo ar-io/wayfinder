@@ -50,7 +50,7 @@ export async function* readableStreamToAsyncIterable(
 
 export async function hashDataStreamToB64Url({
   stream,
-  algorithm = 'SHA-256',
+  algorithm = 'sha256',
   logger = defaultLogger,
 }: {
   stream: DataStream;
