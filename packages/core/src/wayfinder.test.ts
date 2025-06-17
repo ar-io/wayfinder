@@ -37,7 +37,9 @@ describe('Wayfinder', () => {
     let wayfinder: Wayfinder;
     before(() => {
       wayfinder = new Wayfinder({
-        routingStrategy: new RandomRoutingStrategy(),
+        routingSettings: {
+          strategy: new RandomRoutingStrategy(),
+        },
         gatewaysProvider: stubbedGatewaysProvider,
       });
     });
@@ -159,13 +161,17 @@ describe('Wayfinder', () => {
     it('should emit events on the wayfinder event emitter', async () => {
       const wayfinder = new Wayfinder({
         gatewaysProvider: stubbedGatewaysProvider,
-        routingStrategy: new StaticRoutingStrategy({
-          gateway: `http://${gatewayUrl}`,
-        }),
-        verificationStrategy: {
-          verifyData: async () => {
-            // do nothing
-            return;
+        routingSettings: {
+          strategy: new StaticRoutingStrategy({
+            gateway: `http://${gatewayUrl}`,
+          }),
+        },
+        verificationSettings: {
+          strategy: {
+            verifyData: async () => {
+              // do nothing
+              return;
+            },
           },
         },
       });
@@ -198,21 +204,25 @@ describe('Wayfinder', () => {
       let verificationSucceeded = false;
       const wayfinder = new Wayfinder({
         gatewaysProvider: stubbedGatewaysProvider,
-        routingStrategy: new StaticRoutingStrategy({
-          gateway: `http://${gatewayUrl}`,
-        }),
-        events: {
-          onVerificationFailed: () => {
-            verificationFailed = true;
-          },
-          onVerificationProgress: () => {
-            verificationProgress = true;
-          },
-          onVerificationSucceeded: () => {
-            verificationSucceeded = true;
+        routingSettings: {
+          strategy: new StaticRoutingStrategy({
+            gateway: `http://${gatewayUrl}`,
+          }),
+        },
+        verificationSettings: {
+          strict: true,
+          events: {
+            onVerificationFailed: () => {
+              verificationFailed = true;
+            },
+            onVerificationProgress: () => {
+              verificationProgress = true;
+            },
+            onVerificationSucceeded: () => {
+              verificationSucceeded = true;
+            },
           },
         },
-        strict: true,
       });
       const response = await wayfinder.request(
         'ar://c7wkwt6TKgcWJUfgvpJ5q5qi4DIZyJ1_TqhjXgURh0U',
@@ -392,9 +402,11 @@ describe('Wayfinder', () => {
     let wayfinder: Wayfinder;
     before(() => {
       wayfinder = new Wayfinder({
-        routingStrategy: new StaticRoutingStrategy({
-          gateway: `http://${gatewayUrl}`,
-        }),
+        routingSettings: {
+          strategy: new StaticRoutingStrategy({
+            gateway: `http://${gatewayUrl}`,
+          }),
+        },
         gatewaysProvider: stubbedGatewaysProvider,
       });
     });
