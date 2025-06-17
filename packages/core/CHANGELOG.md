@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-core
 
+## 0.0.4-alpha.0
+
+### Patch Changes
+
+- 7c81839: Updated wayfinder configurations
+
 ## 0.0.3
 
 ### Patch Changes
