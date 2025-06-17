@@ -25,7 +25,7 @@ export async function fetchEnsArweaveTxId(
     const data = await response.json();
     return data['ar://'] || data['contentHash'] || null; // Return the Arweave TX ID or content hash if available
   } catch (error) {
-    console.error(`❌ Failed to fetch ENS data for ${ensName}:`, error);
+    console.error(`[ERROR] Failed to fetch ENS data for ${ensName}:`, error);
     return null;
   }
 }

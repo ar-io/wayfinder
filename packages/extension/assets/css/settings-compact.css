@@ -1,342 +1,447 @@
-/* Compact Settings Override - Reduces vertical spacing while maintaining clarity */
+/* ==========================================================================
+   Wayfinder Settings - Compact Overrides
+   ========================================================================== */
 
-/* Reduce section spacing */
+/* Reduce vertical spacing throughout settings */
 .settings-section {
-  margin-bottom: var(--spacing-md) !important; /* was var(--spacing-lg) */
+  margin-bottom: 12px; /* Reduced from --spacing-md (16px) */
 }
 
 .section-header {
-  margin-bottom: var(--spacing-md) !important; /* was var(--spacing-lg) */
+  margin-bottom: 6px; /* Reduced from --spacing-sm (8px) */
+  flex-direction: row;
+  align-items: center;
 }
 
-/* Make routing and verification strategy cards more compact */
-.strategy-option {
-  margin-bottom: var(--spacing-sm); /* Add small gap between options */
-  transition: all 0.3s ease; /* Smooth transition for selection */
+.section-header h2 {
+  font-size: 15px; /* Slightly smaller than --font-size-base */
+  line-height: 1.2;
 }
 
-.strategy-header {
-  padding: var(--spacing-md) !important; /* was var(--spacing-lg) */
-  position: relative;
-  overflow: hidden;
-}
-
-.strategy-details {
-  padding: 0 var(--spacing-md) var(--spacing-md) !important; /* was var(--spacing-lg) */
-}
-
-/* Highlight selected strategy more prominently */
-.strategy-option:has(input:checked) {
-  border-color: var(--accent-primary) !important;
-  background: var(--bg-tertiary) !important;
-  box-shadow: 0 0 0 3px rgba(0, 208, 132, 0.2) !important;
-}
-
-.strategy-option:has(input:checked) .strategy-info h3 {
-  color: var(--accent-primary) !important;
-}
-
-/* Add visual checkmark for selected strategy */
-.strategy-option:has(input:checked) .strategy-header::before {
-  content: "✓";
-  position: absolute;
-  right: var(--spacing-md);
-  top: var(--spacing-md);
-  color: var(--accent-primary);
-  font-weight: bold;
-  font-size: 1.2rem;
-}
-
-.strategy-option {
-  position: relative;
-}
-
-/* Compact option cards */
-.option-card {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md); /* was var(--radius-lg) */
-  padding: var(--spacing-md) !important; /* was var(--spacing-lg) */
-  margin-bottom: var(--spacing-sm);
-}
-
-.option-header {
-  gap: var(--spacing-sm) !important; /* Reduce gap */
-}
-
-/* Verification mode improvements */
-.mode-label {
-  background: var(--bg-tertiary);
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--accent-primary);
+.section-header p {
+  font-size: 11px; /* Smaller description text */
+  line-height: 1.2;
   margin-left: 8px;
 }
 
-.mode-label.strict-mode {
-  color: var(--warning);
+/* More compact strategy selectors */
+.routing-strategy-selector,
+.verification-strategy-selector {
+  gap: 8px; /* Reduced from --spacing-md (16px) */
+  margin-bottom: 16px; /* Reduced from --spacing-lg (24px) */
 }
 
-.verification-explanation {
-  margin-top: var(--spacing-sm);
-  padding-top: var(--spacing-sm);
-  border-top: 1px solid var(--border-subtle);
+.strategy-option {
+  padding: 0; /* Remove default padding */
 }
 
-.mode-indicator {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--spacing-xs);
-  font-size: var(--font-size-sm);
+.strategy-header {
+  padding: 10px 12px; /* Reduced from --spacing-md (16px) */
 }
 
-.mode-indicator .mode-off {
-  color: var(--text-secondary);
+.strategy-details {
+  padding: 6px 12px 8px; /* More compact padding */
 }
 
-.mode-indicator .mode-on {
-  color: var(--text-muted);
-}
-
-/* Show/hide based on toggle state */
-.option-header:has(input#verificationStrict:not(:checked))
-  + .verification-explanation
-  .mode-off {
-  color: var(--success);
-  font-weight: 600;
-}
-
-.option-header:has(input#verificationStrict:not(:checked))
-  + .verification-explanation
-  .mode-on {
-  color: var(--text-muted);
-  text-decoration: line-through;
-}
-
-.option-header:has(input#verificationStrict:checked)
-  + .verification-explanation
-  .mode-off {
-  color: var(--text-muted);
-  text-decoration: line-through;
-}
-
-.option-header:has(input#verificationStrict:checked)
-  + .verification-explanation
-  .mode-on {
-  color: var(--warning);
-  font-weight: 600;
-}
-
-.mode-description {
-  font-size: var(--font-size-sm);
-  color: var(--text-secondary);
-  line-height: 1.4;
-}
-
-/* Compact config cards */
-.config-card {
-  padding: var(--spacing-md) !important; /* was var(--spacing-lg) */
-}
-
-.config-details {
-  margin-top: var(--spacing-sm) !important; /* was var(--spacing-md) */
-}
-
-/* Compact performance cards */
-.perf-card {
-  padding: var(--spacing-md) !important; /* was var(--spacing-lg) */
-}
-
-.perf-stats {
-  gap: var(--spacing-md) !important; /* was var(--spacing-lg) */
-  margin-top: var(--spacing-sm);
-}
-
-/* Reduce spacing in expandable sections */
-.expandable-content {
-  padding-top: var(--spacing-md) !important; /* was var(--spacing-lg) */
-}
-
-/* Make radio buttons more visible */
-input[type="radio"] {
-  width: 18px;
-  height: 18px;
-  min-width: 18px;
-  cursor: pointer;
-}
-
-/* Fix verification options spacing */
-.verification-options {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm); /* was implicit larger gap */
-  margin-top: var(--spacing-md);
-}
-
-/* Compact the static gateway config */
-.static-gateway-config {
-  margin-top: var(--spacing-sm) !important;
-  display: none; /* Hidden by default, shown via JS when static is selected */
-}
-
-/* Make switches align better in compact mode */
-.switch {
-  margin-left: auto;
-}
-
-/* Reduce overall content padding */
-.settings-content {
-  padding: var(--spacing-md) !important; /* was var(--spacing-lg) */
-  padding-bottom: var(--spacing-xl) !important; /* Keep some bottom space */
-}
-
-/* Make feature lists more compact */
 .feature-list {
-  gap: 2px !important; /* was var(--spacing-xs) */
-  margin-top: var(--spacing-sm) !important;
+  gap: 0; /* Remove gap between features */
 }
 
 .feature {
+  font-size: 11px; /* Smaller feature text */
+  padding: 1px 0 1px 12px; /* Tighter vertical spacing */
+}
+
+/* Compact verification options */
+.verification-options {
+  gap: 12px; /* Reduced from --spacing-lg (24px) */
+}
+
+.option-card {
+  padding: 12px 16px; /* Reduced from --spacing-lg (24px) */
+}
+
+.option-header {
+  gap: 10px; /* Reduced from --spacing-md (16px) */
+}
+
+.option-info h3 {
+  font-size: 14px; /* Smaller heading */
+  margin-bottom: 2px; /* Reduced from --spacing-xs (4px) */
+}
+
+.option-info p {
+  font-size: 12px; /* Smaller description */
   line-height: 1.3;
 }
 
-/* Highlight effect for navigation from popup */
-.settings-section.highlight {
-  animation: highlightSection 2s ease-out;
+/* Compact performance cards */
+.performance-cards {
+  gap: 10px; /* Reduced from --spacing-md (16px) */
+  margin-bottom: 16px; /* Reduced from --spacing-lg (24px) */
 }
 
-@keyframes highlightSection {
-  0% {
-    background-color: rgba(0, 208, 132, 0.1);
-    transform: scale(1.01);
-  }
-  100% {
-    background-color: transparent;
-    transform: scale(1);
-  }
+.perf-card {
+  padding: 12px 16px; /* Reduced padding */
 }
 
-/* Smooth scrolling for the entire page */
-html {
-  scroll-behavior: smooth;
+.perf-header {
+  gap: 10px; /* Reduced gap */
+  margin-bottom: 12px; /* Reduced from --spacing-lg (24px) */
 }
 
-/* Add some top padding to sections for better scroll positioning */
-.settings-section {
-  scroll-margin-top: 20px;
+.perf-stats {
+  gap: 12px; /* Reduced from --spacing-lg (24px) */
 }
 
-/* Three-state verification mode selector */
+/* Compact config cards */
+.config-options {
+  gap: 12px; /* Reduced from --spacing-lg (24px) */
+}
+
+.config-card {
+  padding: 12px 16px; /* Reduced padding */
+}
+
+.config-header {
+  margin-bottom: 10px; /* Reduced from --spacing-md (16px) */
+}
+
+.config-details {
+  gap: 8px; /* Reduced from --spacing-md (16px) */
+}
+
+.config-actions {
+  margin-top: 12px; /* Reduced from --spacing-lg (24px) */
+  padding-top: 12px; /* Reduced from --spacing-lg (24px) */
+}
+
+/* Compact input groups */
+.input-group {
+  gap: 4px; /* Reduced from --spacing-xs (4px) */
+}
+
+.input-group input {
+  padding: 6px 10px; /* Reduced padding */
+  font-size: 13px;
+}
+
+.input-description {
+  font-size: 11px;
+  margin-top: 2px; /* Reduced from --spacing-xs (4px) */
+}
+
+/* Compact verification mode selector */
 .verification-mode-selector {
   display: flex;
-  gap: var(--spacing-sm);
-  margin: var(--spacing-md) 0;
+  gap: 8px;
+  margin: 8px 0;
 }
 
 .mode-option {
   flex: 1;
-  background: var(--bg-secondary);
-  border: 2px solid var(--border-subtle);
+  padding: 8px;
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  padding: var(--spacing-md);
   cursor: pointer;
   transition: all 0.2s ease;
   text-align: center;
-  position: relative;
 }
 
 .mode-option:hover {
+  background: var(--bg-tertiary);
   border-color: var(--border-default);
-  transform: translateY(-1px);
-}
-
-.mode-option input[type="radio"] {
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
 }
 
 .mode-option:has(input:checked) {
+  background: var(--accent-primary);
   border-color: var(--accent-primary);
-  background: var(--bg-tertiary);
-  box-shadow: 0 0 0 3px rgba(0, 208, 132, 0.2);
+  color: white;
 }
 
-.mode-option.recommended::after {
-  content: "Recommended";
-  position: absolute;
-  top: -8px;
-  right: 8px;
-  background: var(--accent-primary);
-  color: white;
-  font-size: 10px;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+.mode-option input {
+  display: none;
 }
 
 .mode-content {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--spacing-xs);
-}
-
-.mode-icon {
-  font-size: 1.5rem;
+  gap: 4px;
 }
 
 .mode-info h4 {
-  font-size: var(--font-size-base);
-  font-weight: 600;
-  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 500;
   margin: 0;
 }
 
 .mode-info p {
+  font-size: 11px;
+  margin: 0;
+  opacity: 0.8;
+}
+
+.verification-mode-description {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 8px;
+  padding: 6px 8px;
+  background: var(--bg-primary);
+  border-radius: var(--radius-sm);
+}
+
+/* Reduce header/footer padding */
+.settings-header {
+  padding: 8px 12px; /* Reduced from --spacing-sm */
+}
+
+.settings-footer {
+  padding: 8px 16px; /* Reduced padding */
+}
+
+/* Make switches smaller */
+.switch {
+  width: 36px; /* Reduced from 44px */
+  height: 20px; /* Reduced from 24px */
+}
+
+.switch-slider:before {
+  height: 14px; /* Reduced from 18px */
+  width: 14px; /* Reduced from 18px */
+}
+
+.switch input:checked + .switch-slider:before {
+  transform: translateX(16px); /* Adjusted for smaller size */
+}
+
+/* Make buttons more compact */
+.primary-button,
+.secondary-button,
+.danger-button {
+  padding: 6px 12px; /* Reduced padding */
+  font-size: 13px;
+}
+
+/* Compact theme selector */
+.theme-selector {
+  gap: 6px; /* Reduced gap */
+}
+
+.theme-preview {
+  padding: 8px 12px; /* Reduced padding */
+  min-width: 60px; /* Reduced from 80px */
+}
+
+/* Icon sizing adjustments */
+.strategy-icon svg,
+.option-icon svg,
+.perf-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Overall content padding reduction */
+.settings-content {
+  padding: 12px; /* Reduced from --spacing-md (16px) */
+}
+
+/* Auto-save notice */
+.auto-save-notice {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(45, 211, 190, 0.1);
+  border: 1px solid rgba(45, 211, 190, 0.2);
+  border-radius: var(--radius-sm);
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: var(--accent-primary);
+}
+
+.auto-save-notice svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+/* Trusted Gateway Settings */
+.gateway-mode-selector {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-lg);
+}
+
+.gateway-mode-selector .mode-option {
+  flex: 1;
+  cursor: pointer;
+}
+
+.gateway-mode-selector .mode-content {
+  padding: var(--spacing-md);
+  border: 2px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.gateway-mode-selector input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+}
+
+.gateway-mode-selector input[type="radio"]:checked + .mode-content {
+  border-color: var(--accent-primary);
+  background: rgba(0, 208, 132, 0.05);
+}
+
+.gateway-mode-selector .mode-icon {
+  margin-bottom: var(--spacing-xs);
+  color: var(--text-secondary);
+}
+
+.gateway-mode-selector input[type="radio"]:checked + .mode-content .mode-icon {
+  color: var(--accent-primary);
+}
+
+.gateway-mode-selector .mode-info h4 {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.gateway-mode-selector .mode-info p {
   font-size: var(--font-size-xs);
   color: var(--text-secondary);
   margin: 0;
 }
 
-.verification-mode-description {
-  margin-top: var(--spacing-sm);
-  padding-top: var(--spacing-sm);
+/* Gateway mode settings */
+.gateway-mode-settings {
+  margin-bottom: var(--spacing-lg);
+}
+
+.slider-group {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.slider {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  background: var(--bg-tertiary);
+  border-radius: 3px;
+  outline: none;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  background: var(--accent-primary);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 0 6px rgba(0, 208, 132, 0.1);
+}
+
+.slider-value {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--accent-primary);
+  min-width: 2ch;
+  text-align: center;
+}
+
+/* Gateway selection list */
+.gateway-selection-list {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-xs);
+}
+
+.gateway-checkbox {
+  display: flex;
+  align-items: center;
+  padding: var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  transition: background 0.2s ease;
+}
+
+.gateway-checkbox:hover {
+  background: var(--bg-tertiary);
+}
+
+.gateway-checkbox input[type="checkbox"] {
+  margin-right: var(--spacing-sm);
+}
+
+.gateway-checkbox label {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+}
+
+.gateway-checkbox .gateway-name {
+  color: var(--text-primary);
+}
+
+.gateway-checkbox .gateway-stake {
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+}
+
+/* Trusted gateways preview */
+.trusted-gateways-preview {
+  margin-top: var(--spacing-lg);
+  padding-top: var(--spacing-lg);
   border-top: 1px solid var(--border-subtle);
 }
 
-.verification-mode-description p {
+.trusted-gateways-preview h4 {
   font-size: var(--font-size-sm);
-  color: var(--text-secondary);
-  text-align: center;
-  margin: 0;
-}
-
-/* Hide verification strategy when mode is off */
-.verification-strategy-wrapper {
-  transition: all 0.3s ease;
-  overflow: hidden;
-}
-
-.verification-strategy-wrapper.hidden {
-  display: none;
-}
-
-/* Adjust section header within wrapper */
-.verification-strategy-wrapper .section-header h3 {
-  font-size: var(--font-size-base);
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: var(--spacing-xs);
+  margin-bottom: var(--spacing-sm);
 }
 
-.verification-strategy-wrapper .section-header p {
+.gateway-preview-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.gateway-preview-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
   font-size: var(--font-size-sm);
+}
+
+.gateway-preview-item .gateway-name {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.gateway-preview-item .gateway-stake {
   color: var(--text-secondary);
+  font-size: var(--font-size-xs);
 }

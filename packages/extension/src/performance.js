@@ -11,7 +11,12 @@ const gatewayUsageData = new Map();
 document.addEventListener('DOMContentLoaded', async () => {
   setupEventHandlers();
   await loadGatewayUsage();
+  await updatePerformanceStats();
+  await updateCacheStats();
   await setExtensionVersion();
+  
+  // Set up periodic cache stats updates
+  setInterval(updateCacheStats, 5000); // Update every 5 seconds
 });
 
 function setupEventHandlers() {
@@ -50,6 +55,14 @@ function setupEventHandlers() {
       closeModal();
     }
   });
+
+  // Performance action handlers
+  document
+    .getElementById('clearVerificationCache')
+    ?.addEventListener('click', clearVerificationCache);
+  document
+    .getElementById('clearPerformanceData')
+    ?.addEventListener('click', clearPerformanceData);
 }
 
 async function loadGatewayUsage() {
@@ -445,6 +458,169 @@ async function setExtensionVersion() {
     }
   } catch (error) {
     console.error('Failed to set extension version:', error);
+  }
+}
+
+// Performance stats functions moved from settings.js
+async function updatePerformanceStats() {
+  try {
+    const { gatewayPerformance = {} } = await chrome.storage.local.get([
+      'gatewayPerformance',
+    ]);
+
+    const performances = Object.values(gatewayPerformance);
+    if (performances.length > 0) {
+      // Calculate average response time
+      const avgResponseTimes = performances
+        .map((p) => p.avgResponseTime)
+        .filter((time) => time !== undefined);
+
+      const overallAvg =
+        avgResponseTimes.length > 0
+          ? avgResponseTimes.reduce((a, b) => a + b, 0) /
+            avgResponseTimes.length
+          : 0;
+
+      const avgResponseTimeEl = document.getElementById('avgResponseTime');
+      if (avgResponseTimeEl) {
+        avgResponseTimeEl.textContent =
+          overallAvg > 0 ? `${Math.round(overallAvg)}ms` : '--';
+      }
+
+      // Calculate success rate
+      const successRates = performances.map((p) => {
+        const total = p.successCount + p.failures;
+        return total > 0 ? (p.successCount / total) * 100 : 0;
+      });
+
+      const avgSuccessRate =
+        successRates.length > 0
+          ? successRates.reduce((a, b) => a + b, 0) / successRates.length
+          : 0;
+
+      const successRateEl = document.getElementById('successRate');
+      if (successRateEl) {
+        successRateEl.textContent =
+          avgSuccessRate > 0 ? `${Math.round(avgSuccessRate)}%` : '--';
+      }
+    }
+
+    // Get request count from daily stats
+    const { dailyStats } = await chrome.storage.local.get(['dailyStats']);
+    const today = new Date().toDateString();
+    const todayRequests =
+      dailyStats && dailyStats.date === today ? dailyStats.requestCount : 0;
+
+    const requestsTodayEl = document.getElementById('requestsToday');
+    if (requestsTodayEl) {
+      requestsTodayEl.textContent = todayRequests;
+    }
+
+    // Verification stats from daily stats
+    const verifiedCount =
+      dailyStats && dailyStats.date === today ? dailyStats.verifiedCount : 0;
+    const failedCount =
+      dailyStats && dailyStats.date === today ? dailyStats.failedCount : 0;
+    const totalVerificationAttempts = verifiedCount + failedCount;
+    const verificationSuccessRate =
+      totalVerificationAttempts > 0
+        ? Math.round((verifiedCount / totalVerificationAttempts) * 100)
+        : 0;
+
+    const verifiedTransactionsEl = document.getElementById(
+      'verifiedTransactions',
+    );
+    if (verifiedTransactionsEl) {
+      verifiedTransactionsEl.textContent =
+        verifiedCount > 0 ? verifiedCount : '--';
+    }
+
+    const verificationSuccessRateEl = document.getElementById(
+      'verificationSuccessRate',
+    );
+    if (verificationSuccessRateEl) {
+      verificationSuccessRateEl.textContent =
+        verificationSuccessRate > 0 ? `${verificationSuccessRate}%` : '--';
+    }
+  } catch (error) {
+    console.error('Error updating performance stats:', error);
+  }
+}
+
+async function updateCacheStats() {
+  try {
+    // Get cache stats from background script
+    const response = await chrome.runtime.sendMessage({
+      message: 'getCacheStats',
+    });
+
+    if (response && response.stats) {
+      const { size, sizeInKB, hitRate } = response.stats;
+
+      const cacheSizeEl = document.getElementById('cacheSize');
+      if (cacheSizeEl) {
+        cacheSizeEl.textContent = size > 0 ? size : '--';
+      }
+
+      const cacheSizeKBEl = document.getElementById('cacheSizeKB');
+      if (cacheSizeKBEl) {
+        cacheSizeKBEl.textContent = sizeInKB > 0 ? `${sizeInKB} KB` : '--';
+      }
+
+      const cacheHitRateEl = document.getElementById('cacheHitRate');
+      if (cacheHitRateEl) {
+        cacheHitRateEl.textContent =
+          hitRate > 0 ? `${Math.round(hitRate)}%` : '--';
+      }
+    }
+  } catch (error) {
+    console.error('Error updating cache stats:', error);
+  }
+}
+
+async function clearPerformanceData() {
+  if (
+    !confirm(
+      'Clear all performance data? This will reset gateway performance metrics and daily statistics.',
+    )
+  ) {
+    return;
+  }
+
+  try {
+    await chrome.storage.local.remove(['gatewayPerformance', 'dailyStats']);
+    showToast('Performance data cleared', 'success');
+    await updatePerformanceStats();
+    await updateCacheStats();
+  } catch (error) {
+    console.error('Error clearing performance data:', error);
+    showToast('Failed to clear performance data', 'error');
+  }
+}
+
+async function clearVerificationCache() {
+  if (
+    !confirm(
+      'Clear verification cache? This will remove all cached verification results.',
+    )
+  ) {
+    return;
+  }
+
+  try {
+    const response = await chrome.runtime.sendMessage({
+      message: 'clearVerificationCache',
+    });
+
+    if (response && response.success) {
+      showToast('Verification cache cleared', 'success');
+      await updateCacheStats();
+    } else {
+      throw new Error(response?.error || 'Failed to clear cache');
+    }
+  } catch (error) {
+    console.error('Error clearing verification cache:', error);
+    showToast('Failed to clear verification cache', 'error');
   }
 }
 

@@ -120,22 +120,21 @@ function addVerificationIndicator(
   switch (status) {
     case 'pending':
       indicator.innerHTML =
-        '🔄 <span style="margin-left: 2px;">Verifying</span>';
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; animation: wayfinder-spin 1s linear infinite;"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> <span style="margin-left: 2px;">Verifying</span>';
       indicator.title = 'Wayfinder: Verifying data integrity...';
       indicator.style.backgroundColor = '#f59e0b';
       indicator.style.color = 'white';
-      // Add animation
-      indicator.style.animation = 'wayfinder-pulse 1.5s infinite';
       break;
     case 'verified':
       indicator.innerHTML =
-        '✅ <span style="margin-left: 2px;">Verified</span>';
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> <span style="margin-left: 2px;">Verified</span>';
       indicator.title = 'Wayfinder: Data integrity verified by AR.IO network';
       indicator.style.backgroundColor = '#10b981';
       indicator.style.color = 'white';
       break;
     case 'failed':
-      indicator.innerHTML = '❌ <span style="margin-left: 2px;">Failed</span>';
+      indicator.innerHTML =
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle;"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> <span style="margin-left: 2px;">Failed</span>';
       indicator.title = 'Wayfinder: Data verification failed';
       indicator.style.backgroundColor = '#ef4444';
       indicator.style.color = 'white';
@@ -150,6 +149,10 @@ function addVerificationIndicator(
       @keyframes wayfinder-pulse {
         0%, 100% { opacity: 1; }
         50% { opacity: 0.6; }
+      }
+      @keyframes wayfinder-spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
       }
     `;
     document.head.appendChild(style);
@@ -207,7 +210,7 @@ async function processArUrl(
       try {
         // Show verification start notification
         showVerificationToast(
-          `🔍 Verifying data for ${txId.substring(0, 8)}...`,
+          `Verifying data for ${txId.substring(0, 8)}...`,
           'info',
         );
 
@@ -238,31 +241,31 @@ async function processArUrl(
             if (verification && verification.verified) {
               addVerificationIndicator(element, 'verified');
               showVerificationToast(
-                `✅ Data verified using ${verification.strategy} strategy`,
+                `Data verified using ${verification.strategy} strategy`,
                 'success',
               );
               logger.debug(
-                `✅ Verified data integrity for ${txId} using ${verification.strategy}`,
+                `[SUCCESS] Verified data integrity for ${txId} using ${verification.strategy}`,
               );
             } else {
               addVerificationIndicator(element, 'failed');
               showVerificationToast(
-                `❌ Verification failed: ${verification?.error || 'Unknown error'}`,
+                `Verification failed: ${verification?.error || 'Unknown error'}`,
                 'error',
               );
               logger.warn(
-                `❌ Verification failed for ${txId}:`,
+                `[FAILED] Verification failed for ${txId}:`,
                 verification?.error || 'Unknown verification error',
               );
             }
           } else {
             addVerificationIndicator(element, 'failed');
             showVerificationToast(
-              `❌ Verification request failed: ${verifyResponse?.error || 'Unknown error'}`,
+              `Verification request failed: ${verifyResponse?.error || 'Unknown error'}`,
               'error',
             );
             logger.warn(
-              `❌ Verification request failed for ${txId}:`,
+              `[FAILED] Verification request failed for ${txId}:`,
               verifyResponse?.error,
             );
           }

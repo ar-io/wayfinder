@@ -57,7 +57,9 @@ export class ChromeStorageGatewayProvider implements GatewaysProvider {
 
     // If no gateways are available (registry not synced or empty), provide fallback gateways
     if (gateways.length === 0) {
-      console.warn('[ChromeStorageGatewayProvider] No gateways in registry, using fallback gateways');
+      console.warn(
+        '[ChromeStorageGatewayProvider] No gateways in registry, using fallback gateways',
+      );
       return [
         new URL('https://arweave.net'),
         new URL('https://permagate.io'),

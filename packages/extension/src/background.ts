@@ -20,9 +20,13 @@ import { AOProcess, ARIO, AoGateway, WalletAddress } from '@ar.io/sdk/web';
 import { connect } from '@permaweb/aoconnect';
 import { ChromeStorageGatewayProvider } from './adapters/chrome-storage-gateway-provider';
 import {
+  clearVerificationCache,
+  getCacheStats,
+  setupCacheCleanup,
+} from './cache-management';
+import {
   ARIO_MAINNET_PROCESS_ID,
   DEFAULT_AO_CU_URL,
-  OPTIMAL_GATEWAY_ROUTE_METHOD,
 } from './constants';
 import {
   isKnownGateway,
@@ -42,6 +46,7 @@ import {
   handleAsyncOperation,
 } from './utils/error-handler';
 import { logger } from './utils/logger';
+import { verificationCache, detectArNSChanges, notifyArNSChange } from './utils/verification-cache';
 
 // Enhanced tab state management
 class TabStateManager {
@@ -147,7 +152,15 @@ let arIO = ARIO.init({
 });
 
 // Initialize Chrome storage with defaults
-chrome.storage.local.get(['dailyStats']).then(({ dailyStats }) => {
+(async () => {
+  const { dailyStats, processId, aoCuUrl, localGatewayAddressRegistry } =
+    await chrome.storage.local.get([
+      'dailyStats',
+      'processId',
+      'aoCuUrl',
+      'localGatewayAddressRegistry',
+    ]);
+
   const today = new Date().toDateString();
 
   // Preserve existing stats for today if they exist
@@ -161,17 +174,39 @@ chrome.storage.local.get(['dailyStats']).then(({ dailyStats }) => {
           failedCount: 0,
         };
 
-  chrome.storage.local.set({
-    routingMethod: OPTIMAL_GATEWAY_ROUTE_METHOD,
-    localGatewayAddressRegistry: {},
-    blacklistedGateways: [],
-    processId: ARIO_MAINNET_PROCESS_ID,
-    aoCuUrl: DEFAULT_AO_CU_URL,
-    ensResolutionEnabled: true,
-    verificationStrict: false,
+  // Only set defaults if they don't already exist
+  const updates: any = {
     dailyStats: existingStats,
-  });
-});
+  };
+
+  // Set defaults only if not already present
+  if (!processId) updates.processId = ARIO_MAINNET_PROCESS_ID;
+  if (!aoCuUrl) updates.aoCuUrl = DEFAULT_AO_CU_URL;
+  if (!localGatewayAddressRegistry) updates.localGatewayAddressRegistry = {};
+
+  // Only set these if they don't exist in storage
+  const {
+    routingMethod,
+    blacklistedGateways,
+    ensResolutionEnabled,
+    verificationStrict: existingVerificationStrict,
+  } = await chrome.storage.local.get([
+    'routingMethod',
+    'blacklistedGateways',
+    'ensResolutionEnabled',
+    'verificationStrict',
+  ]);
+
+  if (routingMethod === undefined)
+    updates.routingMethod = 'fastestPing'; // Default routing method
+  if (blacklistedGateways === undefined) updates.blacklistedGateways = [];
+  if (ensResolutionEnabled === undefined) updates.ensResolutionEnabled = true;
+  if (existingVerificationStrict === undefined)
+    updates.verificationStrict = false;
+
+  await chrome.storage.local.set(updates);
+  logger.info('Initialized storage with defaults', updates);
+})();
 
 // Initialize performance data structure if needed
 chrome.storage.local
@@ -200,11 +235,15 @@ async function initializeWayfinder() {
     await syncGatewayAddressRegistry();
 
     // Verify we have gateways
-    const { localGatewayAddressRegistry = {} } = await chrome.storage.local.get(['localGatewayAddressRegistry']);
+    const { localGatewayAddressRegistry = {} } = await chrome.storage.local.get(
+      ['localGatewayAddressRegistry'],
+    );
     const gatewayCount = Object.keys(localGatewayAddressRegistry).length;
-    
+
     if (gatewayCount === 0) {
-      logger.warn('No gateways found after sync. Users will need to manually sync or fallback gateways will be used.');
+      logger.warn(
+        'No gateways found after sync. Users will need to manually sync or fallback gateways will be used.',
+      );
     } else {
       logger.info(`Successfully synced ${gatewayCount} gateways`);
     }
@@ -213,7 +252,9 @@ async function initializeWayfinder() {
     logger.info('Wayfinder initialization completed');
   } catch (error) {
     logger.error('Error during Wayfinder initialization:', error);
-    logger.warn('Users can manually sync gateways in Settings > Network Configuration');
+    logger.warn(
+      'Users can manually sync gateways in Settings > Network Configuration',
+    );
   }
 }
 
@@ -231,12 +272,18 @@ chrome.webNavigation.onBeforeNavigate.addListener(
       const arUrl = url.searchParams.get('q');
 
       if (!arUrl || !arUrl.startsWith('ar://')) return;
+      
+      // Validate ar:// URL format
+      if (arUrl.length < 6) {
+        logger.error(`Invalid ar:// URL format: ${arUrl}`);
+        return;
+      }
 
       logger.debug(`Processing ar:// navigation: ${arUrl}`);
 
       // Process immediately without setTimeout to prevent race conditions
       const startTime = performance.now();
-      
+
       // Get the routable gateway URL using Wayfinder
       const result = await getRoutableGatewayUrl(arUrl);
 
@@ -257,16 +304,38 @@ chrome.webNavigation.onBeforeNavigate.addListener(
 
         // Track the request
         updateDailyStats('request');
-        
-        // Start verification in background after navigation
-        verifyInBackground(arUrl, details.tabId);
+
+        // Note: Verification will happen automatically through Wayfinder when the actual content is requested
+      } else {
+        logger.error(`Failed to route ${arUrl} - no valid gateway found`);
+        // Show error to user
+        chrome.tabs.update(details.tabId, { 
+          url: `data:text/html,<h1>Failed to resolve ${arUrl}</h1><p>No available gateways could handle this request.</p>` 
+        });
       }
     } catch (error) {
       logger.error('Error processing ar:// navigation:', error);
+      // Show error page to user
+      try {
+        chrome.tabs.update(details.tabId, { 
+          url: `data:text/html,<h1>Error processing ${arUrl}</h1><p>${error instanceof Error ? error.message : 'Unknown error occurred'}</p>` 
+        });
+      } catch (tabError) {
+        logger.error('Failed to update tab with error page:', tabError);
+      }
     }
   },
   { url: [{ schemes: ['http', 'https'] }] },
 );
+
+/**
+ * Clean up tab state when tabs are closed
+ */
+chrome.tabs.onRemoved.addListener((tabId) => {
+  if (tabStateManager.delete(tabId)) {
+    logger.debug(`Cleaned up state for closed tab ${tabId}`);
+  }
+});
 
 /**
  * Track request timing for performance metrics
@@ -505,6 +574,8 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     'updateVerificationMode',
     'updateAdvancedSettings',
     'resetAdvancedSettings',
+    'getCacheStats',
+    'clearVerificationCache',
   ];
   const validTypes = ['convertArUrlToHttpUrl', 'makeVerifiedRequest'];
 
@@ -586,14 +657,14 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
 
         // Set up temporary event listeners for this specific request
         const handleVerificationPassed = (event: any) => {
-          logger.info('✅ Verification passed:', event);
+          logger.info('[SUCCESS] Verification passed:', event);
           verificationResult.verified = true;
           verificationResult.strategy = event.strategy || 'unknown';
           updateDailyStats('verified');
         };
 
         const handleVerificationFailed = (event: any) => {
-          logger.warn('❌ Verification failed:', event);
+          logger.warn('[FAILED] Verification failed:', event);
           verificationResult.verified = false;
           verificationResult.error =
             event.error || event.message || 'Verification failed';
@@ -601,7 +672,10 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
         };
 
         // Add listeners
-        wayfinder.emitter.on('verification-succeeded', handleVerificationPassed);
+        wayfinder.emitter.on(
+          'verification-succeeded',
+          handleVerificationPassed,
+        );
         wayfinder.emitter.on('verification-failed', handleVerificationFailed);
 
         try {
@@ -646,21 +720,33 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     return true;
   }
 
-
   // Handle routing strategy updates
   if (request.message === 'updateRoutingStrategy') {
+    logger.info(`[SETTINGS] Updating routing strategy to: ${request.strategy}`);
     (async () => {
       try {
         await chrome.storage.local.set({ routingMethod: request.strategy });
+        logger.info(
+          `[SETTINGS] Routing strategy saved to storage: ${request.strategy}`,
+        );
+
         // Reset Wayfinder instance to use new strategy
         resetWayfinderInstance();
+
+        // Verify the setting was saved
+        const { routingMethod } =
+          await chrome.storage.local.get('routingMethod');
+        logger.info(
+          `[SETTINGS] Verified routing method in storage: ${routingMethod}`,
+        );
+
         sendResponse({ success: true });
       } catch (error: any) {
         logger.error('Error updating routing strategy:', error);
         sendResponse({ error: error?.message || 'Unknown error' });
       }
     })();
-    return true;
+    return true; // Keep message channel open for async response
   }
 
   // Handle verification mode updates
@@ -710,6 +796,34 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     })();
     return true;
   }
+
+  // Handle get cache stats
+  if (request.message === 'getCacheStats') {
+    (async () => {
+      try {
+        const stats = await getCacheStats();
+        sendResponse({ success: true, stats });
+      } catch (error: any) {
+        logger.error('Error getting cache stats:', error);
+        sendResponse({ error: error?.message || 'Unknown error' });
+      }
+    })();
+    return true;
+  }
+
+  // Handle clear verification cache
+  if (request.message === 'clearVerificationCache') {
+    (async () => {
+      try {
+        await clearVerificationCache();
+        sendResponse({ success: true });
+      } catch (error: any) {
+        logger.error('Error clearing verification cache:', error);
+        sendResponse({ error: error?.message || 'Unknown error' });
+      }
+    })();
+    return true;
+  }
 });
 
 /**
@@ -723,10 +837,32 @@ async function syncGatewayAddressRegistry(): Promise<void> {
     ]);
 
     if (!processId || !aoCuUrl) {
-      throw new Error('❌ Process ID or AO CU URL missing in local storage.');
+      logger.warn('Process ID or AO CU URL not found, using defaults...');
+      // Use defaults if not set
+      const defaultProcessId = processId || ARIO_MAINNET_PROCESS_ID;
+      const defaultAoCuUrl = aoCuUrl || DEFAULT_AO_CU_URL;
+
+      // Save defaults
+      await chrome.storage.local.set({
+        processId: defaultProcessId,
+        aoCuUrl: defaultAoCuUrl,
+      });
+
+      // Initialize AR.IO with defaults
+      arIO = ARIO.init({
+        process: new AOProcess({
+          processId: defaultProcessId,
+          ao: connect({
+            CU_URL: defaultAoCuUrl,
+            MODE: 'legacy',
+          }),
+        }),
+      });
     }
 
-    logger.info(`Syncing Gateway Address Registry from ${aoCuUrl}`);
+    logger.info(
+      `Syncing Gateway Address Registry from ${aoCuUrl || DEFAULT_AO_CU_URL}`,
+    );
 
     const registry: Record<WalletAddress, AoGateway> = {};
     let cursor: string | undefined = undefined;
@@ -791,67 +927,284 @@ async function reinitializeArIO(): Promise<void> {
 }
 
 /**
+ * Extract transaction ID from ar:// URL
+ */
+// Note: Transaction ID extraction is no longer needed
+// wayfinder-core handles ar:// URLs directly including ArNS names
+
+// ArNS change detection functions moved to verification-cache.ts
+
+/**
+ * Update ArNS cache with new values and change history
+ */
+async function updateArNSCache(
+  cacheKey: string,
+  cachedResult: any,
+  changes: any[],
+  newTxId: string,
+  newProcessId: string | null,
+  newDataId: string | null
+): Promise<void> {
+  try {
+    // Update the cache entry with new values
+    const updatedCache = {
+      ...cachedResult,
+      txId: newTxId,
+      processId: newProcessId || cachedResult.processId,
+      dataId: newDataId || cachedResult.dataId,
+      timestamp: Date.now(),
+      changeHistory: [
+        ...(cachedResult.changeHistory || []),
+        ...changes
+      ].slice(-10) // Keep last 10 changes
+    };
+    
+    await verificationCache.set(cacheKey, updatedCache);
+    logger.info(`[ARNS] [VERIFY] Updated cache for ${cacheKey} with ${changes.length} changes`);
+    
+  } catch (error) {
+    logger.error('[ARNS] [VERIFY] Error updating ArNS cache:', error);
+  }
+}
+
+/**
  * Verify ar:// content in the background after navigation
  */
 async function verifyInBackground(arUrl: string, tabId: number): Promise<void> {
   try {
     logger.info(`🔍 [VERIFY] Starting background verification for: ${arUrl}`);
-    
+
     const wayfinder = await getWayfinderInstance();
-    
+
     // Get verification settings
-    const { verificationEnabled = true, verificationStrict = false, showVerificationToasts = false } = 
-      await chrome.storage.local.get(['verificationEnabled', 'verificationStrict', 'showVerificationToasts']);
-    
+    const {
+      verificationEnabled = true,
+      verificationStrict = false,
+      showVerificationToasts = false,
+    } = await chrome.storage.local.get([
+      'verificationEnabled',
+      'verificationStrict',
+      'showVerificationToasts',
+    ]);
+
     if (!verificationEnabled) {
-      logger.info('⏭️ [VERIFY] Verification is disabled, skipping');
+      logger.info('[SKIP] [VERIFY] Verification is disabled, skipping');
       return;
     }
+
+    // Extract transaction ID for cache key (wayfinder-core will handle ArNS resolution)
+    let txId: string | null = null;
+    const directTxMatch = arUrl.match(/^ar:\/\/([a-zA-Z0-9_-]{43})/);
+    const isArNSName = !directTxMatch && arUrl.startsWith('ar://');
     
-    // Track verification status
-    let verificationResult = {
+    if (directTxMatch) {
+      txId = directTxMatch[1];
+    }
+
+    // Check cache first if we have a direct transaction ID
+    // For ArNS names, we can't check cache until we get the resolved txId from verification
+    if (txId) {
+      logger.info(`🔍 [VERIFY] Direct transaction ID detected: ${txId}`);
+      try {
+        const cachedResult = await verificationCache.get(txId);
+        if (cachedResult && cachedResult.verified) {
+          logger.info(`✅ [CACHE] [VERIFY] Using cached hash for direct transaction ${txId} - skipping new verification`);
+          logger.info(`🔑 [CACHE] [HASH] Using cached hash: ${cachedResult.hash?.substring(0, 12)}... (generated ${((Date.now() - cachedResult.timestamp) / (1000 * 60 * 60)).toFixed(1)}h ago)`);
+          
+          // Update stats
+          await updateDailyStats('verified');
+          
+          // Show success toast if enabled
+          if (showVerificationToasts) {
+            await showVerificationToast(tabId, true, 'Verified (cached hash)');
+          }
+          
+          return; // Skip verification, use cached result
+        } else {
+          logger.info(`❌ [CACHE] [VERIFY] No valid cached hash found for ${txId} - will generate new hash`);
+        }
+      } catch (error) {
+        logger.warn('[CACHE] [VERIFY] Error checking cache:', error);
+      }
+    } else if (isArNSName) {
+      logger.info(`🔍 [VERIFY] ArNS name detected: ${arUrl}. Will resolve and check cache after resolution.`);
+    }
+
+    // Track verification status with promise for completion
+    const verificationResult = {
       verified: false,
       strategy: null as string | null,
       error: null as string | null,
+      hash: null as string | null,
+      txId: null as string | null, // x-arns-resolved-id or direct transaction ID
+      dataId: null as string | null, // x-ar-io-data-id (actual content being served)
+      processId: null as string | null, // x-arns-process-id
     };
-    
+
+    // Create a promise that resolves when verification completes
+    let verificationComplete: (value: void) => void;
+    const verificationPromise = new Promise<void>((resolve) => {
+      verificationComplete = resolve;
+    });
+
     // Set up verification event listeners
     const handleVerificationPassed = (event: any) => {
-      logger.info(`✅ [VERIFY] Background verification PASSED for ${arUrl}`);
+      logger.info(
+        `[SUCCESS] [VERIFY] Background verification PASSED for ${arUrl}`,
+      );
       verificationResult.verified = true;
       verificationResult.strategy = event.strategy || 'unknown';
+      verificationResult.hash = event.hash || null;
+      verificationResult.txId = event.txId || txId; // Use event txId or fallback to extracted txId
       updateDailyStats('verified');
+      verificationComplete();
     };
-    
+
     const handleVerificationFailed = (event: any) => {
-      logger.warn(`❌ [VERIFY] Background verification FAILED for ${arUrl}:`, event);
+      logger.warn(
+        `[FAILED] [VERIFY] Background verification FAILED for ${arUrl}:`,
+        event,
+      );
       verificationResult.verified = false;
-      verificationResult.error = event.error || event.message || 'Verification failed';
+      verificationResult.error =
+        event.error || event.message || 'Verification failed';
       updateDailyStats('failed');
+      verificationComplete();
     };
-    
+
     // Add listeners
     wayfinder.emitter.on('verification-succeeded', handleVerificationPassed);
     wayfinder.emitter.on('verification-failed', handleVerificationFailed);
-    
+
     try {
-      logger.info(`🌐 [VERIFY] Making background verification request...`);
-      
+      logger.info(`🔄 [VERIFY] [NEW] Starting new verification process for ${arUrl}`);
+      logger.info(`⚙️ [VERIFY] [PROCESS] Will generate fresh hash and verify against trusted gateways`);
+
       // Make the verification request
       const response = await wayfinder.request(arUrl, {
         method: 'GET',
         headers: {
-          'Accept': '*/*'
-        }
+          Accept: '*/*',
+        },
       });
+
+      logger.info(
+        `[RESPONSE] [VERIFY] Response received, status: ${response.status}`,
+      );
+
+      // Extract AR.IO gateway headers for caching and change detection
+      const arnsResolvedId = response.headers.get('x-arns-resolved-id');
+      const arIoDataId = response.headers.get('x-ar-io-data-id');
+      const arnsProcessId = response.headers.get('x-arns-process-id');
       
-      logger.info(`📦 [VERIFY] Response received, status: ${response.status}`);
-      
-      // Wait for verification to complete
-      await new Promise((resolve) => setTimeout(resolve, 3000));
-      
-      logger.info(`🔒 [VERIFY] Final verification status: ${verificationResult.verified ? 'PASSED' : 'FAILED'}`);
-      
+      logger.info(`[HEADERS] [VERIFY] x-arns-resolved-id: ${arnsResolvedId}, x-ar-io-data-id: ${arIoDataId}, x-arns-process-id: ${arnsProcessId}`);
+
+      // Store resolved transaction IDs for caching
+      if (arnsResolvedId) {
+        verificationResult.txId = arnsResolvedId;
+        logger.info(`[RESOLVE] [VERIFY] ArNS ${arUrl} resolved to ${arnsResolvedId}`);
+      }
+      if (arIoDataId) {
+        verificationResult.dataId = arIoDataId;
+        logger.info(`[DATA] [VERIFY] Content data ID: ${arIoDataId}`);
+      }
+      if (arnsProcessId) {
+        verificationResult.processId = arnsProcessId;
+        logger.info(`[PROCESS] [VERIFY] ArNS process ID: ${arnsProcessId}`);
+      }
+
+      // Check cache using resolved transaction ID and detect changes
+      if (arnsResolvedId && !txId && isArNSName) {
+        logger.info(`🔍 [ARNS] [VERIFY] ArNS ${arUrl} resolved to transaction ID: ${arnsResolvedId}`);
+        try {
+          const cachedResult = await verificationCache.get(arnsResolvedId);
+          if (cachedResult && cachedResult.verified) {
+            logger.info(`✅ [CACHE] [ARNS] Found cached hash for resolved ArNS transaction ${arnsResolvedId}`);
+            logger.info(`🔑 [CACHE] [HASH] Using cached hash: ${cachedResult.hash?.substring(0, 12)}... (generated ${((Date.now() - cachedResult.timestamp) / (1000 * 60 * 60)).toFixed(1)}h ago)`);
+            
+            // Check for ArNS changes since last visit
+            const changes = detectArNSChanges(cachedResult, arnsResolvedId, arnsProcessId, arIoDataId);
+            
+            if (changes.length > 0) {
+              logger.info(`🔄 [ARNS] [VERIFY] Changes detected for ${arUrl} since last visit:`, changes);
+              await notifyArNSChanges(tabId, arUrl, changes);
+              
+              // Update cache with new values and change history
+              await updateArNSCache(arnsResolvedId, cachedResult, changes, arnsResolvedId, arnsProcessId, arIoDataId);
+            } else {
+              logger.info(`✅ [CACHE] [ARNS] No changes detected for ${arUrl} - using cached verification`);
+            }
+            
+            // Update last visit time
+            cachedResult.lastVisit = Date.now();
+            await verificationCache.set(arnsResolvedId, cachedResult);
+            
+            // Update stats
+            await updateDailyStats('verified');
+            
+            // Show success toast if enabled
+            if (showVerificationToasts) {
+              await showVerificationToast(tabId, true, changes.length > 0 ? 'Verified (changes detected)' : 'Verified (cached hash)');
+            }
+            
+            return; // Skip verification, use cached result
+          } else {
+            logger.info(`❌ [CACHE] [ARNS] No cached hash found for resolved transaction ${arnsResolvedId} - will generate new hash`);
+          }
+        } catch (error) {
+          logger.warn('[CACHE] [VERIFY] Error checking resolved ID cache:', error);
+        }
+      }
+
+      // IMPORTANT: Do NOT consume the response body here
+      // The wayfinder-core library needs to process the stream for verification
+      // Verification happens automatically when the response is returned
+
+      // Wait for verification to complete (with timeout)
+      await Promise.race([
+        verificationPromise,
+        new Promise((resolve) => setTimeout(resolve, 5000)), // 5 second timeout
+      ]);
+
+      logger.info(
+        `[FINAL] [VERIFY] Final verification status: ${verificationResult.verified ? 'PASSED' : 'FAILED'}`,
+      );
+
+      // Cache the result if verification succeeded
+      // Use x-arns-resolved-id as cache key for ArNS names, or original txId for direct transaction URLs
+      const cacheKey = verificationResult.txId || txId;
+      if (verificationResult.verified && verificationResult.hash && cacheKey) {
+        logger.info(`🔄 [HASH] [NEW] Generated new verification hash for ${cacheKey}: ${verificationResult.hash.substring(0, 12)}...`);
+        logger.info(`💾 [CACHE] [NEW] Caching new verification result for future use`);
+        
+        try {
+          await verificationCache.set(cacheKey, {
+            txId: cacheKey,
+            hash: verificationResult.hash,
+            algorithm: 'sha256',
+            timestamp: Date.now(),
+            verified: true,
+            dataId: verificationResult.dataId, // Store the actual content ID that was verified
+            arnsName: isArNSName ? arUrl : undefined, // Store original ArNS name if applicable
+            processId: isArNSName ? arnsProcessId || undefined : undefined, // Store process ID for ArNS names
+            lastVisit: Date.now(), // Track when this ArNS name was first cached
+            changeHistory: [], // Initialize empty change history
+          });
+          
+          if (isArNSName) {
+            logger.info(`✅ [CACHE] [ARNS] Successfully cached new hash for ArNS ${arUrl} → ${cacheKey} (processId: ${arnsProcessId?.substring(0, 8) || 'none'})`);
+          } else {
+            logger.info(`✅ [CACHE] [DIRECT] Successfully cached new hash for direct transaction ${cacheKey}`);
+          }
+        } catch (error) {
+          logger.warn('❌ [CACHE] [ERROR] Failed to cache verification result:', error);
+        }
+      } else if (verificationResult.verified) {
+        logger.warn(`⚠️ [CACHE] [SKIP] Cannot cache verification - missing hash or cache key (verified: ${verificationResult.verified}, hash: ${!!verificationResult.hash}, cacheKey: ${cacheKey})`);
+      } else {
+        logger.info(`❌ [HASH] [FAILED] Verification failed - not caching result for ${cacheKey || arUrl}`);
+      }
+
       // If strict mode and verification failed, show an alert
       if (verificationStrict && !verificationResult.verified) {
         // Inject warning into the tab
@@ -859,41 +1212,138 @@ async function verifyInBackground(arUrl: string, tabId: number): Promise<void> {
           target: { tabId: tabId },
           func: () => {
             const warning = document.createElement('div');
-            warning.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #ff4444; color: white; padding: 16px; border-radius: 8px; z-index: 10000; font-family: sans-serif; box-shadow: 0 4px 12px rgba(0,0,0,0.3);';
-            warning.innerHTML = '<strong>⚠️ Verification Failed</strong><br>This content could not be verified through the AR.IO network.';
+            warning.style.cssText =
+              'position: fixed; bottom: 20px; right: 20px; background: #ff4444; color: white; padding: 16px; border-radius: 8px; z-index: 10000; font-family: sans-serif; box-shadow: 0 4px 12px rgba(0,0,0,0.3); animation: slideUp 0.3s ease-out;';
+            warning.innerHTML =
+              '<strong><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-right: 4px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Verification Failed</strong><br>This content could not be verified through the AR.IO network.';
+
+            // Add slide up animation
+            const style = document.createElement('style');
+            style.textContent = `
+              @keyframes slideUp {
+                from {
+                  transform: translateY(100%);
+                  opacity: 0;
+                }
+                to {
+                  transform: translateY(0);
+                  opacity: 1;
+                }
+              }
+            `;
+            document.head.appendChild(style);
+
             document.body.appendChild(warning);
-            setTimeout(() => warning.remove(), 10000);
-          }
+            setTimeout(() => {
+              warning.style.animation = 'slideUp 0.3s ease-out reverse';
+              setTimeout(() => {
+                warning.remove();
+                style.remove();
+              }, 300);
+            }, 10000);
+          },
         });
       }
-      
+
       // Show toast if enabled
       if (showVerificationToasts) {
-        chrome.scripting.executeScript({
-          target: { tabId: tabId },
-          func: (verified) => {
-            const toast = document.createElement('div');
-            toast.style.cssText = `position: fixed; top: 20px; right: 20px; background: ${verified ? '#10b981' : '#ff4444'}; color: white; padding: 12px 16px; border-radius: 8px; z-index: 10000; font-family: sans-serif; box-shadow: 0 4px 12px rgba(0,0,0,0.3);`;
-            toast.textContent = verified ? '✅ Content verified successfully' : '❌ Content verification failed';
-            document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 3000);
-          },
-          args: [verificationResult.verified]
-        });
+        await showVerificationToast(tabId, verificationResult.verified);
       }
-      
     } finally {
       // Clean up listeners
       wayfinder.emitter.off('verification-succeeded', handleVerificationPassed);
       wayfinder.emitter.off('verification-failed', handleVerificationFailed);
     }
-    
   } catch (error) {
-    logger.error('💥 [VERIFY] Error in background verification:', error);
+    logger.error(
+      '[CRITICAL] [VERIFY] Error in background verification:',
+      error,
+    );
   }
 }
 
-// Start initialization
-initializeWayfinder().catch((err) =>
-  logger.error('Error during Wayfinder initialization:', err),
-);
+
+/**
+ * Show verification toast
+ */
+async function showVerificationToast(
+  tabId: number,
+  verified: boolean,
+  customMessage?: string,
+): Promise<void> {
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (verified, message) => {
+        const toast = document.createElement('div');
+        toast.style.cssText = `position: fixed; bottom: 20px; right: 20px; background: ${verified ? '#10b981' : '#ff4444'}; color: white; padding: 12px 16px; border-radius: 8px; z-index: 10000; font-family: sans-serif; box-shadow: 0 4px 12px rgba(0,0,0,0.3); animation: slideUp 0.3s ease-out;`;
+
+        const iconSvg = verified
+          ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-right: 4px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>'
+          : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-right: 4px;"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
+
+        toast.innerHTML =
+          iconSvg +
+          (message ||
+            (verified
+              ? ' Content verified successfully'
+              : ' Content verification failed'));
+
+        // Add slide up animation
+        const style = document.createElement('style');
+        style.textContent = `
+          @keyframes slideUp {
+            from {
+              transform: translateY(100%);
+              opacity: 0;
+            }
+            to {
+              transform: translateY(0);
+              opacity: 1;
+            }
+          }
+        `;
+        document.head.appendChild(style);
+
+        document.body.appendChild(toast);
+        setTimeout(() => {
+          toast.style.animation = 'slideUp 0.3s ease-out reverse';
+          setTimeout(() => {
+            toast.remove();
+            style.remove();
+          }, 300);
+        }, 3000);
+      },
+      args: [Boolean(verified), customMessage || null], // Ensure serializable args
+    });
+  } catch (error) {
+    logger.error('[ERROR] [VERIFY] Could not show verification toast:', error);
+  }
+}
+
+// Set up periodic cache cleanup
+setupCacheCleanup();
+
+// Start initialization after storage is ready
+chrome.storage.local
+  .get(['processId', 'aoCuUrl'])
+  .then(({ processId, aoCuUrl }) => {
+    // Wait a bit to ensure storage initialization is complete
+    setTimeout(() => {
+      if (!processId || !aoCuUrl) {
+        logger.warn(
+          'Process ID or AO CU URL not yet initialized, delaying gateway sync...',
+        );
+        // Try again after storage should be initialized
+        setTimeout(() => {
+          initializeWayfinder().catch((err) =>
+            logger.error('Error during Wayfinder initialization:', err),
+          );
+        }, 2000);
+      } else {
+        initializeWayfinder().catch((err) =>
+          logger.error('Error during Wayfinder initialization:', err),
+        );
+      }
+    }, 1000);
+  });

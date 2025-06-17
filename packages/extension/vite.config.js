@@ -22,11 +22,13 @@ import { viteStaticCopy } from 'vite-plugin-static-copy';
 export default defineConfig({
   plugins: [
     nodePolyfills({
+      include: ["crypto", "stream", "util", "buffer"],
       globals: {
         Buffer: true,
         global: true,
         process: true,
       },
+      protocolImports: true,
     }),
     viteStaticCopy({
       targets: [
@@ -43,7 +45,7 @@ export default defineConfig({
           dest: '.',
         },
         {
-          src: 'src/history.html',
+          src: 'src/performance.html',
           dest: '.',
         },
 
@@ -73,7 +75,7 @@ export default defineConfig({
         popup: './src/popup.js',
         settings: './src/settings.js',
         gateways: './src/gateways.js',
-        history: './src/history.js',
+        performance: './src/performance.js',
       },
       output: {
         entryFileNames: '[name].js',
