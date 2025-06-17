@@ -21,6 +21,7 @@ import { DataRootVerificationStrategy } from '../packages/core/src/verification/
 import { HashVerificationStrategy } from '../packages/core/src/verification/hash-verifier.js';
 import { SignatureVerificationStrategy } from '../packages/core/src/verification/signature-verifier.js';
 import { Wayfinder, WayfinderEvent } from '../packages/core/src/wayfinder.js';
+import { Logger } from '../packages/core/src/wayfinder.js';
 
 // Define the verification strategies
 type VerificationStrategyType = 'data-root' | 'hash' | 'signature';
@@ -103,39 +104,44 @@ async function main() {
     // Create the Wayfinder instance with strict verification (will throw errors if verification fails)
     const wayfinder = new Wayfinder({
       gatewaysProvider,
-      routingStrategy,
-      verificationStrategy,
-      strict: true,
-      events: {
-        onVerificationSucceeded: (
-          event: WayfinderEvent['verification-succeeded'],
-        ) => {
-          console.log(
-            `✅ Verification successful for transaction ${event.txId}`,
-          );
-        },
-        onVerificationFailed: (
-          error: WayfinderEvent['verification-failed'],
-        ) => {
-          console.error(`❌ Verification failed: ${error.message}`);
-          if (error.cause) {
-            console.error('Cause:', error.cause);
-          }
-        },
-        onVerificationProgress: (
-          event: WayfinderEvent['verification-progress'],
-        ) => {
-          const percentage = Math.round(
-            (event.processedBytes / event.totalBytes) * 100,
-          );
-          console.log(
-            `Verifying: ${percentage}% (${event.processedBytes}/${event.totalBytes} bytes)\r`,
-          );
+      routingSettings: {
+        strategy: routingStrategy,
+      },
+      verificationSettings: {
+        enabled: true,
+        strategy: verificationStrategy,
+        events: {
+          onVerificationSucceeded: (
+            event: WayfinderEvent['verification-succeeded'],
+          ) => {
+            console.log(
+              `✅ Verification successful for transaction ${event.txId}`,
+            );
+          },
+          onVerificationFailed: (
+            error: WayfinderEvent['verification-failed'],
+          ) => {
+            console.error(`❌ Verification failed: ${error.message}`);
+            if (error.cause) {
+              console.error('Cause:', error.cause);
+            }
+          },
+          onVerificationProgress: (
+            event: WayfinderEvent['verification-progress'],
+          ) => {
+            const percentage = Math.round(
+              (event.processedBytes / event.totalBytes) * 100,
+            );
+            console.log(
+              `Verifying: ${percentage}% (${event.processedBytes}/${event.totalBytes} bytes)\r`,
+            );
+          },
         },
       },
       logger: {
         debug: (_message: string, _data: Record<string, any>) => {
           // noop
+          console.log('debug', _message, _data);
         },
         info: (message: string, data: Record<string, any>) => {
           console.log(message, data);
