@@ -87,7 +87,7 @@ export async function updateGatewayPerformance(
       gatewayPerformance[gatewayFQDN].avgResponseTime || responseTime;
     const alpha = 0.2; // **Smoothing factor (higher = reacts faster, lower = more stable)**
 
-    // 🔥 Compute new EMA for response time
+    // Compute new EMA for response time
     gatewayPerformance[gatewayFQDN].avgResponseTime =
       alpha * responseTime + (1 - alpha) * prevAvg;
 
@@ -97,7 +97,7 @@ export async function updateGatewayPerformance(
   // Debug: Gateway performance update
   // logger.debug(`Updating Gateway Performance: ${gatewayFQDN} | New Response Time: ${responseTime} New Avg Response Time: ${gatewayPerformance[gatewayFQDN].avgResponseTime.toFixed(2)}ms`);
 
-  // 🔥 Store under the **root** FQDN
+  // Store under the **root** FQDN
   await chrome.storage.local.set({ gatewayPerformance });
 
   // Update usage history
@@ -156,7 +156,7 @@ export async function normalizeGatewayFQDN(fqdn: string): Promise<string> {
     }
   }
 
-  // 🚨 Unknown gateway fallback
+  // Unknown gateway fallback
   // logger.warn(`Unknown gateway encountered: ${fqdn}`);
   return fqdn;
 }

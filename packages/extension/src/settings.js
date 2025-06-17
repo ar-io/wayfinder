@@ -3,6 +3,10 @@
  * Modern settings interface for routing and verification configuration
  */
 
+// Import wayfinder-core modules for gateway discovery
+import { NetworkGatewaysProvider } from '@ar.io/wayfinder-core';
+import { ARIO } from '@ar.io/sdk';
+
 // Toast notification system
 function showToast(message, type = 'success') {
   const container = document.getElementById('toastContainer');
@@ -10,7 +14,7 @@ function showToast(message, type = 'success') {
   toast.className = `toast ${type}`;
   toast.innerHTML = `
     <div style="display: flex; align-items: center; gap: 8px;">
-      <span>${type === 'success' ? '✓' : type === 'error' ? '✗' : '⚠'}</span>
+      <span>${type === 'success' ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' : type === 'error' ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'}</span>
       <span>${message}</span>
     </div>
   `;
@@ -32,7 +36,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Small delay to ensure DOM is fully ready
   setTimeout(async () => {
     await loadCurrentSettings();
-    await updatePerformanceStats();
     await updateGatewayCounts();
     updateLastSyncTime();
     await setExtensionVersion();
@@ -99,6 +102,9 @@ function setupEventHandlers() {
   document
     .getElementById('testStaticGateway')
     ?.addEventListener('click', testStaticGateway);
+  document
+    .getElementById('gatewayDropdown')
+    ?.addEventListener('change', handleGatewayDropdownChange);
 
   // Verification settings
   document
@@ -133,10 +139,12 @@ function setupEventHandlers() {
     .getElementById('resetToDefaults')
     ?.addEventListener('click', resetAdvancedToDefaults);
 
-  // Performance actions
+  // Performance actions moved to performance.js
+
+  // Cache toggle
   document
-    .getElementById('clearPerformanceData')
-    ?.addEventListener('click', clearPerformanceData);
+    .getElementById('enableVerificationCache')
+    ?.addEventListener('change', saveVerificationCacheToggle);
 
   // Gateway registry sync
   document
@@ -150,6 +158,16 @@ function setupEventHandlers() {
 
   // View logs
   document.getElementById('viewLogs')?.addEventListener('click', viewLogs);
+
+  // Trusted gateway settings
+  document.querySelectorAll('input[name="verificationGatewayMode"]').forEach((radio) => {
+    radio.addEventListener('change', handleVerificationGatewayModeChange);
+  });
+
+  document.getElementById('verificationGatewayCount')?.addEventListener('input', handleGatewayCountChange);
+
+  // Setup trusted gateway settings on load
+  setupTrustedGatewaySettings();
 }
 
 function setupExpandableSections() {
@@ -162,13 +180,27 @@ function setupExpandableSections() {
 }
 
 function setupRoutingStrategyDetails() {
-  document.querySelectorAll('.strategy-option').forEach((option) => {
+  // Only select strategy options within the routing section
+  document.querySelectorAll('.routing-strategy-selector .strategy-option').forEach((option) => {
     const radio = option.querySelector('input[type="radio"]');
     const header = option.querySelector('.strategy-header');
 
     header.addEventListener('click', () => {
       radio.checked = true;
-      handleRoutingStrategyChange({ target: radio });
+      // Create a synthetic event that will trigger saving
+      handleRoutingStrategyChange({ target: radio, isTrusted: true });
+    });
+  });
+  
+  // Setup click handlers for verification strategy options separately
+  document.querySelectorAll('.verification-strategy-selector .strategy-option').forEach((option) => {
+    const radio = option.querySelector('input[type="radio"]');
+    const header = option.querySelector('.strategy-header');
+
+    header.addEventListener('click', () => {
+      radio.checked = true;
+      // Create a synthetic event that will trigger saving
+      handleVerificationStrategyChange({ target: radio, isTrusted: true });
     });
   });
 }
@@ -207,6 +239,7 @@ async function loadCurrentSettings() {
       'theme',
       'processId',
       'aoCuUrl',
+      'enableVerificationCache',
     ]);
 
     // Load static gateway URL if set
@@ -219,11 +252,8 @@ async function loadCurrentSettings() {
       }
     }
 
-    // Load routing strategy - if static gateway exists and routing is static, use static
-    let routingMethod = settings.routingMethod || 'fastestPing';
-    if (settings.staticGateway && routingMethod === 'static') {
-      routingMethod = 'static';
-    }
+    // Load routing strategy
+    const routingMethod = settings.routingMethod || 'fastestPing';
 
     // Ensure a valid radio button is selected
     const routingRadio = document.querySelector(
@@ -231,9 +261,8 @@ async function loadCurrentSettings() {
     );
     if (routingRadio) {
       routingRadio.checked = true;
-      // Force visual update
-      routingRadio.dispatchEvent(new Event('change', { bubbles: true }));
-      handleRoutingStrategyChange({ target: routingRadio });
+      // Update UI without triggering change event
+      handleRoutingStrategyChange({ target: routingRadio, isTrusted: false });
     } else {
       // Fallback to fastestPing if the saved method is invalid
       const fallbackRadio = document.querySelector(
@@ -241,8 +270,10 @@ async function loadCurrentSettings() {
       );
       if (fallbackRadio) {
         fallbackRadio.checked = true;
-        fallbackRadio.dispatchEvent(new Event('change', { bubbles: true }));
-        handleRoutingStrategyChange({ target: fallbackRadio });
+        handleRoutingStrategyChange({
+          target: fallbackRadio,
+          isTrusted: false,
+        });
       }
     }
 
@@ -253,10 +284,7 @@ async function loadCurrentSettings() {
     );
     if (verificationStrategyRadio) {
       verificationStrategyRadio.checked = true;
-      // Force visual update
-      verificationStrategyRadio.dispatchEvent(
-        new Event('change', { bubbles: true }),
-      );
+      // No need to trigger change event during initialization
     }
 
     // Load verification mode
@@ -278,10 +306,18 @@ async function loadCurrentSettings() {
     );
     if (verificationModeRadio) {
       verificationModeRadio.checked = true;
-      // Trigger change event to update UI
-      verificationModeRadio.dispatchEvent(
-        new Event('change', { bubbles: true }),
+      // Update UI without triggering change event
+      setupVerificationModeExplanations();
+      // Show the correct description
+      document.querySelectorAll('.mode-description').forEach((desc) => {
+        desc.style.display = 'none';
+      });
+      const selectedDesc = document.querySelector(
+        `[data-mode="${verificationMode}"]`,
       );
+      if (selectedDesc) {
+        selectedDesc.style.display = 'block';
+      }
     }
 
     // Load switches
@@ -327,6 +363,13 @@ async function loadCurrentSettings() {
       if (aoCuUrlEl) {
         aoCuUrlEl.value = settings.aoCuUrl;
       }
+    }
+
+    // Load cache settings
+    const cacheEnabled = settings.enableVerificationCache !== false; // Default true
+    const cacheEnabledEl = document.getElementById('enableVerificationCache');
+    if (cacheEnabledEl) {
+      cacheEnabledEl.checked = cacheEnabled;
     }
   } catch (error) {
     console.error('Error loading settings:', error);
@@ -381,99 +424,19 @@ async function testConnection() {
   }
 }
 
-async function updatePerformanceStats() {
-  try {
-    const { gatewayPerformance = {} } = await chrome.storage.local.get([
-      'gatewayPerformance',
-    ]);
-
-    const performances = Object.values(gatewayPerformance);
-    if (performances.length > 0) {
-      // Calculate average response time
-      const avgResponseTimes = performances
-        .map((p) => p.avgResponseTime)
-        .filter((time) => time !== undefined);
-
-      const overallAvg =
-        avgResponseTimes.length > 0
-          ? avgResponseTimes.reduce((a, b) => a + b, 0) /
-            avgResponseTimes.length
-          : 0;
-
-      const avgResponseTimeEl = document.getElementById('avgResponseTime');
-      if (avgResponseTimeEl) {
-        avgResponseTimeEl.textContent =
-          overallAvg > 0 ? `${Math.round(overallAvg)}ms` : '--';
-      }
-
-      // Calculate success rate
-      const successRates = performances.map((p) => {
-        const total = p.successCount + p.failures;
-        return total > 0 ? (p.successCount / total) * 100 : 0;
-      });
-
-      const avgSuccessRate =
-        successRates.length > 0
-          ? successRates.reduce((a, b) => a + b, 0) / successRates.length
-          : 0;
-
-      const successRateEl = document.getElementById('successRate');
-      if (successRateEl) {
-        successRateEl.textContent =
-          avgSuccessRate > 0 ? `${Math.round(avgSuccessRate)}%` : '--';
-      }
-    }
-
-    // Get request count from daily stats
-    const { dailyStats } = await chrome.storage.local.get(['dailyStats']);
-    const today = new Date().toDateString();
-    const todayRequests =
-      dailyStats && dailyStats.date === today ? dailyStats.requestCount : 0;
-
-    const requestsTodayEl = document.getElementById('requestsToday');
-    if (requestsTodayEl) {
-      requestsTodayEl.textContent = todayRequests;
-    }
-
-    // Verification stats from daily stats
-    const verifiedCount =
-      dailyStats && dailyStats.date === today ? dailyStats.verifiedCount : 0;
-    const failedCount =
-      dailyStats && dailyStats.date === today ? dailyStats.failedCount : 0;
-    const totalVerificationAttempts = verifiedCount + failedCount;
-    const verificationSuccessRate =
-      totalVerificationAttempts > 0
-        ? Math.round((verifiedCount / totalVerificationAttempts) * 100)
-        : 0;
-
-    const verifiedTransactionsEl = document.getElementById(
-      'verifiedTransactions',
-    );
-    if (verifiedTransactionsEl) {
-      verifiedTransactionsEl.textContent =
-        verifiedCount > 0 ? verifiedCount : '--';
-    }
-
-    const verificationSuccessRateEl = document.getElementById(
-      'verificationSuccessRate',
-    );
-    if (verificationSuccessRateEl) {
-      verificationSuccessRateEl.textContent =
-        verificationSuccessRate > 0 ? `${verificationSuccessRate}%` : '--';
-    }
-  } catch (error) {
-    console.error('Error updating performance stats:', error);
-  }
-}
+// Performance functions moved to performance.js
 
 async function handleRoutingStrategyChange(event) {
   const strategy = event.target.value;
+  console.log(`[SETTINGS] Routing strategy changed to: ${strategy}, isTrusted: ${event.isTrusted}`);
 
   // Show/hide static gateway configuration
   const staticConfig = document.querySelector('.static-gateway-config');
   if (staticConfig) {
     if (strategy === 'static') {
       staticConfig.style.display = 'block';
+      // Populate the gateway dropdown when static is selected
+      await populateGatewayDropdown();
     } else {
       staticConfig.style.display = 'none';
     }
@@ -481,32 +444,52 @@ async function handleRoutingStrategyChange(event) {
 
   // Only save if this is a real user change (not initialization)
   if (event.isTrusted) {
+    console.log(`[SETTINGS] Saving routing strategy: ${strategy}`);
+    
     // Save the routing strategy
     await chrome.storage.local.set({ routingMethod: strategy });
 
     // Send message to background script to update routing
     try {
-      await chrome.runtime.sendMessage({
+      console.log(`[SETTINGS] Sending routing strategy update: ${strategy}`);
+      const response = await chrome.runtime.sendMessage({
         message: 'updateRoutingStrategy',
         strategy,
       });
+
+      console.log('[SETTINGS] Response from background:', response);
+
+      if (response && response.success) {
+        // Show success feedback
+        showToast('Routing strategy updated', 'success');
+
+        // Update the current value display if it exists
+        const currentValueEl = document.getElementById(
+          'currentRoutingStrategy',
+        );
+        if (currentValueEl) {
+          const strategyNames = {
+            fastestPing: 'Fastest Ping',
+            random: 'Random',
+            roundRobin: 'Round Robin',
+            static: 'Static Gateway',
+          };
+          currentValueEl.textContent = strategyNames[strategy] || strategy;
+        }
+      } else {
+        throw new Error(
+          response?.error || 'No response from background script',
+        );
+      }
     } catch (error) {
       console.error('Error updating routing strategy:', error);
+      showToast('Failed to update routing strategy', 'error');
     }
+  } else {
+    console.log(`[SETTINGS] Skipping save for untrusted event`);
   }
 }
 
-async function validateStaticGateway() {
-  const url = document.getElementById('staticGatewayUrl').value;
-  const testButton = document.getElementById('testStaticGateway');
-
-  try {
-    new URL(url);
-    testButton.disabled = false;
-  } catch {
-    testButton.disabled = true;
-  }
-}
 
 async function testStaticGateway() {
   const url = document.getElementById('staticGatewayUrl').value;
@@ -522,7 +505,7 @@ async function testStaticGateway() {
     });
 
     if (response.ok) {
-      showToast('Gateway is reachable!', 'success');
+      showToast('Gateway is reachable and configured!', 'success');
 
       // Save the static gateway
       const urlObj = new URL(url);
@@ -539,7 +522,7 @@ async function testStaticGateway() {
       await chrome.storage.local.set({ staticGateway });
     } else {
       showToast(
-        'Gateway responded but may not be an Arweave gateway',
+        `Gateway responded with status ${response.status}. Please verify this is a valid Arweave gateway.`,
         'warning',
       );
     }
@@ -551,18 +534,199 @@ async function testStaticGateway() {
   }
 }
 
+// Get available gateways from existing synced registry
+async function fetchAvailableGateways() {
+  try {
+    const { localGatewayAddressRegistry = {} } = await chrome.storage.local.get([
+      'localGatewayAddressRegistry',
+    ]);
+
+    // Convert to array format with stake information
+    const gateways = Object.entries(localGatewayAddressRegistry)
+      .map(([address, gateway]) => ({
+        address,
+        fqdn: gateway.settings?.fqdn,
+        protocol: gateway.settings?.protocol || 'https',
+        port: gateway.settings?.port,
+        operatorStake: gateway.operatorStake || 0,
+        totalDelegatedStake: gateway.totalDelegatedStake || 0,
+        status: gateway.status,
+      }))
+      .filter(gateway => gateway.status === 'joined' && gateway.fqdn) // Only joined gateways
+      .sort((a, b) => {
+        // Sort by total stake (operator + delegated)
+        const stakeA = a.operatorStake + a.totalDelegatedStake;
+        const stakeB = b.operatorStake + b.totalDelegatedStake;
+        return stakeB - stakeA;
+      })
+      .slice(0, 25); // Top 25 by stake
+
+    return gateways;
+  } catch (error) {
+    console.error('Error fetching gateways from local registry:', error);
+    // Fallback to basic gateway list
+    return [
+      { fqdn: 'arweave.net', protocol: 'https', operatorStake: 1000, totalDelegatedStake: 0 },
+      { fqdn: 'permagate.io', protocol: 'https', operatorStake: 500, totalDelegatedStake: 0 },
+      { fqdn: 'g8way.io', protocol: 'https', operatorStake: 300, totalDelegatedStake: 0 },
+      { fqdn: 'ar-io.dev', protocol: 'https', operatorStake: 200, totalDelegatedStake: 0 },
+    ];
+  }
+}
+
+// Populate the gateway dropdown with available options
+async function populateGatewayDropdown() {
+  const dropdown = document.getElementById('gatewayDropdown');
+  if (!dropdown) return;
+
+  // Show loading state
+  dropdown.innerHTML =
+    '<option value="">Loading available gateways...</option>';
+  dropdown.disabled = true;
+
+  try {
+    const gateways = await fetchAvailableGateways();
+
+    // Clear and populate dropdown
+    dropdown.innerHTML = '';
+
+    // Add a default "select gateway" option
+    const defaultOption = document.createElement('option');
+    defaultOption.value = '';
+    defaultOption.textContent = 'Select a gateway...';
+    dropdown.appendChild(defaultOption);
+
+    // Add gateway options with stake information
+    gateways.forEach((gateway) => {
+      const option = document.createElement('option');
+      const url = `${gateway.protocol}://${gateway.fqdn}${gateway.port && gateway.port !== (gateway.protocol === 'https' ? 443 : 80) ? `:${gateway.port}` : ''}`;
+      option.value = url;
+      
+      // Format stake for display (convert from millio units to readable format)
+      const totalStake = gateway.operatorStake + gateway.totalDelegatedStake;
+      const stakeDisplay = totalStake > 0 ? formatStake(totalStake) : 'No stake';
+      
+      // Display format: "gateway.com • 1.2M IO"
+      option.textContent = `${gateway.fqdn} • ${stakeDisplay}`;
+      dropdown.appendChild(option);
+    });
+
+    // Set a random gateway as the default placeholder
+    if (gateways.length > 0) {
+      const randomIndex = Math.floor(
+        Math.random() * Math.min(5, gateways.length),
+      ); // Pick from top 5
+      const customInput = document.getElementById('staticGatewayUrl');
+      if (customInput && !customInput.value) {
+        const randomGateway = gateways[randomIndex];
+        const randomUrl = `${randomGateway.protocol}://${randomGateway.fqdn}`;
+        customInput.placeholder = randomUrl;
+      }
+    }
+
+    dropdown.disabled = false;
+  } catch (error) {
+    console.error('Error populating gateway dropdown:', error);
+    dropdown.innerHTML = '<option value="">Error loading gateways</option>';
+    dropdown.disabled = true;
+  }
+}
+
+// Helper function to format stake amounts
+function formatStake(stake) {
+  if (stake >= 1000000) {
+    return (stake / 1000000).toFixed(1) + 'M IO';
+  } else if (stake >= 1000) {
+    return (stake / 1000).toFixed(1) + 'K IO';
+  } else {
+    return stake.toFixed(0) + ' IO';
+  }
+}
+
+// Handle gateway dropdown selection
+function handleGatewayDropdownChange(event) {
+  const selectedGateway = event.target.value;
+  const customInput = document.getElementById('staticGatewayUrl');
+
+  if (selectedGateway && customInput) {
+    customInput.value = selectedGateway;
+
+    // Trigger validation
+    validateStaticGateway();
+
+    // Auto-test the selected gateway
+    if (customInput.value) {
+      testStaticGateway();
+    }
+  }
+}
+
+// Enhanced validation that also handles dropdown state
+async function validateStaticGateway() {
+  const url = document.getElementById('staticGatewayUrl').value;
+  const testButton = document.getElementById('testStaticGateway');
+  const dropdown = document.getElementById('gatewayDropdown');
+
+  try {
+    if (url) {
+      new URL(url);
+      testButton.disabled = false;
+
+      // Update dropdown to show selected value if it matches
+      if (dropdown) {
+        const matchingOption = Array.from(dropdown.options).find(
+          (option) => option.value === url,
+        );
+        if (matchingOption) {
+          dropdown.value = url;
+        } else {
+          dropdown.value = ''; // Reset dropdown if custom URL doesn't match any option
+        }
+      }
+    } else {
+      testButton.disabled = true;
+      if (dropdown) {
+        dropdown.value = '';
+      }
+    }
+  } catch {
+    testButton.disabled = true;
+    if (dropdown) {
+      dropdown.value = '';
+    }
+  }
+}
+
 async function handleVerificationStrategyChange(event) {
   const strategy = event.target.value;
   await chrome.storage.local.set({ verificationStrategy: strategy });
 
   try {
     await chrome.runtime.sendMessage({ message: 'resetWayfinder' });
+
+    // Only show toast for user-initiated changes
+    if (event.isTrusted) {
+      // Show success feedback
+      const strategyNames = {
+        hash: 'Hash (SHA-256)',
+        dataRoot: 'Data Root',
+      };
+      showToast(
+        `Verification strategy changed to ${strategyNames[strategy] || strategy}`,
+        'success',
+      );
+    }
   } catch (error) {
     console.error('Error updating verification strategy:', error);
+    if (event.isTrusted) {
+      showToast('Failed to update verification strategy', 'error');
+    }
   }
 }
 
 async function handleVerificationModeChange(event) {
+  if (!event.isTrusted) return; // Skip programmatic changes
+
   const mode = event.target.value;
 
   // Update storage based on mode
@@ -595,6 +759,20 @@ async function handleVerificationModeChange(event) {
   const descElement = document.getElementById('verificationModeDesc');
   if (descElement) {
     descElement.textContent = descriptions[mode] || descriptions.background;
+  }
+
+  // Show success feedback
+  const modeNames = {
+    off: 'Off',
+    background: 'Background (Non-blocking)',
+    strict: 'Strict (Blocking)',
+  };
+  showToast(`Verification mode changed to ${modeNames[mode]}`, 'success');
+
+  // Update current value display
+  const currentValueEl = document.getElementById('currentVerificationMode');
+  if (currentValueEl) {
+    currentValueEl.textContent = modeNames[mode].split(' ')[0]; // Just show "Off", "Background", or "Strict"
   }
 
   // Show/hide verification strategy options
@@ -743,22 +921,41 @@ async function resetAdvancedToDefaults() {
   }
 }
 
-async function clearPerformanceData() {
-  if (
-    !confirm(
-      'Clear all performance data? This will reset gateway performance metrics and daily statistics.',
-    )
-  ) {
-    return;
-  }
+// Clear functions moved to performance.js
+
+async function saveVerificationCacheToggle(event) {
+  const enabled = event.target.checked;
 
   try {
-    await chrome.storage.local.remove(['gatewayPerformance', 'dailyStats']);
-    showToast('Performance data cleared', 'success');
-    await updatePerformanceStats();
+    await chrome.storage.local.set({ enableVerificationCache: enabled });
+    showToast(
+      enabled ? 'Verification cache enabled' : 'Verification cache disabled',
+      'success',
+    );
+
+    // If disabling, optionally clear the cache
+    if (!enabled) {
+      const shouldClear = confirm(
+        'Would you like to clear the existing cache data?',
+      );
+      if (shouldClear) {
+        // Send message to background script to clear cache
+        try {
+          const response = await chrome.runtime.sendMessage({
+            message: 'clearVerificationCache',
+          });
+          if (response && response.success) {
+            showToast('Verification cache cleared', 'success');
+          }
+        } catch (error) {
+          console.error('Error clearing verification cache:', error);
+          showToast('Failed to clear verification cache', 'error');
+        }
+      }
+    }
   } catch (error) {
-    console.error('Error clearing performance data:', error);
-    showToast('Failed to clear performance data', 'error');
+    console.error('Error saving cache toggle:', error);
+    showToast('Failed to update cache setting', 'error');
   }
 }
 
@@ -888,3 +1085,231 @@ window
       applyTheme('auto');
     }
   });
+
+// Trusted Gateway Settings Functions
+async function setupTrustedGatewaySettings() {
+  // Load current settings
+  const {
+    verificationGatewayMode = 'automatic',
+    verificationGatewayCount = 3,
+    verificationTrustedGateways = []
+  } = await chrome.storage.local.get([
+    'verificationGatewayMode',
+    'verificationGatewayCount',
+    'verificationTrustedGateways'
+  ]);
+
+  // Set mode
+  const modeRadio = document.querySelector(`input[name="verificationGatewayMode"][value="${verificationGatewayMode}"]`);
+  if (modeRadio) {
+    modeRadio.checked = true;
+  }
+
+  // Set gateway count
+  const countSlider = document.getElementById('verificationGatewayCount');
+  const countValue = document.getElementById('gatewayCountValue');
+  if (countSlider && countValue) {
+    countSlider.value = verificationGatewayCount;
+    countValue.textContent = verificationGatewayCount;
+  }
+
+  // Update UI based on mode
+  updateGatewayModeUI(verificationGatewayMode);
+
+  // Populate gateway list for manual selection
+  await populateGatewaySelectionList(verificationTrustedGateways);
+
+  // Update preview
+  await updateTrustedGatewaysPreview();
+}
+
+async function handleVerificationGatewayModeChange(event) {
+  const mode = event.target.value;
+  
+  await chrome.storage.local.set({ verificationGatewayMode: mode });
+  
+  updateGatewayModeUI(mode);
+  await updateTrustedGatewaysPreview();
+  
+  // Reset wayfinder to apply changes
+  await chrome.runtime.sendMessage({ message: 'resetWayfinder' });
+  
+  showToast(`Verification gateway mode changed to ${mode}`, 'success');
+}
+
+function updateGatewayModeUI(mode) {
+  const automaticSettings = document.getElementById('automaticGatewaySettings');
+  const manualSettings = document.getElementById('manualGatewaySettings');
+  
+  if (mode === 'automatic') {
+    automaticSettings.style.display = 'block';
+    manualSettings.style.display = 'none';
+  } else {
+    automaticSettings.style.display = 'none';
+    manualSettings.style.display = 'block';
+  }
+  
+  // Update active state on mode options
+  document.querySelectorAll('.gateway-mode-selector .mode-option').forEach(option => {
+    if (option.dataset.mode === mode) {
+      option.classList.add('active');
+    } else {
+      option.classList.remove('active');
+    }
+  });
+}
+
+async function handleGatewayCountChange(event) {
+  const count = parseInt(event.target.value);
+  document.getElementById('gatewayCountValue').textContent = count;
+  
+  await chrome.storage.local.set({ verificationGatewayCount: count });
+  await updateTrustedGatewaysPreview();
+  
+  // Reset wayfinder to apply changes
+  await chrome.runtime.sendMessage({ message: 'resetWayfinder' });
+}
+
+async function populateGatewaySelectionList(selectedGateways) {
+  const listEl = document.getElementById('gatewaySelectionList');
+  if (!listEl) return;
+  
+  // Get gateways from registry
+  const { localGatewayAddressRegistry = {} } = await chrome.storage.local.get(['localGatewayAddressRegistry']);
+  
+  const gateways = Object.entries(localGatewayAddressRegistry)
+    .map(([address, gateway]) => ({
+      address,
+      fqdn: gateway.settings?.fqdn,
+      protocol: gateway.settings?.protocol || 'https',
+      port: gateway.settings?.port,
+      operatorStake: gateway.operatorStake || 0,
+      totalDelegatedStake: gateway.totalDelegatedStake || 0,
+      status: gateway.status,
+    }))
+    .filter(gateway => gateway.status === 'joined' && gateway.fqdn)
+    .sort((a, b) => {
+      const stakeA = a.operatorStake + a.totalDelegatedStake;
+      const stakeB = b.operatorStake + b.totalDelegatedStake;
+      return stakeB - stakeA;
+    })
+    .slice(0, 50); // Show top 50
+  
+  listEl.innerHTML = '';
+  
+  gateways.forEach(gateway => {
+    const port = gateway.port && gateway.port !== (gateway.protocol === 'https' ? 443 : 80) 
+      ? `:${gateway.port}` 
+      : '';
+    const url = `${gateway.protocol}://${gateway.fqdn}${port}`;
+    const totalStake = gateway.operatorStake + gateway.totalDelegatedStake;
+    
+    const checkboxDiv = document.createElement('div');
+    checkboxDiv.className = 'gateway-checkbox';
+    
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.id = `gateway-${gateway.address}`;
+    checkbox.value = url;
+    checkbox.checked = selectedGateways.includes(url);
+    checkbox.addEventListener('change', handleGatewaySelectionChange);
+    
+    const label = document.createElement('label');
+    label.htmlFor = `gateway-${gateway.address}`;
+    label.innerHTML = `
+      <span class="gateway-name">${gateway.fqdn}</span>
+      <span class="gateway-stake">${formatStake(totalStake)}</span>
+    `;
+    
+    checkboxDiv.appendChild(checkbox);
+    checkboxDiv.appendChild(label);
+    listEl.appendChild(checkboxDiv);
+  });
+}
+
+async function handleGatewaySelectionChange() {
+  const checkboxes = document.querySelectorAll('#gatewaySelectionList input[type="checkbox"]:checked');
+  const selectedGateways = Array.from(checkboxes).map(cb => cb.value);
+  
+  await chrome.storage.local.set({ verificationTrustedGateways: selectedGateways });
+  await updateTrustedGatewaysPreview();
+  
+  // Reset wayfinder to apply changes
+  await chrome.runtime.sendMessage({ message: 'resetWayfinder' });
+}
+
+async function updateTrustedGatewaysPreview() {
+  const previewEl = document.getElementById('trustedGatewaysList');
+  if (!previewEl) return;
+  
+  const {
+    verificationGatewayMode = 'automatic',
+    verificationGatewayCount = 3,
+    verificationTrustedGateways = [],
+    localGatewayAddressRegistry = {}
+  } = await chrome.storage.local.get([
+    'verificationGatewayMode',
+    'verificationGatewayCount',
+    'verificationTrustedGateways',
+    'localGatewayAddressRegistry'
+  ]);
+  
+  let trustedGateways = [];
+  
+  if (verificationGatewayMode === 'automatic') {
+    // Get top N gateways by stake
+    trustedGateways = Object.entries(localGatewayAddressRegistry)
+      .map(([address, gateway]) => ({
+        fqdn: gateway.settings?.fqdn,
+        protocol: gateway.settings?.protocol || 'https',
+        port: gateway.settings?.port,
+        operatorStake: gateway.operatorStake || 0,
+        totalDelegatedStake: gateway.totalDelegatedStake || 0,
+        status: gateway.status,
+      }))
+      .filter(gateway => gateway.status === 'joined' && gateway.fqdn)
+      .sort((a, b) => {
+        const stakeA = a.operatorStake + a.totalDelegatedStake;
+        const stakeB = b.operatorStake + b.totalDelegatedStake;
+        return stakeB - stakeA;
+      })
+      .slice(0, verificationGatewayCount);
+  } else {
+    // Use manually selected gateways
+    trustedGateways = verificationTrustedGateways.map(url => {
+      try {
+        const urlObj = new URL(url);
+        // Find the gateway info from registry
+        const gatewayInfo = Object.values(localGatewayAddressRegistry).find(g => 
+          g.settings?.fqdn === urlObj.hostname
+        );
+        return {
+          fqdn: urlObj.hostname,
+          operatorStake: gatewayInfo?.operatorStake || 0,
+          totalDelegatedStake: gatewayInfo?.totalDelegatedStake || 0,
+        };
+      } catch {
+        return null;
+      }
+    }).filter(Boolean);
+  }
+  
+  // Update preview
+  previewEl.innerHTML = '';
+  
+  if (trustedGateways.length === 0) {
+    previewEl.innerHTML = '<div class="gateway-preview-item"><span class="gateway-name">No gateways selected</span></div>';
+    return;
+  }
+  
+  trustedGateways.forEach(gateway => {
+    const totalStake = gateway.operatorStake + gateway.totalDelegatedStake;
+    const item = document.createElement('div');
+    item.className = 'gateway-preview-item';
+    item.innerHTML = `
+      <span class="gateway-name">${gateway.fqdn}</span>
+      <span class="gateway-stake">${formatStake(totalStake)}</span>
+    `;
+    previewEl.appendChild(item);
+  });
+}

@@ -3,14 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Wayfinder History</title>
+    <title>Wayfinder Performance & Usage</title>
+    <!-- AR.IO Brand Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-      href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&family=Albert+Sans:wght@400;600&family=DM+Sans:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="assets/css/variables.css" />
-    <link rel="stylesheet" href="assets/css/history.css" />
-    <script type="module" src="history.js"></script>
+    <link rel="stylesheet" href="assets/css/performance.css" />
+    <script type="module" src="performance.js"></script>
   </head>
   <body>
     <div class="history-container">
@@ -22,7 +25,7 @@
               <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </button>
-          <h1>Gateway History</h1>
+          <h1>Performance & Usage</h1>
           <div class="header-actions">
             <button class="clear-button" id="clearHistory">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -105,6 +108,86 @@
             <div class="summary-content">
               <div class="summary-value" id="permawebRatio">--</div>
               <div class="summary-label">Permaweb Usage</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Verification Performance Section -->
+      <section class="verification-performance-section">
+        <div class="section-header">
+          <h2>Verification Performance</h2>
+          <p>Data integrity verification and cache efficiency metrics</p>
+        </div>
+        
+        <div class="verification-cards">
+          <div class="perf-card">
+            <div class="perf-header">
+              <div class="perf-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+              </div>
+              <h3>Verification Stats</h3>
+            </div>
+            <div class="perf-stats">
+              <div class="stat">
+                <span class="stat-value" id="verifiedTransactions">--</span>
+                <span class="stat-label">Verified Transactions</span>
+              </div>
+              <div class="stat">
+                <span class="stat-value" id="verificationSuccessRate">--</span>
+                <span class="stat-label">Verification Success</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="perf-card">
+            <div class="perf-header">
+              <div class="perf-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                </svg>
+              </div>
+              <h3>Verification Cache</h3>
+            </div>
+            <div class="perf-stats">
+              <div class="stat">
+                <span class="stat-value" id="cacheSize">--</span>
+                <span class="stat-label">Cached Entries</span>
+              </div>
+              <div class="stat">
+                <span class="stat-value" id="cacheHitRate">--</span>
+                <span class="stat-label">Cache Hit Rate</span>
+              </div>
+              <div class="stat">
+                <span class="stat-value" id="cacheSizeKB">--</span>
+                <span class="stat-label">Cache Size</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="verification-actions">
+          <div class="action-card">
+            <div class="action-header">
+              <div class="action-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3 6 5 6 21 6"/>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                  <line x1="10" y1="11" x2="10" y2="17"/>
+                  <line x1="14" y1="11" x2="14" y2="17"/>
+                </svg>
+              </div>
+              <div class="action-info">
+                <h3>Clear Cache Data</h3>
+                <p>Clear verification cache and performance metrics</p>
+              </div>
+              <div class="button-group">
+                <button class="secondary-button" id="clearVerificationCache">Clear Cache</button>
+                <button class="danger-button" id="clearPerformanceData">Clear All Data</button>
+              </div>
             </div>
           </div>
         </div>
