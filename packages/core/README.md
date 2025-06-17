@@ -54,7 +54,6 @@ const wayfinder = new Wayfinder({
     // use the fastest pinging strategy to select the fastest gateway for requests
     strategy: new FastestPingRoutingStrategy({
       timeoutMs: 1000,
-      probePath: '/ar-io/info',
     }),
     // events
     events: {
@@ -229,7 +228,7 @@ import { Wayfinder, HashVerificationStrategy } from '@ar.io/wayfinder-core';
 const wayfinder = new Wayfinder({
   verificationSettings: {
     strategy: new HashVerificationStrategy({
-    trustedGateways: ['https://permagate.io'],
+      trustedGateways: ['https://permagate.io'],
     }),
   },
 });
@@ -288,21 +287,21 @@ const wayfinder = new Wayfinder({
   },
   verificationSettings: {
     events: {
-      onVerificationPassed: (event) => {
-      console.log(`Verification passed for transaction: ${event.txId}`);
-    },
-    onVerificationFailed: (event) => {
-      console.error(
-        `Verification failed for transaction: ${event.txId}`,
-        event.error,
-      );
-    },
-    onVerificationProgress: (event) => {
-      const percentage = (event.processedBytes / event.totalBytes) * 100;
-      console.log(
-        `Verification progress for ${event.txId}: ${percentage.toFixed(2)}%`,
-      );
-    },
+      onVerificationSucceeded: (event) => {
+        console.log(`Verification passed for transaction: ${event.txId}`);
+      },
+      onVerificationFailed: (event) => {
+        console.error(
+          `Verification failed for transaction: ${event.txId}`,
+          event.error,
+        );
+      },
+      onVerificationProgress: (event) => {
+        const percentage = (event.processedBytes / event.totalBytes) * 100;
+        console.log(
+          `Verification progress for ${event.txId}: ${percentage.toFixed(2)}%`,
+        );
+      },
     },
   },
 });
