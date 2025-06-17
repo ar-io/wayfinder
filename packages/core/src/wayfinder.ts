@@ -317,8 +317,9 @@ export const createWayfinderClient = ({
     input: URL | RequestInfo,
     init?: RequestInit,
   ): Promise<Response> => {
-    if (!(input instanceof URL)) {
-      logger?.debug('URL is not a string, skipping routing', {
+    const url = input instanceof URL ? input.toString() : input.toString();
+    if (!url.toString().startsWith('ar://')) {
+      logger?.debug('URL is not a wayfinder url, skipping routing', {
         input,
       });
       emitter?.emit('routing-skipped', {
@@ -327,10 +328,8 @@ export const createWayfinderClient = ({
       return fetch(input, init);
     }
 
-    const url = input.toString();
-
     emitter?.emit('routing-started', {
-      originalUrl: url,
+      originalUrl: input.toString(),
     });
 
     const maxRetries = 3;
@@ -341,8 +340,8 @@ export const createWayfinderClient = ({
         // select the target gateway
         const selectedGateway = await selectGateway({
           gateways: await getGateways(),
-          path: input.pathname.split('/')[1],
-          subdomain: input.hostname.split('.')[0],
+          path: url.split('/').slice(1).join('/'), // everything after the first /
+          subdomain: '',
         });
 
         logger?.debug('Selected gateway', {
@@ -352,7 +351,7 @@ export const createWayfinderClient = ({
 
         // route the request to the target gateway
         const redirectUrl = resolveUrl({
-          originalUrl: url,
+          originalUrl: url.toString(),
           selectedGateway,
           logger,
         });

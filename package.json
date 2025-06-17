@@ -4,7 +4,9 @@
   "description": "WayFinder monorepo containing the Chrome extension, core library, and React components",
   "private": true,
   "type": "module",
-  "workspaces": ["packages/*"],
+  "workspaces": [
+    "packages/*"
+  ],
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
     "@changesets/cli": "^2.29.4",
@@ -16,6 +18,7 @@
     "eslint-plugin-header": "^3.1.1",
     "rimraf": "^6.0.1",
     "ts-node": "^10.9.2",
+    "tsx": "^4.20.3",
     "typescript": "^5.4.5"
   },
   "scripts": {
@@ -26,7 +29,7 @@
     "lint:check": "biome check --unsafe && eslint packages/*/src",
     "format:fix": "biome format --write",
     "format:check": "biome format",
-    "verify": "node --import=./register.mjs scripts/verify.ts"
+    "verify": "tsx scripts/verify.ts"
   },
   "repository": {
     "type": "git",
