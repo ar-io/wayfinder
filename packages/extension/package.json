@@ -1,9 +1,14 @@
 {
   "name": "@ar.io/wayfinder-extension",
-  "version": "0.1.0",
+  "version": "0.0.16",
   "description": "WayFinder Chrome extension that intelligently routes users to optimal AR.IO gateways",
   "private": true,
   "type": "module",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ar-io/wayfinder.git"
+  },
   "devDependencies": {
     "@types/chrome": "^0.0.268",
     "@types/node": "^20.12.12",
@@ -19,6 +24,7 @@
     "start": "vite preview",
     "build": "vite build --config vite.config.js",
     "clean": "rimraf dist",
+    "test": "echo \"Passing\"",
     "lint:fix": "biome check --write --unsafe",
     "lint:check": "biome check --unsafe",
     "format:fix": "biome format --write",
@@ -26,9 +32,8 @@
   },
   "dependencies": {
     "@ar.io/sdk": "^3.5.0",
-    "@ar.io/wayfinder-core": "0.0.3-alpha.6",
-    "@permaweb/aoconnect": "0.0.69",
-    "lucide": "^0.514.0"
+    "@ar.io/wayfinder-core": "*",
+    "@permaweb/aoconnect": "0.0.69"
   },
   "license": "AGPL-3.0-only"
 }

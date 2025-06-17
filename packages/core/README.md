@@ -1,23 +1,23 @@
 # Wayfinder Core
 
-`@ar.io/wayfinder` is the core library for the Wayfinder project. It provides the core functionality for routing and verifying data through the ar.io network.
+`@ar.io/wayfinder-core` is the core library for the Wayfinder project. It provides the core functionality for routing and verifying data through the ar.io network.
 
 ## Quick Start
 
 ### Installation
 
-`@ar.io/wayfinder` is currently available as a beta release. To install the latest version, run:
+`@ar.io/wayfinder-core` is currently available as an alpha release. To install the latest version, run:
 
 ```bash
-npm install @ar.io/wayfinder@beta
+npm install @ar.io/wayfinder-core
 # or
-yarn add @ar.io/wayfinder@beta
+yarn add @ar.io/wayfinder-core
 ```
 
 ### Basic Usage
 
 ```javascript
-import { Wayfinder } from '@ar.io/wayfinder';
+import { Wayfinder } from '@ar.io/wayfinder-core';
 
 // create a new Wayfinder instance with default settings
 const wayfinder = new Wayfinder();
@@ -35,6 +35,9 @@ Example:
 > _Wayfinder client that caches the top 10 gateways by operator stake from the ARIO Network for 1 hour and uses the fastest pinging routing strategy to select the fastest gateway for requests._
 
 ```javascript
+import { Wayfinder, NetworkGatewaysProvider, SimpleCacheGatewaysProvider, FastestPingRoutingStrategy, HashVerificationStrategy } from '@ar.io/wayfinder-core';
+import { ARIO } from '@ar.io/sdk';
+
 const wayfinder = new Wayfinder({
   // cache the top 10 gateways by operator stake from the ARIO Network for 1 hour
   gatewaysProvider: new SimpleCacheGatewaysProvider({
@@ -46,17 +49,48 @@ const wayfinder = new Wayfinder({
       limit: 10,
     }),
   }),
-  // use the fastest pinging strategy to select the fastest gateway for requests
-  routingStrategy: new FastestPingRoutingStrategy({
-    timeoutMs: 1000,
-    probePath: '/ar-io/info',
-  }),
-  // verify the data using the hash of the data against a list of trusted gateways
-  verificationStrategy: new HashVerificationStrategy({
-    trustedHashProvider: new TrustedGatewaysProvider({
+  // routing settings
+  routingSettings: {
+    // use the fastest pinging strategy to select the fastest gateway for requests
+    strategy: new FastestPingRoutingStrategy({
+      timeoutMs: 1000,
+    }),
+    // events
+    events: {
+      onRoutingStarted: (event) => {
+        console.log('Routing started!', event);
+      },
+      onRoutingSkipped: (event) => {
+        console.log('Routing skipped!', event);
+      },
+      onRoutingSucceeded: (event) => {
+        console.log('Routing succeeded!', event);
+      },
+    },
+  },
+  // verification settings
+  verificationSettings: {
+    // enable verification - if false, verification will be skipped for all requests
+    enabled: true,
+    // verify the data using the hash of the data against a list of trusted gateways
+    strategy: new HashVerificationStrategy({
       trustedGateways: ['https://permagate.io'],
     }),
-  }),
+    // strict verification - if true, verification failures will cause requests to fail
+    strict: true,
+    // events
+    events: {
+      onVerificationProgress: (event) => {
+        console.log('Verification progress!', event);
+      },
+      onVerificationSucceeded: (event) => {
+        console.log('Verification succeeded!', event);
+      },
+      onVerificationFailed: (event) => {
+        console.log('Verification failed!', event);
+      },
+    },
+  },
 });
 ```
 
@@ -124,6 +158,8 @@ const gateway = await routingStrategy.selectGateway({
 ### StaticRoutingStrategy
 
 ```javascript
+import { Wayfinder, StaticRoutingStrategy } from '@ar.io/wayfinder-core';
+
 const routingStrategy = new StaticRoutingStrategy({
   gateway: 'https://arweave.net',
 });
@@ -136,6 +172,9 @@ const gateway = await routingStrategy.selectGateway(); // always returns the sam
 Selects gateways in round-robin order. The gateway list is stored in memory and is not persisted across instances.
 
 ```javascript
+import { Wayfinder, NetworkGatewaysProvider, RoundRobinRoutingStrategy } from '@ar.io/wayfinder-core';
+import { ARIO } from '@ar.io/sdk';
+
 const gatewayProvider = new NetworkGatewaysProvider({
   ario: ARIO.mainnet(),
   sortBy: 'operatorStake',
@@ -157,9 +196,10 @@ const gateway = await routingStrategy.selectGateway(); // returns the next gatew
 Selects the fastest gateway based simple HEAD request to the specified route.
 
 ```javascript
+import { Wayfinder, FastestPingRoutingStrategy } from '@ar.io/wayfinder-core';
+
 const routingStrategy = new FastestPingRoutingStrategy({
   timeoutMs: 1000,
-  probePath: '/ar-io/info',
 });
 
 // will select the fastest gateway from the list based on the ping time of the /ar-io/info route
@@ -176,25 +216,21 @@ Wayfinder includes verification mechanisms to ensure the integrity of retrieved 
 | ------------------------------- | ---------- | ----------- | -------- | ------------------------------------------------------------------------------------------------------------ |
 | `HashVerificationStrategy`      | Low        | High        | Low      | Verifies data integrity using SHA-256 hash comparison of the returned data                                   |
 | `DataRootVerificationStrategy`  | Medium     | Medium      | Low      | Verifies data using Arweave by computing the data root for the transaction (most useful for L1 transactions) |
-| `SignatureVerificationStrategy` | Medium     | Medium      | Medium   | Verifies signature of an Arweave transaction or data item using offsets provided by trusted gateway          |
+| `SignatureVerificationStrategy` | Medium     | Medium      | Medium   | Verifies signature of an Arweave transaction or data item using signature data provided by the Arweave network (L1 transactions), or trusted gateways (ANS-104 data items)|
 
 ### HashVerificationStrategy
 
 Verifies data integrity using SHA-256 hash comparison. This is the default verification strategy and is recommended for most users looking for a balance between security and performance.
 
 ```javascript
-import {
-  HashVerificationStrategy,
-  StaticGatewaysProvider,
-  TrustedGatewaysHashProvider,
-} from '@ar-io/sdk';
+import { Wayfinder, HashVerificationStrategy } from '@ar.io/wayfinder-core';
 
 const wayfinder = new Wayfinder({
-  verificationStrategy: new HashVerificationStrategy({
-    trustedHashProvider: new TrustedGatewaysProvider({
+  verificationSettings: {
+    strategy: new HashVerificationStrategy({
       trustedGateways: ['https://permagate.io'],
     }),
-  }),
+  },
 });
 ```
 
@@ -203,42 +239,69 @@ const wayfinder = new Wayfinder({
 Verifies data integrity using Arweave by computing the data root for the transaction. This is useful for L1 transactions and is recommended for users who want to ensure the integrity of their data.
 
 ```javascript
-import {
-  DataRootVerificationStrategy,
-  StaticGatewaysProvider,
-  TrustedGatewaysDataRootProvider,
-} from '@ar-io/sdk';
+import { Wayfinder, DataRootVerificationStrategy } from '@ar.io/wayfinder-core';
 
 const wayfinder = new Wayfinder({
-  verificationStrategy: new DataRootVerificationStrategy({
-    trustedDataRootProvider: new TrustedGatewaysProvider({
+  verificationSettings: {
+    strategy: new DataRootVerificationStrategy({
       trustedGateways: ['https://permagate.io'],
     }),
-  }),
+  },
+});
+```
+
+### SignatureVerificationStrategy
+
+Verifies signatures of Arweave transactions and data items. Headers are retrieved from trusted gateways for use during verification. For a transaction, its data root is computed while streaming its data and then utilized alongside its headers for verification. For data items, the ANS-104 deep hash method of signature verification is used.
+
+```javascript
+import { Wayfinder, SignatureVerificationStrategy } from '@ar-io/sdk';
+
+const wayfinder = new Wayfinder({
+  verificationSettings: {
+    strategy: new SignatureVerificationStrategy({
+      trustedGateways: ['https://permagate.io'],
+    }),
+  },
 });
 ```
 
 ## Monitoring and Events
 
-Wayfinder emits events during the routing and verification process, allowing you to monitor its operation.
+Wayfinder emits events during the routing and verification process, allowing you to monitor its operation. You can provide these events to the Wayfinder constructor or use the event emitter directly.
 
 ```javascript
 const wayfinder = new Wayfinder({
-  events: {
-    onVerificationPassed: (event) => {
-      console.log(`Verification passed for transaction: ${event.txId}`);
+  routingSettings: {
+    events: {
+      onRoutingStarted: (event) => {
+        console.log('Routing started!', event);
+      },
+      onRoutingSkipped: (event) => {
+        console.log('Routing skipped!', event);
+      },
+      onRoutingSucceeded: (event) => {
+        console.log('Routing succeeded!', event);
+      },
     },
-    onVerificationFailed: (event) => {
-      console.error(
-        `Verification failed for transaction: ${event.txId}`,
-        event.error,
-      );
-    },
-    onVerificationProgress: (event) => {
-      const percentage = (event.processedBytes / event.totalBytes) * 100;
-      console.log(
-        `Verification progress for ${event.txId}: ${percentage.toFixed(2)}%`,
-      );
+  },
+  verificationSettings: {
+    events: {
+      onVerificationSucceeded: (event) => {
+        console.log(`Verification passed for transaction: ${event.txId}`);
+      },
+      onVerificationFailed: (event) => {
+        console.error(
+          `Verification failed for transaction: ${event.txId}`,
+          event.error,
+        );
+      },
+      onVerificationProgress: (event) => {
+        const percentage = (event.processedBytes / event.totalBytes) * 100;
+        console.log(
+          `Verification progress for ${event.txId}: ${percentage.toFixed(2)}%`,
+        );
+      },
     },
   },
 });
@@ -251,11 +314,25 @@ wayfinder.emitter.on('routing-succeeded', (event) => {
 wayfinder.emitter.on('routing-failed', (event) => {
   console.error(`Routing failed: ${event.error.message}`);
 });
+
+wayfinder.emitter.on('verification-progress', (event) => {
+  console.log(`Verification progress: ${event.progress}%`);
+});
+
+wayfinder.emitter.on('verification-succeeded', (event) => {
+  console.log(`Verification succeeded: ${event.txId}`);
+});
+
+wayfinder.emitter.on('verification-failed', (event) => {
+  console.error(`Verification failed: ${event.error.message}`);
+});
 ```
 
 ## Advanced Usage
 
 ### Custom URL Resolution
+
+Returns the resolved URL for a given ar:// URL. This is useful for debugging and for users who want to know the target gateway for a given ar:// URL.
 
 ```javascript
 // Get the resolved URL without making a request
@@ -263,27 +340,6 @@ const redirectUrl = await wayfinder.resolveUrl({
   originalUrl: 'ar://example-name',
 });
 console.log(`This request would be routed to: ${redirectUrl}`);
-```
-
-### Using With Different HTTP Clients
-
-By default, Wayfinder uses native `fetch` for HTTP requests. You can also use other HTTP clients like `axios` or `node-fetch`. When making a request, Wayfinder will use the HTTP client you provide and any additional configuration you provide.
-
-```javascript
-import axios from 'axios';
-
-// create a custom axios instance
-const axios = axios.create({
-  timeout: 10000,
-});
-const wayfinderAxios = new Wayfinder({ httpClient: axios });
-
-// add custom headers on the request
-const response = await wayfinderAxios.request('ar://example', {
-  headers: {
-    'X-Custom-Header': 'test',
-  },
-});
 ```
 
 ## Request Flow

@@ -1,19 +1,18 @@
 /**
  * WayFinder
- * Copyright (C) 2022-2025 Permanent Data Solutions, Inc. All Rights Reserved.
+ * Copyright (C) 2022-2025 Permanent Data Solutions, Inc.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 import Arweave from 'arweave';
 import {
@@ -24,16 +23,19 @@ import {
   generateLeaves,
 } from 'arweave/node/lib/merkle.js';
 
+import { pLimit } from 'plimit-lit';
 import {
-  DataRootProvider,
+  DataClassifier,
   DataStream,
-  DataVerificationStrategy,
+  VerificationStrategy,
 } from '../../types/wayfinder.js';
+import { GqlClassifier } from '../classifiers/gql-classifier.js';
 import { toB64Url } from '../utils/base64.js';
 import {
   isAsyncIterable,
   readableStreamToAsyncIterable,
 } from '../utils/hash.js';
+import { Logger, defaultLogger } from '../wayfinder.js';
 
 export const convertDataStreamToDataRoot = async ({
   stream,
@@ -97,15 +99,73 @@ export const convertDataStreamToDataRoot = async ({
   return toB64Url(new Uint8Array(root.id));
 };
 
-export class DataRootVerificationStrategy implements DataVerificationStrategy {
-  private readonly trustedDataRootProvider: DataRootProvider;
+// TODO: this is a TransactionDataRootVerificationStrategy, we will hold of on implementing Ans104DataRootVerificationStrategy for now
+export class DataRootVerificationStrategy implements VerificationStrategy {
+  private readonly trustedGateways: URL[];
+  private readonly maxConcurrency: number;
+  private readonly logger: Logger;
+  private readonly classifier: DataClassifier;
   constructor({
-    trustedDataRootProvider,
+    trustedGateways,
+    maxConcurrency = 1,
+    logger = defaultLogger,
+    classifier = new GqlClassifier({ logger }),
   }: {
-    trustedDataRootProvider: DataRootProvider;
+    trustedGateways: URL[];
+    maxConcurrency?: number;
+    logger?: Logger;
+    classifier?: DataClassifier;
   }) {
-    this.trustedDataRootProvider = trustedDataRootProvider;
+    this.trustedGateways = trustedGateways;
+    this.maxConcurrency = maxConcurrency;
+    this.logger = logger;
+    this.classifier = classifier;
   }
+
+  /**
+   * Get the data root for a given txId from all trusted gateways and ensure they all match.
+   * @param txId - The txId to get the data root for.
+   * @returns The data root for the given txId.
+   */
+  async getDataRoot({ txId }: { txId: string }): Promise<string> {
+    this.logger.debug('Getting data root for txId', {
+      txId,
+      maxConcurrency: this.maxConcurrency,
+      trustedGateways: this.trustedGateways,
+    });
+
+    // TODO: shuffle gateways to avoid bias
+    const throttle = pLimit(this.maxConcurrency);
+    const dataRootPromises = this.trustedGateways.map(
+      async (gateway): Promise<{ dataRoot: string; gateway: URL }> => {
+        return throttle(async () => {
+          const response = await fetch(
+            `${gateway.toString()}tx/${txId}/data_root`,
+          );
+          if (!response.ok) {
+            // skip this gateway
+            throw new Error('Failed to fetch data root for txId', {
+              cause: {
+                txId,
+                gateway: gateway.toString(),
+              },
+            });
+          }
+          const dataRoot = await response.text();
+          return { dataRoot, gateway };
+        });
+      },
+    );
+
+    const { dataRoot, gateway } = await Promise.any(dataRootPromises);
+    this.logger.debug('Successfully fetched data root for txId', {
+      txId,
+      dataRoot,
+      gateway: gateway.toString(),
+    });
+    return dataRoot;
+  }
+
   async verifyData({
     data,
     txId,
@@ -113,11 +173,22 @@ export class DataRootVerificationStrategy implements DataVerificationStrategy {
     data: DataStream;
     txId: string;
   }): Promise<void> {
+    // classify the data, if ans104 throw an error
+    const dataType = await this.classifier.classify({ txId });
+    if (dataType === 'ans104') {
+      throw new Error(
+        'ANS-104 data is not supported for data root verification',
+        {
+          cause: { txId },
+        },
+      );
+    }
+
     const [computedDataRoot, trustedDataRoot] = await Promise.all([
       convertDataStreamToDataRoot({
         stream: data,
       }),
-      this.trustedDataRootProvider.getDataRoot({
+      this.getDataRoot({
         txId,
       }),
     ]);

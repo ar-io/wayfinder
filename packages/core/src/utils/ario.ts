@@ -14,21 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-export * from './wayfinder.js';
-
-// routing strategies
-export * from './routing/random.js';
-export * from './routing/static.js';
-export * from './routing/ping.js';
-export * from './routing/round-robin.js';
-export * from './routing/preferred-with-fallback.js';
-
-// gateways providers
-export * from './gateways/network.js';
-export * from './gateways/simple-cache.js';
-export * from './gateways/static.js';
-
-// verification strategies
-export * from './verification/data-root-verifier.js';
-export * from './verification/hash-verifier.js';
-export * from './verification/signature-verifier.js';
+export const arioGatewayHeaders = {
+  digest: 'x-ar-io-digest',
+  verified: 'x-ar-io-verified',
+  txId: 'x-arns-resolved-tx-id',
+  processId: 'x-arns-resolved-process-id',
+  dataItemOffset: 'x-ar-io-data-item-offset',
+  dataItemDataOffset: 'x-ar-io-data-item-data-offset',
+  dataItemSize: 'x-ar-io-data-item-size',
+  rootTransactionId: 'x-ar-io-root-transaction-id',
+};

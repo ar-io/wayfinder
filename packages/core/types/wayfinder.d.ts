@@ -1,5 +1,6 @@
 /**
- * Copyright (C) 2022-2024 Permanent Data Solutions, Inc.
+ * WayFinder
+ * Copyright (C) 2022-2025 Permanent Data Solutions, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,24 +18,21 @@
 export type DataStream = ReadableStream<Uint8Array> | AsyncIterable<Uint8Array>;
 
 export interface GatewaysProvider {
-  getGateways(): Promise<URL[]>;
+  getGateways(params?: { path?: string; subdomain?: string }): Promise<URL[]>;
 }
 
 export interface RoutingStrategy {
-  selectGateway(params: { gateways: URL[] }): Promise<URL>;
+  selectGateway(params: {
+    gateways: URL[];
+    path?: string;
+    subdomain?: string;
+  }): Promise<URL>;
 }
 
-export interface DataVerificationStrategy {
+export interface VerificationStrategy {
   verifyData(params: { data: DataStream; txId: string }): Promise<void>;
 }
 
-export interface DataDigestProvider {
-  getDigest(params: { txId: string }): Promise<{
-    hash: string;
-    algorithm: string;
-  }>;
-}
-
-export interface DataRootProvider {
-  getDataRoot(params: { txId: string }): Promise<string>;
+export interface DataClassifier {
+  classify(params: { txId: string }): Promise<'ans104' | 'transaction'>;
 }

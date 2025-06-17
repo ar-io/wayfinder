@@ -16,17 +16,18 @@
     "eslint-plugin-header": "^3.1.1",
     "rimraf": "^6.0.1",
     "ts-node": "^10.9.2",
+    "tsx": "^4.20.3",
     "typescript": "^5.4.5"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "npm run test --workspaces",
     "clean": "rimraf packages/*/dist",
     "build": "npm run build --workspaces",
     "lint:fix": "biome check --write --unsafe && eslint --fix packages/*/src",
     "lint:check": "biome check --unsafe && eslint packages/*/src",
     "format:fix": "biome format --write",
     "format:check": "biome format",
-    "verify": "node --import=./register.mjs scripts/verify.ts"
+    "verify": "tsx scripts/verify.ts"
   },
   "repository": {
     "type": "git",

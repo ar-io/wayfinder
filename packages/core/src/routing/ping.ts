@@ -1,19 +1,18 @@
 /**
  * WayFinder
- * Copyright (C) 2022-2025 Permanent Data Solutions, Inc. All Rights Reserved.
+ * Copyright (C) 2022-2025 Permanent Data Solutions, Inc.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 import { pLimit } from 'plimit-lit';
 import { RoutingStrategy } from '../../types/wayfinder.js';
@@ -21,28 +20,32 @@ import { Logger, defaultLogger } from '../wayfinder.js';
 
 export class FastestPingRoutingStrategy implements RoutingStrategy {
   private timeoutMs: number;
-  private probePath: string;
   private logger: Logger;
   private maxConcurrency: number;
 
   constructor({
     timeoutMs = 500,
     maxConcurrency = 50,
-    probePath = '/ar-io/info', // TODO: limit to allowed /ar-io and arweave node endpoints
     logger = defaultLogger,
   }: {
     timeoutMs?: number;
     maxConcurrency?: number;
-    probePath?: string;
     logger?: Logger;
   } = {}) {
     this.timeoutMs = timeoutMs;
-    this.probePath = probePath;
     this.logger = logger;
     this.maxConcurrency = maxConcurrency;
   }
 
-  async selectGateway({ gateways }: { gateways: URL[] }): Promise<URL> {
+  async selectGateway({
+    gateways,
+    path = '',
+    subdomain,
+  }: {
+    gateways: URL[];
+    path?: string;
+    subdomain?: string;
+  }): Promise<URL> {
     if (gateways.length === 0) {
       const error = new Error('No gateways provided');
       this.logger.error('Failed to select gateway', { error: error.message });
@@ -54,7 +57,7 @@ export class FastestPingRoutingStrategy implements RoutingStrategy {
       {
         gateways: gateways.map((g) => g.toString()),
         timeoutMs: this.timeoutMs,
-        probePath: this.probePath,
+        probePath: path,
       },
     );
 
@@ -62,7 +65,11 @@ export class FastestPingRoutingStrategy implements RoutingStrategy {
     const pingPromises = gateways.map(
       async (gateway): Promise<{ gateway: URL; durationMs: number }> => {
         return throttle(async () => {
-          const pingUrl = `${gateway.toString().replace(/\/$/, '')}${this.probePath}`;
+          const url = new URL(gateway.toString());
+          if (subdomain) {
+            url.hostname = `${subdomain}.${url.hostname}`;
+          }
+          const pingUrl = new URL(path.replace(/^\//, ''), url).toString();
 
           this.logger.debug(`Pinging gateway ${gateway.toString()}`, {
             gateway: gateway.toString(),
@@ -84,7 +91,7 @@ export class FastestPingRoutingStrategy implements RoutingStrategy {
           throw new Error('Failed to ping gateway', {
             cause: {
               gateway: gateway.toString(),
-              probePath: this.probePath,
+              path: path,
               status: response.status,
             },
           });
