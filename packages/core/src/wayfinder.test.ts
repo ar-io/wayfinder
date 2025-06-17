@@ -20,7 +20,11 @@ import { before, describe, it } from 'node:test';
 import { GatewaysProvider } from '../types/wayfinder.js';
 import { RandomRoutingStrategy } from './routing/random.js';
 import { StaticRoutingStrategy } from './routing/static.js';
-import { Wayfinder, WayfinderEmitter, tapAndVerifyReadableStream } from './wayfinder.js';
+import {
+  Wayfinder,
+  WayfinderEmitter,
+  tapAndVerifyReadableStream,
+} from './wayfinder.js';
 
 // TODO: replace with locally running gateway
 const gatewayUrl = 'permagate.io';
@@ -255,7 +259,7 @@ describe('Wayfinder', () => {
           for await (const chunk of data) {
             seen = Buffer.concat([seen, chunk]);
           }
-          return
+          return;
         };
 
         const txId = 'test-tx-1';
@@ -321,11 +325,8 @@ describe('Wayfinder', () => {
           },
         });
         const verifyData = async ({
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          data,
           txId,
         }: {
-          data: AsyncIterable<Uint8Array>;
           txId: string;
         }): Promise<void> => {
           throw new Error('Verification failed for txId: ' + txId);
