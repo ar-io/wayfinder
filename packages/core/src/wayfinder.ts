@@ -68,7 +68,6 @@ export const resolveWayfinderUrl = ({
   selectedGateway: URL;
   logger?: Logger;
 }): URL => {
-
   if (originalUrl.toString().startsWith('ar://')) {
     logger?.debug(`Applying wayfinder routing protocol to ${originalUrl}`, {
       originalUrl,
@@ -783,7 +782,9 @@ export class Wayfinder {
 
     // create a wayfinder request function with the routing strategy and gateways provider
     this.request = wayfinderRequest({
-      getGateways: this.gatewaysProvider.getGateways.bind(this.gatewaysProvider),
+      getGateways: this.gatewaysProvider.getGateways.bind(
+        this.gatewaysProvider,
+      ),
       verifyData: this.verifyData,
       selectGateway: this.routingStrategy.selectGateway.bind(
         this.routingStrategy,
