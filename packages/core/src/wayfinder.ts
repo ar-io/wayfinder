@@ -68,6 +68,7 @@ export const resolveWayfinderUrl = ({
   selectedGateway: URL;
   logger?: Logger;
 }): URL => {
+
   if (originalUrl.toString().startsWith('ar://')) {
     logger?.debug(`Applying wayfinder routing protocol to ${originalUrl}`, {
       originalUrl,
@@ -338,6 +339,11 @@ export const wayfinderRequest = ({
     init?: RequestInit,
   ): Promise<Response> => {
     const url = input instanceof URL ? input.toString() : input.toString();
+
+    console.log('URL', {
+      url,
+    });
+
     if (!url.toString().startsWith('ar://')) {
       logger?.debug('URL is not a wayfinder url, skipping routing', {
         input,
@@ -777,9 +783,11 @@ export class Wayfinder {
 
     // create a wayfinder request function with the routing strategy and gateways provider
     this.request = wayfinderRequest({
-      getGateways: this.gatewaysProvider.getGateways,
+      getGateways: this.gatewaysProvider.getGateways.bind(this.gatewaysProvider),
       verifyData: this.verifyData,
-      selectGateway: this.routingStrategy.selectGateway,
+      selectGateway: this.routingStrategy.selectGateway.bind(
+        this.routingStrategy,
+      ),
       resolveUrl: resolveWayfinderUrl,
       emitter: this.emitter,
       logger: this.logger,
