@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-react
 
+## 0.0.5-alpha.2
+
+### Patch Changes
+
+- 74efdd7: Update exports and docs for wayfinder-react
+
 ## 0.0.5-alpha.1
 
 ### Patch Changes
