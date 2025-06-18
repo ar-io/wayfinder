@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-core
 
+## 0.0.5-alpha.0
+
+### Patch Changes
+
+- 4afd953: Update logger imports and utils
+
 ## 0.0.4
 
 ### Patch Changes
