@@ -14,14 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { createContext, useContext, useMemo } from 'react';
-import type { Wayfinder, WayfinderOptions } from '@ar.io/wayfinder-core';
+import { Wayfinder, type WayfinderOptions } from '@ar.io/wayfinder-core';
+import React, { createContext, useMemo } from 'react';
 
-interface WayfinderContextValue {
+export interface WayfinderContextValue {
   wayfinder: Wayfinder;
 }
 
-const WayfinderContext = createContext<WayfinderContextValue | undefined>(undefined);
+export const WayfinderContext = createContext<
+  WayfinderContextValue | undefined
+>(undefined);
 
 export interface WayfinderProviderProps extends WayfinderOptions {
   children: React.ReactNode;
@@ -37,17 +39,4 @@ export const WayfinderProvider: React.FC<WayfinderProviderProps> = ({
       {children}
     </WayfinderContext.Provider>
   );
-};
-
-export const useWayfinder = (): WayfinderContextValue => {
-  const context = useContext(WayfinderContext);
-  if (!context) {
-    throw new Error('useWayfinder must be used within a WayfinderProvider');
-  }
-  return context;
-};
-
-export const useWayfinderRequest = () => {
-  const { wayfinder } = useWayfinder();
-  return wayfinder.request;
 };

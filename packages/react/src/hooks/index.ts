@@ -15,4 +15,21 @@
  * limitations under the License.
  */
 
-export { useWayfinder, useWayfinderRequest } from '../components/wayfinder-provider.js';
+import { useContext } from 'react';
+import {
+  WayfinderContext,
+  type WayfinderContextValue,
+} from '../components/wayfinder-provider.js';
+
+export const useWayfinder = (): WayfinderContextValue => {
+  const context = useContext(WayfinderContext);
+  if (!context) {
+    throw new Error('useWayfinder must be used within a WayfinderProvider');
+  }
+  return context;
+};
+
+export const useWayfinderRequest = () => {
+  const { wayfinder } = useWayfinder();
+  return wayfinder.request;
+};

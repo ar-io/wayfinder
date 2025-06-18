@@ -23,15 +23,20 @@ yarn add @ar.io/wayfinder-react @ar.io/wayfinder-core
 ```jsx
 import {
   WayfinderProvider,
-  ArweaveLink,
   useWayfinder,
   useWayfinderRequest,
 } from '@ar.io/wayfinder-react';
+import { NetworkGatewaysProvider } from '@ar.io/wayfinder-core';
+import { ARIO } from '@ar.io/sdk';
 
 // Wrap your app with the provider
 function App() {
   return (
-    <WayfinderProvider>
+    <WayfinderProvider
+      // pass in the wayfinder options
+      // https://github.com/ar-io/wayfinder/tree/alpha/packages/core#custom-configuration
+      gatewaysProvider={new NetworkGatewaysProvider({ ario: ARIO.mainnet() })}
+    >
       <YourApp />
     </WayfinderProvider>
   );
@@ -39,40 +44,25 @@ function App() {
 
 // Use components
 function YourComponent() {
-  return (
-    <div>
-      <ArweaveLink txId="your-tx-id">View on Arweave</ArweaveLink>
-    </div>
-  );
-}
+  const { wayfinder } = useWayfinder();
+  const [txData, setTxData] = useState<string | null>(null);
 
-// Use hooks
-function GatewaySelector() {
-  const { selectGateway, currentGateway } = useWayfinder();
-  
-  return (
-    <div>
-      <p>Current Gateway: {currentGateway.domain}</p>
-      <button onClick={() => selectGateway()}>Change Gateway</button>
-    </div>
-  );
-}
+  // useMemo to get a resolution URL for a given txId
+  const wayfinderUrl = useMemo(() => wayfinder.resolveUrl(`ar://${txId}`), [txId, wayfinder]);
 
-// Make requests using the Wayfinder client
-function FetchData({ txId }: { txId: string }) {
-  const request = useWayfinderRequest();
-
-  React.useEffect(() => {
+  // request some data from arweave via wayfinder
+  useEffect(() => {
     (async () => {
-      const res = await request(`ar://${txId}`);
-      console.log(await res.text());
+      const res = await wayfinder.request(`ar://${txId}`);
+      setTxData(await res.text());
     })();
-  }, [request, txId]);
+  }, [txId, wayfinder]);
 
-  return null;
+  return (
+    <div>
+      <a href={wayfinderUrl}>View on WayFinder</a>
+      <pre>{txData}</pre>
+    </div>
+  );
 }
 ```
-
-## License
-
-AGPL-3.0-only
