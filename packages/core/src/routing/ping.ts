@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 import { pLimit } from 'plimit-lit';
-import { RoutingStrategy } from '../../types/wayfinder.js';
-import { Logger, defaultLogger } from '../logger.js';
+import type { Logger, RoutingStrategy } from '../../types/wayfinder.js';
+import { defaultLogger } from '../logger.js';
 
 export class FastestPingRoutingStrategy implements RoutingStrategy {
   private timeoutMs: number;

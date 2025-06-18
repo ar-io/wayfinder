@@ -27,10 +27,11 @@ import { pLimit } from 'plimit-lit';
 import {
   DataClassifier,
   DataStream,
+  Logger,
   VerificationStrategy,
 } from '../../types/wayfinder.js';
 import { GqlClassifier } from '../classifiers/gql-classifier.js';
-import { Logger, defaultLogger } from '../logger.js';
+import { defaultLogger } from '../logger.js';
 import { toB64Url } from '../utils/base64.js';
 import {
   isAsyncIterable,

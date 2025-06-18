@@ -15,8 +15,12 @@
  * limitations under the License.
  */
 import { pLimit } from 'plimit-lit';
-import { DataStream, VerificationStrategy } from '../../types/wayfinder.js';
-import { Logger, defaultLogger } from '../logger.js';
+import type {
+  DataStream,
+  Logger,
+  VerificationStrategy,
+} from '../../types/wayfinder.js';
+import { defaultLogger } from '../logger.js';
 import { arioGatewayHeaders } from '../utils/ario.js';
 import { sandboxFromId } from '../utils/base64.js';
 import { hashDataStreamToB64Url } from '../utils/hash.js';

@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 import { AoARIORead } from '@ar.io/sdk';
-import { GatewaysProvider } from '../../types/wayfinder.js';
-import { Logger, defaultLogger } from '../logger.js';
+import type { GatewaysProvider, Logger } from '../../types/wayfinder.js';
+import { defaultLogger } from '../logger.js';
 
 export class NetworkGatewaysProvider implements GatewaysProvider {
   private ario: AoARIORead;
