@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-core
 
+## 0.0.4
+
+### Patch Changes
+
+- e43548d: Move utils to various utils files, move logger to logger.ts
+
 ## 0.0.4-alpha.1
 
 ### Patch Changes
