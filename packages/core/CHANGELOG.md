@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-core
 
+## 0.0.5-alpha.2
+
+### Patch Changes
+
+- b85ec7e: Fix type for NetworkGatweaysProvider to allow AoARIORead
+
 ## 0.0.5-alpha.1
 
 ### Patch Changes
