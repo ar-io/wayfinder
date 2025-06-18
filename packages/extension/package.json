@@ -1,6 +1,6 @@
 {
   "name": "@ar.io/wayfinder-extension",
-  "version": "0.0.18-alpha.0",
+  "version": "0.0.18-alpha.1",
   "description": "WayFinder Chrome extension that intelligently routes users to optimal AR.IO gateways",
   "private": true,
   "type": "module",
@@ -32,7 +32,7 @@
   },
   "dependencies": {
     "@ar.io/sdk": "^3.5.0",
-    "@ar.io/wayfinder-core": "0.0.5-alpha.0",
+    "@ar.io/wayfinder-core": "0.0.5-alpha.1",
     "@permaweb/aoconnect": "0.0.69"
   }
 }

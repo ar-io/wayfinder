@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-core
 
+## 0.0.5-alpha.1
+
+### Patch Changes
+
+- aba2beb: Update README and docs
+
 ## 0.0.5-alpha.0
 
 ### Patch Changes
