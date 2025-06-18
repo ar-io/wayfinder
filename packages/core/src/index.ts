@@ -21,6 +21,7 @@ export * from './routing/static.js';
 export * from './routing/ping.js';
 export * from './routing/round-robin.js';
 export * from './routing/preferred-with-fallback.js';
+export * from './routing/simple-cache.js';
 
 // gateways providers
 export * from './gateways/network.js';

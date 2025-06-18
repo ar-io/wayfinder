@@ -699,6 +699,7 @@ export class Wayfinder {
     this.routingSettings = {
       strategy: new FastestPingRoutingStrategy({
         timeoutMs: 1000,
+        maxConcurrency: 5, // 5 concurrent HEAD requests on the requested path
         logger: defaultLogger,
       }),
       events: {
