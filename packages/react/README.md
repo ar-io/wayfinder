@@ -48,7 +48,7 @@ function YourComponent() {
   const [txData, setTxData] = useState<string | null>(null);
 
   // useMemo to get a resolution URL for a given txId
-  const wayfinderUrl = useMemo(() => wayfinder.resolveUrl(`ar://${txId}`), [txId, wayfinder]);
+  const wayfinderUrl = useMemo(() => wayfinder.resolveUrl({originalUrl: `ar://${txId}`}), [txId, wayfinder]);
 
   // request some data from arweave via wayfinder
   useEffect(() => {
