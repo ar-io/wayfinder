@@ -25,6 +25,8 @@ import {
   WayfinderProvider,
   useWayfinder,
   useWayfinderRequest,
+  useWayfinderUrl,
+  useWayfinderData,
 } from '@ar.io/wayfinder-react';
 import { NetworkGatewaysProvider } from '@ar.io/wayfinder-core';
 import { ARIO } from '@ar.io/sdk';
@@ -35,7 +37,11 @@ function App() {
     <WayfinderProvider
       // pass in the wayfinder options
       // https://github.com/ar-io/wayfinder/tree/alpha/packages/core#custom-configuration
-      gatewaysProvider={new NetworkGatewaysProvider({ ario: ARIO.mainnet() })}
+      gatewaysProvider={new NetworkGatewaysProvider({ 
+        ario: ARIO.mainnet() 
+        limit: 3,
+        sortBy: 'operatorStake',
+      })}
     >
       <YourApp />
     </WayfinderProvider>
@@ -44,23 +50,20 @@ function App() {
 
 // Use components
 function YourComponent() {
-  const { wayfinder } = useWayfinder();
-  const [txData, setTxData] = useState<string | null>(null);
-
-  // useMemo to get a resolution URL for a given txId
-  const wayfinderUrl = useMemo(() => wayfinder.resolveUrl({originalUrl: `ar://${txId}`}), [txId, wayfinder]);
-
-  // request some data from arweave via wayfinder
-  useEffect(() => {
-    (async () => {
-      const res = await wayfinder.request(`ar://${txId}`);
-      setTxData(await res.text());
-    })();
-  }, [txId, wayfinder]);
+  const txId = 'your-transaction-id'; // Replace with actual txId
+  
+  // Use custom hooks for URL resolution and data fetching
+  const { resolvedUrl, isLoading: urlLoading, error: urlError } = useWayfinderUrl({ url: `ar://${txId}` });
+  const { data: txData, isLoading: dataLoading, error: dataError } = useWayfinderData({ url: `ar://${txId}` });
 
   return (
     <div>
-      <a href={wayfinderUrl}>View on WayFinder</a>
+      {urlLoading && <p>Resolving URL...</p>}
+      {urlError && <p>Error resolving URL: {urlError.message}</p>}
+      {resolvedUrl && <a href={resolvedUrl}>View on WayFinder</a>}
+      <br />
+      {dataLoading && <p>Loading data...</p>}
+      {dataError && <p>Error loading data: {dataError.message}</p>}
       <pre>{txData}</pre>
     </div>
   );
