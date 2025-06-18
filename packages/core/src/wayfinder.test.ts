@@ -20,6 +20,7 @@ import { before, describe, it } from 'node:test';
 import { GatewaysProvider } from '../types/wayfinder.js';
 import { RandomRoutingStrategy } from './routing/random.js';
 import { StaticRoutingStrategy } from './routing/static.js';
+import { HashVerificationStrategy } from './verification/hash-verifier.js';
 import {
   Wayfinder,
   WayfinderEmitter,
@@ -211,6 +212,9 @@ describe('Wayfinder', () => {
         },
         verificationSettings: {
           strict: true,
+          strategy: new HashVerificationStrategy({
+            trustedGateways: [new URL(`http://${gatewayUrl}`)],
+          }),
           events: {
             onVerificationFailed: () => {
               verificationFailed = true;

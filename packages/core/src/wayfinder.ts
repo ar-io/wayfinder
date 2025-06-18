@@ -312,36 +312,24 @@ export function sandboxFromId(id: string): string {
  * @param resolveUrl - the function to construct the redirect url for ar:// requests
  * @returns a wrapped fetch function that supports ar:// protocol and always returns Response
  */
-export const wayfinderRequest = ({
-  getGateways,
-  resolveUrl,
-  verifyData,
-  selectGateway,
+export const wayfinderFetch = ({
   emitter = new WayfinderEmitter(),
   logger = defaultLogger,
-  strict = false,
+  gatewaysProvider,
+  verificationSettings,
+  routingSettings,
 }: {
-  getGateways: GatewaysProvider['getGateways'];
-  selectGateway: RoutingStrategy['selectGateway'];
-  resolveUrl: (params: {
-    originalUrl: string;
-    selectedGateway: URL;
-    logger?: Logger;
-  }) => URL;
-  verifyData?: VerificationStrategy['verifyData'];
   logger?: Logger;
   emitter?: WayfinderEmitter;
-  strict?: boolean;
+  gatewaysProvider: GatewaysProvider;
+  verificationSettings: NonNullable<WayfinderOptions['verificationSettings']>;
+  routingSettings: NonNullable<WayfinderOptions['routingSettings']>;
 }) => {
   return async (
     input: URL | RequestInfo,
     init?: RequestInit,
   ): Promise<Response> => {
     const url = input instanceof URL ? input.toString() : input.toString();
-
-    console.log('URL', {
-      url,
-    });
 
     if (!url.toString().startsWith('ar://')) {
       logger?.debug('URL is not a wayfinder url, skipping routing', {
@@ -363,19 +351,23 @@ export const wayfinderRequest = ({
     for (let i = 0; i < maxRetries; i++) {
       try {
         // select the target gateway
-        const selectedGateway = await selectGateway({
-          gateways: await getGateways(),
+        const selectedGateway = await routingSettings.strategy?.selectGateway({
+          gateways: await gatewaysProvider.getGateways(),
           path: url.split('/').slice(1).join('/'), // everything after the first /
           subdomain: '',
         });
 
+        if (!selectedGateway) {
+          throw new Error('Failed to select a gateway');
+        }
+
         logger?.debug('Selected gateway', {
           originalUrl: url,
-          selectedGateway: selectedGateway.toString(),
+          selectedGateway: selectedGateway?.toString(),
         });
 
         // route the request to the target gateway
-        const redirectUrl = resolveUrl({
+        const redirectUrl = await resolveWayfinderUrl({
           originalUrl: url.toString(),
           selectedGateway,
           logger,
@@ -407,7 +399,10 @@ export const wayfinderRequest = ({
 
         // only verify data if the redirect url is different from the original url
         if (redirectUrl.toString() !== url) {
-          if (verifyData) {
+          if (
+            verificationSettings.enabled &&
+            verificationSettings.strategy?.verifyData
+          ) {
             const headers = response.headers;
 
             // transaction id is either in the response headers or the path of the request as the first parameter
@@ -440,10 +435,12 @@ export const wayfinderRequest = ({
               const newClientStream = tapAndVerifyReadableStream({
                 originalStream: response.body,
                 contentLength,
-                verifyData,
+                verifyData: verificationSettings.strategy?.verifyData.bind(
+                  verificationSettings.strategy,
+                ),
                 txId,
                 emitter,
-                strict,
+                strict: verificationSettings.strict,
               });
 
               return new Response(newClientStream, {
@@ -506,10 +503,20 @@ export interface WayfinderOptions {
    */
   verificationSettings?: {
     /**
-     * Whether verification is enabled. If false, verification will be skipped for all requests.
+     * Whether verification is enabled. If false, verification will be skipped for all requests. If true, strategy must be provided.
      * @default true
      */
     enabled?: boolean;
+
+    /**
+     * The events to use for verification
+     */
+    events?: WayfinderVerificationEventArgs | undefined;
+
+    /**
+     * The verification strategy to use for verifying data
+     */
+    strategy: VerificationStrategy;
 
     /**
      * Whether verification should be strict (blocking)
@@ -518,16 +525,6 @@ export interface WayfinderOptions {
      * @default false
      */
     strict?: boolean;
-
-    /**
-     * The events to use for verification
-     */
-    events?: WayfinderVerificationEventArgs;
-
-    /**
-     * The verification strategy to use for verifying data
-     */
-    strategy?: VerificationStrategy;
   };
 
   /**
@@ -535,14 +532,14 @@ export interface WayfinderOptions {
    */
   routingSettings?: {
     /**
-     * The routing strategy to use for routing requests
-     */
-    strategy?: RoutingStrategy;
-
-    /**
      * The events to use for routing requests
      */
     events?: WayfinderRoutingEventArgs;
+
+    /**
+     * The routing strategy to use for routing requests
+     */
+    strategy: RoutingStrategy;
   };
 }
 
@@ -564,14 +561,17 @@ export class Wayfinder {
   public readonly gatewaysProvider: GatewaysProvider;
 
   /**
-   * The routing strategy to use when routing requests.
+   * The routing settings to use when routing requests.
+   * This includes the routing strategy and event handlers for routing events.
+   * If not provided, the default FastestPingRoutingStrategy will be used.
    */
-  public readonly routingStrategy: RoutingStrategy;
-
+  public readonly routingSettings: NonNullable<
+    WayfinderOptions['routingSettings']
+  >;
   /**
-   * The verification strategy to use when verifying data.
+   * The verification settings to use when verifying data.
    */
-  public readonly verificationStrategy: VerificationStrategy;
+  public readonly verificationSettings: WayfinderOptions['verificationSettings'];
 
   /**
    * A helper function that resolves the redirect url for ar:// requests to a target gateway.
@@ -622,25 +622,12 @@ export class Wayfinder {
    *   console.error('Verification failed', error);
    * }
    */
-  public readonly request: WayfinderHttpClient;
-
-  /**
-   * The function that verifies the data hash for a given transaction id.
-   *
-   * @example
-   * const wayfinder = new Wayfinder({
-   *   verifyData: (data, txId) => {
-   *     // some custom verification logic
-   *     return true;
-   *   },
-   * });
-   */
-  public readonly verifyData: VerificationStrategy['verifyData'];
+  public request: WayfinderHttpClient;
 
   /**
    * The logger used by this Wayfinder instance
    */
-  public readonly logger: Logger;
+  protected logger: Logger;
 
   /**
    * The event emitter for wayfinder that emits routing and verification events.
@@ -704,75 +691,76 @@ export class Wayfinder {
    */
   constructor({
     logger = defaultLogger,
-    gatewaysProvider,
-    verificationSettings = {
-      enabled: true,
-      strict: false,
+    gatewaysProvider, // forcing it to be required to avoid making ar-io-sdk a dependency
+    verificationSettings,
+    routingSettings,
+  }: WayfinderOptions) {
+    this.logger = logger;
+    this.gatewaysProvider = gatewaysProvider;
+    this.emitter = new WayfinderEmitter({
+      verification: verificationSettings?.events,
+      routing: routingSettings?.events,
+    });
+
+    // default verification settings
+    this.verificationSettings = {
+      enabled:
+        verificationSettings?.enabled ??
+        verificationSettings?.strategy !== undefined,
       strategy: new HashVerificationStrategy({
         trustedGateways: [new URL('https://permagate.io')],
       }),
       events: {
-        onVerificationProgress: (
-          event: WayfinderEvent['verification-progress'],
-        ) => {
-          logger.debug('Verification progress!', event);
+        onVerificationFailed: (event) => {
+          this.logger.error('Verification failed', event);
         },
-        onVerificationSucceeded: (
-          event: WayfinderEvent['verification-succeeded'],
-        ) => {
-          logger.debug('Verification succeeded!', event);
+        onVerificationSucceeded: (event) => {
+          this.logger.info('Verification succeeded', event);
         },
-        onVerificationFailed: (
-          event: WayfinderEvent['verification-failed'],
-        ) => {
-          logger.error('Verification failed!', event);
+        onVerificationProgress: (event) => {
+          this.logger.info('Verification progress', event);
         },
       },
-    },
-    routingSettings = {
+      // overwrite the default settings with the provided ones
+      ...verificationSettings,
+    };
+
+    // default routing settings
+    this.routingSettings = {
       strategy: new FastestPingRoutingStrategy({
         timeoutMs: 1000,
-        logger,
+        logger: defaultLogger,
       }),
       events: {
-        onRoutingStarted: (event: WayfinderEvent['routing-started']) => {
-          logger.debug('Routing started!', event);
+        onRoutingStarted: (event) => {
+          this.logger.debug('Routing started', event);
         },
-        onRoutingSkipped: (event: WayfinderEvent['routing-skipped']) => {
-          logger.debug('Routing skipped!', event);
+        onRoutingSkipped: (event) => {
+          this.logger.debug('Routing skipped', event);
         },
-        onRoutingSucceeded: (event: WayfinderEvent['routing-succeeded']) => {
-          logger.debug('Routing succeeded!', event);
+        onRoutingSucceeded: (event) => {
+          this.logger.debug('Routing succeeded', event);
         },
       },
-    },
-  }: WayfinderOptions) {
-    this.logger = logger;
-    this.routingStrategy =
-      routingSettings.strategy ??
-      new FastestPingRoutingStrategy({
-        timeoutMs: 1000,
-        logger,
-      });
-    this.verificationStrategy =
-      verificationSettings.strategy ??
-      new HashVerificationStrategy({
-        trustedGateways: [new URL('https://permagate.io')],
-      });
-    this.gatewaysProvider = gatewaysProvider;
-    this.emitter = new WayfinderEmitter({
-      verification: verificationSettings.events,
-      routing: routingSettings.events,
-    });
-    this.verifyData = this.verificationStrategy.verifyData.bind(
-      this.verificationStrategy,
-    );
+      // overwrite the default settings with the provided ones
+      ...routingSettings,
+    };
 
-    // top level function to easily resolve wayfinder urls using the routing strategy and gateways provider
+    this.request = wayfinderFetch({
+      logger: this.logger,
+      emitter: this.emitter,
+      gatewaysProvider: this.gatewaysProvider,
+      routingSettings: this.routingSettings,
+      verificationSettings: this.verificationSettings,
+    });
+
     this.resolveUrl = async ({ originalUrl, logger = this.logger }) => {
-      const selectedGateway = await this.routingStrategy.selectGateway({
-        gateways: await this.gatewaysProvider.getGateways(),
-      });
+      const selectedGateway = await this.routingSettings.strategy.selectGateway(
+        {
+          gateways: await this.gatewaysProvider.getGateways(),
+        },
+      );
+
       return resolveWayfinderUrl({
         originalUrl,
         selectedGateway,
@@ -780,23 +768,8 @@ export class Wayfinder {
       });
     };
 
-    // create a wayfinder request function with the routing strategy and gateways provider
-    this.request = wayfinderRequest({
-      getGateways: this.gatewaysProvider.getGateways.bind(
-        this.gatewaysProvider,
-      ),
-      verifyData: this.verifyData,
-      selectGateway: this.routingStrategy.selectGateway.bind(
-        this.routingStrategy,
-      ),
-      resolveUrl: resolveWayfinderUrl,
-      emitter: this.emitter,
-      logger: this.logger,
-      strict: verificationSettings.strict,
-    });
-
     logger.debug(
-      `Wayfinder initialized with ${this.routingStrategy.constructor.name} routing strategy`,
+      `Wayfinder initialized with ${this.routingSettings.strategy?.constructor.name} routing strategy`,
     );
   }
 }
