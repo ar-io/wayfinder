@@ -15,39 +15,18 @@
  * limitations under the License.
  */
 import { EventEmitter } from 'eventemitter3';
-import { base32 } from 'rfc4648';
+
+import { Logger, defaultLogger } from './logger.js';
 
 import {
   GatewaysProvider,
   RoutingStrategy,
   VerificationStrategy,
+  WayfinderFetch,
 } from '../types/wayfinder.js';
 import { FastestPingRoutingStrategy } from './routing/ping.js';
+import { sandboxFromId } from './utils/base64.js';
 import { HashVerificationStrategy } from './verification/hash-verifier.js';
-
-// local types for wayfinder
-type WayfinderHttpClient = typeof fetch;
-
-/**
- * Simple logger interface that Wayfinder will use
- * This allows users to provide their own logger implementation
- */
-export interface Logger {
-  debug: (message: string, ...args: any[]) => void;
-  info: (message: string, ...args: any[]) => void;
-  warn: (message: string, ...args: any[]) => void;
-  error: (message: string, ...args: any[]) => void;
-}
-
-/**
- * Default console logger implementation
- */
-export const defaultLogger: Logger = {
-  debug: console.debug,
-  info: console.info,
-  warn: console.warn,
-  error: console.error,
-};
 
 // known regexes for wayfinder urls
 export const arnsRegex = /^[a-z0-9_-]{1,51}$/;
@@ -290,15 +269,6 @@ export function tapAndVerifyReadableStream({
     return clientStreamWithVerification;
   }
   throw new Error('Unsupported body type for cloning');
-}
-
-/**
- * Gets the sandbox hash for a given transaction id
- */
-export function sandboxFromId(id: string): string {
-  return base32
-    .stringify(Buffer.from(id, 'base64'), { pad: false })
-    .toLowerCase();
 }
 
 /**
@@ -622,7 +592,7 @@ export class Wayfinder {
    *   console.error('Verification failed', error);
    * }
    */
-  public request: WayfinderHttpClient;
+  public request: WayfinderFetch;
 
   /**
    * The logger used by this Wayfinder instance
@@ -768,7 +738,7 @@ export class Wayfinder {
       });
     };
 
-    logger.debug(
+    this.logger.debug(
       `Wayfinder initialized with ${this.routingSettings.strategy?.constructor.name} routing strategy`,
     );
   }

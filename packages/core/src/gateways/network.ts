@@ -16,7 +16,7 @@
  */
 import { ARIOReadable } from '@ar.io/sdk';
 import { GatewaysProvider } from '../../types/wayfinder.js';
-import { Logger, defaultLogger } from '../wayfinder.js';
+import { Logger, defaultLogger } from '../logger.js';
 
 export class NetworkGatewaysProvider implements GatewaysProvider {
   private ario: ARIOReadable;

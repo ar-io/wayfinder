@@ -29,13 +29,13 @@ import {
   VerificationStrategy,
 } from '../../types/wayfinder.js';
 import { GqlClassifier } from '../classifiers/gql-classifier.js';
+import { Logger, defaultLogger } from '../logger.js';
 import { arioGatewayHeaders } from '../utils/ario.js';
 import { fromB64Url } from '../utils/base64.js';
 import {
   isAsyncIterable,
   readableStreamToAsyncIterable,
 } from '../utils/hash.js';
-import { Logger, defaultLogger } from '../wayfinder.js';
 import { convertDataStreamToDataRoot } from './data-root-verifier.js';
 
 /**

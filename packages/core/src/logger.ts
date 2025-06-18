@@ -14,26 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-export type WayfinderFetch = typeof fetch;
-
-export type DataStream = ReadableStream<Uint8Array> | AsyncIterable<Uint8Array>;
-
-export interface GatewaysProvider {
-  getGateways(params?: { path?: string; subdomain?: string }): Promise<URL[]>;
+/**
+ * Simple logger interface that Wayfinder will use
+ * This allows users to provide their own logger implementation
+ */
+export interface Logger {
+  debug: (message: string, ...args: any[]) => void;
+  info: (message: string, ...args: any[]) => void;
+  warn: (message: string, ...args: any[]) => void;
+  error: (message: string, ...args: any[]) => void;
 }
 
-export interface RoutingStrategy {
-  selectGateway(params: {
-    gateways: URL[];
-    path?: string;
-    subdomain?: string;
-  }): Promise<URL>;
-}
-
-export interface VerificationStrategy {
-  verifyData(params: { data: DataStream; txId: string }): Promise<void>;
-}
-
-export interface DataClassifier {
-  classify(params: { txId: string }): Promise<'ans104' | 'transaction'>;
-}
+/**
+ * Default console logger implementation
+ */
+export const defaultLogger: Logger = {
+  debug: console.debug,
+  info: console.info,
+  warn: console.warn,
+  error: console.error,
+};

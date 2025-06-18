@@ -16,7 +16,7 @@
  */
 import { pLimit } from 'plimit-lit';
 import { RoutingStrategy } from '../../types/wayfinder.js';
-import { Logger, defaultLogger } from '../wayfinder.js';
+import { Logger, defaultLogger } from '../logger.js';
 
 export class FastestPingRoutingStrategy implements RoutingStrategy {
   private timeoutMs: number;

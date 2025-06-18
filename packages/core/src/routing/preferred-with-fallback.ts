@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 import { RoutingStrategy } from '../../types/wayfinder.js';
-import { Logger, defaultLogger } from '../wayfinder.js';
+import { Logger, defaultLogger } from '../logger.js';
 import { FastestPingRoutingStrategy } from './ping.js';
 
 export class PreferredWithFallbackRoutingStrategy implements RoutingStrategy {

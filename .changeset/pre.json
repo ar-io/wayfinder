@@ -1,0 +1,13 @@
+{
+  "mode": "pre",
+  "tag": "alpha",
+  "initialVersions": {
+    "@ar.io/wayfinder-core": "0.0.4",
+    "@ar.io/wayfinder-extension": "0.0.17",
+    "@ar.io/wayfinder-react": "0.0.4"
+  },
+  "changesets": [
+    "pretty-paths-count",
+    "sour-mangos-mix"
+  ]
+}

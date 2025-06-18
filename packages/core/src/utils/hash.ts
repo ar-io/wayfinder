@@ -16,7 +16,7 @@
  */
 import { createHash } from 'crypto';
 import { DataStream } from '../../types/wayfinder.js';
-import { Logger, defaultLogger } from '../wayfinder.js';
+import { Logger, defaultLogger } from '../logger.js';
 import { toB64Url } from './base64.js';
 
 export function isAsyncIterable(
