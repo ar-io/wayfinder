@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { ARIOReadable } from '@ar.io/sdk';
+import { AoARIORead } from '@ar.io/sdk';
 import { GatewaysProvider } from '../../types/wayfinder.js';
 import { Logger, defaultLogger } from '../logger.js';
 
 export class NetworkGatewaysProvider implements GatewaysProvider {
-  private ario: ARIOReadable;
+  private ario: AoARIORead;
   private sortBy: 'totalDelegatedStake' | 'operatorStake' | 'startTimestamp';
   private sortOrder: 'asc' | 'desc';
   private limit: number;
@@ -34,7 +34,7 @@ export class NetworkGatewaysProvider implements GatewaysProvider {
     filter = (g) => g.status === 'joined',
     logger = defaultLogger,
   }: {
-    ario: ARIOReadable;
+    ario: AoARIORead;
     sortBy?: 'totalDelegatedStake' | 'operatorStake' | 'startTimestamp';
     sortOrder?: 'asc' | 'desc';
     limit?: number;
