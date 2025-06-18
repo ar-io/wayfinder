@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-core
 
+## 0.0.4-alpha.1
+
+### Patch Changes
+
+- 78ad2b2: Organize wayfinder settings, update defaults for routing and verification
+
 ## 0.0.4-alpha.0
 
 ### Patch Changes
