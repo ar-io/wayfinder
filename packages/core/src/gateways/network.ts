@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 import type { AoARIORead } from '@ar.io/sdk';
-import type { GatewaysProvider, Logger } from '../types.js';
 import { defaultLogger } from '../logger.js';
+import type { GatewaysProvider, Logger } from '../types.js';
 
 export class NetworkGatewaysProvider implements GatewaysProvider {
   private ario: AoARIORead;

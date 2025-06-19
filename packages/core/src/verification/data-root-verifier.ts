@@ -24,14 +24,14 @@ import {
 } from 'arweave/node/lib/merkle.js';
 
 import { pLimit } from 'plimit-lit';
+import { GqlClassifier } from '../classifiers/gql-classifier.js';
+import { defaultLogger } from '../logger.js';
 import {
   DataClassifier,
   DataStream,
   Logger,
   VerificationStrategy,
 } from '../types.js';
-import { GqlClassifier } from '../classifiers/gql-classifier.js';
-import { defaultLogger } from '../logger.js';
 import { toB64Url } from '../utils/base64.js';
 import {
   isAsyncIterable,

@@ -18,6 +18,7 @@ import { EventEmitter } from 'eventemitter3';
 
 import { defaultLogger } from './logger.js';
 
+import { FastestPingRoutingStrategy } from './routing/ping.js';
 import type {
   GatewaysProvider,
   Logger,
@@ -27,7 +28,6 @@ import type {
   WayfinderFetch,
   WayfinderOptions,
 } from './types.js';
-import { FastestPingRoutingStrategy } from './routing/ping.js';
 import { sandboxFromId } from './utils/base64.js';
 import { HashVerificationStrategy } from './verification/hash-verifier.js';
 

@@ -23,14 +23,14 @@ import {
 } from '@dha-team/arbundles';
 
 import { pLimit } from 'plimit-lit';
+import { GqlClassifier } from '../classifiers/gql-classifier.js';
+import { defaultLogger } from '../logger.js';
 import type {
   DataClassifier,
   DataStream,
   Logger,
   VerificationStrategy,
 } from '../types.js';
-import { GqlClassifier } from '../classifiers/gql-classifier.js';
-import { defaultLogger } from '../logger.js';
 import { arioGatewayHeaders } from '../utils/ario.js';
 import { fromB64Url } from '../utils/base64.js';
 import {

@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 import { pLimit } from 'plimit-lit';
-import type { Logger, RoutingStrategy } from '../types.js';
 import { defaultLogger } from '../logger.js';
+import type { Logger, RoutingStrategy } from '../types.js';
 
 export class FastestPingRoutingStrategy implements RoutingStrategy {
   private timeoutMs: number;
