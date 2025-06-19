@@ -633,7 +633,7 @@ async function loadGatewayInfo(gateway) {
     } else if (fqdn.includes('.asia.') || fqdn.includes('-asia-')) {
       location = 'Asia';
     } else if (fqdn.includes('arweave.net')) {
-      location = 'Global (Official)';
+      location = 'Global (Fallback)';
     }
     document.getElementById('gatewayLocation').textContent = location;
 

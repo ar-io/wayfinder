@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await updatePerformanceStats();
   await updateCacheStats();
   await setExtensionVersion();
-  
+
   // Set up periodic cache stats updates
   setInterval(updateCacheStats, 5000); // Update every 5 seconds
 });
@@ -74,12 +74,10 @@ async function loadGatewayUsage() {
       gatewayPerformance = {},
       gatewayUsageHistory = {},
       localGatewayAddressRegistry = {},
-      dailyStats = null,
     } = await chrome.storage.local.get([
       'gatewayPerformance',
       'gatewayUsageHistory',
       'localGatewayAddressRegistry',
-      'dailyStats',
     ]);
 
     // Clear existing data

@@ -16,17 +16,18 @@
  */
 import { AoGatewayWithAddress } from '@ar.io/sdk';
 
-export const DEFAULT_GATEWAY: AoGatewayWithAddress = {
-  operatorStake: 250000000000,
+// Last resort fallback gateway - only used when AR.IO network is unreachable
+export const FALLBACK_GATEWAY: AoGatewayWithAddress = {
+  operatorStake: 0,
   settings: {
     allowedDelegates: [],
-    allowDelegatedStaking: true,
+    allowDelegatedStaking: false,
     autoStake: false,
-    delegateRewardShareRatio: 5,
+    delegateRewardShareRatio: 0,
     fqdn: 'arweave.net',
-    label: 'Arweave.net',
-    minDelegatedStake: 100000000,
-    note: 'Arweave ecosystem gateway.',
+    label: 'Arweave.net (Fallback)',
+    minDelegatedStake: 0,
+    note: 'Last resort fallback gateway when AR.IO network is unreachable.',
     port: 443,
     properties: '',
     protocol: 'https',
@@ -58,7 +59,7 @@ export const DEFAULT_GATEWAY: AoGatewayWithAddress = {
   services: {
     bundlers: [],
   },
-  gatewayAddress: 'DEFAULT',
+  gatewayAddress: 'FALLBACK',
 };
 
 export const ARIO_MAINNET_PROCESS_ID =

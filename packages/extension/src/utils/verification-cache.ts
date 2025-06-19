@@ -59,33 +59,41 @@ export class VerificationCache {
    */
   async get(txId: string): Promise<CachedVerification | null> {
     logger.info(`[CACHE] [GET] Looking for cached verification for ${txId}`);
-    
+
     // Check memory cache first
     const cached = this.memoryCache.get(txId);
 
     if (cached) {
       const age = Date.now() - cached.timestamp;
       const ageHours = (age / (1000 * 60 * 60)).toFixed(1);
-      
+
       // Check if expired
       if (age > this.config.ttl) {
-        logger.info(`[CACHE] [EXPIRED] Verification cache expired for ${txId} (age: ${ageHours}h)`);
+        logger.info(
+          `[CACHE] [EXPIRED] Verification cache expired for ${txId} (age: ${ageHours}h)`,
+        );
         this.delete(txId);
         return null;
       }
 
       // Update LRU order
       this.updateAccessOrder(txId);
-      logger.info(`[CACHE] [HIT] Using cached verification for ${txId} (verified: ${cached.verified}, age: ${ageHours}h, hash: ${cached.hash?.substring(0, 8)}...)`);
-      
+      logger.info(
+        `[CACHE] [HIT] Using cached verification for ${txId} (verified: ${cached.verified}, age: ${ageHours}h, hash: ${cached.hash?.substring(0, 8)}...)`,
+      );
+
       if (cached.arnsName) {
-        logger.info(`[CACHE] [ARNS] Cached ArNS data - name: ${cached.arnsName}, processId: ${cached.processId?.substring(0, 8) || 'none'}`);
+        logger.info(
+          `[CACHE] [ARNS] Cached ArNS data - name: ${cached.arnsName}, processId: ${cached.processId?.substring(0, 8) || 'none'}`,
+        );
       }
-      
+
       return cached;
     }
 
-    logger.info(`[CACHE] [MISS] No cached verification found for ${txId} - will perform new verification`);
+    logger.info(
+      `[CACHE] [MISS] No cached verification found for ${txId} - will perform new verification`,
+    );
     return null;
   }
 
@@ -102,17 +110,23 @@ export class VerificationCache {
 
     const isUpdate = this.memoryCache.has(txId);
     const action = isUpdate ? 'UPDATE' : 'NEW';
-    
+
     logger.info(`[CACHE] [${action}] Caching verification for ${txId}`);
-    logger.info(`[CACHE] [DETAILS] Verified: ${verification.verified}, Hash: ${verification.hash?.substring(0, 8)}..., Algorithm: ${verification.algorithm}`);
-    
+    logger.info(
+      `[CACHE] [DETAILS] Verified: ${verification.verified}, Hash: ${verification.hash?.substring(0, 8)}..., Algorithm: ${verification.algorithm}`,
+    );
+
     if (verification.arnsName) {
-      logger.info(`[CACHE] [ARNS] ArNS data - Name: ${verification.arnsName}, ProcessId: ${verification.processId?.substring(0, 8) || 'none'}, DataId: ${verification.dataId?.substring(0, 8) || 'none'}`);
+      logger.info(
+        `[CACHE] [ARNS] ArNS data - Name: ${verification.arnsName}, ProcessId: ${verification.processId?.substring(0, 8) || 'none'}, DataId: ${verification.dataId?.substring(0, 8) || 'none'}`,
+      );
     }
 
     // Check cache size and evict if necessary
     if (this.memoryCache.size >= this.config.maxSize) {
-      logger.info(`[CACHE] [EVICTION] Cache full (${this.memoryCache.size}/${this.config.maxSize}), evicting LRU entry`);
+      logger.info(
+        `[CACHE] [EVICTION] Cache full (${this.memoryCache.size}/${this.config.maxSize}), evicting LRU entry`,
+      );
       this.evictLRU();
     }
 
@@ -120,7 +134,9 @@ export class VerificationCache {
     this.memoryCache.set(txId, verification);
     this.updateAccessOrder(txId);
 
-    logger.info(`[CACHE] [SUCCESS] Cached verification for ${txId} (cache size: ${this.memoryCache.size}/${this.config.maxSize})`);
+    logger.info(
+      `[CACHE] [SUCCESS] Cached verification for ${txId} (cache size: ${this.memoryCache.size}/${this.config.maxSize})`,
+    );
 
     // Persist to storage if enabled
     if (this.config.persistToStorage) {
@@ -146,9 +162,11 @@ export class VerificationCache {
    */
   async clear(): Promise<void> {
     const entriesCount = this.memoryCache.size;
-    
-    logger.info(`[CACHE] [CLEAR] Clearing verification cache (${entriesCount} entries)`);
-    
+
+    logger.info(
+      `[CACHE] [CLEAR] Clearing verification cache (${entriesCount} entries)`,
+    );
+
     this.memoryCache.clear();
     this.accessOrder = [];
 
@@ -157,7 +175,9 @@ export class VerificationCache {
       await chrome.storage.local.remove(['verificationCache']);
     }
 
-    logger.info(`[CACHE] [CLEAR] Verification cache cleared - removed ${entriesCount} entries`);
+    logger.info(
+      `[CACHE] [CLEAR] Verification cache cleared - removed ${entriesCount} entries`,
+    );
   }
 
   /**
@@ -196,11 +216,13 @@ export class VerificationCache {
       const lru = this.accessOrder.shift()!;
       const evictedEntry = this.memoryCache.get(lru);
       this.memoryCache.delete(lru);
-      
+
       if (evictedEntry) {
         const age = Date.now() - evictedEntry.timestamp;
         const ageHours = (age / (1000 * 60 * 60)).toFixed(1);
-        logger.info(`[CACHE] [LRU-EVICT] Evicted entry: ${lru} (age: ${ageHours}h, verified: ${evictedEntry.verified})`);
+        logger.info(
+          `[CACHE] [LRU-EVICT] Evicted entry: ${lru} (age: ${ageHours}h, verified: ${evictedEntry.verified})`,
+        );
       } else {
         logger.debug(`[CACHE] [LRU-EVICT] Evicted entry: ${lru}`);
       }
@@ -212,8 +234,10 @@ export class VerificationCache {
    */
   private async loadFromStorage(): Promise<void> {
     try {
-      logger.info(`[CACHE] [STORAGE] Loading verification cache from Chrome storage`);
-      
+      logger.info(
+        `[CACHE] [STORAGE] Loading verification cache from Chrome storage`,
+      );
+
       const { verificationCache } = await chrome.storage.local.get([
         'verificationCache',
       ]);
@@ -222,37 +246,50 @@ export class VerificationCache {
         let loadedCount = 0;
         let expiredCount = 0;
         let invalidCount = 0;
-        
+
         // Restore cache entries
         Object.entries(verificationCache).forEach(([txId, entry]) => {
           if (this.isValidCacheEntry(entry)) {
             const entryData = entry as CachedVerification;
             const age = Date.now() - entryData.timestamp;
-            
+
             // Check if entry is expired
             if (age > this.config.ttl) {
               expiredCount++;
-              logger.debug(`[CACHE] [STORAGE] Skipping expired entry: ${txId} (age: ${(age / (1000 * 60 * 60)).toFixed(1)}h)`);
+              logger.debug(
+                `[CACHE] [STORAGE] Skipping expired entry: ${txId} (age: ${(age / (1000 * 60 * 60)).toFixed(1)}h)`,
+              );
               return;
             }
-            
+
             this.memoryCache.set(txId, entryData);
             this.accessOrder.push(txId);
             loadedCount++;
-            
-            logger.debug(`[CACHE] [STORAGE] Loaded: ${txId} (verified: ${entryData.verified}, age: ${(age / (1000 * 60 * 60)).toFixed(1)}h)`);
+
+            logger.debug(
+              `[CACHE] [STORAGE] Loaded: ${txId} (verified: ${entryData.verified}, age: ${(age / (1000 * 60 * 60)).toFixed(1)}h)`,
+            );
           } else {
             invalidCount++;
-            logger.warn(`[CACHE] [STORAGE] Skipping invalid cache entry: ${txId}`);
+            logger.warn(
+              `[CACHE] [STORAGE] Skipping invalid cache entry: ${txId}`,
+            );
           }
         });
 
-        logger.info(`[CACHE] [STORAGE] Loaded ${loadedCount} entries, skipped ${expiredCount} expired, ${invalidCount} invalid`);
+        logger.info(
+          `[CACHE] [STORAGE] Loaded ${loadedCount} entries, skipped ${expiredCount} expired, ${invalidCount} invalid`,
+        );
       } else {
-        logger.info(`[CACHE] [STORAGE] No cached verification data found in storage`);
+        logger.info(
+          `[CACHE] [STORAGE] No cached verification data found in storage`,
+        );
       }
     } catch (error) {
-      logger.error('[CACHE] [STORAGE] Failed to load verification cache from storage:', error);
+      logger.error(
+        '[CACHE] [STORAGE] Failed to load verification cache from storage:',
+        error,
+      );
     }
   }
 
@@ -271,20 +308,29 @@ export class VerificationCache {
       );
       const recentEntries = this.accessOrder.slice(-entriesToSave);
 
-      logger.debug(`[CACHE] [STORAGE] Saving ${recentEntries.length} most recent entries (${this.memoryCache.size} total in memory)`);
+      logger.debug(
+        `[CACHE] [STORAGE] Saving ${recentEntries.length} most recent entries (${this.memoryCache.size} total in memory)`,
+      );
 
       recentEntries.forEach((txId) => {
         const entry = this.memoryCache.get(txId);
         if (entry) {
           cacheObject[txId] = entry;
-          logger.debug(`[CACHE] [STORAGE] Saving: ${txId} (verified: ${entry.verified}, age: ${((Date.now() - entry.timestamp) / (1000 * 60 * 60)).toFixed(1)}h)`);
+          logger.debug(
+            `[CACHE] [STORAGE] Saving: ${txId} (verified: ${entry.verified}, age: ${((Date.now() - entry.timestamp) / (1000 * 60 * 60)).toFixed(1)}h)`,
+          );
         }
       });
 
       await chrome.storage.local.set({ verificationCache: cacheObject });
-      logger.info(`[CACHE] [STORAGE] Successfully saved ${Object.keys(cacheObject).length} verification entries to Chrome storage`);
+      logger.info(
+        `[CACHE] [STORAGE] Successfully saved ${Object.keys(cacheObject).length} verification entries to Chrome storage`,
+      );
     } catch (error) {
-      logger.error('[CACHE] [STORAGE] Failed to save verification cache to storage:', error);
+      logger.error(
+        '[CACHE] [STORAGE] Failed to save verification cache to storage:',
+        error,
+      );
     }
   }
 
@@ -326,12 +372,13 @@ export function getCacheKey(
 export async function detectArNSChanges(
   arnsName: string,
   currentTxId: string,
-  currentDataId?: string,
+  _currentDataId?: string,
   currentProcessId?: string,
 ): Promise<ArNSChange | null> {
   // Find existing cache entry for this ArNS name
-  const existingEntry = Array.from(verificationCache['memoryCache'].values())
-    .find(entry => entry.arnsName === arnsName);
+  const existingEntry = Array.from(
+    verificationCache['memoryCache'].values(),
+  ).find((entry) => entry.arnsName === arnsName);
 
   if (!existingEntry) {
     logger.debug(`[ARNS] No previous data for ${arnsName}, treating as new`);
@@ -353,14 +400,22 @@ export async function detectArNSChanges(
   if (existingEntry.txId !== currentTxId) {
     changes.type = 'content';
     hasChanges = true;
-    logger.info(`[ARNS] Content change detected for ${arnsName}: ${existingEntry.txId} → ${currentTxId}`);
+    logger.info(
+      `[ARNS] Content change detected for ${arnsName}: ${existingEntry.txId} → ${currentTxId}`,
+    );
   }
 
   // Check for process changes (smart contract upgrades)
-  if (existingEntry.processId && currentProcessId && existingEntry.processId !== currentProcessId) {
+  if (
+    existingEntry.processId &&
+    currentProcessId &&
+    existingEntry.processId !== currentProcessId
+  ) {
     changes.type = hasChanges ? 'both' : 'process';
     hasChanges = true;
-    logger.info(`[ARNS] Process change detected for ${arnsName}: ${existingEntry.processId} → ${currentProcessId}`);
+    logger.info(
+      `[ARNS] Process change detected for ${arnsName}: ${existingEntry.processId} → ${currentProcessId}`,
+    );
   }
 
   return hasChanges ? changes : null;
@@ -471,7 +526,9 @@ export async function notifyArNSChange(
       args: [title, message, color],
     });
 
-    logger.info(`[ARNS] Notified user about ${change.type} change for ${arnsName}`);
+    logger.info(
+      `[ARNS] Notified user about ${change.type} change for ${arnsName}`,
+    );
   } catch (error) {
     logger.error('[ARNS] Failed to show change notification:', error);
   }

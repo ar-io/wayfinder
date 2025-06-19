@@ -377,6 +377,58 @@
               </div>
             </div>
           </div>
+
+                      <div class="config-card expandable">
+              <div class="config-header" id="gatewayProviderToggle">
+                <h3>Routing Gateway Provider Settings</h3>
+                <svg class="expand-icon" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <div class="config-details expandable-content">
+                <div class="input-group">
+                  <label for="gatewaySortBy">Gateway Sorting</label>
+                  <div class="select-wrapper">
+                    <select id="gatewaySortBy" class="gateway-dropdown">
+                      <option value="operatorStake">Operator Stake</option>
+                      <option value="totalDelegatedStake">Total Delegated Stake</option>
+                    </select>
+                    <svg class="select-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                  </div>
+                  <div class="input-description">
+                    Choose how gateways are prioritized for selection
+                  </div>
+                </div>
+                <div class="input-group">
+                  <label for="gatewaySortOrder">Sort Order</label>
+                  <div class="select-wrapper">
+                    <select id="gatewaySortOrder" class="gateway-dropdown">
+                      <option value="desc">Descending (Highest First)</option>
+                      <option value="asc">Ascending (Lowest First)</option>
+                    </select>
+                    <svg class="select-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                  </div>
+                  <div class="input-description">
+                    Order gateways by stake amount
+                  </div>
+                </div>
+                <div class="input-group">
+                  <label for="gatewayCacheTTL">Gateway Cache TTL (seconds)</label>
+                  <div class="slider-group">
+                    <input type="range" id="gatewayCacheTTL" min="300" max="7200" value="3600" step="300" class="slider">
+                    <span class="slider-value" id="gatewayCacheTTLValue">3600</span>
+                  </div>
+                  <div class="input-description">
+                    How long to cache gateway information (5 minutes to 2 hours)
+                  </div>
+                </div>
+              </div>
+            </div>
+            
         </section>
 
         <!-- Network Configuration -->
@@ -445,34 +497,6 @@
                   <button class="secondary-button" id="resetToDefaults">Reset to Defaults</button>
                   <button class="primary-button" id="saveAdvancedSettings">Save Changes</button>
                 </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- Cache Settings -->
-        <section class="settings-section cache-config">
-          <div class="section-header">
-            <h2>Cache Settings</h2>
-            <p>Configure verification cache behavior</p>
-          </div>
-          
-          <div class="cache-options">
-            <div class="option-card">
-              <div class="option-header">
-                <div class="option-icon">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-                  </svg>
-                </div>
-                <div class="option-info">
-                  <h3>Verification Cache</h3>
-                  <p>Speed up repeat verifications by caching results</p>
-                </div>
-                <label class="switch">
-                  <input type="checkbox" id="enableVerificationCache" checked>
-                  <span class="slider"></span>
-                </label>
               </div>
             </div>
           </div>

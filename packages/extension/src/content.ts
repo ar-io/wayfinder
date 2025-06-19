@@ -172,9 +172,14 @@ async function processArUrl(
   attribute: string,
 ): Promise<void> {
   // Check if verification indicators are enabled
-  const { showVerificationIndicators = true } = await new Promise((resolve) => {
-    chrome.storage.local.get(['showVerificationIndicators'], resolve);
-  });
+  const storage = await new Promise<{ showVerificationIndicators?: boolean }>(
+    (resolve) => {
+      chrome.storage.local.get(['showVerificationIndicators'], resolve);
+    },
+  );
+
+  const showVerificationIndicators =
+    storage.showVerificationIndicators !== false;
 
   // Add pending indicator if enabled
   if (showVerificationIndicators) {

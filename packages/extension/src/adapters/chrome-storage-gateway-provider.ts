@@ -1,4 +1,5 @@
 import { AoGatewayWithAddress } from '@ar.io/sdk/web';
+import { NetworkGatewaysProvider } from '@ar.io/wayfinder-core';
 /**
  * WayFinder
  * Copyright (C) 2022-2025 Permanent Data Solutions, Inc. All Rights Reserved.
@@ -16,7 +17,7 @@ import { AoGatewayWithAddress } from '@ar.io/sdk/web';
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import type { GatewaysProvider } from '@ar.io/wayfinder-core';
+// import type { GatewaysProvider } from '@ar.io/wayfinder-core';
 import { GatewayRegistry } from '../types';
 
 /**
@@ -24,7 +25,20 @@ import { GatewayRegistry } from '../types';
  * to provide gateways for the core library's routing strategies.
  * This bridges the existing extension gateway registry with the core library.
  */
-export class ChromeStorageGatewayProvider implements GatewaysProvider {
+export class ChromeStorageGatewayProvider {
+  private sortBy: 'operatorStake' | 'totalDelegatedStake';
+  private sortOrder: 'asc' | 'desc';
+
+  constructor(
+    options: {
+      sortBy?: 'operatorStake' | 'totalDelegatedStake';
+      sortOrder?: 'asc' | 'desc';
+    } = {},
+  ) {
+    this.sortBy = options.sortBy || 'operatorStake';
+    this.sortOrder = options.sortOrder || 'desc';
+  }
+
   /**
    * Gets filtered gateways from Chrome storage, excluding blacklisted and unjoined gateways
    */
@@ -47,24 +61,65 @@ export class ChromeStorageGatewayProvider implements GatewaysProvider {
       )
       .map(([, gateway]) => gateway);
 
+    // Sort gateways based on configuration
+    const sortedGateways = filteredGateways.sort((a, b) => {
+      let aValue: number;
+      let bValue: number;
+
+      if (this.sortBy === 'operatorStake') {
+        aValue = a.operatorStake || 0;
+        bValue = b.operatorStake || 0;
+      } else {
+        // totalDelegatedStake
+        aValue = a.totalDelegatedStake || 0;
+        bValue = b.totalDelegatedStake || 0;
+      }
+
+      // Apply sort order
+      if (this.sortOrder === 'asc') {
+        return aValue - bValue;
+      } else {
+        return bValue - aValue;
+      }
+    });
+
     // Convert to URL format expected by core library
-    const gateways = filteredGateways.map((gateway) => {
+    const gateways = sortedGateways.map((gateway) => {
       const { protocol, fqdn, port } = gateway.settings;
       const portSuffix =
         port && port !== (protocol === 'https' ? 443 : 80) ? `:${port}` : '';
       return new URL(`${protocol}://${fqdn}${portSuffix}`);
     });
 
-    // If no gateways are available (registry not synced or empty), provide fallback gateways
+    // If no gateways are available (registry not synced or empty), try to fetch from network
     if (gateways.length === 0) {
       console.warn(
-        '[ChromeStorageGatewayProvider] No gateways in registry, using fallback gateways',
+        '[ChromeStorageGatewayProvider] No gateways in local registry, attempting to fetch from AR.IO network',
       );
-      return [
-        new URL('https://arweave.net'),
-        new URL('https://permagate.io'),
-        new URL('https://ar-io.dev'),
-      ];
+
+      try {
+        // Try to get gateways from the AR.IO network
+        const networkProvider = new NetworkGatewaysProvider({} as any);
+        const networkGateways = await networkProvider.getGateways();
+
+        if (networkGateways.length > 0) {
+          console.log(
+            '[ChromeStorageGatewayProvider] Successfully fetched gateways from AR.IO network',
+          );
+          return networkGateways;
+        }
+      } catch (error) {
+        console.error(
+          '[ChromeStorageGatewayProvider] Failed to fetch from AR.IO network:',
+          error,
+        );
+      }
+
+      // Absolute last resort: return arweave.net
+      console.warn(
+        '[ChromeStorageGatewayProvider] Using arweave.net as last resort fallback',
+      );
+      return [new URL('https://arweave.net')];
     }
 
     return gateways;

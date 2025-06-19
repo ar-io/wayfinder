@@ -22,7 +22,7 @@ import { viteStaticCopy } from 'vite-plugin-static-copy';
 export default defineConfig({
   plugins: [
     nodePolyfills({
-      include: ["crypto", "stream", "util", "buffer"],
+      include: ['crypto', 'stream', 'util', 'buffer'],
       globals: {
         Buffer: true,
         global: true,

@@ -4,7 +4,8 @@
  */
 
 // Toast notification system
-function showToast(message, type = 'success') {
+// Exported for potential future use
+export function showToast(message, type = 'success') {
   const container = document.getElementById('toastContainer');
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
@@ -256,11 +257,31 @@ async function updateConnectionStatus() {
 
 async function testConnection() {
   try {
-    const response = await fetch('https://arweave.net/info', {
-      method: 'GET',
-      signal: AbortSignal.timeout(5000),
-    });
-    return response.ok;
+    // Try to get a gateway from local registry first
+    const { localGatewayAddressRegistry = {} } = await chrome.storage.local.get(
+      ['localGatewayAddressRegistry'],
+    );
+    const gateways = Object.values(localGatewayAddressRegistry)
+      .filter((g) => g.status === 'joined' && g.settings?.fqdn)
+      .sort((a, b) => (b.operatorStake || 0) - (a.operatorStake || 0));
+
+    if (gateways.length > 0) {
+      // Use the top gateway from registry
+      const gateway = gateways[0];
+      const url = `${gateway.settings.protocol || 'https'}://${gateway.settings.fqdn}/info`;
+      const response = await fetch(url, {
+        method: 'GET',
+        signal: AbortSignal.timeout(5000),
+      });
+      return response.ok;
+    } else {
+      // Fallback to arweave.net as last resort
+      const response = await fetch('https://arweave.net/info', {
+        method: 'GET',
+        signal: AbortSignal.timeout(5000),
+      });
+      return response.ok;
+    }
   } catch {
     return false;
   }

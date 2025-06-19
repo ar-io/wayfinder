@@ -1,23 +1,23 @@
 # Wayfinder Core
 
-`@ar.io/wayfinder` is the core library for the Wayfinder project. It provides the core functionality for routing and verifying data through the ar.io network.
+`@ar.io/wayfinder-core` is the core library for the Wayfinder project. It provides the core functionality for routing and verifying data through the ar.io network.
 
 ## Quick Start
 
 ### Installation
 
-`@ar.io/wayfinder` is currently available as a beta release. To install the latest version, run:
+`@ar.io/wayfinder-core` is currently available as an alpha release. To install the latest version, run:
 
 ```bash
-npm install @ar.io/wayfinder@beta
+npm install @ar.io/wayfinder-core
 # or
-yarn add @ar.io/wayfinder@beta
+yarn add @ar.io/wayfinder-core
 ```
 
 ### Basic Usage
 
 ```javascript
-import { Wayfinder } from '@ar.io/wayfinder';
+import { Wayfinder } from '@ar.io/wayfinder-core';
 
 // create a new Wayfinder instance with default settings
 const wayfinder = new Wayfinder();
@@ -35,6 +35,9 @@ Example:
 > _Wayfinder client that caches the top 10 gateways by operator stake from the ARIO Network for 1 hour and uses the fastest pinging routing strategy to select the fastest gateway for requests._
 
 ```javascript
+import { Wayfinder, NetworkGatewaysProvider, SimpleCacheGatewaysProvider, FastestPingRoutingStrategy, HashVerificationStrategy } from '@ar.io/wayfinder-core';
+import { ARIO } from '@ar.io/sdk';
+
 const wayfinder = new Wayfinder({
   // cache the top 10 gateways by operator stake from the ARIO Network for 1 hour
   gatewaysProvider: new SimpleCacheGatewaysProvider({
@@ -53,9 +56,7 @@ const wayfinder = new Wayfinder({
   }),
   // verify the data using the hash of the data against a list of trusted gateways
   verificationStrategy: new HashVerificationStrategy({
-    trustedHashProvider: new TrustedGatewaysProvider({
-      trustedGateways: ['https://permagate.io'],
-    }),
+    trustedGateways: ['https://permagate.io'],
   }),
 });
 ```
@@ -159,7 +160,6 @@ Selects the fastest gateway based simple HEAD request to the specified route.
 ```javascript
 const routingStrategy = new FastestPingRoutingStrategy({
   timeoutMs: 1000,
-  probePath: '/ar-io/info',
 });
 
 // will select the fastest gateway from the list based on the ping time of the /ar-io/info route
@@ -176,24 +176,18 @@ Wayfinder includes verification mechanisms to ensure the integrity of retrieved 
 | ------------------------------- | ---------- | ----------- | -------- | ------------------------------------------------------------------------------------------------------------ |
 | `HashVerificationStrategy`      | Low        | High        | Low      | Verifies data integrity using SHA-256 hash comparison of the returned data                                   |
 | `DataRootVerificationStrategy`  | Medium     | Medium      | Low      | Verifies data using Arweave by computing the data root for the transaction (most useful for L1 transactions) |
-| `SignatureVerificationStrategy` | Medium     | Medium      | Medium   | Verifies signature of an Arweave transaction or data item using offsets provided by trusted gateway          |
+| `SignatureVerificationStrategy` | Medium     | Medium      | Medium   | Verifies signature of an Arweave transaction or data item using signature data provided by the Arweave network (L1 transactions), or trusted gateways (ANS-104 data items)|
 
 ### HashVerificationStrategy
 
 Verifies data integrity using SHA-256 hash comparison. This is the default verification strategy and is recommended for most users looking for a balance between security and performance.
 
 ```javascript
-import {
-  HashVerificationStrategy,
-  StaticGatewaysProvider,
-  TrustedGatewaysHashProvider,
-} from '@ar-io/sdk';
+import { Wayfinder, HashVerificationStrategy } from '@ar.io/wayfinder-core';
 
 const wayfinder = new Wayfinder({
   verificationStrategy: new HashVerificationStrategy({
-    trustedHashProvider: new TrustedGatewaysProvider({
-      trustedGateways: ['https://permagate.io'],
-    }),
+    trustedGateways: ['https://permagate.io'],
   }),
 });
 ```
@@ -203,17 +197,25 @@ const wayfinder = new Wayfinder({
 Verifies data integrity using Arweave by computing the data root for the transaction. This is useful for L1 transactions and is recommended for users who want to ensure the integrity of their data.
 
 ```javascript
-import {
-  DataRootVerificationStrategy,
-  StaticGatewaysProvider,
-  TrustedGatewaysDataRootProvider,
-} from '@ar-io/sdk';
+import { Wayfinder, DataRootVerificationStrategy } from '@ar.io/wayfinder-core';
 
 const wayfinder = new Wayfinder({
   verificationStrategy: new DataRootVerificationStrategy({
-    trustedDataRootProvider: new TrustedGatewaysProvider({
-      trustedGateways: ['https://permagate.io'],
-    }),
+    trustedGateways: ['https://permagate.io'],
+  }),
+});
+```
+
+### SignatureVerificationStrategy
+
+Verifies signatures of Arweave transactions and data items. Headers are retrieved from trusted gateways for use during verification. For a transaction, its data root is computed while streaming its data and then utilized alongside its headers for verification. For data items, the ANS-104 deep hash method of signature verification is used.
+
+```javascript
+import { Wayfinder, SignatureVerificationStrategy } from '@ar-io/sdk';
+
+const wayfinder = new Wayfinder({
+  verificationStrategy: new SignatureVerificationStrategy({
+    trustedGateways: ['https://permagate.io'],
   }),
 });
 ```

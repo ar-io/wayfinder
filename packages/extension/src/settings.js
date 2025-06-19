@@ -5,7 +5,6 @@
 
 // Import wayfinder-core modules for gateway discovery
 import { NetworkGatewaysProvider } from '@ar.io/wayfinder-core';
-import { ARIO } from '@ar.io/sdk';
 
 // Toast notification system
 function showToast(message, type = 'success') {
@@ -160,14 +159,29 @@ function setupEventHandlers() {
   document.getElementById('viewLogs')?.addEventListener('click', viewLogs);
 
   // Trusted gateway settings
-  document.querySelectorAll('input[name="verificationGatewayMode"]').forEach((radio) => {
-    radio.addEventListener('change', handleVerificationGatewayModeChange);
-  });
+  document
+    .querySelectorAll('input[name="verificationGatewayMode"]')
+    .forEach((radio) => {
+      radio.addEventListener('change', handleVerificationGatewayModeChange);
+    });
 
-  document.getElementById('verificationGatewayCount')?.addEventListener('input', handleGatewayCountChange);
+  document
+    .getElementById('verificationGatewayCount')
+    ?.addEventListener('input', handleGatewayCountChange);
 
   // Setup trusted gateway settings on load
   setupTrustedGatewaySettings();
+
+  // Gateway provider settings
+  document
+    .getElementById('gatewaySortBy')
+    ?.addEventListener('change', handleGatewaySortByChange);
+  document
+    .getElementById('gatewaySortOrder')
+    ?.addEventListener('change', handleGatewaySortOrderChange);
+  document
+    .getElementById('gatewayCacheTTL')
+    ?.addEventListener('input', handleGatewayCacheTTLChange);
 }
 
 function setupExpandableSections() {
@@ -181,28 +195,32 @@ function setupExpandableSections() {
 
 function setupRoutingStrategyDetails() {
   // Only select strategy options within the routing section
-  document.querySelectorAll('.routing-strategy-selector .strategy-option').forEach((option) => {
-    const radio = option.querySelector('input[type="radio"]');
-    const header = option.querySelector('.strategy-header');
+  document
+    .querySelectorAll('.routing-strategy-selector .strategy-option')
+    .forEach((option) => {
+      const radio = option.querySelector('input[type="radio"]');
+      const header = option.querySelector('.strategy-header');
 
-    header.addEventListener('click', () => {
-      radio.checked = true;
-      // Create a synthetic event that will trigger saving
-      handleRoutingStrategyChange({ target: radio, isTrusted: true });
+      header.addEventListener('click', () => {
+        radio.checked = true;
+        // Create a synthetic event that will trigger saving
+        handleRoutingStrategyChange({ target: radio, isTrusted: true });
+      });
     });
-  });
-  
+
   // Setup click handlers for verification strategy options separately
-  document.querySelectorAll('.verification-strategy-selector .strategy-option').forEach((option) => {
-    const radio = option.querySelector('input[type="radio"]');
-    const header = option.querySelector('.strategy-header');
+  document
+    .querySelectorAll('.verification-strategy-selector .strategy-option')
+    .forEach((option) => {
+      const radio = option.querySelector('input[type="radio"]');
+      const header = option.querySelector('.strategy-header');
 
-    header.addEventListener('click', () => {
-      radio.checked = true;
-      // Create a synthetic event that will trigger saving
-      handleVerificationStrategyChange({ target: radio, isTrusted: true });
+      header.addEventListener('click', () => {
+        radio.checked = true;
+        // Create a synthetic event that will trigger saving
+        handleVerificationStrategyChange({ target: radio, isTrusted: true });
+      });
     });
-  });
 }
 
 function setupVerificationModeExplanations() {
@@ -240,6 +258,9 @@ async function loadCurrentSettings() {
       'processId',
       'aoCuUrl',
       'enableVerificationCache',
+      'gatewaySortBy',
+      'gatewaySortOrder',
+      'gatewayCacheTTL',
     ]);
 
     // Load static gateway URL if set
@@ -371,6 +392,31 @@ async function loadCurrentSettings() {
     if (cacheEnabledEl) {
       cacheEnabledEl.checked = cacheEnabled;
     }
+
+    // Load gateway provider settings
+    const gatewaySortBy = settings.gatewaySortBy || 'operatorStake';
+    const gatewaySortByEl = document.getElementById('gatewaySortBy');
+    if (gatewaySortByEl) {
+      gatewaySortByEl.value = gatewaySortBy;
+    }
+
+    const gatewaySortOrder = settings.gatewaySortOrder || 'desc';
+    const gatewaySortOrderEl = document.getElementById('gatewaySortOrder');
+    if (gatewaySortOrderEl) {
+      gatewaySortOrderEl.value = gatewaySortOrder;
+    }
+
+    const gatewayCacheTTL = settings.gatewayCacheTTL || 3600;
+    const gatewayCacheTTLEl = document.getElementById('gatewayCacheTTL');
+    if (gatewayCacheTTLEl) {
+      gatewayCacheTTLEl.value = gatewayCacheTTL;
+    }
+    const gatewayCacheTTLValueEl = document.getElementById(
+      'gatewayCacheTTLValue',
+    );
+    if (gatewayCacheTTLValueEl) {
+      gatewayCacheTTLValueEl.textContent = gatewayCacheTTL;
+    }
   } catch (error) {
     console.error('Error loading settings:', error);
     showToast('Error loading settings', 'error');
@@ -414,11 +460,31 @@ async function updateConnectionStatus() {
 
 async function testConnection() {
   try {
-    const response = await fetch('https://arweave.net/info', {
-      method: 'GET',
-      signal: AbortSignal.timeout(5000),
-    });
-    return response.ok;
+    // Try to get a gateway from local registry first
+    const { localGatewayAddressRegistry = {} } = await chrome.storage.local.get(
+      ['localGatewayAddressRegistry'],
+    );
+    const gateways = Object.values(localGatewayAddressRegistry)
+      .filter((g) => g.status === 'joined' && g.settings?.fqdn)
+      .sort((a, b) => (b.operatorStake || 0) - (a.operatorStake || 0));
+
+    if (gateways.length > 0) {
+      // Use the top gateway from registry
+      const gateway = gateways[0];
+      const url = `${gateway.settings.protocol || 'https'}://${gateway.settings.fqdn}/info`;
+      const response = await fetch(url, {
+        method: 'GET',
+        signal: AbortSignal.timeout(5000),
+      });
+      return response.ok;
+    } else {
+      // Fallback to arweave.net as last resort
+      const response = await fetch('https://arweave.net/info', {
+        method: 'GET',
+        signal: AbortSignal.timeout(5000),
+      });
+      return response.ok;
+    }
   } catch {
     return false;
   }
@@ -428,7 +494,9 @@ async function testConnection() {
 
 async function handleRoutingStrategyChange(event) {
   const strategy = event.target.value;
-  console.log(`[SETTINGS] Routing strategy changed to: ${strategy}, isTrusted: ${event.isTrusted}`);
+  console.log(
+    `[SETTINGS] Routing strategy changed to: ${strategy}, isTrusted: ${event.isTrusted}`,
+  );
 
   // Show/hide static gateway configuration
   const staticConfig = document.querySelector('.static-gateway-config');
@@ -445,7 +513,7 @@ async function handleRoutingStrategyChange(event) {
   // Only save if this is a real user change (not initialization)
   if (event.isTrusted) {
     console.log(`[SETTINGS] Saving routing strategy: ${strategy}`);
-    
+
     // Save the routing strategy
     await chrome.storage.local.set({ routingMethod: strategy });
 
@@ -489,7 +557,6 @@ async function handleRoutingStrategyChange(event) {
     console.log(`[SETTINGS] Skipping save for untrusted event`);
   }
 }
-
 
 async function testStaticGateway() {
   const url = document.getElementById('staticGatewayUrl').value;
@@ -537,9 +604,9 @@ async function testStaticGateway() {
 // Get available gateways from existing synced registry
 async function fetchAvailableGateways() {
   try {
-    const { localGatewayAddressRegistry = {} } = await chrome.storage.local.get([
-      'localGatewayAddressRegistry',
-    ]);
+    const { localGatewayAddressRegistry = {} } = await chrome.storage.local.get(
+      ['localGatewayAddressRegistry'],
+    );
 
     // Convert to array format with stake information
     const gateways = Object.entries(localGatewayAddressRegistry)
@@ -552,7 +619,7 @@ async function fetchAvailableGateways() {
         totalDelegatedStake: gateway.totalDelegatedStake || 0,
         status: gateway.status,
       }))
-      .filter(gateway => gateway.status === 'joined' && gateway.fqdn) // Only joined gateways
+      .filter((gateway) => gateway.status === 'joined' && gateway.fqdn) // Only joined gateways
       .sort((a, b) => {
         // Sort by total stake (operator + delegated)
         const stakeA = a.operatorStake + a.totalDelegatedStake;
@@ -564,12 +631,32 @@ async function fetchAvailableGateways() {
     return gateways;
   } catch (error) {
     console.error('Error fetching gateways from local registry:', error);
-    // Fallback to basic gateway list
+    // Try to fetch from AR.IO network as fallback
+    try {
+      const networkProvider = new NetworkGatewaysProvider();
+      const networkGateways = await networkProvider.getGateways();
+
+      if (networkGateways.length > 0) {
+        // Convert network gateways to the expected format
+        return networkGateways.slice(0, 10).map((url, index) => ({
+          fqdn: url.hostname,
+          protocol: url.protocol.slice(0, -1), // Remove trailing ':'
+          operatorStake: 1000 - index * 100, // Fake stake for sorting
+          totalDelegatedStake: 0,
+        }));
+      }
+    } catch (networkError) {
+      console.error('Failed to fetch from AR.IO network:', networkError);
+    }
+
+    // Absolute last resort - return arweave.net
     return [
-      { fqdn: 'arweave.net', protocol: 'https', operatorStake: 1000, totalDelegatedStake: 0 },
-      { fqdn: 'permagate.io', protocol: 'https', operatorStake: 500, totalDelegatedStake: 0 },
-      { fqdn: 'g8way.io', protocol: 'https', operatorStake: 300, totalDelegatedStake: 0 },
-      { fqdn: 'ar-io.dev', protocol: 'https', operatorStake: 200, totalDelegatedStake: 0 },
+      {
+        fqdn: 'arweave.net',
+        protocol: 'https',
+        operatorStake: 1,
+        totalDelegatedStake: 0,
+      },
     ];
   }
 }
@@ -601,11 +688,12 @@ async function populateGatewayDropdown() {
       const option = document.createElement('option');
       const url = `${gateway.protocol}://${gateway.fqdn}${gateway.port && gateway.port !== (gateway.protocol === 'https' ? 443 : 80) ? `:${gateway.port}` : ''}`;
       option.value = url;
-      
+
       // Format stake for display (convert from millio units to readable format)
       const totalStake = gateway.operatorStake + gateway.totalDelegatedStake;
-      const stakeDisplay = totalStake > 0 ? formatStake(totalStake) : 'No stake';
-      
+      const stakeDisplay =
+        totalStake > 0 ? formatStake(totalStake) : 'No stake';
+
       // Display format: "gateway.com • 1.2M IO"
       option.textContent = `${gateway.fqdn} • ${stakeDisplay}`;
       dropdown.appendChild(option);
@@ -1092,15 +1180,17 @@ async function setupTrustedGatewaySettings() {
   const {
     verificationGatewayMode = 'automatic',
     verificationGatewayCount = 3,
-    verificationTrustedGateways = []
+    verificationTrustedGateways = [],
   } = await chrome.storage.local.get([
     'verificationGatewayMode',
     'verificationGatewayCount',
-    'verificationTrustedGateways'
+    'verificationTrustedGateways',
   ]);
 
   // Set mode
-  const modeRadio = document.querySelector(`input[name="verificationGatewayMode"][value="${verificationGatewayMode}"]`);
+  const modeRadio = document.querySelector(
+    `input[name="verificationGatewayMode"][value="${verificationGatewayMode}"]`,
+  );
   if (modeRadio) {
     modeRadio.checked = true;
   }
@@ -1125,22 +1215,22 @@ async function setupTrustedGatewaySettings() {
 
 async function handleVerificationGatewayModeChange(event) {
   const mode = event.target.value;
-  
+
   await chrome.storage.local.set({ verificationGatewayMode: mode });
-  
+
   updateGatewayModeUI(mode);
   await updateTrustedGatewaysPreview();
-  
+
   // Reset wayfinder to apply changes
   await chrome.runtime.sendMessage({ message: 'resetWayfinder' });
-  
+
   showToast(`Verification gateway mode changed to ${mode}`, 'success');
 }
 
 function updateGatewayModeUI(mode) {
   const automaticSettings = document.getElementById('automaticGatewaySettings');
   const manualSettings = document.getElementById('manualGatewaySettings');
-  
+
   if (mode === 'automatic') {
     automaticSettings.style.display = 'block';
     manualSettings.style.display = 'none';
@@ -1148,24 +1238,26 @@ function updateGatewayModeUI(mode) {
     automaticSettings.style.display = 'none';
     manualSettings.style.display = 'block';
   }
-  
+
   // Update active state on mode options
-  document.querySelectorAll('.gateway-mode-selector .mode-option').forEach(option => {
-    if (option.dataset.mode === mode) {
-      option.classList.add('active');
-    } else {
-      option.classList.remove('active');
-    }
-  });
+  document
+    .querySelectorAll('.gateway-mode-selector .mode-option')
+    .forEach((option) => {
+      if (option.dataset.mode === mode) {
+        option.classList.add('active');
+      } else {
+        option.classList.remove('active');
+      }
+    });
 }
 
 async function handleGatewayCountChange(event) {
   const count = parseInt(event.target.value);
   document.getElementById('gatewayCountValue').textContent = count;
-  
+
   await chrome.storage.local.set({ verificationGatewayCount: count });
   await updateTrustedGatewaysPreview();
-  
+
   // Reset wayfinder to apply changes
   await chrome.runtime.sendMessage({ message: 'resetWayfinder' });
 }
@@ -1173,10 +1265,12 @@ async function handleGatewayCountChange(event) {
 async function populateGatewaySelectionList(selectedGateways) {
   const listEl = document.getElementById('gatewaySelectionList');
   if (!listEl) return;
-  
+
   // Get gateways from registry
-  const { localGatewayAddressRegistry = {} } = await chrome.storage.local.get(['localGatewayAddressRegistry']);
-  
+  const { localGatewayAddressRegistry = {} } = await chrome.storage.local.get([
+    'localGatewayAddressRegistry',
+  ]);
+
   const gateways = Object.entries(localGatewayAddressRegistry)
     .map(([address, gateway]) => ({
       address,
@@ -1187,40 +1281,41 @@ async function populateGatewaySelectionList(selectedGateways) {
       totalDelegatedStake: gateway.totalDelegatedStake || 0,
       status: gateway.status,
     }))
-    .filter(gateway => gateway.status === 'joined' && gateway.fqdn)
+    .filter((gateway) => gateway.status === 'joined' && gateway.fqdn)
     .sort((a, b) => {
       const stakeA = a.operatorStake + a.totalDelegatedStake;
       const stakeB = b.operatorStake + b.totalDelegatedStake;
       return stakeB - stakeA;
     })
     .slice(0, 50); // Show top 50
-  
+
   listEl.innerHTML = '';
-  
-  gateways.forEach(gateway => {
-    const port = gateway.port && gateway.port !== (gateway.protocol === 'https' ? 443 : 80) 
-      ? `:${gateway.port}` 
-      : '';
+
+  gateways.forEach((gateway) => {
+    const port =
+      gateway.port && gateway.port !== (gateway.protocol === 'https' ? 443 : 80)
+        ? `:${gateway.port}`
+        : '';
     const url = `${gateway.protocol}://${gateway.fqdn}${port}`;
     const totalStake = gateway.operatorStake + gateway.totalDelegatedStake;
-    
+
     const checkboxDiv = document.createElement('div');
     checkboxDiv.className = 'gateway-checkbox';
-    
+
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
     checkbox.id = `gateway-${gateway.address}`;
     checkbox.value = url;
     checkbox.checked = selectedGateways.includes(url);
     checkbox.addEventListener('change', handleGatewaySelectionChange);
-    
+
     const label = document.createElement('label');
     label.htmlFor = `gateway-${gateway.address}`;
     label.innerHTML = `
       <span class="gateway-name">${gateway.fqdn}</span>
       <span class="gateway-stake">${formatStake(totalStake)}</span>
     `;
-    
+
     checkboxDiv.appendChild(checkbox);
     checkboxDiv.appendChild(label);
     listEl.appendChild(checkboxDiv);
@@ -1228,12 +1323,16 @@ async function populateGatewaySelectionList(selectedGateways) {
 }
 
 async function handleGatewaySelectionChange() {
-  const checkboxes = document.querySelectorAll('#gatewaySelectionList input[type="checkbox"]:checked');
-  const selectedGateways = Array.from(checkboxes).map(cb => cb.value);
-  
-  await chrome.storage.local.set({ verificationTrustedGateways: selectedGateways });
+  const checkboxes = document.querySelectorAll(
+    '#gatewaySelectionList input[type="checkbox"]:checked',
+  );
+  const selectedGateways = Array.from(checkboxes).map((cb) => cb.value);
+
+  await chrome.storage.local.set({
+    verificationTrustedGateways: selectedGateways,
+  });
   await updateTrustedGatewaysPreview();
-  
+
   // Reset wayfinder to apply changes
   await chrome.runtime.sendMessage({ message: 'resetWayfinder' });
 }
@@ -1241,25 +1340,25 @@ async function handleGatewaySelectionChange() {
 async function updateTrustedGatewaysPreview() {
   const previewEl = document.getElementById('trustedGatewaysList');
   if (!previewEl) return;
-  
+
   const {
     verificationGatewayMode = 'automatic',
     verificationGatewayCount = 3,
     verificationTrustedGateways = [],
-    localGatewayAddressRegistry = {}
+    localGatewayAddressRegistry = {},
   } = await chrome.storage.local.get([
     'verificationGatewayMode',
     'verificationGatewayCount',
     'verificationTrustedGateways',
-    'localGatewayAddressRegistry'
+    'localGatewayAddressRegistry',
   ]);
-  
+
   let trustedGateways = [];
-  
+
   if (verificationGatewayMode === 'automatic') {
     // Get top N gateways by stake
     trustedGateways = Object.entries(localGatewayAddressRegistry)
-      .map(([address, gateway]) => ({
+      .map(([_address, gateway]) => ({
         fqdn: gateway.settings?.fqdn,
         protocol: gateway.settings?.protocol || 'https',
         port: gateway.settings?.port,
@@ -1267,7 +1366,7 @@ async function updateTrustedGatewaysPreview() {
         totalDelegatedStake: gateway.totalDelegatedStake || 0,
         status: gateway.status,
       }))
-      .filter(gateway => gateway.status === 'joined' && gateway.fqdn)
+      .filter((gateway) => gateway.status === 'joined' && gateway.fqdn)
       .sort((a, b) => {
         const stakeA = a.operatorStake + a.totalDelegatedStake;
         const stakeB = b.operatorStake + b.totalDelegatedStake;
@@ -1276,33 +1375,36 @@ async function updateTrustedGatewaysPreview() {
       .slice(0, verificationGatewayCount);
   } else {
     // Use manually selected gateways
-    trustedGateways = verificationTrustedGateways.map(url => {
-      try {
-        const urlObj = new URL(url);
-        // Find the gateway info from registry
-        const gatewayInfo = Object.values(localGatewayAddressRegistry).find(g => 
-          g.settings?.fqdn === urlObj.hostname
-        );
-        return {
-          fqdn: urlObj.hostname,
-          operatorStake: gatewayInfo?.operatorStake || 0,
-          totalDelegatedStake: gatewayInfo?.totalDelegatedStake || 0,
-        };
-      } catch {
-        return null;
-      }
-    }).filter(Boolean);
+    trustedGateways = verificationTrustedGateways
+      .map((url) => {
+        try {
+          const urlObj = new URL(url);
+          // Find the gateway info from registry
+          const gatewayInfo = Object.values(localGatewayAddressRegistry).find(
+            (g) => g.settings?.fqdn === urlObj.hostname,
+          );
+          return {
+            fqdn: urlObj.hostname,
+            operatorStake: gatewayInfo?.operatorStake || 0,
+            totalDelegatedStake: gatewayInfo?.totalDelegatedStake || 0,
+          };
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean);
   }
-  
+
   // Update preview
   previewEl.innerHTML = '';
-  
+
   if (trustedGateways.length === 0) {
-    previewEl.innerHTML = '<div class="gateway-preview-item"><span class="gateway-name">No gateways selected</span></div>';
+    previewEl.innerHTML =
+      '<div class="gateway-preview-item"><span class="gateway-name">No gateways selected</span></div>';
     return;
   }
-  
-  trustedGateways.forEach(gateway => {
+
+  trustedGateways.forEach((gateway) => {
     const totalStake = gateway.operatorStake + gateway.totalDelegatedStake;
     const item = document.createElement('div');
     item.className = 'gateway-preview-item';
@@ -1312,4 +1414,50 @@ async function updateTrustedGatewaysPreview() {
     `;
     previewEl.appendChild(item);
   });
+}
+
+// Gateway provider settings handlers
+async function handleGatewaySortByChange(event) {
+  const sortBy = event.target.value;
+  await chrome.storage.local.set({ gatewaySortBy: sortBy });
+
+  try {
+    await chrome.runtime.sendMessage({ message: 'resetWayfinder' });
+    showToast('Gateway sorting updated', 'success');
+  } catch (error) {
+    console.error('Error updating gateway sort by:', error);
+    showToast('Failed to update gateway sorting', 'error');
+  }
+}
+
+async function handleGatewaySortOrderChange(event) {
+  const sortOrder = event.target.value;
+  await chrome.storage.local.set({ gatewaySortOrder: sortOrder });
+
+  try {
+    await chrome.runtime.sendMessage({ message: 'resetWayfinder' });
+    showToast('Gateway sort order updated', 'success');
+  } catch (error) {
+    console.error('Error updating gateway sort order:', error);
+    showToast('Failed to update gateway sort order', 'error');
+  }
+}
+
+async function handleGatewayCacheTTLChange(event) {
+  const ttl = parseInt(event.target.value);
+  await chrome.storage.local.set({ gatewayCacheTTL: ttl });
+
+  // Update the display value
+  const valueEl = document.getElementById('gatewayCacheTTLValue');
+  if (valueEl) {
+    valueEl.textContent = ttl;
+  }
+
+  try {
+    await chrome.runtime.sendMessage({ message: 'resetWayfinder' });
+    showToast(`Gateway cache TTL set to ${ttl} seconds`, 'success');
+  } catch (error) {
+    console.error('Error updating gateway cache TTL:', error);
+    showToast('Failed to update gateway cache TTL', 'error');
+  }
 }
