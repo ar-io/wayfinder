@@ -44,8 +44,8 @@ export const useWayfinderRequest = (): Wayfinder['request'] => {
 };
 
 /**
- * Hook for resolving ar:// URLs to WayFinder URLs using the Wayfinder instance (e.g. ar://txId -> https://<some-gateway>/txId)
- * @param url - The ar:// URL to resolve
+ * Hook for resolving a transaction ID to a WayFinder URL using the Wayfinder instance (e.g. txId -> https://<some-gateway>/txId)
+ * @param txId - The transaction ID to resolve
  * @returns Object containing the resolved URL and loading state
  */
 export const useWayfinderUrl = ({ txId }: { txId: string }) => {
@@ -80,44 +80,5 @@ export const useWayfinderUrl = ({ txId }: { txId: string }) => {
     })();
   }, [txId, wayfinder]);
 
-  return { resolvedUrl, isLoading, error };
-};
-
-/**
- * Hook for fetching data via WayFinder (e.g. ar://txId -> routed gateway -> data)
- * @param url - The ar:// URL to fetch data from
- * @returns Object containing the data, loading state, and error
- */
-export const useWayfinderData = ({ txId }: { txId: string }) => {
-  const { wayfinder } = useWayfinder();
-  const [data, setData] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-
-  useEffect(() => {
-    if (!txId) {
-      setData(null);
-      setError(null);
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-
-    (async () => {
-      try {
-        const response = await wayfinder.request(`ar://${txId}`);
-        const responseData = await response.text();
-        setData(responseData);
-      } catch (err) {
-        setError(
-          err instanceof Error ? err : new Error('Failed to fetch data'),
-        );
-      } finally {
-        setIsLoading(false);
-      }
-    })();
-  }, [txId, wayfinder]);
-
-  return { data, isLoading, error };
+  return { resolvedUrl, isLoading, error, txId };
 };
