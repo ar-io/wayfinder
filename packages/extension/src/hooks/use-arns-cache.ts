@@ -15,8 +15,10 @@ export interface ArNSCacheEntry {
   ttl: number; // Time to live in milliseconds
 }
 
-// Default TTL for ArNS cache entries (1 hour)
-const DEFAULT_ARNS_TTL = 60 * 60 * 1000;
+import { CACHE_DEFAULTS } from '../config/defaults';
+
+// Default TTL for ArNS cache entries
+const DEFAULT_ARNS_TTL = CACHE_DEFAULTS.arnsDefaultTTL;
 
 /**
  * Get cached ArNS resolution
@@ -185,5 +187,5 @@ export async function cleanupArNSCache(): Promise<void> {
   }
 }
 
-// Set up periodic cleanup (every hour)
-setInterval(cleanupArNSCache, 60 * 60 * 1000);
+// Set up periodic cleanup
+setInterval(cleanupArNSCache, CACHE_DEFAULTS.arnsDefaultTTL);
