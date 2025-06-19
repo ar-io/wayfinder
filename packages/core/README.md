@@ -91,8 +91,25 @@ const wayfinder = new Wayfinder({
       },
     },
   },
+  // telemetry configuration
+  telemetry: {
+    enabled: true,
+    // sample 50% of requests
+    sampleRate: 0.5,
+    // honeycomb API key and dataset if you want to collect traces
+    apiKey: '<YOUR_API_KEY>',
+    dataset: 'wayfinder',
+  },
 });
 ```
+
+### Telemetry
+
+Wayfinder can optionally emit OpenTelemetry spans for every request. By default,
+telemetry collection is enabled and data is sent to Honeycomb via OTLP. Each
+request creates a span that records routing and verification events as
+OpenTelemetry events. You can control this behaviour with the `telemetry`
+option.
 
 ## ar:// Protocol
 

@@ -141,6 +141,26 @@ export interface WayfinderOptions {
      */
     strategy?: RoutingStrategy;
   };
+
+  /**
+   * Telemetry configuration used to initialize OpenTelemetry tracing
+   */
+  telemetry?: TelemetryConfig;
+}
+
+export interface TelemetryConfig {
+  /** Enable or disable telemetry collection */
+  enabled?: boolean;
+  /** Sampling ratio between 0 and 1 */
+  sampleRate?: number;
+  /** Honeycomb API key */
+  apiKey?: string;
+  /** Honeycomb dataset name */
+  dataset?: string;
+  /** Service name used for traces */
+  serviceName?: string;
+  /** Optional custom OTLP exporter URL */
+  exporterUrl?: string;
 }
 
 // Interfaces
