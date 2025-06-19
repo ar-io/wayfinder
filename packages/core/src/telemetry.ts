@@ -54,7 +54,7 @@ export const initTelemetry = (
   const resource = resourceFromAttributes({
     [ATTR_SERVICE_NAME]: config.serviceName ?? 'wayfinder',
   });
-  
+
   const provider = isBrowser
     ? new WebTracerProvider({
         sampler,

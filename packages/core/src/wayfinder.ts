@@ -645,12 +645,12 @@ export class Wayfinder {
     });
 
     this.telemetrySettings = {
-      enabled: telemetrySettings?.enabled ?? true,
+      enabled: telemetrySettings?.enabled ?? false,
       sampleRate: telemetrySettings?.sampleRate ?? 1,
-      apiKey: telemetrySettings?.apiKey,
-      dataset: telemetrySettings?.dataset ?? 'wayfinder',
       serviceName: telemetrySettings?.serviceName ?? 'wayfinder',
-      exporterUrl: telemetrySettings?.exporterUrl,
+      exporterUrl:
+        telemetrySettings?.exporterUrl ??
+        '<TODO: some hosted OTEL event proxy service>',
     };
 
     this.tracer = initTelemetry(this.telemetrySettings);
