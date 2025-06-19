@@ -1,19 +1,35 @@
+/**
+ * WayFinder
+ * Copyright (C) 2022-2025 Permanent Data Solutions, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 import {
-  trace,
   DiagConsoleLogger,
-  diag,
   DiagLogLevel,
   type Tracer,
+  diag,
+  trace,
 } from '@opentelemetry/api';
-import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
+import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
+import { resourceFromAttributes } from '@opentelemetry/resources';
 import {
   BatchSpanProcessor,
-  ParentBasedSampler,
   TraceIdRatioBasedSampler,
 } from '@opentelemetry/sdk-trace-base';
-import { Resource } from '@opentelemetry/resources';
-import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
-import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
+import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
+import { WebTracerProvider } from '@opentelemetry/sdk-trace-web';
+import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
 
 import type { TelemetryConfig } from './types.js';
 
@@ -24,16 +40,6 @@ export const initTelemetry = (
 
   diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.ERROR);
 
-  const provider = new NodeTracerProvider({
-    sampler: new ParentBasedSampler({
-      root: new TraceIdRatioBasedSampler(config.sampleRate ?? 1),
-    }),
-    resource: new Resource({
-      [SemanticResourceAttributes.SERVICE_NAME]:
-        config.serviceName ?? 'wayfinder',
-    }),
-  });
-
   const exporter = new OTLPTraceExporter({
     url: config.exporterUrl ?? 'https://api.honeycomb.io/v1/traces',
     headers: {
@@ -42,8 +48,26 @@ export const initTelemetry = (
     },
   });
 
-  provider.addSpanProcessor(new BatchSpanProcessor(exporter));
+  const isBrowser = typeof window !== 'undefined';
+  const spanProcessor = new BatchSpanProcessor(exporter);
+  const sampler = new TraceIdRatioBasedSampler(config.sampleRate ?? 1);
+  const resource = resourceFromAttributes({
+    [ATTR_SERVICE_NAME]: config.serviceName ?? 'wayfinder',
+  });
+  
+  const provider = isBrowser
+    ? new WebTracerProvider({
+        sampler,
+        resource,
+        spanProcessors: [spanProcessor],
+      })
+    : new NodeTracerProvider({
+        sampler,
+        resource,
+        spanProcessors: [spanProcessor],
+      });
+
   provider.register();
 
-  return trace.getTracer('wayfinder');
+  return trace.getTracer(config.serviceName ?? 'wayfinder');
 };

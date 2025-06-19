@@ -145,7 +145,7 @@ export interface WayfinderOptions {
   /**
    * Telemetry configuration used to initialize OpenTelemetry tracing
    */
-  telemetry?: TelemetryConfig;
+  telemetrySettings?: TelemetryConfig;
 }
 
 export interface TelemetryConfig {

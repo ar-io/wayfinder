@@ -92,7 +92,7 @@ const wayfinder = new Wayfinder({
     },
   },
   // telemetry configuration
-  telemetry: {
+  telemetrySettings: {
     enabled: true,
     // sample 50% of requests
     sampleRate: 0.5,
@@ -105,11 +105,7 @@ const wayfinder = new Wayfinder({
 
 ### Telemetry
 
-Wayfinder can optionally emit OpenTelemetry spans for every request. By default,
-telemetry collection is enabled and data is sent to Honeycomb via OTLP. Each
-request creates a span that records routing and verification events as
-OpenTelemetry events. You can control this behaviour with the `telemetry`
-option.
+Wayfinder can optionally emit OpenTelemetry spans for every request. **By default, telemetry is disabled**. You can control this behavior with the `telemetrySettings` option.
 
 ## ar:// Protocol
 
