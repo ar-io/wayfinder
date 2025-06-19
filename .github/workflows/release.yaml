@@ -41,9 +41,14 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Enter Prerelease Mode for Alpha Branch
+      - name: Check Prerelease Mode for Alpha Branch
         if: github.ref == 'refs/heads/alpha'
-        run: npx changeset pre enter alpha
+        run: |
+          if [ -f ".changeset/pre.json" ]; then
+            echo "Already in pre-release mode, skipping..."
+          else
+            npx changeset pre enter alpha
+          fi
 
       - name: Build all packages
         run: npm run build --workspaces
