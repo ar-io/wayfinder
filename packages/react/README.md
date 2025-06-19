@@ -25,6 +25,8 @@ import {
   WayfinderProvider,
   useWayfinder,
   useWayfinderRequest,
+  useWayfinderUrl,
+  useWayfinderData,
 } from '@ar.io/wayfinder-react';
 import { NetworkGatewaysProvider } from '@ar.io/wayfinder-core';
 import { ARIO } from '@ar.io/sdk';
@@ -35,7 +37,11 @@ function App() {
     <WayfinderProvider
       // pass in the wayfinder options
       // https://github.com/ar-io/wayfinder/tree/alpha/packages/core#custom-configuration
-      gatewaysProvider={new NetworkGatewaysProvider({ ario: ARIO.mainnet() })}
+      gatewaysProvider={new NetworkGatewaysProvider({ 
+        ario: ARIO.mainnet() 
+        limit: 3,
+        sortBy: 'operatorStake',
+      })}
     >
       <YourApp />
     </WayfinderProvider>
@@ -44,24 +50,48 @@ function App() {
 
 // Use components
 function YourComponent() {
-  const { wayfinder } = useWayfinder();
-  const [txData, setTxData] = useState<string | null>(null);
+  const txId = 'your-transaction-id'; // Replace with actual txId
+  
+  // Use custom hooks for URL resolution and data fetching
+  const request = useWayfinderRequest();
+  const { resolvedUrl, isLoading: urlLoading, error: urlError } = useWayfinderUrl({ txId });
 
-  // useMemo to get a resolution URL for a given txId
-  const wayfinderUrl = useMemo(() => wayfinder.resolveUrl({originalUrl: `ar://${txId}`}), [txId, wayfinder]);
+  // Use custom hooks for data fetching
+  const [data, setData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+  const [dataError, setDataError] = useState<Error | null>(null);
 
-  // request some data from arweave via wayfinder
   useEffect(() => {
     (async () => {
-      const res = await wayfinder.request(`ar://${txId}`);
-      setTxData(await res.text());
+      try {
+        setDataLoading(true);
+        setDataError(null);
+        // fetch the data for the txId using wayfinder
+        const response = await request(`ar://${txId}`, {
+          verificationSettings: {
+            enabled: true, // enable verification on the request
+            strict: true, // don't use the data if it's not verified
+          },
+        });
+        const data = await response.arrayBuffer(); // or response.json() if you want to parse the data as JSON
+        setData(data);
+      } catch (error) {
+        setDataError(error as Error);
+      } finally {
+        setDataLoading(false);
+      }
     })();
-  }, [txId, wayfinder]);
+  }, [request, txId]);
 
   return (
     <div>
-      <a href={wayfinderUrl}>View on WayFinder</a>
-      <pre>{txData}</pre>
+      {urlLoading && <p>Resolving URL...</p>}
+      {urlError && <p>Error resolving URL: {urlError.message}</p>}
+      {resolvedUrl && <a href={resolvedUrl}>View on WayFinder</a>}
+      <br />
+      {dataLoading && <p>Loading data...</p>}
+      {dataError && <p>Error loading data: {dataError.message}</p>}
+      <pre>{data}</pre>
     </div>
   );
 }
