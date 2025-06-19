@@ -17,7 +17,7 @@
 import assert from 'node:assert';
 import { before, describe, it } from 'node:test';
 
-import { GatewaysProvider, WayfinderEvent } from '../types/wayfinder.js';
+import { GatewaysProvider, WayfinderEvent } from './types.js';
 import { RandomRoutingStrategy } from './routing/random.js';
 import { StaticRoutingStrategy } from './routing/static.js';
 import { HashVerificationStrategy } from './verification/hash-verifier.js';

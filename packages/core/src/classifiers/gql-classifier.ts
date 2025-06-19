@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import type { DataClassifier, Logger } from '../../types/wayfinder.js';
+import type { DataClassifier, Logger } from '../types.js';
 import { defaultLogger } from '../logger.js';
 
 export class GqlClassifier implements DataClassifier {

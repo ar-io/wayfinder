@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import type { Logger } from '../types/wayfinder.js';
+import type { Logger } from './types.js';
 
 /**
  * Default console logger implementation

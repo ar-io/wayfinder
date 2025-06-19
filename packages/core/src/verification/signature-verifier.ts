@@ -28,7 +28,7 @@ import type {
   DataStream,
   Logger,
   VerificationStrategy,
-} from '../../types/wayfinder.js';
+} from '../types.js';
 import { GqlClassifier } from '../classifiers/gql-classifier.js';
 import { defaultLogger } from '../logger.js';
 import { arioGatewayHeaders } from '../utils/ario.js';

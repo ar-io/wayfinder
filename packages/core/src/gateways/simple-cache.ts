@@ -14,8 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { GatewaysProvider } from '../../types/wayfinder.js';
-import type { Logger } from '../../types/wayfinder.js';
+import type { GatewaysProvider, Logger } from '../types.js';
 import { defaultLogger } from '../logger.js';
 
 export class SimpleCacheGatewaysProvider implements GatewaysProvider {

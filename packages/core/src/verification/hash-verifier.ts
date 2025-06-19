@@ -19,7 +19,7 @@ import type {
   DataStream,
   Logger,
   VerificationStrategy,
-} from '../../types/wayfinder.js';
+} from '../types.js';
 import { defaultLogger } from '../logger.js';
 import { arioGatewayHeaders } from '../utils/ario.js';
 import { sandboxFromId } from '../utils/base64.js';

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 import { createHash } from 'crypto';
-import type { DataStream, Logger } from '../../types/wayfinder.js';
+import type { DataStream, Logger } from '../types.js';
 import { defaultLogger } from '../logger.js';
 import { toB64Url } from './base64.js';
 

@@ -14,7 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import type { Logger, RoutingStrategy } from '../../types/wayfinder.js';
+ 
+import type { Logger, RoutingStrategy } from '../types.js';
 import { defaultLogger } from '../logger.js';
 import { FastestPingRoutingStrategy } from './ping.js';
 

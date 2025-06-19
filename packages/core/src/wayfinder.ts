@@ -26,7 +26,7 @@ import type {
   WayfinderEventArgs,
   WayfinderFetch,
   WayfinderOptions,
-} from '../types/wayfinder.js';
+} from './types.js';
 import { FastestPingRoutingStrategy } from './routing/ping.js';
 import { sandboxFromId } from './utils/base64.js';
 import { HashVerificationStrategy } from './verification/hash-verifier.js';

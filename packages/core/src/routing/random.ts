@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { RoutingStrategy } from '../../types/wayfinder.js';
+import type { RoutingStrategy } from '../types.js';
 import { randomInt } from '../utils/random.js';
 
 export class RandomRoutingStrategy implements RoutingStrategy {

@@ -15,6 +15,9 @@
  * limitations under the License.
  */
 
+// types
+export * from './types.js';
+
 // routing strategies
 export * from './routing/random.js';
 export * from './routing/static.js';
