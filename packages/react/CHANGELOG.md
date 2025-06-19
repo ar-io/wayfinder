@@ -1,5 +1,13 @@
 # @ar.io/wayfinder-react
 
+## 0.0.5-alpha.4
+
+### Patch Changes
+
+- 46fe8a4: Adds useWayfinderUrl and useWayfinderRequest hooks
+- Updated dependencies [063e480]
+  - @ar.io/wayfinder-core@0.0.5-alpha.3
+
 ## 0.0.5-alpha.3
 
 ### Patch Changes

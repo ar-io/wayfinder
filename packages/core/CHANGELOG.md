@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-core
 
+## 0.0.5-alpha.3
+
+### Patch Changes
+
+- 063e480: Updates type exports from wayfinder-core
+
 ## 0.0.5-alpha.2
 
 ### Patch Changes
