@@ -268,9 +268,12 @@ const wayfinder = new Wayfinder({
 
 ## Monitoring and Events
 
-Wayfinder emits events during the routing and verification process, allowing you to monitor its operation. You can provide these events to the Wayfinder constructor or use the event emitter directly.
+Wayfinder emits events during the routing and verification process for all requests, allowing you to monitor its operation. All events are emitted on the `wayfinder.emitter` event emitter, and are updated for each request.
+
+### Global request events
 
 ```javascript
+// Provide events to the Wayfinder constructor for tracking all requests
 const wayfinder = new Wayfinder({
   routingSettings: {
     events: {
@@ -306,7 +309,7 @@ const wayfinder = new Wayfinder({
   },
 });
 
-// Or use the event emitter directly
+// listen to the global wayfinder event emitter for all requests
 wayfinder.emitter.on('routing-succeeded', (event) => {
   console.log(`Request routed to: ${event.targetGateway}`);
 });
@@ -325,6 +328,46 @@ wayfinder.emitter.on('verification-succeeded', (event) => {
 
 wayfinder.emitter.on('verification-failed', (event) => {
   console.error(`Verification failed: ${event.error.message}`);
+});
+```
+
+#### Request-specific events
+
+You can also provide events to the `request` function to track a single request. These events are called for each request and are not updated for subsequent requests.
+
+> Note: events are still emitted to the global event emitter for all requests. It is recommended to use the global event emitter for tracking all requests, and the request-specific events for tracking a single request.
+
+```javascript
+// create a wayfinder instance with verification enabled
+const wayfinder = new Wayfinder({
+  verificationSettings: {
+    enabled: true,
+    strategy: new HashVerificationStrategy({
+      trustedGateways: ['https://permagate.io'],
+    }),
+    events: {
+      onVerificationProgress: (event) => {
+        console.log(`Global callback handler called for: ${event.txId}`);
+      },
+      onVerificationSucceeded: (event) => {
+        console.log(`Global callback handler called for: ${event.txId}`);
+      },
+    },
+  },
+});
+
+const response = await wayfinder.request('ar://example-name', {
+  verificationSettings: {
+    // these callbacks will be triggered for this request only, the global callback handlers are still called
+    events: {
+      onVerificationProgress: (event) => {
+        console.log(`Request-specific callback handler called for: ${event.txId}`);
+      },
+      onVerificationSucceeded: (event) => {
+        console.log(`Request-specific callback handler called for: ${event.txId}`);
+      },
+    },
+  },
 });
 ```
 

@@ -14,16 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/**
- * Simple logger interface that Wayfinder will use
- * This allows users to provide their own logger implementation
- */
-export interface Logger {
-  debug: (message: string, ...args: any[]) => void;
-  info: (message: string, ...args: any[]) => void;
-  warn: (message: string, ...args: any[]) => void;
-  error: (message: string, ...args: any[]) => void;
-}
+
+import type { Logger } from '../types/wayfinder.js';
 
 /**
  * Default console logger implementation
