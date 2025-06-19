@@ -23,10 +23,8 @@ yarn add @ar.io/wayfinder-react @ar.io/wayfinder-core
 ```jsx
 import {
   WayfinderProvider,
-  useWayfinder,
   useWayfinderRequest,
   useWayfinderUrl,
-  useWayfinderData,
 } from '@ar.io/wayfinder-react';
 import { NetworkGatewaysProvider } from '@ar.io/wayfinder-core';
 import { ARIO } from '@ar.io/sdk';
