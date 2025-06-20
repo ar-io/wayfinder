@@ -6,5 +6,9 @@
     "@ar.io/wayfinder-extension": "0.0.18-alpha.2",
     "@ar.io/wayfinder-react": "0.0.5-alpha.3"
   },
-  "changesets": ["five-mirrors-type", "witty-lights-walk"]
+  "changesets": [
+    "five-mirrors-type",
+    "grumpy-dragons-appear",
+    "witty-lights-walk"
+  ]
 }
