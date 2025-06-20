@@ -91,8 +91,21 @@ const wayfinder = new Wayfinder({
       },
     },
   },
+  // telemetry configuration
+  telemetrySettings: {
+    enabled: true,
+    // sample 50% of requests
+    sampleRate: 0.5,
+    // honeycomb API key and dataset if you want to collect traces
+    apiKey: '<YOUR_API_KEY>',
+    dataset: 'wayfinder',
+  },
 });
 ```
+
+### Telemetry
+
+Wayfinder can optionally emit OpenTelemetry spans for every request. **By default, telemetry is disabled**. You can control this behavior with the `telemetrySettings` option.
 
 ## ar:// Protocol
 

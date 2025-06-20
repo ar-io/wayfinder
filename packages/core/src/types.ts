@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+import type { WayfinderEmitter } from './wayfinder.js';
+
 // Types
 
 /**
@@ -81,6 +83,7 @@ export interface WayfinderVerificationEventArgs {
 export interface WayfinderEventArgs {
   verification?: WayfinderVerificationEventArgs;
   routing?: WayfinderRoutingEventArgs;
+  parentEmitter?: WayfinderEmitter;
 }
 
 /**
@@ -141,6 +144,24 @@ export interface WayfinderOptions {
      */
     strategy?: RoutingStrategy;
   };
+
+  /**
+   * Telemetry configuration used to initialize OpenTelemetry tracing
+   */
+  telemetrySettings?: TelemetryConfig;
+}
+
+export interface TelemetryConfig {
+  /** Enable or disable telemetry collection */
+  enabled: boolean;
+  /** Sampling ratio between 0 and 1 */
+  sampleRate: number;
+  /** Honeycomb API key */
+  apiKey?: string;
+  /** Optional custom OTLP exporter URL */
+  exporterUrl?: string;
+  /** Service name used for traces */
+  serviceName: string;
 }
 
 // Interfaces
@@ -160,6 +181,7 @@ export interface RoutingStrategy {
 }
 
 export interface VerificationStrategy {
+  trustedGateways: URL[];
   verifyData(params: { data: DataStream; txId: string }): Promise<void>;
 }
 

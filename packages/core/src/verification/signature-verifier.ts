@@ -46,7 +46,7 @@ import { convertDataStreamToDataRoot } from './data-root-verifier.js';
 export class Ans104SignatureVerificationStrategy
   implements VerificationStrategy
 {
-  private readonly trustedGateways: URL[];
+  public readonly trustedGateways: URL[];
   private readonly maxConcurrency: number;
   private readonly logger: Logger;
   constructor({
@@ -338,7 +338,7 @@ export class Ans104SignatureVerificationStrategy
 export class TransactionSignatureVerificationStrategy
   implements VerificationStrategy
 {
-  private readonly trustedGateways: URL[];
+  public readonly trustedGateways: URL[];
   private readonly logger: Logger;
 
   constructor({
@@ -499,6 +499,7 @@ export class SignatureVerificationStrategy {
   private readonly ans104: Ans104SignatureVerificationStrategy;
   private readonly transaction: TransactionSignatureVerificationStrategy;
   private readonly classifier: DataClassifier;
+  public readonly trustedGateways: URL[];
   constructor({
     trustedGateways,
     maxConcurrency = 1,
@@ -510,6 +511,7 @@ export class SignatureVerificationStrategy {
     logger?: Logger;
     classifier?: DataClassifier;
   }) {
+    this.trustedGateways = trustedGateways;
     this.ans104 = new Ans104SignatureVerificationStrategy({
       trustedGateways,
       maxConcurrency,
