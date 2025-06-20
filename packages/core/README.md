@@ -93,12 +93,8 @@ const wayfinder = new Wayfinder({
   },
   // telemetry configuration
   telemetrySettings: {
-    enabled: true,
-    // sample 50% of requests
-    sampleRate: 0.5,
-    // honeycomb API key and dataset if you want to collect traces
-    apiKey: '<YOUR_API_KEY>',
-    dataset: 'wayfinder',
+    enabled: true, // disabled by default (must be explicitly enabled)
+    sampleRate: 0.1, // 10% sample rate by default
   },
 });
 ```
