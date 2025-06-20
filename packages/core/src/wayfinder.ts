@@ -18,7 +18,7 @@ import { EventEmitter } from 'eventemitter3';
 
 import { defaultLogger } from './logger.js';
 
-import { context, trace, type Tracer } from '@opentelemetry/api';
+import { type Tracer, context, trace } from '@opentelemetry/api';
 import { FastestPingRoutingStrategy } from './routing/ping.js';
 import { initTelemetry, startRequestSpans } from './telemetry.js';
 import type {

@@ -107,7 +107,10 @@ export const startRequestSpans = ({
         'verification.strategy':
           verificationSettings?.strategy?.constructor.name ?? 'undefined',
         'verification.strict': verificationSettings?.strict ?? false,
-        'verification.trustedGateways': verificationSettings?.strategy?.trustedGateways?.map(gateway => gateway.toString()).join(','),
+        'verification.trustedGateways':
+          verificationSettings?.strategy?.trustedGateways
+            ?.map((gateway) => gateway.toString())
+            .join(','),
         'routing.strategy':
           routingSettings?.strategy?.constructor.name ?? 'undefined',
         gatewaysProvider: gatewaysProvider?.constructor.name,
