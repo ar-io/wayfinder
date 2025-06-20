@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+import type { WayfinderEmitter } from './wayfinder.js';
+
 // Types
 
 /**
@@ -81,6 +83,7 @@ export interface WayfinderVerificationEventArgs {
 export interface WayfinderEventArgs {
   verification?: WayfinderVerificationEventArgs;
   routing?: WayfinderRoutingEventArgs;
+  parentEmitter?: WayfinderEmitter;
 }
 
 /**
@@ -180,6 +183,7 @@ export interface RoutingStrategy {
 }
 
 export interface VerificationStrategy {
+  trustedGateways: URL[];
   verifyData(params: { data: DataStream; txId: string }): Promise<void>;
 }
 

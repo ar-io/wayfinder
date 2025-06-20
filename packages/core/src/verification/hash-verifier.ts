@@ -22,7 +22,7 @@ import { sandboxFromId } from '../utils/base64.js';
 import { hashDataStreamToB64Url } from '../utils/hash.js';
 
 export class HashVerificationStrategy implements VerificationStrategy {
-  private readonly trustedGateways: URL[];
+  public readonly trustedGateways: URL[];
   private readonly maxConcurrency: number;
   private readonly logger: Logger;
   constructor({

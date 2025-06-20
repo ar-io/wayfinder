@@ -18,9 +18,9 @@ import { EventEmitter } from 'eventemitter3';
 
 import { defaultLogger } from './logger.js';
 
-import type { Tracer } from '@opentelemetry/api';
+import { context, trace, type Tracer } from '@opentelemetry/api';
 import { FastestPingRoutingStrategy } from './routing/ping.js';
-import { initTelemetry } from './telemetry.js';
+import { initTelemetry, startRequestSpans } from './telemetry.js';
 import type {
   GatewaysProvider,
   Logger,
@@ -103,7 +103,11 @@ export const resolveWayfinderUrl = ({
 };
 
 export class WayfinderEmitter extends EventEmitter<WayfinderEvent> {
-  constructor({ verification, routing }: WayfinderEventArgs = {}) {
+  constructor({
+    verification,
+    routing,
+    parentEmitter,
+  }: WayfinderEventArgs = {}) {
     super();
     if (verification) {
       if (verification.onVerificationSucceeded) {
@@ -126,6 +130,30 @@ export class WayfinderEmitter extends EventEmitter<WayfinderEvent> {
       if (routing.onRoutingSucceeded) {
         this.on('routing-succeeded', routing.onRoutingSucceeded);
       }
+    }
+
+    if (parentEmitter) {
+      this.on('routing-started', (event) => {
+        parentEmitter.emit('routing-started', event);
+      });
+      this.on('routing-skipped', (event) => {
+        parentEmitter.emit('routing-skipped', event);
+      });
+      this.on('routing-succeeded', (event) => {
+        parentEmitter.emit('routing-succeeded', event);
+      });
+      this.on('verification-succeeded', (event) => {
+        parentEmitter.emit('verification-succeeded', event);
+      });
+      this.on('verification-failed', (event) => {
+        parentEmitter.emit('verification-failed', event);
+      });
+      this.on('verification-progress', (event) => {
+        parentEmitter.emit('verification-progress', event);
+      });
+      this.on('verification-skipped', (event) => {
+        parentEmitter.emit('verification-skipped', event);
+      });
     }
   }
 }
@@ -244,7 +272,7 @@ export const wayfinderFetch = ({
   verificationSettings,
   routingSettings,
   emitter,
-  // tracer
+  tracer,
 }: {
   logger?: Logger;
   gatewaysProvider: GatewaysProvider;
@@ -269,35 +297,21 @@ export const wayfinderFetch = ({
       ...restInit
     } = init ?? {};
 
-    // TODO: add span to the request using the tracer
-
+    const url = input instanceof URL ? input.toString() : input.toString();
     const requestEmitter = new WayfinderEmitter({
       verification: requestVerificationSettings?.events,
       routing: requestRoutingSettings?.events,
+      parentEmitter: emitter,
     });
 
-    if (emitter) {
-      requestEmitter.on('routing-started', (event) => {
-        emitter.emit('routing-started', event);
-      });
-      requestEmitter.on('routing-skipped', (event) =>
-        emitter.emit('routing-skipped', event),
-      );
-      requestEmitter.on('routing-succeeded', (event) =>
-        emitter.emit('routing-succeeded', event),
-      );
-      requestEmitter.on('verification-succeeded', (event) =>
-        emitter.emit('verification-succeeded', event),
-      );
-      requestEmitter.on('verification-failed', (event) =>
-        emitter.emit('verification-failed', event),
-      );
-      requestEmitter.on('verification-progress', (event) =>
-        emitter.emit('verification-progress', event),
-      );
-    }
-
-    const url = input instanceof URL ? input.toString() : input.toString();
+    const { parentSpan } = startRequestSpans({
+      originalUrl: url,
+      verificationSettings: requestVerificationSettings ?? verificationSettings,
+      routingSettings: requestRoutingSettings ?? routingSettings,
+      gatewaysProvider,
+      emitter: requestEmitter,
+      tracer,
+    });
 
     if (!url.toString().startsWith('ar://')) {
       logger?.debug('URL is not a wayfinder url, skipping routing', {
@@ -352,6 +366,14 @@ export const wayfinderFetch = ({
           redirectUrl: redirectUrl.toString(),
         });
 
+        const requestSpan = parentSpan
+          ? tracer?.startSpan(
+              'wayfinder.fetch',
+              undefined,
+              trace.setSpan(context.active(), parentSpan),
+            )
+          : undefined;
+
         // make the request to the target gateway using the redirect url
         const response = await fetch(redirectUrl.toString(), {
           // enforce CORS given we're likely going to a different origin, but always allow the client to override
@@ -360,68 +382,110 @@ export const wayfinderFetch = ({
           ...restInit,
         });
 
+        // add response attributes to the span
+        requestSpan?.setAttribute('response.status', response.status);
+        requestSpan?.setAttribute('response.statusText', response.statusText);
+        response.headers.forEach((value, key) => {
+          requestSpan?.setAttribute(`response.headers.${key}`, value);
+        });
+
         logger?.debug(`Successfully routed request to gateway`, {
           redirectUrl: redirectUrl.toString(),
           originalUrl: url,
         });
 
         // only verify data if the redirect url is different from the original url
-        if (redirectUrl.toString() !== url) {
-          if (
+        if (redirectUrl.toString() === url) {
+          logger?.debug(
+            'Redirect URL is the same as the original URL, skipping verification',
+            {
+              redirectUrl: redirectUrl.toString(),
+              originalUrl: url,
+            },
+          );
+          requestEmitter.emit('verification-skipped', {
+            originalUrl: url,
+          });
+          requestSpan?.end();
+          return response;
+        }
+
+        // if verification is disabled, return the response
+        if (
+          !(
             verificationSettings.enabled &&
             verificationSettings.strategy?.verifyData
-          ) {
-            const headers = response.headers;
-
-            // transaction id is either in the response headers or the path of the request as the first parameter
-            const txId =
-              headers.get('x-arns-resolved-id') ??
-              redirectUrl.pathname.split('/')[1];
-
-            const contentLength = +(headers.get('content-length') ?? 0);
-
-            if (!txIdRegex.test(txId)) {
-              // no transaction id found, skip verification
-              logger?.debug('No transaction id found, skipping verification', {
-                redirectUrl: redirectUrl.toString(),
-                originalUrl: url,
-              });
-              requestEmitter.emit('verification-skipped', {
-                originalUrl: url,
-              });
-              return response;
-            }
-
-            // Check if the response has a body
-            if (response.body) {
-              const newClientStream = tapAndVerifyReadableStream({
-                originalStream: response.body,
-                contentLength,
-                verifyData: verificationSettings.strategy?.verifyData.bind(
-                  verificationSettings.strategy,
-                ),
-                txId,
-                emitter: requestEmitter,
-                strict: verificationSettings.strict,
-              });
-
-              return new Response(newClientStream, {
-                status: response.status,
-                statusText: response.statusText,
-                headers: response.headers,
-              });
-            } else {
-              // No response body to verify, skip verification
-              logger?.debug('No response body to verify', {
-                redirectUrl: redirectUrl.toString(),
-                originalUrl: url,
-                txId,
-              });
-              return response;
-            }
-          }
+          )
+        ) {
+          logger?.debug(
+            'Verification is disabled or no verification strategy is provided, skipping verification',
+            {
+              redirectUrl: redirectUrl.toString(),
+              originalUrl: url,
+            },
+          );
+          requestEmitter.emit('verification-skipped', {
+            originalUrl: url,
+          });
+          requestSpan?.end();
+          return response;
         }
-        return response;
+
+        // Verify the response
+
+        // TODO: add more verification and response attributes to the span
+        const headers = response.headers;
+
+        // transaction id is either in the response headers or the path of the request as the first parameter
+        const txId =
+          headers.get('x-arns-resolved-id') ??
+          redirectUrl.pathname.split('/')[1];
+
+        const contentLength = +(headers.get('content-length') ?? 0);
+
+        requestSpan?.setAttribute('txId', txId);
+        requestSpan?.setAttribute('contentLength', contentLength);
+        requestSpan?.end();
+
+        if (!txIdRegex.test(txId)) {
+          // no transaction id found, skip verification
+          logger?.debug('No transaction id found, skipping verification', {
+            redirectUrl: redirectUrl.toString(),
+            originalUrl: url,
+          });
+          requestEmitter.emit('verification-skipped', {
+            originalUrl: url,
+          });
+          return response;
+        }
+
+        // Check if the response has a body
+        if (response.body) {
+          const newClientStream = tapAndVerifyReadableStream({
+            originalStream: response.body,
+            contentLength,
+            verifyData: verificationSettings.strategy?.verifyData.bind(
+              verificationSettings.strategy,
+            ),
+            txId,
+            emitter: requestEmitter,
+            strict: verificationSettings.strict,
+          });
+
+          return new Response(newClientStream, {
+            status: response.status,
+            statusText: response.statusText,
+            headers: response.headers,
+          });
+        } else {
+          // No response body to verify, skip verification
+          logger?.debug('No response body to verify', {
+            redirectUrl: redirectUrl.toString(),
+            originalUrl: url,
+            txId,
+          });
+          return response;
+        }
       } catch (error: any) {
         logger?.debug('Failed to route request', {
           error: error.message,
@@ -647,10 +711,11 @@ export class Wayfinder {
     this.telemetrySettings = {
       enabled: telemetrySettings?.enabled ?? false,
       sampleRate: telemetrySettings?.sampleRate ?? 1,
+      apiKey: telemetrySettings?.apiKey ?? '',
+      dataset: telemetrySettings?.dataset ?? 'wayfinder',
       serviceName: telemetrySettings?.serviceName ?? 'wayfinder',
       exporterUrl:
-        telemetrySettings?.exporterUrl ??
-        '<TODO: some hosted OTEL event proxy service>',
+        telemetrySettings?.exporterUrl ?? 'https://api.honeycomb.io/v1/traces', // US instance
     };
 
     this.tracer = initTelemetry(this.telemetrySettings);
@@ -661,7 +726,7 @@ export class Wayfinder {
       gatewaysProvider: this.gatewaysProvider,
       routingSettings: this.routingSettings,
       verificationSettings: this.verificationSettings,
-      // TODO: add tracer to the request
+      tracer: this.tracer,
     });
 
     this.resolveUrl = async ({ originalUrl, logger = this.logger }) => {
@@ -678,8 +743,10 @@ export class Wayfinder {
       });
     };
 
-    this.logger.debug(
-      `Wayfinder initialized with ${this.routingSettings.strategy?.constructor.name} routing strategy`,
-    );
+    this.logger.debug('Wayfinder initialized', {
+      verificationSettings: this.verificationSettings,
+      routingSettings: this.routingSettings,
+      telemetrySettings: this.telemetrySettings,
+    });
   }
 }

@@ -17,7 +17,9 @@
 import {
   DiagConsoleLogger,
   DiagLogLevel,
+  Span,
   type Tracer,
+  context,
   diag,
   trace,
 } from '@opentelemetry/api';
@@ -29,22 +31,29 @@ import {
 } from '@opentelemetry/sdk-trace-base';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { WebTracerProvider } from '@opentelemetry/sdk-trace-web';
-import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
+import {
+  ATTR_SERVICE_NAME,
+  ATTR_SERVICE_VERSION,
+} from '@opentelemetry/semantic-conventions';
 
-import type { TelemetryConfig } from './types.js';
+import type {
+  GatewaysProvider,
+  TelemetryConfig,
+  WayfinderOptions,
+} from './types.js';
+import { WayfinderEmitter } from './wayfinder.js';
 
 export const initTelemetry = (
   config: TelemetryConfig = {},
 ): Tracer | undefined => {
   if (config.enabled === false) return undefined;
-
-  diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.ERROR);
+  diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
 
   const exporter = new OTLPTraceExporter({
-    url: config.exporterUrl ?? 'https://api.honeycomb.io/v1/traces',
+    url: config.exporterUrl ?? 'https://api.honeycomb.io',
     headers: {
       'x-honeycomb-team': config.apiKey ?? '',
-      'x-honeycomb-dataset': config.dataset ?? 'wayfinder',
+      'x-honeycomb-dataset': config.dataset ?? 'wayfinder-core',
     },
   });
 
@@ -52,7 +61,8 @@ export const initTelemetry = (
   const spanProcessor = new BatchSpanProcessor(exporter);
   const sampler = new TraceIdRatioBasedSampler(config.sampleRate ?? 1);
   const resource = resourceFromAttributes({
-    [ATTR_SERVICE_NAME]: config.serviceName ?? 'wayfinder',
+    [ATTR_SERVICE_NAME]: config.serviceName ?? 'wayfinder-core',
+    [ATTR_SERVICE_VERSION]: process?.env?.npm_package_version ?? 'unknown',
   });
 
   const provider = isBrowser
@@ -69,5 +79,80 @@ export const initTelemetry = (
 
   provider.register();
 
-  return trace.getTracer(config.serviceName ?? 'wayfinder');
+  return trace.getTracer(config.serviceName ?? 'wayfinder-core');
+};
+
+export const startRequestSpans = ({
+  originalUrl,
+  emitter,
+  tracer,
+  verificationSettings,
+  routingSettings,
+  gatewaysProvider,
+}: {
+  originalUrl?: string;
+  emitter?: WayfinderEmitter;
+  tracer?: Tracer;
+  verificationSettings?: WayfinderOptions['verificationSettings'];
+  routingSettings?: WayfinderOptions['routingSettings'];
+  gatewaysProvider?: GatewaysProvider;
+} = {}) => {
+  const activeContext = context.active();
+  const parentSpan = tracer?.startSpan(
+    'wayfinder.request',
+    {
+      attributes: {
+        originalUrl: originalUrl ?? 'undefined',
+        'verification.enabled': verificationSettings?.enabled ?? false,
+        'verification.strategy':
+          verificationSettings?.strategy?.constructor.name ?? 'undefined',
+        'verification.strict': verificationSettings?.strict ?? false,
+        'verification.trustedGateways': verificationSettings?.strategy?.trustedGateways?.map(gateway => gateway.toString()).join(','),
+        'routing.strategy':
+          routingSettings?.strategy?.constructor.name ?? 'undefined',
+        gatewaysProvider: gatewaysProvider?.constructor.name,
+      },
+    },
+    activeContext,
+  );
+  let routingSpan: Span | undefined;
+  let verificationSpan: Span | undefined;
+  // add listeners on the emitter to the span
+  emitter?.on('routing-started', () => {
+    if (parentSpan && !routingSpan) {
+      const ctx = trace.setSpan(context.active(), parentSpan);
+      context.with(ctx, () => {
+        routingSpan = tracer?.startSpan('wayfinder.routing');
+      });
+    }
+  });
+  emitter?.on('routing-skipped', () => {
+    parentSpan?.setAttribute('routing.skipped', true);
+    routingSpan?.end();
+    parentSpan?.end();
+  });
+  emitter?.on('routing-succeeded', () => {
+    parentSpan?.setAttribute('routing.succeeded', true);
+    routingSpan?.end();
+  });
+  emitter?.on('verification-progress', () => {
+    if (parentSpan && !verificationSpan) {
+      const ctx = trace.setSpan(context.active(), parentSpan);
+      context.with(ctx, () => {
+        verificationSpan = tracer?.startSpan('wayfinder.verification');
+      });
+    }
+  });
+  emitter?.on('verification-succeeded', () => {
+    parentSpan?.setAttribute('verification.succeeded', true);
+    verificationSpan?.end();
+    parentSpan?.end();
+  });
+  emitter?.on('verification-failed', () => {
+    parentSpan?.setAttribute('verification.failed', true);
+    verificationSpan?.end();
+    parentSpan?.end();
+  });
+
+  return { parentSpan, routingSpan, verificationSpan };
 };
