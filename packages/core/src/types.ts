@@ -155,13 +155,13 @@ export interface TelemetryConfig {
   /** Enable or disable telemetry collection */
   enabled: boolean;
   /** Sampling ratio between 0 and 1 */
-  sampleRate: number;
+  sampleRate?: number;
   /** Honeycomb API key */
   apiKey?: string;
   /** Optional custom OTLP exporter URL */
   exporterUrl?: string;
   /** Service name used for traces */
-  serviceName: string;
+  serviceName?: string;
 }
 
 // Interfaces
