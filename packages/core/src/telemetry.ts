@@ -42,6 +42,7 @@ import type {
   WayfinderOptions,
 } from './types.js';
 import { WayfinderEmitter } from './wayfinder.js';
+import packageJson from '../package.json' with { type: 'json' };
 
 export const initTelemetry = (
   config: TelemetryConfig = {
@@ -66,7 +67,7 @@ export const initTelemetry = (
   const sampler = new TraceIdRatioBasedSampler(config.sampleRate ?? 1);
   const resource = resourceFromAttributes({
     [ATTR_SERVICE_NAME]: 'wayfinder-core',
-    [ATTR_SERVICE_VERSION]: process?.env?.npm_package_version ?? 'unknown',
+    [ATTR_SERVICE_VERSION]: packageJson?.version ?? 'unknown',
   });
 
   const provider = isBrowser
