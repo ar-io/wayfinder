@@ -36,7 +36,6 @@ import {
   ATTR_SERVICE_VERSION,
 } from '@opentelemetry/semantic-conventions';
 
-import packageJson from '../package.json' with { type: 'json' };
 import type {
   GatewaysProvider,
   TelemetryConfig,
@@ -67,7 +66,7 @@ export const initTelemetry = (
   const sampler = new TraceIdRatioBasedSampler(config.sampleRate ?? 1);
   const resource = resourceFromAttributes({
     [ATTR_SERVICE_NAME]: 'wayfinder-core',
-    [ATTR_SERVICE_VERSION]: packageJson?.version ?? 'unknown',
+    [ATTR_SERVICE_VERSION]: 'v0.0.5-alpha.5', // hard coded for now as importing JSON breaks wayfinder-react
   });
 
   const provider = isBrowser
