@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-core
 
+## 0.0.5-alpha.4
+
+### Patch Changes
+
+- 2d72bba: Adds optional telemetry support for wayfinder requests
+
 ## 0.0.5-alpha.3
 
 ### Patch Changes
