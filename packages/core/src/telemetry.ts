@@ -36,13 +36,13 @@ import {
   ATTR_SERVICE_VERSION,
 } from '@opentelemetry/semantic-conventions';
 
+import packageJson from '../package.json' with { type: 'json' };
 import type {
   GatewaysProvider,
   TelemetryConfig,
   WayfinderOptions,
 } from './types.js';
 import { WayfinderEmitter } from './wayfinder.js';
-import packageJson from '../package.json' with { type: 'json' };
 
 export const initTelemetry = (
   config: TelemetryConfig = {
