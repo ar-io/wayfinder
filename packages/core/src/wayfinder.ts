@@ -714,6 +714,7 @@ export class Wayfinder {
       apiKey: telemetrySettings?.apiKey ?? '',
       exporterUrl:
         telemetrySettings?.exporterUrl ?? 'https://api.honeycomb.io/v1/traces', // TODO: replace with proxy url
+      serviceName: telemetrySettings?.serviceName ?? 'wayfinder-core',
     };
 
     this.tracer = initTelemetry(this.telemetrySettings);

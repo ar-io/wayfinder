@@ -47,10 +47,11 @@ export const initTelemetry = (
   config: TelemetryConfig = {
     enabled: false,
     sampleRate: 0,
+    serviceName: 'wayfinder-core',
   },
 ): Tracer | undefined => {
   if (config.enabled === false) return undefined;
-  diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
+  diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.ERROR);
 
   const exporter = new OTLPTraceExporter({
     url: config.exporterUrl ?? 'https://api.honeycomb.io',
@@ -121,13 +122,15 @@ export const startRequestSpans = ({
     },
     activeContext,
   );
+  const parentContext = parentSpan
+    ? trace.setSpan(context.active(), parentSpan)
+    : context.active();
   let routingSpan: Span | undefined;
   let verificationSpan: Span | undefined;
   // add listeners on the emitter to the span
   emitter?.on('routing-started', () => {
     if (parentSpan && !routingSpan) {
-      const ctx = trace.setSpan(context.active(), parentSpan);
-      context.with(ctx, () => {
+      context.with(parentContext, () => {
         routingSpan = tracer?.startSpan('wayfinder.routing');
       });
     }
@@ -143,8 +146,7 @@ export const startRequestSpans = ({
   });
   emitter?.on('verification-progress', () => {
     if (parentSpan && !verificationSpan) {
-      const ctx = trace.setSpan(context.active(), parentSpan);
-      context.with(ctx, () => {
+      context.with(parentContext, () => {
         verificationSpan = tracer?.startSpan('wayfinder.verification');
       });
     }

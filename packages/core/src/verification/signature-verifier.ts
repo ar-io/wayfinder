@@ -499,6 +499,7 @@ export class SignatureVerificationStrategy {
   private readonly ans104: Ans104SignatureVerificationStrategy;
   private readonly transaction: TransactionSignatureVerificationStrategy;
   private readonly classifier: DataClassifier;
+  public readonly trustedGateways: URL[];
   constructor({
     trustedGateways,
     maxConcurrency = 1,
@@ -510,6 +511,7 @@ export class SignatureVerificationStrategy {
     logger?: Logger;
     classifier?: DataClassifier;
   }) {
+    this.trustedGateways = trustedGateways;
     this.ans104 = new Ans104SignatureVerificationStrategy({
       trustedGateways,
       maxConcurrency,

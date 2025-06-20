@@ -160,6 +160,8 @@ export interface TelemetryConfig {
   apiKey?: string;
   /** Optional custom OTLP exporter URL */
   exporterUrl?: string;
+  /** Service name used for traces */
+  serviceName: string;
 }
 
 // Interfaces
