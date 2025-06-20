@@ -1,11 +1,15 @@
 /**
  * WayFinder Extension - Default Configuration
- * 
+ *
  * Centralized location for all default settings used throughout the extension.
  * This file provides a single source of truth for default values.
  */
 
-import { ARIO_MAINNET_PROCESS_ID, DEFAULT_AO_CU_URL, FALLBACK_GATEWAY } from '../constants';
+import {
+  ARIO_MAINNET_PROCESS_ID,
+  DEFAULT_AO_CU_URL,
+  FALLBACK_GATEWAY,
+} from '../constants';
 
 /**
  * Core extension defaults
@@ -14,16 +18,16 @@ export const EXTENSION_DEFAULTS = {
   // AR.IO Network Configuration
   processId: ARIO_MAINNET_PROCESS_ID,
   aoCuUrl: DEFAULT_AO_CU_URL,
-  
+
   // Basic Extension Settings
   routingMethod: 'fastestPing',
   blacklistedGateways: [],
   ensResolutionEnabled: true,
-  
+
   // Storage & Registry
   localGatewayAddressRegistry: {},
   gatewayPerformance: {},
-  
+
   // Stats Tracking
   dailyStats: {
     date: new Date().toDateString(),
@@ -41,17 +45,17 @@ export const WAYFINDER_DEFAULTS = {
   // Routing Configuration
   routingMethod: 'fastestPing',
   staticGateway: null,
-  
+
   // Verification Configuration
   verificationStrategy: 'hash',
   verificationStrict: false,
   verificationEnabled: true,
-  
+
   // Gateway Management
   gatewayCacheTTL: 3600, // 1 hour in seconds
   gatewaySortBy: 'operatorStake',
   gatewaySortOrder: 'desc',
-  
+
   // Verification Gateway Selection
   verificationGatewayMode: 'automatic',
   verificationGatewayCount: 3,
@@ -67,17 +71,17 @@ export const ROUTING_STRATEGY_DEFAULTS = {
     timeoutMs: 2000,
     maxConcurrency: 5,
   },
-  
+
   // Round Robin Strategy
   roundRobin: {
     // Uses gateways from provider
   },
-  
+
   // Random Strategy
   random: {
     // No specific configuration
   },
-  
+
   // Static Strategy
   static: {
     fallbackGateway: FALLBACK_GATEWAY,
@@ -90,17 +94,17 @@ export const ROUTING_STRATEGY_DEFAULTS = {
 export const VERIFICATION_STRATEGY_DEFAULTS = {
   // Common verification settings
   maxConcurrency: 2,
-  
+
   // Hash Verification
   hash: {
     algorithm: 'sha256',
   },
-  
+
   // Data Root Verification
   dataRoot: {
     // Uses same base settings
   },
-  
+
   // Signature Verification
   signature: {
     // Uses same base settings
@@ -115,7 +119,7 @@ export const VERIFICATION_DEFAULTS = {
   verificationStrict: false,
   showVerificationToasts: false,
   enableVerificationCache: true,
-  
+
   // Verification timing
   verificationTimeout: 5000, // 5 seconds
   verificationRetryDelay: 2000, // 2 seconds
@@ -127,16 +131,16 @@ export const VERIFICATION_DEFAULTS = {
 export const CACHE_DEFAULTS = {
   // ArNS Cache Settings
   arnsDefaultTTL: 60 * 60 * 1000, // 1 hour in milliseconds
-  
+
   // Verification Cache Settings
   verificationCacheEnabled: true,
-  
+
   // Gateway Cache Settings
   gatewayCacheTTL: 3600, // 1 hour in seconds
-  
+
   // DNS Cache Settings
   dnsCacheTTL: 3600000, // 1 hour in milliseconds
-  
+
   // Performance tracking cleanup
   performanceDataCleanupInterval: 30000, // 30 seconds
   performanceDataMaxAge: 60000, // 1 minute
@@ -148,11 +152,12 @@ export const CACHE_DEFAULTS = {
 export const UI_DEFAULTS = {
   // Theme
   theme: 'dark',
-  
+
   // Verification indicators
   showVerificationIndicators: true,
   showVerificationToasts: false,
-  
+  enableContentVerification: false, // Disabled to avoid extra requests (background verification still runs)
+
   // Error display
   showDetailedErrors: true,
   errorDisplayTimeout: 10000, // 10 seconds
@@ -165,17 +170,17 @@ export const UI_DEFAULTS = {
 export const PERFORMANCE_DEFAULTS = {
   // Request timing
   requestTimeoutMs: 30000, // 30 seconds
-  
+
   // Circuit breaker settings
   circuitBreakerEnabled: true,
-  
+
   // Cleanup intervals
   cleanupIntervals: {
     tabState: 30000, // 30 seconds
     requestTimings: 30000, // 30 seconds
     verificationCache: 60 * 60 * 1000, // 1 hour
   },
-  
+
   // Data retention
   maxAge: {
     tabState: 60000, // 1 minute
@@ -201,7 +206,10 @@ export const ALL_DEFAULTS = {
 /**
  * Helper function to get default values with fallbacks
  */
-export function getDefaultValue<T>(key: keyof typeof ALL_DEFAULTS, fallback?: T): T {
+export function getDefaultValue<T>(
+  key: keyof typeof ALL_DEFAULTS,
+  fallback?: T,
+): T {
   return (ALL_DEFAULTS[key] as T) ?? fallback;
 }
 

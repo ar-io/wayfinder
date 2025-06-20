@@ -754,3 +754,92 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+/* Loading States */
+.loading-indicator {
+  display: inline-block;
+  margin-right: 0.25em;
+  opacity: 0.8;
+}
+
+.loading-indicator.spinning {
+  animation: spin 1s linear infinite;
+}
+
+.error-indicator {
+  display: inline-block;
+  margin-right: 0.25em;
+  color: var(--warning);
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Syncing state for cards */
+.nav-card.syncing {
+  position: relative;
+  overflow: hidden;
+}
+
+.nav-card.syncing::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent-primary), transparent);
+  animation: loading-sweep 2s infinite;
+}
+
+.nav-card.sync-error {
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+@keyframes loading-sweep {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+/* Sync button styles */
+.sync-button {
+  position: absolute;
+  top: var(--spacing-sm);
+  right: var(--spacing-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.sync-button:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  border-color: var(--border-emphasis);
+}
+
+.sync-button.syncing {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.sync-button.syncing .sync-icon {
+  animation: spin 1s linear infinite;
+}

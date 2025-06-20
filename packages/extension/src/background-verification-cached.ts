@@ -15,14 +15,14 @@
  * limitations under the License.
  */
 
+import { VERIFICATION_DEFAULTS } from './config/defaults';
 import {
   cacheArNSResolution,
   useVerificationCacheWithArNS,
-} from "./hooks/use-arns-cache";
-import { getWayfinderInstance } from "./routing";
-import { logger } from "./utils/logger";
-import { verificationCache } from "./utils/verification-cache";
-import { VERIFICATION_DEFAULTS } from "./config/defaults";
+} from './hooks/use-arns-cache';
+import { getWayfinderInstance } from './routing';
+import { logger } from './utils/logger';
+import { verificationCache } from './utils/verification-cache';
 
 // Note: wayfinder-core handles ar:// URLs directly including ArNS names
 
@@ -32,11 +32,11 @@ import { VERIFICATION_DEFAULTS } from "./config/defaults";
 export async function verifyInBackgroundWithCache(
   arUrl: string,
   tabId: number,
-  updateDailyStats: (type: string) => Promise<void>
+  updateDailyStats: (type: string) => Promise<void>,
 ): Promise<void> {
   try {
     logger.info(`🔍 [VERIFY] Starting background verification for: ${arUrl}`);
-    console.log("🔍 [VERIFY] verifyInBackgroundWithCache called for:", arUrl);
+    console.log('🔍 [VERIFY] verifyInBackgroundWithCache called for:', arUrl);
 
     // Get verification settings
     const {
@@ -45,14 +45,14 @@ export async function verifyInBackgroundWithCache(
       showVerificationToasts = VERIFICATION_DEFAULTS.showVerificationToasts,
       enableVerificationCache = VERIFICATION_DEFAULTS.enableVerificationCache,
     } = await chrome.storage.local.get([
-      "verificationEnabled",
-      "verificationStrict",
-      "showVerificationToasts",
-      "enableVerificationCache",
+      'verificationEnabled',
+      'verificationStrict',
+      'showVerificationToasts',
+      'enableVerificationCache',
     ]);
 
     if (!verificationEnabled) {
-      logger.info("[SKIP] [VERIFY] Verification is disabled, skipping");
+      logger.info('[SKIP] [VERIFY] Verification is disabled, skipping');
       return;
     }
 
@@ -68,11 +68,11 @@ export async function verifyInBackgroundWithCache(
         }
 
         // Update stats
-        await updateDailyStats("verified");
+        await updateDailyStats('verified');
 
         // Show success toast if enabled
         if (showVerificationToasts) {
-          await showVerificationToast(tabId, true, "Verified (cached)");
+          await showVerificationToast(tabId, true, 'Verified (cached)');
         }
 
         return; // Skip verification, use cached result
@@ -81,7 +81,7 @@ export async function verifyInBackgroundWithCache(
 
     // Proceed with verification
     const wayfinder = await getWayfinderInstance();
-    logger.info("[VERIFY] Wayfinder instance obtained for verification");
+    logger.info('[VERIFY] Wayfinder instance obtained for verification');
 
     // Track verification status with promise for completion
     const verificationResult = {
@@ -100,71 +100,71 @@ export async function verifyInBackgroundWithCache(
     // Set up verification event listeners
     const handleVerificationPassed = (event: any) => {
       logger.info(
-        `[SUCCESS] [VERIFY] Background verification PASSED for ${arUrl}`
+        `[SUCCESS] [VERIFY] Background verification PASSED for ${arUrl}`,
       );
       verificationResult.verified = true;
-      verificationResult.strategy = event.strategy || "unknown";
+      verificationResult.strategy = event.strategy || 'unknown';
       verificationResult.hash = event.hash || null;
-      updateDailyStats("verified");
+      updateDailyStats('verified');
       verificationComplete();
     };
 
     const handleVerificationFailed = (event: any) => {
       logger.warn(
         `[FAILED] [VERIFY] Background verification FAILED for ${arUrl}:`,
-        event
+        event,
       );
       verificationResult.verified = false;
       verificationResult.error =
-        event.error || event.message || "Verification failed";
-      updateDailyStats("failed");
+        event.error || event.message || 'Verification failed';
+      updateDailyStats('failed');
       verificationComplete();
     };
 
     // Add listeners (check if emitter exists)
     if (!wayfinder.emitter) {
-      logger.error("[VERIFY] Wayfinder emitter not available!");
+      logger.error('[VERIFY] Wayfinder emitter not available!');
     } else {
-      logger.info("[VERIFY] Setting up verification event listeners");
-      wayfinder.emitter.on("verification-succeeded", handleVerificationPassed);
-      wayfinder.emitter.on("verification-failed", handleVerificationFailed);
+      logger.info('[VERIFY] Setting up verification event listeners');
+      wayfinder.emitter.on('verification-succeeded', handleVerificationPassed);
+      wayfinder.emitter.on('verification-failed', handleVerificationFailed);
     }
 
     try {
       logger.info(
-        `[REQUEST] [VERIFY] Making background verification request...`
+        `[REQUEST] [VERIFY] Making background verification request...`,
       );
 
       // Make the verification request
       const response = await wayfinder.request(arUrl, {
-        method: "GET",
+        method: 'GET',
         headers: {
-          Accept: "*/*",
+          Accept: '*/*',
         },
       });
 
       logger.info(
-        `[RESPONSE] [VERIFY] Response received, status: ${response.status}`
+        `[RESPONSE] [VERIFY] Response received, status: ${response.status}`,
       );
 
       // Extract AR.IO gateway headers for ArNS caching
-      const arnsResolvedId = response.headers.get("x-arns-resolved-id");
-      const arIoDataId = response.headers.get("x-ar-io-data-id");
-      const arnsProcessId = response.headers.get("x-arns-process-id");
+      const arnsResolvedId = response.headers.get('x-arns-resolved-id');
+      const arIoDataId = response.headers.get('x-ar-io-data-id');
+      const arnsProcessId = response.headers.get('x-arns-process-id');
 
       // Cache ArNS resolution if this is an ArNS name
       const isArNS =
-        arUrl.startsWith("ar://") && !arUrl.match(/^ar:\/\/[a-zA-Z0-9_-]{43}/);
+        arUrl.startsWith('ar://') && !arUrl.match(/^ar:\/\/[a-zA-Z0-9_-]{43}/);
       if (isArNS && arnsResolvedId) {
-        const arnsName = arUrl.replace("ar://", "").split("/")[0];
+        const arnsName = arUrl.replace('ar://', '').split('/')[0];
         await cacheArNSResolution(
           arnsName,
           arnsResolvedId,
           arnsProcessId || undefined,
-          arIoDataId || undefined
+          arIoDataId || undefined,
         );
         logger.info(
-          `[ARNS] [VERIFY] Cached ArNS resolution: ${arnsName} → ${arnsResolvedId}`
+          `[ARNS] [VERIFY] Cached ArNS resolution: ${arnsName} → ${arnsResolvedId}`,
         );
       }
 
@@ -172,7 +172,7 @@ export async function verifyInBackgroundWithCache(
       try {
         const responseBody = await response.text(); // Consume the full response
         logger.info(
-          `[CONSUMED] [VERIFY] Response body consumed, length: ${responseBody.length}, verification should complete now`
+          `[CONSUMED] [VERIFY] Response body consumed, length: ${responseBody.length}, verification should complete now`,
         );
       } catch (err) {
         logger.warn(`[WARNING] [VERIFY] Error consuming response body:`, err);
@@ -181,13 +181,15 @@ export async function verifyInBackgroundWithCache(
       // Wait for verification to complete (with timeout)
       await Promise.race([
         verificationPromise,
-        new Promise((resolve) => setTimeout(resolve, VERIFICATION_DEFAULTS.verificationTimeout)),
+        new Promise((resolve) =>
+          setTimeout(resolve, VERIFICATION_DEFAULTS.verificationTimeout),
+        ),
       ]);
 
       logger.info(
         `[FINAL] [VERIFY] Final verification status: ${
-          verificationResult.verified ? "PASSED" : "FAILED"
-        }`
+          verificationResult.verified ? 'PASSED' : 'FAILED'
+        }`,
       );
 
       // Cache the result if verification succeeded and caching is enabled
@@ -198,12 +200,12 @@ export async function verifyInBackgroundWithCache(
       ) {
         // Determine the cache key - use resolved txId for ArNS or direct txId
         const cacheKey =
-          arnsResolvedId || arUrl.replace("ar://", "").split("/")[0];
+          arnsResolvedId || arUrl.replace('ar://', '').split('/')[0];
 
         const cacheEntry = {
           txId: cacheKey,
           hash: verificationResult.hash,
-          algorithm: "sha256" as const,
+          algorithm: 'sha256' as const,
           timestamp: Date.now(),
           verified: true,
           // ArNS specific fields
@@ -215,8 +217,8 @@ export async function verifyInBackgroundWithCache(
         await verificationCache.set(cacheEntry);
         logger.info(
           `[CACHE] [VERIFY] Cached successful verification for ${cacheKey}${
-            isArNS ? ` (ArNS: ${arUrl})` : ""
-          }`
+            isArNS ? ` (ArNS: ${arUrl})` : ''
+          }`,
         );
       }
 
@@ -232,16 +234,16 @@ export async function verifyInBackgroundWithCache(
       // Clean up listeners
       if (wayfinder.emitter) {
         wayfinder.emitter.off(
-          "verification-succeeded",
-          handleVerificationPassed
+          'verification-succeeded',
+          handleVerificationPassed,
         );
-        wayfinder.emitter.off("verification-failed", handleVerificationFailed);
+        wayfinder.emitter.off('verification-failed', handleVerificationFailed);
       }
     }
   } catch (error) {
     logger.error(
-      "[CRITICAL] [VERIFY] Error in background verification:",
-      error
+      '[CRITICAL] [VERIFY] Error in background verification:',
+      error,
     );
   }
 }
@@ -253,14 +255,14 @@ async function showVerificationWarning(tabId: number): Promise<void> {
   chrome.scripting.executeScript({
     target: { tabId },
     func: () => {
-      const warning = document.createElement("div");
+      const warning = document.createElement('div');
       warning.style.cssText =
-        "position: fixed; bottom: 20px; right: 20px; background: #ff4444; color: white; padding: 16px; border-radius: 8px; z-index: 10000; font-family: sans-serif; box-shadow: 0 4px 12px rgba(0,0,0,0.3); animation: slideUp 0.3s ease-out;";
+        'position: fixed; bottom: 20px; right: 20px; background: #ff4444; color: white; padding: 16px; border-radius: 8px; z-index: 10000; font-family: sans-serif; box-shadow: 0 4px 12px rgba(0,0,0,0.3); animation: slideUp 0.3s ease-out;';
       warning.innerHTML =
         '<strong><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-right: 4px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Verification Failed</strong><br>This content could not be verified through the AR.IO network.';
 
       // Add slide up animation
-      const style = document.createElement("style");
+      const style = document.createElement('style');
       style.textContent = `
         @keyframes slideUp {
           from {
@@ -277,7 +279,7 @@ async function showVerificationWarning(tabId: number): Promise<void> {
 
       document.body.appendChild(warning);
       setTimeout(() => {
-        warning.style.animation = "slideUp 0.3s ease-out reverse";
+        warning.style.animation = 'slideUp 0.3s ease-out reverse';
         setTimeout(() => {
           warning.remove();
           style.remove();
@@ -293,15 +295,15 @@ async function showVerificationWarning(tabId: number): Promise<void> {
 async function showVerificationToast(
   tabId: number,
   verified: boolean,
-  customMessage?: string
+  customMessage?: string,
 ): Promise<void> {
   try {
     await chrome.scripting.executeScript({
       target: { tabId },
       func: (verified, message) => {
-        const toast = document.createElement("div");
+        const toast = document.createElement('div');
         toast.style.cssText = `position: fixed; bottom: 20px; right: 20px; background: ${
-          verified ? "#10b981" : "#ff4444"
+          verified ? '#10b981' : '#ff4444'
         }; color: white; padding: 12px 16px; border-radius: 8px; z-index: 10000; font-family: sans-serif; box-shadow: 0 4px 12px rgba(0,0,0,0.3); animation: slideUp 0.3s ease-out;`;
 
         const iconSvg = verified
@@ -310,14 +312,14 @@ async function showVerificationToast(
 
         toast.innerHTML =
           iconSvg +
-          (message && typeof message === "string"
+          (message && typeof message === 'string'
             ? message
             : verified
-            ? " Content verified successfully"
-            : " Content verification failed");
+              ? ' Content verified successfully'
+              : ' Content verification failed');
 
         // Add slide up animation
-        const style = document.createElement("style");
+        const style = document.createElement('style');
         style.textContent = `
           @keyframes slideUp {
             from {
@@ -334,7 +336,7 @@ async function showVerificationToast(
 
         document.body.appendChild(toast);
         setTimeout(() => {
-          toast.style.animation = "slideUp 0.3s ease-out reverse";
+          toast.style.animation = 'slideUp 0.3s ease-out reverse';
           setTimeout(() => {
             toast.remove();
             style.remove();
@@ -344,6 +346,6 @@ async function showVerificationToast(
       args: [verified, customMessage || null],
     });
   } catch (error) {
-    console.error("[TOAST] Failed to show verification toast:", error);
+    console.error('[TOAST] Failed to show verification toast:', error);
   }
 }

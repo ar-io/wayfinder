@@ -48,6 +48,10 @@ export default defineConfig({
           src: 'src/performance.html',
           dest: '.',
         },
+        {
+          src: 'src/warning.html',
+          dest: '.',
+        },
 
         {
           src: 'manifest.json',
@@ -76,11 +80,17 @@ export default defineConfig({
         settings: './src/settings.js',
         gateways: './src/gateways.js',
         performance: './src/performance.js',
+        warning: './src/warning.js',
       },
       output: {
         entryFileNames: '[name].js',
         chunkFileNames: '[name].js',
         assetFileNames: '[name].[ext]',
+        // Manual chunks configuration
+        manualChunks: {
+          // Group SDK and large dependencies together
+          'webIndex': ['@ar.io/sdk/web', '@permaweb/aoconnect', '@ar.io/wayfinder-core'],
+        },
       },
     },
   },

@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Security Warning - Wayfinder</title>
+    <!-- AR.IO Brand Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&family=Albert+Sans:wght@400;600&family=DM+Sans:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="assets/css/variables.css" />
+    <link rel="stylesheet" href="assets/css/warning.css" />
+    <script type="module" src="warning.js"></script>
+  </head>
+  <body>
+    <div class="warning-container">
+      <!-- Header -->
+      <header class="warning-header">
+        <div class="header-content">
+          <div class="logo-section">
+            <div class="logo-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                <path d="M2 12h20"/>
+              </svg>
+            </div>
+            <div class="logo-text">
+              <h1>Wayfinder</h1>
+              <p>AR.IO Network</p>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Warning Content -->
+      <main class="warning-content">
+        <!-- Warning Icon and Title -->
+        <div class="warning-icon-section">
+          <div class="warning-icon">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+          </div>
+          <h2 class="warning-title">Verification Warning</h2>
+          <p class="warning-subtitle">This content could not be verified by the AR.IO network</p>
+        </div>
+
+        <!-- URL Display -->
+        <div class="url-section">
+          <div class="url-label">Requested URL</div>
+          <div class="url-display" id="requestedUrl">
+            <span class="url-text">ar://...</span>
+          </div>
+        </div>
+
+        <!-- Warning Message -->
+        <div class="warning-message">
+          <p>
+            The cryptographic verification of this content has failed. This could mean:
+          </p>
+          <ul>
+            <li>The content has been modified or tampered with</li>
+            <li>The gateway is experiencing technical issues</li>
+            <li>The verification service is temporarily unavailable</li>
+          </ul>
+          <p class="risk-warning">
+            <strong>Proceeding may expose you to security risks.</strong> Only continue if you trust the source and understand the risks.
+          </p>
+        </div>
+
+        <!-- Expandable Details -->
+        <details class="technical-details" id="technicalDetails">
+          <summary>
+            <span>Technical Details</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </summary>
+          <div class="details-content">
+            <div class="detail-item">
+              <span class="detail-label">Verification Strategy:</span>
+              <span class="detail-value" id="verificationStrategy">Unknown</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Error:</span>
+              <span class="detail-value error-text" id="verificationError">No error details available</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Gateway:</span>
+              <span class="detail-value" id="gatewayInfo">Unknown</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Transaction ID:</span>
+              <span class="detail-value monospace" id="txId">Unknown</span>
+            </div>
+          </div>
+        </details>
+
+        <!-- Actions -->
+        <div class="actions-section">
+          <div class="bypass-options">
+            <label class="checkbox-container">
+              <input type="checkbox" id="rememberChoice" />
+              <span class="checkbox-label">Don't warn me about this page again</span>
+            </label>
+          </div>
+
+          <div class="action-buttons">
+            <button class="button button-secondary" id="goBackButton">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+              </svg>
+              Go Back Safely
+            </button>
+            <button class="button button-danger" id="proceedButton" disabled>
+              Proceed Anyway
+              <span class="button-timer" id="proceedTimer">(3)</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Footer Info -->
+        <div class="footer-info">
+          <p>
+            Learn more about <a href="https://ar.io/verification" target="_blank" rel="noopener noreferrer">AR.IO verification</a> 
+            or <a href="#" id="reportIssue">report a false positive</a>.
+          </p>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

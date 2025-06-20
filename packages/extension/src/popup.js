@@ -30,11 +30,34 @@ export function showToast(message, type = 'success') {
 document.addEventListener('DOMContentLoaded', async () => {
   await initializePopup();
   setupEventHandlers();
+  setupStorageListener();
   await loadStats();
   await loadCurrentStrategy();
   await loadCurrentVerification();
   updateConnectionStatus();
 });
+
+// Listen for storage changes to update UI in real-time
+function setupStorageListener() {
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName === 'local') {
+      // Update gateway count if sync status or registry changes
+      if (changes.syncStatus || changes.localGatewayAddressRegistry || changes.lastKnownGatewayCount) {
+        loadStats();
+      }
+      
+      // Update routing strategy if changed
+      if (changes.routingMethod) {
+        loadCurrentStrategy();
+      }
+      
+      // Update verification if changed
+      if (changes.verificationEnabled || changes.verificationStrict) {
+        loadCurrentVerification();
+      }
+    }
+  });
+}
 
 async function initializePopup() {
   // Apply saved theme
@@ -57,6 +80,32 @@ async function setExtensionVersion() {
 }
 
 function setupEventHandlers() {
+  // Manual sync button
+  const syncButton = document.getElementById('manualSyncButton');
+  syncButton?.addEventListener('click', async () => {
+    // Disable button and show syncing state
+    syncButton.disabled = true;
+    syncButton.classList.add('syncing');
+    const syncText = syncButton.querySelector('.sync-text');
+    if (syncText) syncText.textContent = 'Syncing...';
+    
+    // Send sync message
+    chrome.runtime.sendMessage({ message: 'syncGatewayAddressRegistry' }, (response) => {
+      // Re-enable button after sync completes or fails
+      setTimeout(() => {
+        syncButton.disabled = false;
+        syncButton.classList.remove('syncing');
+        if (syncText) syncText.textContent = 'Sync';
+        
+        if (response && response.success) {
+          showToast('Gateways synced successfully', 'success');
+        } else if (response && response.error) {
+          showToast('Sync failed: ' + response.error, 'error');
+        }
+      }, 1000);
+    });
+  });
+  
   // Navigation cards
   document.getElementById('showGateways')?.addEventListener('click', () => {
     window.location.href = 'gateways.html';
@@ -85,22 +134,57 @@ function setupEventHandlers() {
 
 async function loadStats() {
   try {
-    // Load gateway stats and daily stats
+    // Load gateway stats, daily stats, and sync status
     const {
       localGatewayAddressRegistry = {},
       gatewayPerformance = {},
       dailyStats,
+      syncStatus = 'idle',
+      lastKnownGatewayCount = 0,
+      syncError = null,
     } = await chrome.storage.local.get([
       'localGatewayAddressRegistry',
       'gatewayPerformance',
       'dailyStats',
+      'syncStatus',
+      'lastKnownGatewayCount',
+      'syncError',
     ]);
 
     const activeCount = Object.values(localGatewayAddressRegistry).filter(
       (gateway) => gateway.status === 'joined',
     ).length;
 
-    document.getElementById('activeGatewayCount').textContent = activeCount;
+    // Update gateway count with loading state
+    const countElement = document.getElementById('activeGatewayCount');
+    const gatewayCard = document.getElementById('showGateways');
+    
+    if (syncStatus === 'syncing') {
+      // Show loading state
+      if (lastKnownGatewayCount > 0) {
+        countElement.innerHTML = `<span class="loading-indicator">🔄</span> ${lastKnownGatewayCount}`;
+        // Add subtle loading animation to the card
+        gatewayCard?.classList.add('syncing');
+      } else {
+        countElement.innerHTML = '<span class="loading-indicator spinning">🔄</span> Syncing...';
+        gatewayCard?.classList.add('syncing');
+      }
+    } else if (syncStatus === 'error' && lastKnownGatewayCount > 0) {
+      // Show last known count with error indicator
+      countElement.innerHTML = `<span class="error-indicator">⚠️</span> ${lastKnownGatewayCount}`;
+      gatewayCard?.classList.add('sync-error');
+      gatewayCard?.classList.remove('syncing');
+    } else if (activeCount === 0 && syncStatus === 'idle') {
+      // Initial state - trigger sync
+      countElement.innerHTML = '<span class="loading-indicator spinning">🔄</span> Loading...';
+      gatewayCard?.classList.add('syncing');
+      // Trigger initial sync
+      chrome.runtime.sendMessage({ message: 'syncGatewayAddressRegistry' });
+    } else {
+      // Normal display
+      countElement.textContent = activeCount;
+      gatewayCard?.classList.remove('syncing', 'sync-error');
+    }
 
     // Calculate average response time
     const performances = Object.values(gatewayPerformance);

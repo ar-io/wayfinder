@@ -15,7 +15,13 @@
  * limitations under the License.
  */
 
-import { logger } from './utils/logger';
+// Inline logger for content script to avoid module import issues
+const logger = {
+  debug: (message: string, ...args: any[]) => console.debug('[Wayfinder Content]', message, ...args),
+  info: (message: string, ...args: any[]) => console.info('[Wayfinder Content]', message, ...args),
+  warn: (message: string, ...args: any[]) => console.warn('[Wayfinder Content]', message, ...args),
+  error: (message: string, ...args: any[]) => console.error('[Wayfinder Content]', message, ...args),
+};
 
 /**
  * Utility function to add timeout to promises
@@ -172,14 +178,22 @@ async function processArUrl(
   attribute: string,
 ): Promise<void> {
   // Check if verification indicators are enabled
-  const storage = await new Promise<{ showVerificationIndicators?: boolean }>(
+  const storage = await new Promise<{ 
+    showVerificationIndicators?: boolean;
+    enableContentVerification?: boolean;
+  }>(
     (resolve) => {
-      chrome.storage.local.get(['showVerificationIndicators'], resolve);
+      chrome.storage.local.get([
+        'showVerificationIndicators',
+        'enableContentVerification'
+      ], resolve);
     },
   );
 
   const showVerificationIndicators =
     storage.showVerificationIndicators !== false;
+  const enableContentVerification = 
+    storage.enableContentVerification === true; // Default to false
 
   // Add pending indicator if enabled
   if (showVerificationIndicators) {
@@ -206,37 +220,54 @@ async function processArUrl(
     // Set the converted URL
     (element as any)[attribute] = convertResponse.url;
 
-    // For transaction IDs, make a verified request to check data integrity
+    // For transaction IDs, optionally verify in content script for immediate UI feedback
+    // Note: This makes an additional request beyond the background verification
     const txIdMatch = arUrl.match(/^ar:\/\/([a-zA-Z0-9_-]{43})/);
-    if (txIdMatch) {
+    if (txIdMatch && enableContentVerification) {
       const txId = txIdMatch[1];
 
       try {
-        // Show verification start notification
-        showVerificationToast(
-          `Verifying data for ${txId.substring(0, 8)}...`,
-          'info',
-        );
-
-        // Make verified request for transaction data with timeout
-        const verifyResponse = await withTimeout(
+        // Wait a moment for the browser request to complete and cache to be populated
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Check if we have a cached verification result from the browser request
+        const cacheCheckResponse = await withTimeout(
           new Promise<any>((resolve) => {
             chrome.runtime.sendMessage(
               {
-                type: 'makeVerifiedRequest',
+                type: 'checkVerificationCache',
                 url: arUrl,
-                options: {}, // GET request to actually download and verify data
               },
               resolve,
             );
           }),
-          15000, // 15 second timeout for verification (longer since we're downloading data)
-          'Verification timed out',
+          1000, // Quick timeout for cache check
+          'Cache check timed out',
         );
 
-        if (showVerificationIndicators) {
+        let verifyResponse;
+        
+        if (cacheCheckResponse && cacheCheckResponse.cached && cacheCheckResponse.result) {
+          // Use cached result from the browser's navigation request
+          logger.debug(`[CACHED] Using verification result from browser request for ${txId}`);
+          verifyResponse = {
+            success: true,
+            response: {
+              verification: {
+                verified: cacheCheckResponse.result.verified,
+                strategy: cacheCheckResponse.result.strategy,
+                error: cacheCheckResponse.result.error,
+              },
+            },
+          };
+        } else {
+          // No verification data available (verification might be disabled)
+          logger.debug(`[NO VERIFY] No verification data available for ${txId}`);
+          verifyResponse = null;
+        }
+
+        if (showVerificationIndicators && verifyResponse) {
           if (
-            verifyResponse &&
             verifyResponse.success &&
             verifyResponse.response
           ) {
@@ -251,28 +282,21 @@ async function processArUrl(
               logger.debug(
                 `[SUCCESS] Verified data integrity for ${txId} using ${verification.strategy}`,
               );
-            } else {
+            } else if (verification) {
               addVerificationIndicator(element, 'failed');
               showVerificationToast(
-                `Verification failed: ${verification?.error || 'Unknown error'}`,
+                `Verification failed: ${verification.error || 'Unknown error'}`,
                 'error',
               );
               logger.warn(
                 `[FAILED] Verification failed for ${txId}:`,
-                verification?.error || 'Unknown verification error',
+                verification.error || 'Unknown verification error',
               );
             }
-          } else {
-            addVerificationIndicator(element, 'failed');
-            showVerificationToast(
-              `Verification request failed: ${verifyResponse?.error || 'Unknown error'}`,
-              'error',
-            );
-            logger.warn(
-              `[FAILED] Verification request failed for ${txId}:`,
-              verifyResponse?.error,
-            );
           }
+        } else if (showVerificationIndicators && !verifyResponse) {
+          // No verification data - verification might be disabled
+          logger.debug(`[INFO] No verification indicators shown - verification may be disabled`);
         }
       } catch (verifyError) {
         // If verification fails, still allow the content to load but show failed status
@@ -281,7 +305,7 @@ async function processArUrl(
         }
         logger.warn(`Verification error for ${txId}:`, verifyError);
       }
-    } else {
+    } else if (enableContentVerification) {
       // For ArNS names, just show as verified since we can't verify them directly
       if (showVerificationIndicators) {
         addVerificationIndicator(element, 'verified');

@@ -16,6 +16,9 @@
     <script type="module" src="popup.js"></script>
   </head>
   <body>
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+    
     <div class="popup-container">
       <!-- Header -->
       <header class="popup-header">
@@ -49,7 +52,14 @@
       <main class="popup-content">
         
         <!-- Stats Section -->
-        <section class="stats-section">
+        <section class="stats-section" style="position: relative;">
+          <!-- Manual Sync Button -->
+          <button class="sync-button" id="manualSyncButton" title="Sync Gateways">
+            <svg class="sync-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+            </svg>
+            <span class="sync-text">Sync</span>
+          </button>
           <div class="stats-grid">
             <div class="stat-item">
               <svg class="stat-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
