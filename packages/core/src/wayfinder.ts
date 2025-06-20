@@ -712,10 +712,10 @@ export class Wayfinder {
       enabled: telemetrySettings?.enabled ?? false,
       sampleRate: telemetrySettings?.sampleRate ?? 1,
       apiKey: telemetrySettings?.apiKey ?? '',
-      dataset: telemetrySettings?.dataset ?? 'wayfinder',
-      serviceName: telemetrySettings?.serviceName ?? 'wayfinder',
+      dataset: telemetrySettings?.dataset ?? 'wayfinder-dev',
+      serviceName: telemetrySettings?.serviceName ?? 'wayfinder-core',
       exporterUrl:
-        telemetrySettings?.exporterUrl ?? 'https://api.honeycomb.io/v1/traces', // US instance
+        telemetrySettings?.exporterUrl ?? 'https://api.honeycomb.io/v1/traces', // TODO: replace with proxy url
     };
 
     this.tracer = initTelemetry(this.telemetrySettings);

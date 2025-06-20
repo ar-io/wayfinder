@@ -40,10 +40,9 @@
   "dependencies": {
     "@dha-team/arbundles": "^1.0.3",
     "@opentelemetry/api": "^1.9.0",
-    "@opentelemetry/auto-instrumentations-node": "^0.60.1",
-    "@opentelemetry/auto-instrumentations-web": "^0.48.0",
-    "@opentelemetry/instrumentation-fetch": "^0.202.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.202.0",
     "@opentelemetry/sdk-trace-base": "^2.0.1",
+    "@opentelemetry/sdk-trace-node": "^2.0.1",
     "@opentelemetry/sdk-trace-web": "^2.0.1",
     "arweave": "^1.14.0",
     "eventemitter3": "^5.0.1",
