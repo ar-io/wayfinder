@@ -44,7 +44,10 @@ import type {
 import { WayfinderEmitter } from './wayfinder.js';
 
 export const initTelemetry = (
-  config: TelemetryConfig = {},
+  config: TelemetryConfig = {
+    enabled: false,
+    sampleRate: 0,
+  },
 ): Tracer | undefined => {
   if (config.enabled === false) return undefined;
   diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
@@ -53,7 +56,7 @@ export const initTelemetry = (
     url: config.exporterUrl ?? 'https://api.honeycomb.io',
     headers: {
       'x-honeycomb-team': config.apiKey ?? '',
-      'x-honeycomb-dataset': config.dataset ?? 'wayfinder-core',
+      'x-honeycomb-dataset': 'wayfinder-dev',
     },
   });
 
@@ -61,7 +64,7 @@ export const initTelemetry = (
   const spanProcessor = new BatchSpanProcessor(exporter);
   const sampler = new TraceIdRatioBasedSampler(config.sampleRate ?? 1);
   const resource = resourceFromAttributes({
-    [ATTR_SERVICE_NAME]: config.serviceName ?? 'wayfinder-core',
+    [ATTR_SERVICE_NAME]: 'wayfinder-core',
     [ATTR_SERVICE_VERSION]: process?.env?.npm_package_version ?? 'unknown',
   });
 
@@ -79,7 +82,7 @@ export const initTelemetry = (
 
   provider.register();
 
-  return trace.getTracer(config.serviceName ?? 'wayfinder-core');
+  return trace.getTracer('wayfinder-core');
 };
 
 export const startRequestSpans = ({

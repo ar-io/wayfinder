@@ -153,15 +153,11 @@ export interface WayfinderOptions {
 
 export interface TelemetryConfig {
   /** Enable or disable telemetry collection */
-  enabled?: boolean;
+  enabled: boolean;
   /** Sampling ratio between 0 and 1 */
-  sampleRate?: number;
+  sampleRate: number;
   /** Honeycomb API key */
   apiKey?: string;
-  /** Honeycomb dataset name */
-  dataset?: string;
-  /** Service name used for traces */
-  serviceName?: string;
   /** Optional custom OTLP exporter URL */
   exporterUrl?: string;
 }
