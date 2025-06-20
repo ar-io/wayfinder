@@ -21,12 +21,26 @@ yarn add @ar.io/wayfinder-react @ar.io/wayfinder-core
 ## Usage
 
 ```jsx
-import { WayfinderProvider, ArweaveLink, useWayfinder } from '@ar.io/wayfinder-react';
+import {
+  WayfinderProvider,
+  useWayfinderRequest,
+  useWayfinderUrl,
+} from '@ar.io/wayfinder-react';
+import { NetworkGatewaysProvider } from '@ar.io/wayfinder-core';
+import { ARIO } from '@ar.io/sdk';
 
 // Wrap your app with the provider
 function App() {
   return (
-    <WayfinderProvider>
+    <WayfinderProvider
+      // pass in the wayfinder options
+      // https://github.com/ar-io/wayfinder/tree/alpha/packages/core#custom-configuration
+      gatewaysProvider={new NetworkGatewaysProvider({ 
+        ario: ARIO.mainnet() 
+        limit: 3,
+        sortBy: 'operatorStake',
+      })}
+    >
       <YourApp />
     </WayfinderProvider>
   );
@@ -34,26 +48,49 @@ function App() {
 
 // Use components
 function YourComponent() {
-  return (
-    <div>
-      <ArweaveLink txId="your-tx-id">View on Arweave</ArweaveLink>
-    </div>
-  );
-}
-
-// Use hooks
-function GatewaySelector() {
-  const { selectGateway, currentGateway } = useWayfinder();
+  const txId = 'your-transaction-id'; // Replace with actual txId
   
+  // Use custom hooks for URL resolution and data fetching
+  const request = useWayfinderRequest();
+  const { resolvedUrl, isLoading: urlLoading, error: urlError } = useWayfinderUrl({ txId });
+
+  // Use custom hooks for data fetching
+  const [data, setData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+  const [dataError, setDataError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        setDataLoading(true);
+        setDataError(null);
+        // fetch the data for the txId using wayfinder
+        const response = await request(`ar://${txId}`, {
+          verificationSettings: {
+            enabled: true, // enable verification on the request
+            strict: true, // don't use the data if it's not verified
+          },
+        });
+        const data = await response.arrayBuffer(); // or response.json() if you want to parse the data as JSON
+        setData(data);
+      } catch (error) {
+        setDataError(error as Error);
+      } finally {
+        setDataLoading(false);
+      }
+    })();
+  }, [request, txId]);
+
   return (
     <div>
-      <p>Current Gateway: {currentGateway.domain}</p>
-      <button onClick={() => selectGateway()}>Change Gateway</button>
+      {urlLoading && <p>Resolving URL...</p>}
+      {urlError && <p>Error resolving URL: {urlError.message}</p>}
+      {resolvedUrl && <a href={resolvedUrl}>View on WayFinder</a>}
+      <br />
+      {dataLoading && <p>Loading data...</p>}
+      {dataError && <p>Error loading data: {dataError.message}</p>}
+      <pre>{data}</pre>
     </div>
   );
 }
 ```
-
-## License
-
-AGPL-3.0-only

@@ -24,18 +24,19 @@ import {
 } from 'arweave/node/lib/merkle.js';
 
 import { pLimit } from 'plimit-lit';
+import { GqlClassifier } from '../classifiers/gql-classifier.js';
+import { defaultLogger } from '../logger.js';
 import {
   DataClassifier,
   DataStream,
+  Logger,
   VerificationStrategy,
-} from '../../types/wayfinder.js';
-import { GqlClassifier } from '../classifiers/gql-classifier.js';
+} from '../types.js';
 import { toB64Url } from '../utils/base64.js';
 import {
   isAsyncIterable,
   readableStreamToAsyncIterable,
 } from '../utils/hash.js';
-import { Logger, defaultLogger } from '../wayfinder.js';
 
 export const convertDataStreamToDataRoot = async ({
   stream,

@@ -31,66 +31,78 @@ import { defaultLogger } from '../logger.js';
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import type { GatewaysProvider, Logger } from '../types.js';
+import type { Logger, RoutingStrategy } from '../types.js';
 
-export class SimpleCacheGatewaysProvider implements GatewaysProvider {
-  private gatewaysProvider: GatewaysProvider;
+export class SimpleCacheRoutingStrategy implements RoutingStrategy {
+  public readonly name = 'simple-cache';
+  private routingStrategy: RoutingStrategy;
   private ttlSeconds: number;
   private lastUpdated: number;
-  private gatewaysCache: URL[];
+  private cachedGateway: URL | null;
   private logger: Logger;
 
   constructor({
-    gatewaysProvider,
+    routingStrategy,
     ttlSeconds = 60 * 60, // 1 hour
     logger = defaultLogger,
   }: {
-    gatewaysProvider: GatewaysProvider;
+    routingStrategy: RoutingStrategy;
     ttlSeconds?: number;
     logger?: Logger;
   }) {
-    this.gatewaysCache = [];
-    this.gatewaysProvider = gatewaysProvider;
+    this.routingStrategy = routingStrategy;
     this.ttlSeconds = ttlSeconds;
     this.lastUpdated = 0;
+    this.cachedGateway = null;
     this.logger = logger;
   }
 
-  async getGateways(params?: { path?: string; subdomain?: string }): Promise<
-    URL[]
-  > {
+  async selectGateway(params: {
+    gateways: URL[];
+    path?: string;
+    subdomain?: string;
+  }): Promise<URL> {
     const now = Date.now();
     if (
-      this.gatewaysCache.length === 0 ||
+      this.cachedGateway === null ||
       now - this.lastUpdated > this.ttlSeconds * 1000
     ) {
       try {
-        this.logger.debug('Cache expired, fetching new gateways', {
+        this.logger.debug('Cache expired, selecting new gateway', {
           cacheAge: now - this.lastUpdated,
           ttlSeconds: this.ttlSeconds,
         });
 
-        // preserve the cache if the fetch fails
-        const allGateways = await this.gatewaysProvider.getGateways(params);
-        this.gatewaysCache = allGateways;
+        // preserve the cache if the selection fails
+        const selectedGateway =
+          await this.routingStrategy.selectGateway(params);
+        this.cachedGateway = selectedGateway;
         this.lastUpdated = now;
 
-        this.logger.debug('Updated gateways cache', {
-          gatewayCount: allGateways.length,
+        this.logger.debug('Updated gateway cache', {
+          selectedGateway: selectedGateway.toString(),
         });
       } catch (error: any) {
-        this.logger.error('Failed to fetch gateways', {
+        this.logger.error('Failed to select gateway', {
           error: error.message,
           stack: error.stack,
         });
+        // If we have a cached gateway, return it even if expired
+        if (this.cachedGateway !== null) {
+          this.logger.warn(
+            'Returning expired cached gateway due to selection failure',
+          );
+          return this.cachedGateway;
+        }
+        throw error;
       }
     } else {
-      this.logger.debug('Using cached gateways', {
+      this.logger.debug('Using cached gateway', {
         cacheAge: now - this.lastUpdated,
         ttlSeconds: this.ttlSeconds,
-        gatewayCount: this.gatewaysCache.length,
+        cachedGateway: this.cachedGateway.toString(),
       });
     }
-    return this.gatewaysCache;
+    return this.cachedGateway!;
   }
 }

@@ -1,5 +1,47 @@
 # @ar.io/wayfinder-core
 
+## 0.0.5-alpha.3
+
+### Patch Changes
+
+- 063e480: Updates type exports from wayfinder-core
+
+## 0.0.5-alpha.2
+
+### Patch Changes
+
+- b85ec7e: Fix type for NetworkGatweaysProvider to allow AoARIORead
+
+## 0.0.5-alpha.1
+
+### Patch Changes
+
+- aba2beb: Update README and docs
+
+## 0.0.5-alpha.0
+
+### Patch Changes
+
+- 4afd953: Update logger imports and utils
+
+## 0.0.4
+
+### Patch Changes
+
+- e43548d: Move utils to various utils files, move logger to logger.ts
+
+## 0.0.4-alpha.1
+
+### Patch Changes
+
+- 78ad2b2: Organize wayfinder settings, update defaults for routing and verification
+
+## 0.0.4-alpha.0
+
+### Patch Changes
+
+- 7c81839: Updated wayfinder configurations
+
 ## 0.0.3
 
 ### Patch Changes

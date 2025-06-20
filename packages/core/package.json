@@ -1,6 +1,6 @@
 {
   "name": "@ar.io/wayfinder-core",
-  "version": "0.0.3",
+  "version": "0.0.5-alpha.3",
   "description": "WayFinder core library for intelligently routing to optimal AR.IO gateways",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -31,11 +31,11 @@
     "build": "npm run clean && tsc",
     "clean": "rimraf dist",
     "test": "npm run test:unit",
-    "test:unit": "c8 tsx --enable-source-maps --trace-uncaught --trace-warnings --trace-deprecation src/**/*.test.ts",
-    "lint:fix": "biome check --write --unsafe",
-    "lint:check": "biome check --unsafe",
-    "format:fix": "biome format --write",
-    "format:check": "biome format"
+    "test:unit": "c8 tsx --test 'src/**/*.test.ts'",
+    "lint:fix": "biome check --write --unsafe --config-path=../../biome.json",
+    "lint:check": "biome check --unsafe --config-path=../../biome.json",
+    "format:fix": "biome format --write --config-path=../../biome.json",
+    "format:check": "biome format --config-path=../../biome.json"
   },
   "dependencies": {
     "@dha-team/arbundles": "^1.0.3",

@@ -16,6 +16,7 @@
  */
 
 import { createHash } from 'crypto';
+import { base32 } from 'rfc4648';
 
 // safely encodes and decodes base64url strings to and from buffers
 const BASE64_CHAR_62 = '+';
@@ -55,4 +56,8 @@ function base64urlFromBase64(str: string) {
 
 export function sha256B64Url(input: Uint8Array): string {
   return toB64Url(new Uint8Array(createHash('sha256').update(input).digest()));
+}
+
+export function sandboxFromId(id: string): string {
+  return base32.stringify(fromB64Url(id), { pad: false }).toLowerCase();
 }

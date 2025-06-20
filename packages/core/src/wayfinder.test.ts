@@ -17,9 +17,10 @@
 import assert from 'node:assert';
 import { before, describe, it } from 'node:test';
 
-import { GatewaysProvider } from '../types/wayfinder.js';
 import { RandomRoutingStrategy } from './routing/random.js';
 import { StaticRoutingStrategy } from './routing/static.js';
+import { GatewaysProvider, WayfinderEvent } from './types.js';
+import { HashVerificationStrategy } from './verification/hash-verifier.js';
 import {
   Wayfinder,
   WayfinderEmitter,
@@ -87,7 +88,7 @@ describe('Wayfinder', () => {
     });
 
     for (const api of ['/info', '/block/current']) {
-      it.skip(`supports native arweave node apis ${api}`, async () => {
+      it(`supports native arweave node apis ${api}`, async () => {
         const [nativeFetch, response] = await Promise.all([
           fetch(`https://${gatewayUrl}${api}`),
           wayfinder.request(`ar://${api}`),
@@ -158,7 +159,7 @@ describe('Wayfinder', () => {
   });
 
   describe('events', () => {
-    it('should emit events on the wayfinder event emitter', async () => {
+    it('should emit default events on the wayfinder event emitter when request is made', async () => {
       const wayfinder = new Wayfinder({
         gatewaysProvider: stubbedGatewaysProvider,
         routingSettings: {
@@ -198,6 +199,99 @@ describe('Wayfinder', () => {
       );
     });
 
+    it('should emit events and trigger request callbacks when request is made with custom events, and not emit global events', async () => {
+      const wayfinder = new Wayfinder({
+        gatewaysProvider: stubbedGatewaysProvider,
+        routingSettings: {
+          strategy: new StaticRoutingStrategy({
+            gateway: `http://${gatewayUrl}`,
+          }),
+        },
+        verificationSettings: {
+          strategy: {
+            verifyData: async () => {
+              // do nothing
+              return;
+            },
+          },
+        },
+      });
+
+      const requestEvents: unknown[] = [];
+      // call request with custom callbacks
+      const response = await wayfinder.request(
+        'ar://c7wkwt6TKgcWJUfgvpJ5q5qi4DIZyJ1_TqhjXgURh0U',
+        {
+          verificationSettings: {
+            events: {
+              onVerificationFailed: (
+                event: WayfinderEvent['verification-failed'],
+              ) => {
+                requestEvents.push({ type: 'verification-failed', ...event });
+              },
+              onVerificationProgress: (
+                event: WayfinderEvent['verification-progress'],
+              ) => {
+                requestEvents.push({ type: 'verification-progress', ...event });
+              },
+              onVerificationSucceeded: (
+                event: WayfinderEvent['verification-succeeded'],
+              ) => {
+                requestEvents.push({
+                  type: 'verification-succeeded',
+                  ...event,
+                });
+              },
+            },
+          },
+          routingSettings: {
+            events: {
+              onRoutingStarted: (event: WayfinderEvent['routing-started']) => {
+                requestEvents.push({ type: 'routing-started', ...event });
+              },
+              onRoutingSkipped: (event: WayfinderEvent['routing-skipped']) => {
+                requestEvents.push({ type: 'routing-skipped', ...event });
+              },
+              onRoutingSucceeded: (
+                event: WayfinderEvent['routing-succeeded'],
+              ) => {
+                requestEvents.push({ type: 'routing-succeeded', ...event });
+              },
+            },
+          },
+        },
+      );
+      // read the full response body to ensure the stream is fully consumed
+      await response.text();
+      assert.strictEqual(response.status, 200);
+
+      // request events should have been emitted
+      assert.ok(
+        requestEvents.find((e: any) => e.type === 'routing-started'),
+        'Should have triggered the routing-started callback',
+      );
+      assert.ok(
+        !requestEvents.find((e: any) => e.type === 'routing-skipped'),
+        'Should not have triggered the routing-skipped callback',
+      );
+      assert.ok(
+        requestEvents.find((e: any) => e.type === 'routing-succeeded'),
+        'Should have triggered the routing-succeeded callback',
+      );
+      assert.ok(
+        !requestEvents.find((e: any) => e.type === 'verification-failed'),
+        'Should not have triggered the verification-failed callback',
+      );
+      assert.ok(
+        requestEvents.find((e: any) => e.type === 'verification-progress'),
+        'Should have triggered the verification-progress callback',
+      );
+      assert.ok(
+        requestEvents.find((e: any) => e.type === 'verification-succeeded'),
+        'Should have triggered the verification-succeeded callback',
+      );
+    });
+
     it('should execute callbacks provided to the wayfinder constructor', async () => {
       let verificationFailed = false;
       let verificationProgress = false;
@@ -211,6 +305,9 @@ describe('Wayfinder', () => {
         },
         verificationSettings: {
           strict: true,
+          strategy: new HashVerificationStrategy({
+            trustedGateways: [new URL(`http://${gatewayUrl}`)],
+          }),
           events: {
             onVerificationFailed: () => {
               verificationFailed = true;

@@ -14,7 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-export * from './wayfinder.js';
+
+// types
+export * from './types.js';
 
 // routing strategies
 export * from './routing/random.js';
@@ -22,6 +24,7 @@ export * from './routing/static.js';
 export * from './routing/ping.js';
 export * from './routing/round-robin.js';
 export * from './routing/preferred-with-fallback.js';
+export * from './routing/simple-cache.js';
 
 // gateways providers
 export * from './gateways/network.js';
@@ -32,3 +35,7 @@ export * from './gateways/static.js';
 export * from './verification/data-root-verifier.js';
 export * from './verification/hash-verifier.js';
 export * from './verification/signature-verifier.js';
+
+// wayfinder
+// TODO: consider exporting just Wayfinder and move all the types to the types folder
+export * from './wayfinder.js';

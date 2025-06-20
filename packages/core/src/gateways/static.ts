@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { GatewaysProvider } from '../../types/wayfinder.js';
+import type { GatewaysProvider } from '../types.js';
 
 export class StaticGatewaysProvider implements GatewaysProvider {
   private gateways: URL[];
