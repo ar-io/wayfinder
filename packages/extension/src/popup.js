@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupStorageListener();
   await loadStats();
   await loadCurrentStrategy();
-  await loadCurrentVerification();
+  await loadVerifiedBrowsingState();
   updateConnectionStatus();
 });
 
@@ -42,18 +42,24 @@ function setupStorageListener() {
   chrome.storage.onChanged.addListener((changes, areaName) => {
     if (areaName === 'local') {
       // Update gateway count if sync status or registry changes
-      if (changes.syncStatus || changes.localGatewayAddressRegistry || changes.lastKnownGatewayCount) {
+      if (
+        changes.syncStatus ||
+        changes.localGatewayAddressRegistry ||
+        changes.lastKnownGatewayCount
+      ) {
         loadStats();
       }
-      
+
       // Update routing strategy if changed
       if (changes.routingMethod) {
         loadCurrentStrategy();
       }
-      
-      // Update verification if changed
-      if (changes.verificationEnabled || changes.verificationStrict) {
-        loadCurrentVerification();
+
+      // Verification section removed from popup
+
+      // Update Verified Browsing if changed
+      if (changes.verifiedBrowsing !== undefined) {
+        updateVerifiedBrowsingUI(changes.verifiedBrowsing.newValue);
       }
     }
   });
@@ -80,32 +86,6 @@ async function setExtensionVersion() {
 }
 
 function setupEventHandlers() {
-  // Manual sync button
-  const syncButton = document.getElementById('manualSyncButton');
-  syncButton?.addEventListener('click', async () => {
-    // Disable button and show syncing state
-    syncButton.disabled = true;
-    syncButton.classList.add('syncing');
-    const syncText = syncButton.querySelector('.sync-text');
-    if (syncText) syncText.textContent = 'Syncing...';
-    
-    // Send sync message
-    chrome.runtime.sendMessage({ message: 'syncGatewayAddressRegistry' }, (response) => {
-      // Re-enable button after sync completes or fails
-      setTimeout(() => {
-        syncButton.disabled = false;
-        syncButton.classList.remove('syncing');
-        if (syncText) syncText.textContent = 'Sync';
-        
-        if (response && response.success) {
-          showToast('Gateways synced successfully', 'success');
-        } else if (response && response.error) {
-          showToast('Sync failed: ' + response.error, 'error');
-        }
-      }, 1000);
-    });
-  });
-  
   // Navigation cards
   document.getElementById('showGateways')?.addEventListener('click', () => {
     window.location.href = 'gateways.html';
@@ -124,12 +104,38 @@ function setupEventHandlers() {
     window.location.href = 'settings.html#routing';
   });
 
-  // Current verification change
-  document
-    .getElementById('changeVerification')
-    ?.addEventListener('click', () => {
-      window.location.href = 'settings.html#verification';
+  // Verification change button removed
+
+  // Verified Browsing toggle
+  const verifiedBrowsingToggle = document.getElementById(
+    'verifiedBrowsingToggle',
+  );
+  verifiedBrowsingToggle?.addEventListener('change', async (e) => {
+    const enabled = e.target.checked;
+
+    // Save both settings to keep them in sync
+    await chrome.storage.local.set({ 
+      verifiedBrowsing: enabled,
+      verificationEnabled: enabled  // Sync with the internal verification setting
     });
+
+    // Reset wayfinder to apply new verification setting
+    try {
+      await chrome.runtime.sendMessage({ message: 'resetWayfinder' });
+    } catch (error) {
+      console.error('Error resetting wayfinder:', error);
+    }
+
+    // Update UI
+    updateVerifiedBrowsingUI(enabled);
+
+    // Show toast
+    if (enabled) {
+      showToast('Verified Browsing enabled - all content will be cryptographically verified', 'success');
+    } else {
+      showToast('Verified Browsing disabled', 'info');
+    }
+  });
 }
 
 async function loadStats() {
@@ -141,14 +147,12 @@ async function loadStats() {
       dailyStats,
       syncStatus = 'idle',
       lastKnownGatewayCount = 0,
-      syncError = null,
     } = await chrome.storage.local.get([
       'localGatewayAddressRegistry',
       'gatewayPerformance',
       'dailyStats',
       'syncStatus',
       'lastKnownGatewayCount',
-      'syncError',
     ]);
 
     const activeCount = Object.values(localGatewayAddressRegistry).filter(
@@ -158,25 +162,27 @@ async function loadStats() {
     // Update gateway count with loading state
     const countElement = document.getElementById('activeGatewayCount');
     const gatewayCard = document.getElementById('showGateways');
-    
+
     if (syncStatus === 'syncing') {
       // Show loading state
       if (lastKnownGatewayCount > 0) {
-        countElement.innerHTML = `<span class="loading-indicator">🔄</span> ${lastKnownGatewayCount}`;
+        countElement.innerHTML = `<svg class="loading-indicator" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg> ${lastKnownGatewayCount}`;
         // Add subtle loading animation to the card
         gatewayCard?.classList.add('syncing');
       } else {
-        countElement.innerHTML = '<span class="loading-indicator spinning">🔄</span> Syncing...';
+        countElement.innerHTML =
+          '<svg class="loading-indicator spinning" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg> Syncing...';
         gatewayCard?.classList.add('syncing');
       }
     } else if (syncStatus === 'error' && lastKnownGatewayCount > 0) {
       // Show last known count with error indicator
-      countElement.innerHTML = `<span class="error-indicator">⚠️</span> ${lastKnownGatewayCount}`;
+      countElement.innerHTML = `<svg class="error-indicator" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> ${lastKnownGatewayCount}`;
       gatewayCard?.classList.add('sync-error');
       gatewayCard?.classList.remove('syncing');
     } else if (activeCount === 0 && syncStatus === 'idle') {
       // Initial state - trigger sync
-      countElement.innerHTML = '<span class="loading-indicator spinning">🔄</span> Loading...';
+      countElement.innerHTML =
+        '<svg class="loading-indicator spinning" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg> Loading...';
       gatewayCard?.classList.add('syncing');
       // Trigger initial sync
       chrome.runtime.sendMessage({ message: 'syncGatewayAddressRegistry' });
@@ -242,92 +248,30 @@ async function loadCurrentStrategy() {
   }
 }
 
-async function loadCurrentVerification() {
-  try {
-    const {
-      verificationStrategy = 'hash',
-      verificationStrict = false,
-      verificationEnabled = true,
-    } = await chrome.storage.local.get([
-      'verificationStrategy',
-      'verificationStrict',
-      'verificationEnabled',
-    ]);
-
-    if (!verificationEnabled) {
-      document.getElementById('currentVerification').textContent =
-        'Verification Disabled';
-
-      // Update the verification card appearance
-      const verificationCard = document.querySelector('.verification-card');
-      if (verificationCard) {
-        verificationCard.classList.remove(
-          'hash-mode',
-          'dataroot-mode',
-          'strict-mode',
-          'background-mode',
-        );
-        verificationCard.classList.add('disabled-mode');
-      }
-      return;
-    }
-
-    const strategyNames = {
-      hash: 'Hash Verification',
-      dataRoot: 'Data Root Verification',
-    };
-
-    const strategyName =
-      strategyNames[verificationStrategy] || 'Hash Verification';
-    const modeName = verificationStrict ? 'Strict Mode' : 'Background Mode';
-
-    document.getElementById('currentVerification').textContent =
-      `${strategyName} (${modeName})`;
-
-    // Update the border color based on strategy and mode
-    const verificationCard = document.querySelector('.verification-card');
-    if (verificationCard) {
-      verificationCard.classList.remove(
-        'hash-mode',
-        'dataroot-mode',
-        'strict-mode',
-        'background-mode',
-        'disabled-mode',
-      );
-      verificationCard.classList.add(`${verificationStrategy}-mode`);
-      if (verificationStrict) {
-        verificationCard.classList.add('strict-mode');
-      } else {
-        verificationCard.classList.add('background-mode');
-      }
-    }
-  } catch (error) {
-    console.error('Error loading current verification:', error);
-  }
-}
+// Verification section removed from popup
 
 async function updateConnectionStatus() {
   try {
-    // Test connection to a known gateway
-    const isConnected = await testConnection();
+    // Test connection via background script (avoids CORS issues)
+    const response = await chrome.runtime.sendMessage({ message: 'testConnection' });
+    
     const statusElement = document.getElementById('connectionStatus');
-
     if (!statusElement) return;
 
     const statusText = statusElement.querySelector('.status-text');
+    if (!statusText) return;
 
-    if (statusText) {
-      if (isConnected) {
-        statusText.textContent = 'Connected';
-        statusElement.classList.remove('limited', 'offline');
-        statusElement.classList.add('connected');
-      } else {
-        statusText.textContent = 'Limited';
-        statusElement.classList.remove('connected', 'offline');
-        statusElement.classList.add('limited');
-      }
+    if (response && response.success && response.isConnected) {
+      statusText.textContent = 'Connected';
+      statusElement.classList.remove('limited', 'offline');
+      statusElement.classList.add('connected');
+    } else {
+      statusText.textContent = 'Limited';
+      statusElement.classList.remove('connected', 'offline');
+      statusElement.classList.add('limited');
     }
-  } catch (_error) {
+  } catch (error) {
+    console.error('Connection test error:', error);
     const statusElement = document.getElementById('connectionStatus');
     const statusText = statusElement?.querySelector('.status-text');
 
@@ -336,38 +280,6 @@ async function updateConnectionStatus() {
       statusElement.classList.remove('connected', 'limited');
       statusElement.classList.add('offline');
     }
-  }
-}
-
-async function testConnection() {
-  try {
-    // Try to get a gateway from local registry first
-    const { localGatewayAddressRegistry = {} } = await chrome.storage.local.get(
-      ['localGatewayAddressRegistry'],
-    );
-    const gateways = Object.values(localGatewayAddressRegistry)
-      .filter((g) => g.status === 'joined' && g.settings?.fqdn)
-      .sort((a, b) => (b.operatorStake || 0) - (a.operatorStake || 0));
-
-    if (gateways.length > 0) {
-      // Use the top gateway from registry
-      const gateway = gateways[0];
-      const url = `${gateway.settings.protocol || 'https'}://${gateway.settings.fqdn}/info`;
-      const response = await fetch(url, {
-        method: 'GET',
-        signal: AbortSignal.timeout(5000),
-      });
-      return response.ok;
-    } else {
-      // Fallback to arweave.net as last resort
-      const response = await fetch('https://arweave.net/info', {
-        method: 'GET',
-        signal: AbortSignal.timeout(5000),
-      });
-      return response.ok;
-    }
-  } catch {
-    return false;
   }
 }
 
@@ -401,3 +313,44 @@ window
       applyTheme();
     }
   });
+
+// Load Verified Browsing state on startup
+async function loadVerifiedBrowsingState() {
+  try {
+    const { verifiedBrowsing = false } = await chrome.storage.local.get(['verifiedBrowsing']);
+    
+    // Update toggle state
+    const toggle = document.getElementById('verifiedBrowsingToggle');
+    if (toggle) {
+      toggle.checked = verifiedBrowsing;
+    }
+    
+    // Update UI
+    updateVerifiedBrowsingUI(verifiedBrowsing);
+  } catch (error) {
+    console.error('Error loading verified browsing state:', error);
+  }
+}
+
+function updateVerifiedBrowsingUI(enabled) {
+  const statusEl = document.getElementById('verifiedBrowsingStatus');
+  const descEl = document.getElementById('verifiedBrowsingDesc');
+  const featureCard = document.querySelector(
+    '.verified-browsing-section .feature-card',
+  );
+
+  if (statusEl) {
+    statusEl.textContent = enabled ? 'ON' : 'OFF';
+    statusEl.className = `feature-status ${enabled ? 'enabled' : 'disabled'}`;
+  }
+
+  if (descEl) {
+    descEl.textContent = enabled
+      ? 'All content is cryptographically verified'
+      : 'Enable cryptographic verification of all content';
+  }
+
+  if (featureCard) {
+    featureCard.classList.toggle('active', enabled);
+  }
+}

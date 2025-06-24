@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-import { logger } from "../utils/logger";
-import { verificationCache } from "../utils/verification-cache";
+import { logger } from '../utils/logger';
+import { verificationCache } from '../utils/verification-cache';
 
 export interface ArNSCacheEntry {
   arnsName: string;
@@ -27,7 +27,7 @@ export interface ArNSCacheEntry {
   ttl: number; // Time to live in milliseconds
 }
 
-import { CACHE_DEFAULTS } from "../config/defaults";
+import { CACHE_DEFAULTS } from '../config/defaults';
 
 // Default TTL for ArNS cache entries
 const DEFAULT_ARNS_TTL = CACHE_DEFAULTS.arnsDefaultTTL;
@@ -36,7 +36,7 @@ const DEFAULT_ARNS_TTL = CACHE_DEFAULTS.arnsDefaultTTL;
  * Get cached ArNS resolution
  */
 export async function getCachedArNSResolution(
-  arnsName: string
+  arnsName: string,
 ): Promise<ArNSCacheEntry | null> {
   try {
     const cacheKey = `arns:${arnsName}`;
@@ -49,12 +49,12 @@ export async function getCachedArNSResolution(
       const age = Date.now() - entry.resolvedAt;
       if (age < entry.ttl) {
         logger.info(
-          `[ARNS-CACHE] Found valid cache for ${arnsName} → ${entry.txId}`
+          `[ARNS-CACHE] Found valid cache for ${arnsName} → ${entry.txId}`,
         );
         return entry;
       } else {
         logger.info(
-          `[ARNS-CACHE] Cache expired for ${arnsName} (age: ${age}ms)`
+          `[ARNS-CACHE] Cache expired for ${arnsName} (age: ${age}ms)`,
         );
         // Clean up expired entry
         await chrome.storage.local.remove(cacheKey);
@@ -63,7 +63,7 @@ export async function getCachedArNSResolution(
 
     return null;
   } catch (error) {
-    logger.error("[ARNS-CACHE] Error getting cached resolution:", error);
+    logger.error('[ARNS-CACHE] Error getting cached resolution:', error);
     return null;
   }
 }
@@ -76,7 +76,7 @@ export async function cacheArNSResolution(
   txId: string,
   processId?: string,
   dataId?: string,
-  ttl: number = DEFAULT_ARNS_TTL
+  ttl: number = DEFAULT_ARNS_TTL,
 ): Promise<void> {
   try {
     const cacheKey = `arns:${arnsName}`;
@@ -92,7 +92,7 @@ export async function cacheArNSResolution(
     await chrome.storage.local.set({ [cacheKey]: entry });
     logger.info(`[ARNS-CACHE] Cached resolution for ${arnsName} → ${txId}`);
   } catch (error) {
-    logger.error("[ARNS-CACHE] Error caching resolution:", error);
+    logger.error('[ARNS-CACHE] Error caching resolution:', error);
   }
 }
 
@@ -109,10 +109,10 @@ export async function useVerificationCacheWithArNS(arUrl: string): Promise<{
   try {
     // Check if this is an ArNS name
     const isArNS =
-      arUrl.startsWith("ar://") && !arUrl.match(/^ar:\/\/[a-zA-Z0-9_-]{43}/);
+      arUrl.startsWith('ar://') && !arUrl.match(/^ar:\/\/[a-zA-Z0-9_-]{43}/);
 
     if (isArNS) {
-      const arnsName = arUrl.replace("ar://", "").split("/")[0];
+      const arnsName = arUrl.replace('ar://', '').split('/')[0];
 
       // Check ArNS cache first
       const arnsCache = await getCachedArNSResolution(arnsName);
@@ -123,7 +123,7 @@ export async function useVerificationCacheWithArNS(arUrl: string): Promise<{
 
         if (verifyCache && verifyCache.verified) {
           logger.info(
-            `[ARNS-CACHE] Using cached verification for ${arnsName} → ${arnsCache.txId}`
+            `[ARNS-CACHE] Using cached verification for ${arnsName} → ${arnsCache.txId}`,
           );
 
           return {
@@ -143,7 +143,7 @@ export async function useVerificationCacheWithArNS(arUrl: string): Promise<{
       };
     } else {
       // Direct transaction ID
-      const txId = arUrl.replace("ar://", "").split("/")[0];
+      const txId = arUrl.replace('ar://', '').split('/')[0];
       const cached = await verificationCache.get(txId);
 
       if (cached && cached.verified) {
@@ -161,7 +161,7 @@ export async function useVerificationCacheWithArNS(arUrl: string): Promise<{
       };
     }
   } catch (error) {
-    logger.error("[ARNS-CACHE] Error checking cache:", error);
+    logger.error('[ARNS-CACHE] Error checking cache:', error);
     return {
       cached: false,
       verified: false,
@@ -180,7 +180,7 @@ export async function cleanupArNSCache(): Promise<void> {
 
     // Find expired ArNS entries
     for (const [key, value] of Object.entries(storage)) {
-      if (key.startsWith("arns:") && typeof value === "object") {
+      if (key.startsWith('arns:') && typeof value === 'object') {
         const entry = value as ArNSCacheEntry;
         if (now - entry.resolvedAt > entry.ttl) {
           keysToRemove.push(key);
@@ -191,11 +191,11 @@ export async function cleanupArNSCache(): Promise<void> {
     if (keysToRemove.length > 0) {
       await chrome.storage.local.remove(keysToRemove);
       logger.info(
-        `[ARNS-CACHE] Cleaned up ${keysToRemove.length} expired entries`
+        `[ARNS-CACHE] Cleaned up ${keysToRemove.length} expired entries`,
       );
     }
   } catch (error) {
-    logger.error("[ARNS-CACHE] Error during cleanup:", error);
+    logger.error('[ARNS-CACHE] Error during cleanup:', error);
   }
 }
 

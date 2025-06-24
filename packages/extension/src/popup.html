@@ -52,14 +52,7 @@
       <main class="popup-content">
         
         <!-- Stats Section -->
-        <section class="stats-section" style="position: relative;">
-          <!-- Manual Sync Button -->
-          <button class="sync-button" id="manualSyncButton" title="Sync Gateways">
-            <svg class="sync-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
-            </svg>
-            <span class="sync-text">Sync</span>
-          </button>
+        <section class="stats-section">
           <div class="stats-grid">
             <div class="stat-item">
               <svg class="stat-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -94,6 +87,31 @@
           </div>
         </section>
 
+        <!-- Verified Browsing Toggle -->
+        <section class="verified-browsing-section">
+          <div class="feature-card">
+            <div class="feature-header">
+              <div class="feature-content">
+                <svg class="feature-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                  <path d="M9 12l2 2 4-4"/>
+                </svg>
+                <div class="feature-info">
+                  <div class="feature-label">Verified Browsing</div>
+                  <div class="feature-status" id="verifiedBrowsingStatus">OFF</div>
+                </div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="verifiedBrowsingToggle">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="feature-description" id="verifiedBrowsingDesc">
+              Enable cryptographic verification of all content
+            </div>
+          </div>
+        </section>
+
         <!-- Current Strategy Section -->
         <section class="current-strategy-section">
           <div class="strategy-card">
@@ -117,7 +135,7 @@
           </div>
         </section>
 
-        <!-- Current Verification Section -->
+        <!-- Current Verification Section 
         <section class="current-verification-section">
           <div class="verification-card">
             <div class="verification-header">
@@ -137,7 +155,7 @@
               </button>
             </div>
           </div>
-        </section>
+        </section>-->
 
         <!-- Navigation Section -->
         <section class="navigation-section">

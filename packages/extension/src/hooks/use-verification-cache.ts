@@ -15,18 +15,18 @@
  * limitations under the License.
  */
 
-import { logger } from "../utils/logger";
-import { getCacheKey, verificationCache } from "../utils/verification-cache";
+import { logger } from '../utils/logger';
+import { getCacheKey, verificationCache } from '../utils/verification-cache';
 
 export interface VerificationCacheHooks {
   beforeVerification: (
-    txId: string
+    txId: string,
   ) => Promise<{ hash: string; verified: boolean } | null>;
   afterVerification: (
     txId: string,
     hash: string,
     verified: boolean,
-    trustedHash?: string
+    trustedHash?: string,
   ) => Promise<void>;
   onCacheHit: (txId: string) => void;
   onCacheMiss: (txId: string) => void;
@@ -44,7 +44,7 @@ export function createVerificationCacheHooks(): VerificationCacheHooks {
      * Check cache before verification
      */
     async beforeVerification(
-      txId: string
+      txId: string,
     ): Promise<{ hash: string; verified: boolean } | null> {
       const cached = await verificationCache.get(txId);
 
@@ -68,12 +68,12 @@ export function createVerificationCacheHooks(): VerificationCacheHooks {
       txId: string,
       hash: string,
       verified: boolean,
-      trustedHash?: string
+      trustedHash?: string,
     ): Promise<void> {
       await verificationCache.set({
         txId,
         hash,
-        algorithm: "sha256",
+        algorithm: 'sha256',
         timestamp: Date.now(),
         verified,
         trustedGatewayHash: trustedHash,
@@ -87,7 +87,7 @@ export function createVerificationCacheHooks(): VerificationCacheHooks {
       cacheHits++;
       const hitRate = (cacheHits / (cacheHits + cacheMisses)) * 100;
       logger.debug(
-        `[CACHE] Hit for ${txId} - Hit rate: ${hitRate.toFixed(1)}%`
+        `[CACHE] Hit for ${txId} - Hit rate: ${hitRate.toFixed(1)}%`,
       );
     },
 

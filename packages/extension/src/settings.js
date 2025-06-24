@@ -30,6 +30,7 @@ function showToast(message, type = 'success') {
 
 // Initialize settings page
 document.addEventListener('DOMContentLoaded', async () => {
+  console.log('[DEBUG] DOMContentLoaded fired');
   await initializeSettings();
   setupEventHandlers();
   // Small delay to ensure DOM is fully ready
@@ -41,6 +42,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Handle hash navigation
     handleHashNavigation();
+    
+    // Debug: Check if Advanced Settings section exists
+    const advancedSection = document.getElementById('advanced');
+    const advancedToggle = document.getElementById('advancedToggle');
+    const advancedContent = document.getElementById('advancedContent');
+    console.log('[DEBUG] Advanced Settings elements check:', {
+      advancedSection: !!advancedSection,
+      advancedToggle: !!advancedToggle,
+      advancedContent: !!advancedContent,
+      advancedToggleTagName: advancedToggle?.tagName,
+      advancedToggleClasses: advancedToggle?.className
+    });
   }, 50);
 });
 
@@ -50,6 +63,17 @@ function handleHashNavigation() {
   if (hash) {
     const targetElement = document.querySelector(hash);
     if (targetElement) {
+      // If the target is within advanced settings, expand it first
+      const advancedContent = document.getElementById('advancedContent');
+      const advancedToggle = document.getElementById('advancedToggle');
+      if (advancedContent && advancedContent.contains(targetElement)) {
+        // Expand advanced settings
+        if (advancedToggle) {
+          advancedToggle.classList.add('expanded');
+        }
+        chrome.storage.local.set({ advancedSettingsExpanded: true });
+      }
+      
       // Scroll to the element with a small offset for better visibility
       targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
@@ -86,6 +110,28 @@ function setupEventHandlers() {
   document
     .getElementById('resetSettings')
     ?.addEventListener('click', resetSettings);
+
+  // Advanced settings toggle
+  const advancedToggle = document.getElementById('advancedToggle');
+  if (advancedToggle) {
+    console.log('[DEBUG] Attaching click handler to advancedToggle');
+    advancedToggle.addEventListener('click', (e) => {
+      console.log('[DEBUG] Click event triggered on advancedToggle', e);
+      toggleAdvancedSettings();
+    });
+    
+    // Also check if the element is actually clickable
+    const computedStyle = window.getComputedStyle(advancedToggle);
+    console.log('[DEBUG] advancedToggle computed styles:', {
+      display: computedStyle.display,
+      visibility: computedStyle.visibility,
+      pointerEvents: computedStyle.pointerEvents,
+      cursor: computedStyle.cursor,
+      zIndex: computedStyle.zIndex
+    });
+  } else {
+    console.error('[ERROR] advancedToggle element not found');
+  }
 
   // Routing strategy selection
   document
@@ -130,13 +176,13 @@ function setupEventHandlers() {
     .getElementById('ensResolution')
     ?.addEventListener('change', saveEnsResolution);
 
-  // Advanced settings
+  // Advanced settings are now saved automatically on change
   document
-    .getElementById('saveAdvancedSettings')
-    ?.addEventListener('click', saveAdvancedSettings);
+    .getElementById('processId')
+    ?.addEventListener('change', handleProcessIdChange);
   document
-    .getElementById('resetToDefaults')
-    ?.addEventListener('click', resetAdvancedToDefaults);
+    .getElementById('aoCuUrl')
+    ?.addEventListener('change', handleAoCuUrlChange);
 
   // Performance actions moved to performance.js
 
@@ -182,15 +228,78 @@ function setupEventHandlers() {
   document
     .getElementById('gatewayCacheTTL')
     ?.addEventListener('input', handleGatewayCacheTTLChange);
+
+  // Verified Browsing settings
+  document
+    .getElementById('verifiedBrowsingToggle')
+    ?.addEventListener('change', handleVerifiedBrowsingToggle);
+
+  document
+    .querySelectorAll('input[name="verifiedBrowsingStrict"]')
+    .forEach((radio) => {
+      radio.addEventListener('change', handleVerifiedBrowsingStrictChange);
+    });
+
+  document
+    .getElementById('manageExceptions')
+    ?.addEventListener('click', toggleExceptionsList);
+
+  document
+    .getElementById('addException')
+    ?.addEventListener('click', addException);
+
+  // Initialize Verified Browsing UI
+  setupVerifiedBrowsingUI();
 }
 
 function setupExpandableSections() {
   document.querySelectorAll('.expandable .config-header').forEach((header) => {
-    header.addEventListener('click', () => {
+    header.addEventListener('click', (e) => {
+      // Prevent clicks on interactive elements within the header
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') {
+        return;
+      }
+      
       const section = header.closest('.expandable');
       section.classList.toggle('expanded');
     });
   });
+}
+
+function toggleAdvancedSettings() {
+  console.log('[DEBUG] toggleAdvancedSettings called');
+  const advancedSection = document.getElementById('advanced');
+  const advancedContent = document.getElementById('advancedContent');
+  const advancedToggle = document.getElementById('advancedToggle');
+  const expandIcon = advancedToggle?.querySelector('.expand-icon');
+  
+  console.log('[DEBUG] Elements found:', {
+    advancedSection: !!advancedSection,
+    advancedContent: !!advancedContent,
+    advancedToggle: !!advancedToggle,
+    expandIcon: !!expandIcon
+  });
+  
+  if (!advancedContent || !advancedToggle) {
+    console.error('[ERROR] Required elements not found');
+    return;
+  }
+  
+  // Check if section is currently expanded by checking the toggle's class
+  const isExpanded = advancedToggle.classList.contains('expanded');
+  
+  if (isExpanded) {
+    // Collapse
+    advancedToggle.classList.remove('expanded');
+    // Let CSS handle the animation
+  } else {
+    // Expand
+    advancedToggle.classList.add('expanded');
+    // Let CSS handle the animation
+  }
+  
+  // Save preference
+  chrome.storage.local.set({ advancedSettingsExpanded: !isExpanded });
 }
 
 function setupRoutingStrategyDetails() {
@@ -251,6 +360,8 @@ async function loadCurrentSettings() {
       'staticGateway',
       'verificationStrategy',
       'verificationStrict',
+      'verifiedBrowsing',
+      'verifiedBrowsingExceptions',
       'showVerificationIndicators',
       'showVerificationToasts',
       'ensResolutionEnabled',
@@ -261,6 +372,7 @@ async function loadCurrentSettings() {
       'gatewaySortBy',
       'gatewaySortOrder',
       'gatewayCacheTTL',
+      'advancedSettingsExpanded',
     ]);
 
     // Load static gateway URL if set
@@ -308,38 +420,9 @@ async function loadCurrentSettings() {
       // No need to trigger change event during initialization
     }
 
-    // Load verification mode
-    const verificationEnabled = settings.verificationEnabled !== false; // Default to true
-    const verificationStrict = settings.verificationStrict || false;
-
-    let verificationMode;
-    if (!verificationEnabled) {
-      verificationMode = 'off';
-    } else if (verificationStrict) {
-      verificationMode = 'strict';
-    } else {
-      verificationMode = 'background';
-    }
-
-    // Select the appropriate radio button
-    const verificationModeRadio = document.querySelector(
-      `input[name="verificationMode"][value="${verificationMode}"]`,
-    );
-    if (verificationModeRadio) {
-      verificationModeRadio.checked = true;
-      // Update UI without triggering change event
-      setupVerificationModeExplanations();
-      // Show the correct description
-      document.querySelectorAll('.mode-description').forEach((desc) => {
-        desc.style.display = 'none';
-      });
-      const selectedDesc = document.querySelector(
-        `[data-mode="${verificationMode}"]`,
-      );
-      if (selectedDesc) {
-        selectedDesc.style.display = 'block';
-      }
-    }
+    // Verification mode is now controlled by Verified Browsing toggle
+    // verificationEnabled is synced with verifiedBrowsing
+    // verificationStrict is controlled by the strictness selector in Verified Browsing section
 
     // Load switches
     const showIndicators = settings.showVerificationIndicators !== false;
@@ -385,6 +468,39 @@ async function loadCurrentSettings() {
         aoCuUrlEl.value = settings.aoCuUrl;
       }
     }
+
+    // Load Verified Browsing settings
+    const verifiedBrowsing = settings.verifiedBrowsing || false;
+    const verifiedBrowsingToggle = document.getElementById(
+      'verifiedBrowsingToggle',
+    );
+    if (verifiedBrowsingToggle) {
+      verifiedBrowsingToggle.checked = verifiedBrowsing;
+      updateVerifiedBrowsingUI(verifiedBrowsing);
+    }
+    
+    // Restore advanced settings expanded state
+    if (settings.advancedSettingsExpanded) {
+      const advancedToggle = document.getElementById('advancedToggle');
+      if (advancedToggle) {
+        advancedToggle.classList.add('expanded');
+      }
+    }
+    
+    // Load strictness setting
+    const strict = settings.verificationStrict || false;
+    const strictnessRadio = document.querySelector(
+      `input[name="verifiedBrowsingStrict"][value="${strict}"]`
+    );
+    if (strictnessRadio) {
+      strictnessRadio.checked = true;
+      updateStrictnessDescription(strict);
+    }
+
+    // Load exceptions
+    const verifiedBrowsingExceptions =
+      settings.verifiedBrowsingExceptions || [];
+    loadExceptions(verifiedBrowsingExceptions);
 
     // Load cache settings
     const cacheEnabled = settings.enableVerificationCache !== false; // Default true
@@ -951,63 +1067,59 @@ async function resetSettings() {
   }
 }
 
-async function saveAdvancedSettings() {
-  const processIdEl = document.getElementById('processId');
-  const aoCuUrlEl = document.getElementById('aoCuUrl');
-
-  const processId = processIdEl ? processIdEl.value.trim() : '';
-  const aoCuUrl = aoCuUrlEl ? aoCuUrlEl.value.trim() : '';
-
+async function handleProcessIdChange(event) {
+  const processId = event.target.value.trim();
+  
   try {
-    const settings = {};
-
     if (processId) {
-      settings.processId = processId;
+      await chrome.storage.local.set({ processId });
+    } else {
+      await chrome.storage.local.remove(['processId']);
     }
-
-    if (aoCuUrl) {
-      // Validate URL
-      new URL(aoCuUrl);
-      settings.aoCuUrl = aoCuUrl;
-    }
-
-    await chrome.storage.local.set(settings);
-
+    
     // Notify background script
     await chrome.runtime.sendMessage({
       message: 'updateAdvancedSettings',
-      settings,
+      settings: { processId },
     });
-
-    showToast('Advanced settings saved', 'success');
+    
+    showToast('Process ID updated', 'success');
   } catch (error) {
-    console.error('Error saving advanced settings:', error);
-    showToast('Invalid settings provided', 'error');
+    console.error('Error updating process ID:', error);
+    showToast('Failed to update process ID', 'error');
   }
 }
 
-async function resetAdvancedToDefaults() {
+async function handleAoCuUrlChange(event) {
+  const aoCuUrl = event.target.value.trim();
+  
   try {
-    await chrome.storage.local.remove(['processId', 'aoCuUrl']);
-
-    const processIdEl = document.getElementById('processId');
-    if (processIdEl) {
-      processIdEl.value = '';
+    if (aoCuUrl) {
+      // Validate URL
+      new URL(aoCuUrl);
+      await chrome.storage.local.set({ aoCuUrl });
+    } else {
+      await chrome.storage.local.remove(['aoCuUrl']);
     }
-
-    const aoCuUrlEl = document.getElementById('aoCuUrl');
-    if (aoCuUrlEl) {
-      aoCuUrlEl.value = '';
-    }
-
-    await chrome.runtime.sendMessage({ message: 'resetAdvancedSettings' });
-
-    showToast('Advanced settings reset to defaults', 'success');
+    
+    // Notify background script
+    await chrome.runtime.sendMessage({
+      message: 'updateAdvancedSettings',
+      settings: { aoCuUrl },
+    });
+    
+    showToast('AO CU URL updated', 'success');
   } catch (error) {
-    console.error('Error resetting advanced settings:', error);
-    showToast('Failed to reset advanced settings', 'error');
+    console.error('Error updating AO CU URL:', error);
+    if (aoCuUrl && error.message.includes('URL')) {
+      showToast('Invalid URL format', 'error');
+    } else {
+      showToast('Failed to update AO CU URL', 'error');
+    }
   }
 }
+
+// Advanced settings reset functionality removed - settings now save automatically on change
 
 // Clear functions moved to performance.js
 
@@ -1460,4 +1572,160 @@ async function handleGatewayCacheTTLChange(event) {
     console.error('Error updating gateway cache TTL:', error);
     showToast('Failed to update gateway cache TTL', 'error');
   }
+}
+
+// Verified Browsing handlers
+function setupVerifiedBrowsingUI() {
+  // Set up strictness selector UI
+  document
+    .querySelectorAll('.strictness-selector .mode-option')
+    .forEach((option) => {
+      option.addEventListener('click', (e) => {
+        if (e.target.tagName !== 'INPUT') {
+          const radio = option.querySelector('input[type="radio"]');
+          radio.checked = true;
+          radio.dispatchEvent(new Event('change'));
+        }
+      });
+    });
+}
+
+async function handleVerifiedBrowsingToggle(event) {
+  const enabled = event.target.checked;
+  
+  // Sync both settings
+  await chrome.storage.local.set({ 
+    verifiedBrowsing: enabled,
+    verificationEnabled: enabled 
+  });
+  
+  // Reset wayfinder to apply new verification setting
+  try {
+    await chrome.runtime.sendMessage({ message: 'resetWayfinder' });
+  } catch (error) {
+    console.error('Error resetting wayfinder:', error);
+  }
+  
+  updateVerifiedBrowsingUI(enabled);
+
+  showToast(
+    enabled ? 'Verified Browsing enabled - all content will be cryptographically verified' : 'Verified Browsing disabled',
+    'success',
+  );
+}
+
+function updateVerifiedBrowsingUI(enabled) {
+  const details = document.getElementById('verifiedBrowsingDetails');
+  const options = document.getElementById('verifiedBrowsingOptions');
+  const exceptions = document.getElementById('verifiedBrowsingExceptions');
+
+  if (details) details.style.display = enabled ? 'block' : 'none';
+  if (options) options.style.display = enabled ? 'block' : 'none';
+  if (exceptions) exceptions.style.display = enabled ? 'block' : 'none';
+  
+  // The verification section is now always within advanced settings,
+  // so we don't need to hide/show it based on verified browsing toggle
+}
+
+async function handleVerifiedBrowsingStrictChange(event) {
+  const strict = event.target.value === 'true';
+  await chrome.storage.local.set({ verificationStrict: strict });
+  updateStrictnessDescription(strict);
+
+  showToast(
+    strict
+      ? 'Strict mode enabled - unverified resources will be blocked'
+      : 'Warn mode enabled - unverified resources will show warnings',
+    'success',
+  );
+}
+
+function updateStrictnessDescription(strict) {
+  const desc = document.getElementById('strictnessDesc');
+  if (desc) {
+    desc.textContent = strict
+      ? 'Blocks unverified resources from loading (most secure)'
+      : 'Shows warnings for unverified resources but allows them to load';
+  }
+}
+
+function toggleExceptionsList() {
+  const list = document.getElementById('exceptionsList');
+  if (list) {
+    list.style.display = list.style.display === 'none' ? 'block' : 'none';
+  }
+}
+
+async function addException() {
+  const input = document.getElementById('newException');
+  if (!input || !input.value.trim()) return;
+
+  const exception = input.value.trim();
+
+  // Validate format
+  if (!exception.startsWith('ar://') && !exception.includes('.')) {
+    showToast('Invalid format. Use ar://app-name or domain.com', 'error');
+    return;
+  }
+
+  // Get current exceptions
+  const { verifiedBrowsingExceptions = [] } = await chrome.storage.local.get([
+    'verifiedBrowsingExceptions',
+  ]);
+
+  // Check if already exists
+  if (verifiedBrowsingExceptions.includes(exception)) {
+    showToast('Exception already exists', 'warning');
+    return;
+  }
+
+  // Add new exception
+  verifiedBrowsingExceptions.push(exception);
+  await chrome.storage.local.set({ verifiedBrowsingExceptions });
+
+  // Update UI
+  loadExceptions(verifiedBrowsingExceptions);
+  input.value = '';
+
+  showToast('Exception added', 'success');
+}
+
+function loadExceptions(exceptions) {
+  const container = document.getElementById('exceptionsItems');
+  if (!container) return;
+
+  container.innerHTML = '';
+
+  if (exceptions.length === 0) {
+    container.innerHTML =
+      '<p class="no-exceptions">No exceptions configured</p>';
+    return;
+  }
+
+  exceptions.forEach((exception, index) => {
+    const item = document.createElement('div');
+    item.className = 'exception-item';
+    item.innerHTML = `
+      <span class="exception-value">${exception}</span>
+      <button class="remove-exception" data-index="${index}">✕</button>
+    `;
+
+    item.querySelector('.remove-exception').addEventListener('click', () => {
+      removeException(index);
+    });
+
+    container.appendChild(item);
+  });
+}
+
+async function removeException(index) {
+  const { verifiedBrowsingExceptions = [] } = await chrome.storage.local.get([
+    'verifiedBrowsingExceptions',
+  ]);
+
+  verifiedBrowsingExceptions.splice(index, 1);
+  await chrome.storage.local.set({ verifiedBrowsingExceptions });
+
+  loadExceptions(verifiedBrowsingExceptions);
+  showToast('Exception removed', 'success');
 }

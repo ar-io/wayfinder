@@ -22,6 +22,12 @@ export type RedirectedTabInfo = {
   sandboxRedirectUrl?: string; // The final redirected URL (if applicable)
   startTime: number; // Timestamp of when the request started
   arUrl?: string; // Original ar:// URL that was processed
+  verification?: {
+    enabled: boolean;
+    expectedDigest?: string;
+    txId?: string;
+    strategy?: string;
+  };
 };
 
 export type GatewayRegistry = Record<string, AoGatewayWithAddress>;

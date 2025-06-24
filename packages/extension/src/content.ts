@@ -17,10 +17,14 @@
 
 // Inline logger for content script to avoid module import issues
 const logger = {
-  debug: (message: string, ...args: any[]) => console.debug('[Wayfinder Content]', message, ...args),
-  info: (message: string, ...args: any[]) => console.info('[Wayfinder Content]', message, ...args),
-  warn: (message: string, ...args: any[]) => console.warn('[Wayfinder Content]', message, ...args),
-  error: (message: string, ...args: any[]) => console.error('[Wayfinder Content]', message, ...args),
+  debug: (message: string, ...args: any[]) =>
+    console.debug('[Wayfinder Content]', message, ...args),
+  info: (message: string, ...args: any[]) =>
+    console.info('[Wayfinder Content]', message, ...args),
+  warn: (message: string, ...args: any[]) =>
+    console.warn('[Wayfinder Content]', message, ...args),
+  error: (message: string, ...args: any[]) =>
+    console.error('[Wayfinder Content]', message, ...args),
 };
 
 /**
@@ -178,22 +182,19 @@ async function processArUrl(
   attribute: string,
 ): Promise<void> {
   // Check if verification indicators are enabled
-  const storage = await new Promise<{ 
+  const storage = await new Promise<{
     showVerificationIndicators?: boolean;
     enableContentVerification?: boolean;
-  }>(
-    (resolve) => {
-      chrome.storage.local.get([
-        'showVerificationIndicators',
-        'enableContentVerification'
-      ], resolve);
-    },
-  );
+  }>((resolve) => {
+    chrome.storage.local.get(
+      ['showVerificationIndicators', 'enableContentVerification'],
+      resolve,
+    );
+  });
 
   const showVerificationIndicators =
     storage.showVerificationIndicators !== false;
-  const enableContentVerification = 
-    storage.enableContentVerification === true; // Default to false
+  const enableContentVerification = storage.enableContentVerification === true; // Default to false
 
   // Add pending indicator if enabled
   if (showVerificationIndicators) {
@@ -228,8 +229,8 @@ async function processArUrl(
 
       try {
         // Wait a moment for the browser request to complete and cache to be populated
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
         // Check if we have a cached verification result from the browser request
         const cacheCheckResponse = await withTimeout(
           new Promise<any>((resolve) => {
@@ -246,10 +247,16 @@ async function processArUrl(
         );
 
         let verifyResponse;
-        
-        if (cacheCheckResponse && cacheCheckResponse.cached && cacheCheckResponse.result) {
+
+        if (
+          cacheCheckResponse &&
+          cacheCheckResponse.cached &&
+          cacheCheckResponse.result
+        ) {
           // Use cached result from the browser's navigation request
-          logger.debug(`[CACHED] Using verification result from browser request for ${txId}`);
+          logger.debug(
+            `[CACHED] Using verification result from browser request for ${txId}`,
+          );
           verifyResponse = {
             success: true,
             response: {
@@ -262,15 +269,14 @@ async function processArUrl(
           };
         } else {
           // No verification data available (verification might be disabled)
-          logger.debug(`[NO VERIFY] No verification data available for ${txId}`);
+          logger.debug(
+            `[NO VERIFY] No verification data available for ${txId}`,
+          );
           verifyResponse = null;
         }
 
         if (showVerificationIndicators && verifyResponse) {
-          if (
-            verifyResponse.success &&
-            verifyResponse.response
-          ) {
+          if (verifyResponse.success && verifyResponse.response) {
             const verification = verifyResponse.response.verification;
 
             if (verification && verification.verified) {
@@ -296,7 +302,9 @@ async function processArUrl(
           }
         } else if (showVerificationIndicators && !verifyResponse) {
           // No verification data - verification might be disabled
-          logger.debug(`[INFO] No verification indicators shown - verification may be disabled`);
+          logger.debug(
+            `[INFO] No verification indicators shown - verification may be disabled`,
+          );
         }
       } catch (verifyError) {
         // If verification fails, still allow the content to load but show failed status

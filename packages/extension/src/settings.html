@@ -154,18 +154,172 @@
           </div>
         </section>
 
-        <!-- Verification Settings -->
-        <section class="settings-section verification-config" id="verification">
+        <!-- Verified Browsing Settings -->
+        <section class="settings-section verified-browsing-config" id="verifiedBrowsing">
           <div class="section-header">
-            <h2>Data Verification</h2>
-            <p>Ensure data integrity</p>
+            <h2>Verified Browsing</h2>
+            <p>Enhanced security mode with comprehensive verification</p>
           </div>
           
-          <div class="verification-strategy-wrapper" id="verificationStrategyWrapper">
-            <div class="section-header">
-              <h3>Verification Strategy</h3>
-              <p>Choose how to verify data integrity</p>
+          <div class="verified-browsing-options">
+            <div class="option-card">
+              <div class="option-header">
+                <div class="option-main">
+                  <div class="option-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg></div>
+                  <div class="option-info">
+                    <h3>Verified Browsing Mode</h3>
+                    <p>Verify all content and resources when browsing ar:// URLs</p>
+                  </div>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="verifiedBrowsingToggle">
+                  <span class="switch-slider"></span>
+                </label>
+              </div>
+              <div class="option-details" id="verifiedBrowsingDetails" style="display: none;">
+                <div class="feature-list">
+                  <div class="feature">✓ Cryptographic verification of all content</div>
+                  <div class="feature">✓ Service worker verifies JS, CSS, and media</div>
+                  <div class="feature">✓ Intercepts direct gateway navigation</div>
+                  <div class="feature">✓ Clean, minimizable interface</div>
+                </div>
+              </div>
             </div>
+
+            <div class="option-card" id="verifiedBrowsingOptions" style="display: none;">
+              <div class="option-header">
+                <div class="option-main">
+                  <div class="option-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+                  <div class="option-info">
+                    <h3>Strictness Level</h3>
+                    <p>Control how unverified resources are handled</p>
+                  </div>
+                </div>
+              </div>
+              <div class="strictness-selector">
+                <label class="mode-option" data-mode="warn">
+                  <input type="radio" name="verifiedBrowsingStrict" value="false" id="verifiedBrowsingWarn" checked>
+                  <div class="mode-content">
+                    <div class="mode-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+                    <div class="mode-info">
+                      <h4>Warn Only</h4>
+                      <p>Show warnings</p>
+                    </div>
+                  </div>
+                </label>
+                <label class="mode-option" data-mode="block">
+                  <input type="radio" name="verifiedBrowsingStrict" value="true" id="verifiedBrowsingBlock">
+                  <div class="mode-content">
+                    <div class="mode-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></div>
+                    <div class="mode-info">
+                      <h4>Block</h4>
+                      <p>Prevent loading</p>
+                    </div>
+                  </div>
+                </label>
+              </div>
+              <div class="strictness-description">
+                <p id="strictnessDesc">Shows warnings for unverified resources but allows them to load</p>
+              </div>
+            </div>
+
+            <div class="option-card" id="verifiedBrowsingExceptions" style="display: none;">
+              <div class="option-header">
+                <div class="option-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg></div>
+                <div class="option-info">
+                  <h3>Exceptions</h3>
+                  <p>Domains or apps that skip verification</p>
+                </div>
+                <button class="text-button" id="manageExceptions">Manage</button>
+              </div>
+              <div class="exceptions-list" id="exceptionsList" style="display: none;">
+                <div class="exceptions-input">
+                  <input type="text" id="newException" placeholder="ar://app-name or domain">
+                  <button class="primary-button" id="addException">Add</button>
+                </div>
+                <div id="exceptionsItems" class="exceptions-items">
+                  <!-- Dynamically populated -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Appearance -->
+        <section class="settings-section appearance-config">
+          <div class="section-header">
+            <h2>Appearance</h2>
+            <p>Customize the look and feel of Wayfinder</p>
+          </div>
+          
+          <div class="appearance-options">
+            <div class="option-card theme-card">
+              <div class="option-header">
+                <div class="option-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></div>
+                <div class="option-info">
+                  <h3>Theme</h3>
+                  <p>Choose your preferred color scheme</p>
+                </div>
+              </div>
+              <div class="theme-selector">
+                  <label class="theme-option">
+                    <input type="radio" name="theme" value="dark" id="darkTheme">
+                    <div class="theme-preview dark">
+                      <div class="theme-colors">
+                        <div class="color bg"></div>
+                        <div class="color primary"></div>
+                        <div class="color text"></div>
+                      </div>
+                      <span>Dark</span>
+                    </div>
+                  </label>
+                  <label class="theme-option">
+                    <input type="radio" name="theme" value="light" id="lightTheme">
+                    <div class="theme-preview light">
+                      <div class="theme-colors">
+                        <div class="color bg"></div>
+                        <div class="color primary"></div>
+                        <div class="color text"></div>
+                      </div>
+                      <span>Light</span>
+                    </div>
+                  </label>
+                  <label class="theme-option">
+                    <input type="radio" name="theme" value="auto" id="autoTheme">
+                    <div class="theme-preview auto">
+                      <div class="theme-colors">
+                        <div class="color bg"></div>
+                        <div class="color primary"></div>
+                        <div class="color text"></div>
+                      </div>
+                      <span>Auto</span>
+                    </div>
+                  </label>
+                </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Advanced Settings -->
+        <section class="settings-section advanced-config" id="advanced">
+          <div class="advanced-settings-card">
+            <div class="section-header expandable" id="advancedToggle">
+              <div>
+                <h2>Advanced Settings</h2>
+                <p>Fine-tune routing, verification, and network configurations</p>
+              </div>
+              <svg class="expand-icon" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            
+            <div class="advanced-content expandable-content" id="advancedContent">
+            <!-- Verification Strategy -->
+            <div class="config-subsection">
+              <div class="subsection-header">
+                <h3>Verification Strategy</h3>
+                <p>Choose how to verify data integrity</p>
+              </div>
             
             <div class="verification-strategy-selector">
               <div class="strategy-option" data-strategy="hash">
@@ -207,110 +361,16 @@
                   <div class="feature">Higher security than hash</div>
                 </div>
               </div>
+              </div>
             </div>
-          </div>
-          </div>
-
-          <div class="verification-options">
-            <div class="option-card verification-mode-card">
-              <div class="option-header">
-                <div class="option-main">
-                  <div class="option-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
-                  <div class="option-info">
-                    <h3>Verification Mode</h3>
-                    <p>Control how data verification is performed</p>
-                  </div>
-                </div>
-              </div>
-              <div class="verification-mode-selector">
-                <label class="mode-option" data-mode="off">
-                  <input type="radio" name="verificationMode" value="off" id="verificationOff">
-                  <div class="mode-content">
-                    <div class="mode-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></div>
-                    <div class="mode-info">
-                      <h4>Off</h4>
-                      <p>No verification</p>
-                    </div>
-                  </div>
-                </label>
-                <label class="mode-option recommended" data-mode="background">
-                  <input type="radio" name="verificationMode" value="background" id="verificationBackground" checked>
-                  <div class="mode-content">
-                    <div class="mode-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
-                    <div class="mode-info">
-                      <h4>Background</h4>
-                      <p>Non-blocking</p>
-                    </div>
-                  </div>
-                </label>
-                <label class="mode-option" data-mode="strict">
-                  <input type="radio" name="verificationMode" value="strict" id="verificationStrict">
-                  <div class="mode-content">
-                    <div class="mode-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
-                    <div class="mode-info">
-                      <h4>Strict</h4>
-                      <p>Blocks requests</p>
-                    </div>
-                  </div>
-                </label>
-              </div>
-              <div class="verification-mode-description">
-                <p id="verificationModeDesc">Verifies data in the background without blocking requests (recommended)</p>
-              </div>
             </div>
 
-            <div class="option-card">
-              <div class="option-header">
-                <div class="option-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div>
-                <div class="option-info">
-                  <h3>Verification Indicators</h3>
-                  <p>Show verification status on web pages</p>
-                </div>
-                <label class="switch">
-                  <input type="checkbox" id="showVerificationIndicators" checked>
-                  <span class="switch-slider"></span>
-                </label>
+            <!-- Trusted Gateway Settings -->
+            <div class="config-subsection">
+              <div class="subsection-header">
+                <h3>Trusted Gateways for Verification</h3>
+                <p>Configure which gateways to trust for data verification</p>
               </div>
-            </div>
-
-            <div class="option-card">
-              <div class="option-header">
-                <div class="option-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"/></svg></div>
-                <div class="option-info">
-                  <h3>Verification Toasts</h3>
-                  <p>Show popup notifications during verification</p>
-                </div>
-                <label class="switch">
-                  <input type="checkbox" id="showVerificationToasts">
-                  <span class="switch-slider"></span>
-                </label>
-              </div>
-            </div>
-
-            <div class="option-card">
-              <div class="option-header">
-                <div class="option-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div>
-                <div class="option-info">
-                  <h3>ENS Resolution</h3>
-                  <p>Resolve Ethereum Name Service domains (experimental)</p>
-                </div>
-                <label class="switch">
-                  <input type="checkbox" id="ensResolution">
-                  <span class="switch-slider"></span>
-                </label>
-              </div>
-            </div>
-          </div>
-
-          <!-- Trusted Gateway Settings -->
-          <div class="config-card expandable" id="trustedGatewaySettings">
-            <div class="config-header">
-              <h3>Trusted Gateways for Verification</h3>
-              <svg class="expand-icon" width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </div>
-            <div class="config-details expandable-content">
               <div class="gateway-mode-selector">
                 <label class="mode-option active" data-mode="automatic">
                   <input type="radio" name="verificationGatewayMode" value="automatic" id="gatewayModeAutomatic" checked>
@@ -376,16 +436,13 @@
                 </div>
               </div>
             </div>
-          </div>
 
-                      <div class="config-card expandable">
-              <div class="config-header" id="gatewayProviderToggle">
-                <h3>Routing Gateway Provider Settings</h3>
-                <svg class="expand-icon" width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
+            <!-- Gateway Provider Settings -->
+            <div class="config-subsection">
+              <div class="subsection-header">
+                <h3>Gateway Provider Settings</h3>
+                <p>Configure how gateways are selected and cached</p>
               </div>
-              <div class="config-details expandable-content">
                 <div class="input-group">
                   <label for="gatewaySortBy">Gateway Sorting</label>
                   <div class="select-wrapper">
@@ -426,133 +483,42 @@
                     How long to cache gateway information (5 minutes to 2 hours)
                   </div>
                 </div>
-              </div>
-            </div>
-            
-        </section>
-
-        <!-- Network Configuration -->
-        <section class="settings-section network-config">
-          <div class="section-header">
-            <h2>Network Configuration</h2>
-            <p>Advanced settings for connecting to the AR.IO network</p>
-          </div>
-          
-          <div class="config-options">
-            <div class="config-card">
-              <div class="config-header">
-                <h3>Gateway Registry</h3>
-                <div class="status-badge" id="registryStatus">
-                  <span class="status-dot"></span>
-                  <span>Active</span>
-                </div>
-              </div>
-              <div class="config-details">
-                <div class="detail-row">
-                  <span class="detail-label">Total Gateways:</span>
-                  <span class="detail-value" id="totalGateways">0</span>
-                </div>
-                <div class="detail-row">
-                  <span class="detail-label">Active Gateways:</span>
-                  <span class="detail-value" id="activeGateways">0</span>
-                </div>
-                <div class="detail-row">
-                  <span class="detail-label">Last Updated:</span>
-                  <span class="detail-value" id="lastUpdated">Never</span>
-                </div>
-              </div>
-              <div class="config-actions">
-                <button class="primary-button" id="syncGatewayRegistry">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 2v6h-6M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8M3 22v-6h6M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
-                  </svg>
-                  <span>Sync Gateway Registry</span>
-                </button>
-              </div>
             </div>
 
-            <div class="config-card expandable">
-              <div class="config-header" id="advancedConfigToggle">
-                <h3>Advanced Network Settings</h3>
-                <svg class="expand-icon" width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
+            <!-- Network Configuration -->
+            <div class="config-subsection">
+              <div class="subsection-header">
+                <h3>Network Configuration</h3>
+                <p>Advanced settings for AR.IO network connectivity</p>
               </div>
-              <div class="config-details expandable-content">
-                <div class="input-group">
-                  <label for="processId">AR.IO Process ID</label>
-                  <input type="text" id="processId" placeholder="Custom process ID">
-                  <div class="input-description">
-                    Advanced: Override the default AR.IO network process
-                  </div>
-                </div>
-                <div class="input-group">
-                  <label for="aoCuUrl">AO Compute Unit URL</label>
-                  <input type="url" id="aoCuUrl" placeholder="https://cu.ardrive.io">
-                  <div class="input-description">
-                    Advanced: Custom AO compute unit endpoint
-                  </div>
-                </div>
-                <div class="input-actions">
-                  <button class="secondary-button" id="resetToDefaults">Reset to Defaults</button>
-                  <button class="primary-button" id="saveAdvancedSettings">Save Changes</button>
+              <div class="input-group">
+                <label for="processId">AR.IO Process ID</label>
+                <input type="text" id="processId" placeholder="Custom process ID">
+                <div class="input-description">
+                  Advanced: Override the default AR.IO network process
                 </div>
               </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- Appearance -->
-        <section class="settings-section appearance-config">
-          <div class="section-header">
-            <h2>Appearance</h2>
-            <p>Customize the look and feel of Wayfinder</p>
-          </div>
-          
-          <div class="appearance-options">
-            <div class="option-card">
+              <div class="input-group">
+                <label for="aoCuUrl">AO Compute Unit URL</label>
+                <input type="url" id="aoCuUrl" placeholder="https://cu.ardrive.io">
+                <div class="input-description">
+                  Advanced: Custom AO compute unit endpoint
+                </div>
+              </div>
+              <div class="option-card">
               <div class="option-header">
-                <div class="option-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></div>
+                <div class="option-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div>
                 <div class="option-info">
-                  <h3>Theme</h3>
-                  <p>Choose your preferred color scheme</p>
+                  <h3>ENS Resolution</h3>
+                  <p>Resolve Ethereum Name Service domains (experimental)</p>
                 </div>
-                <div class="theme-selector">
-                  <label class="theme-option">
-                    <input type="radio" name="theme" value="dark" id="darkTheme">
-                    <div class="theme-preview dark">
-                      <div class="theme-colors">
-                        <div class="color bg"></div>
-                        <div class="color primary"></div>
-                        <div class="color text"></div>
-                      </div>
-                      <span>Dark</span>
-                    </div>
-                  </label>
-                  <label class="theme-option">
-                    <input type="radio" name="theme" value="light" id="lightTheme">
-                    <div class="theme-preview light">
-                      <div class="theme-colors">
-                        <div class="color bg"></div>
-                        <div class="color primary"></div>
-                        <div class="color text"></div>
-                      </div>
-                      <span>Light</span>
-                    </div>
-                  </label>
-                  <label class="theme-option">
-                    <input type="radio" name="theme" value="auto" id="autoTheme">
-                    <div class="theme-preview auto">
-                      <div class="theme-colors">
-                        <div class="color bg"></div>
-                        <div class="color primary"></div>
-                        <div class="color text"></div>
-                      </div>
-                      <span>Auto</span>
-                    </div>
-                  </label>
-                </div>
+                <label class="switch">
+                  <input type="checkbox" id="ensResolution">
+                  <span class="switch-slider"></span>
+                </label>
+            </div>
               </div>
+            </div>
             </div>
           </div>
         </section>

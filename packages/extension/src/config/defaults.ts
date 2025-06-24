@@ -46,10 +46,13 @@ export const WAYFINDER_DEFAULTS = {
   routingMethod: 'fastestPing',
   staticGateway: null,
 
-  // Verification Configuration
+  // Verified Browsing
+  verifiedBrowsing: false,
+
+  // Verification Configuration (used when verified browsing is ON)
   verificationStrategy: 'hash',
   verificationStrict: false,
-  verificationEnabled: true,
+  verificationEnabled: false,
 
   // Gateway Management
   gatewayCacheTTL: 3600, // 1 hour in seconds
@@ -115,7 +118,7 @@ export const VERIFICATION_STRATEGY_DEFAULTS = {
  * Background verification defaults
  */
 export const VERIFICATION_DEFAULTS = {
-  verificationEnabled: true,
+  verificationEnabled: false,
   verificationStrict: false,
   showVerificationToasts: false,
   enableVerificationCache: true,

@@ -52,6 +52,22 @@ export default defineConfig({
           src: 'src/warning.html',
           dest: '.',
         },
+        {
+          src: 'src/viewer.html',
+          dest: '.',
+        },
+        {
+          src: 'src/viewer.css',
+          dest: '.',
+        },
+        {
+          src: 'src/wayfinder-proxy.html',
+          dest: '.',
+        },
+        {
+          src: 'src/wayfinder-proxy.js',
+          dest: '.',
+        },
 
         {
           src: 'manifest.json',
@@ -81,6 +97,8 @@ export default defineConfig({
         gateways: './src/gateways.js',
         performance: './src/performance.js',
         warning: './src/warning.js',
+        viewer: './src/viewer.js',
+        'wayfinder-proxy': './src/wayfinder-proxy.js',
       },
       output: {
         entryFileNames: '[name].js',
@@ -89,7 +107,11 @@ export default defineConfig({
         // Manual chunks configuration
         manualChunks: {
           // Group SDK and large dependencies together
-          'webIndex': ['@ar.io/sdk/web', '@permaweb/aoconnect', '@ar.io/wayfinder-core'],
+          webIndex: [
+            '@ar.io/sdk/web',
+            '@permaweb/aoconnect',
+            '@ar.io/wayfinder-core',
+          ],
         },
       },
     },

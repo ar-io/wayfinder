@@ -857,13 +857,16 @@ body {
   background: var(--bg-secondary);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
-  padding: var(--spacing-md);
+  padding: var(--spacing-lg);
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .action-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--spacing-md);
+  flex-wrap: wrap;
 }
 
 .action-icon {
@@ -880,6 +883,7 @@ body {
 
 .action-info {
   flex: 1;
+  min-width: 0; /* Allow text to wrap */
 }
 
 .action-info h3 {
@@ -899,6 +903,25 @@ body {
   display: flex;
   gap: var(--spacing-sm);
   flex-shrink: 0;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+
+/* Adjust button group layout on smaller containers */
+@media (max-width: 600px) {
+  .action-header {
+    flex-direction: column;
+  }
+  
+  .button-group {
+    width: 100%;
+    margin-left: 0;
+    margin-top: var(--spacing-md);
+  }
+  
+  .button-group button {
+    flex: 1;
+  }
 }
 
 .secondary-button,

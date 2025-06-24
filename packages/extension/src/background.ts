@@ -26,6 +26,10 @@ import {
 import { EXTENSION_DEFAULTS, WAYFINDER_DEFAULTS } from './config/defaults';
 import { ARIO_MAINNET_PROCESS_ID, DEFAULT_AO_CU_URL } from './constants';
 import {
+  showVerificationToast,
+  verifyContentDigest,
+} from './digest-verification';
+import {
   isKnownGateway,
   normalizeGatewayFQDN,
   updateGatewayPerformance,
@@ -97,31 +101,7 @@ const BYPASS_SESSION_KEY = 'verificationBypassSession';
 
 logger.info('Initializing Wayfinder Extension with Core Library');
 
-/**
- * Check if a URL is bypassed for verification
- */
-async function checkBypass(url: string): Promise<boolean> {
-  // Check permanent bypasses
-  const { [BYPASS_STORAGE_KEY]: bypasses = {} } = await chrome.storage.local.get(BYPASS_STORAGE_KEY);
-  if (bypasses[url]) {
-    logger.info(`[BYPASS] URL has permanent bypass: ${url}`);
-    return true;
-  }
-  
-  // Check session bypasses
-  try {
-    const { [BYPASS_SESSION_KEY]: sessionBypasses = {} } = await chrome.storage.session.get(BYPASS_SESSION_KEY);
-    if (sessionBypasses[url]) {
-      logger.info(`[BYPASS] URL has session bypass: ${url}`);
-      return true;
-    }
-  } catch (e) {
-    // Session storage might not be available in some contexts
-    logger.debug('[BYPASS] Session storage not available');
-  }
-  
-  return false;
-}
+// Removed checkBypass function - unused
 
 /**
  * Update daily statistics
@@ -300,6 +280,113 @@ chrome.webNavigation.onBeforeNavigate.addListener(
       if (details.frameId !== 0) return;
 
       const url = new URL(details.url);
+
+      // Check if this is a direct gateway URL that should use Verified Browsing
+      const { verifiedBrowsing = false, verifiedBrowsingExceptions = [] } =
+        await chrome.storage.local.get([
+          'verifiedBrowsing',
+          'verifiedBrowsingExceptions',
+        ]);
+
+      if (verifiedBrowsing && !url.href.includes('viewer.html')) {
+        // Check if this is a known gateway URL
+        const isGateway = await isKnownGateway(url.hostname);
+
+        if (isGateway) {
+          let arUrl: string | null = null;
+
+          // Check for transaction ID in path
+          const txIdMatch = url.pathname.match(/^\/([a-zA-Z0-9_-]{43})/);
+          if (txIdMatch) {
+            const txId = txIdMatch[1];
+            const path = url.pathname.substring(txId.length + 1);
+            arUrl = `ar://${txId}${path}`;
+          }
+          // Check for ArNS subdomain (e.g., ardrive.arweave.net)
+          else if (url.hostname.includes('.')) {
+            const parts = url.hostname.split('.');
+            if (parts.length >= 2) {
+              // Check if this looks like an ArNS subdomain
+              const possibleArns = parts[0];
+              // Skip if it's www or other common subdomains
+              if (
+                possibleArns &&
+                !['www', 'api', 'gateway'].includes(possibleArns)
+              ) {
+                arUrl = `ar://${possibleArns}${url.pathname}`;
+              }
+            }
+          }
+
+          if (arUrl) {
+            // Check if this is an API endpoint that we shouldn't intercept
+            const apiPaths = [
+              '/info',
+              '/gateway',
+              '/graphql',
+              '/ar-io',
+              '/api-docs',
+              '/openapi.json',
+              '/block',
+              '/tx',
+              '/chunk',
+              '/data_sync',
+              '/peers',
+              '/price',
+              '/wallet',
+              '/mine',
+              '/metrics',
+              '/health'
+            ];
+            
+            // Check if the path starts with any API endpoint
+            const isApiEndpoint = apiPaths.some(apiPath => 
+              url.pathname === apiPath || 
+              url.pathname.startsWith(apiPath + '/')
+            );
+            
+            if (isApiEndpoint) {
+              logger.info(
+                `[VERIFIED-BROWSING] Skipping API endpoint: ${url.href}`,
+              );
+              return;
+            }
+            
+            // Check if this URL is in exceptions
+            const isException = verifiedBrowsingExceptions.some((exception) => {
+              if (exception.startsWith('ar://')) {
+                return arUrl === exception || arUrl.startsWith(exception + '/');
+              } else {
+                // Domain exception
+                return (
+                  url.hostname === exception ||
+                  url.hostname.endsWith(`.${exception}`)
+                );
+              }
+            });
+
+            if (isException) {
+              logger.info(
+                `[VERIFIED-BROWSING] URL is in exceptions, skipping verification: ${arUrl}`,
+              );
+              return;
+            }
+
+            logger.info(
+              `[VERIFIED-BROWSING] Intercepting gateway URL: ${url.href} -> ${arUrl}`,
+            );
+
+            // Redirect to viewer.html
+            const viewerUrl = chrome.runtime.getURL(
+              `viewer.html?url=${encodeURIComponent(arUrl)}`,
+            );
+            chrome.tabs.update(details.tabId, { url: viewerUrl });
+            return;
+          }
+        }
+      }
+
+      // Original ar:// URL handling
       arUrl = url.searchParams.get('q');
 
       if (!arUrl || !arUrl.startsWith('ar://')) return;
@@ -325,6 +412,7 @@ chrome.webNavigation.onBeforeNavigate.addListener(
           expectedSandboxRedirect: /^[a-z0-9_-]{43}$/i.test(arUrl.slice(5)),
           startTime,
           arUrl,
+          verification: result.verification, // Add verification info
         });
 
         // Navigate to the gateway URL directly
@@ -550,95 +638,125 @@ chrome.webRequest.onCompleted.addListener(
   { urls: ['<all_urls>'] },
 );
 
+// Removed getHeaderValue function - unused
+
 /**
  * Capture verification status from gateway response headers
  * Note: Cannot use blocking mode without enterprise deployment
  */
 chrome.webRequest.onHeadersReceived.addListener(
   async (details) => {
+    // Check if this request is from the viewer iframe
+    if (details.initiator?.startsWith('chrome-extension://') && 
+        details.url.includes('viewer.html')) {
+      // This is a request from within the viewer page itself, skip
+      return;
+    }
+    
+    // Check if request is initiated from viewer.html iframe
+    if (details.tabId !== -1) {
+      try {
+        const tab = await chrome.tabs.get(details.tabId);
+        if (tab.url?.includes('viewer.html')) {
+          // This is a resource request from viewer iframe
+          await handleViewerResourceRequest(details);
+        }
+      } catch (error) {
+        // Tab might not exist anymore
+      }
+    }
     const tabInfo = tabStateManager.get(details.tabId);
 
-    if (tabInfo) {
-      let verificationStatus = {
-        verified: false,
-        strategy: null as string | null,
-        error: null as string | null,
-        arnsResolvedId: null as string | null,
-        dataId: null as string | null,
-      };
+    if (tabInfo && tabInfo.arUrl) {
+      // Parse response headers
+      let arnsResolvedId: string | null = null;
+      let dataId: string | null = null;
+      let digest: string | null = null;
 
-      // Parse verification headers from the gateway response
       for (const header of details.responseHeaders || []) {
         const headerName = header.name.toLowerCase();
         const headerValue = header.value || '';
 
         switch (headerName) {
-          case 'x-ar-io-verified':
-            verificationStatus.verified = headerValue.toLowerCase() === 'true';
-            break;
-          case 'x-ar-io-verification-strategy':
-            verificationStatus.strategy = headerValue;
-            break;
-          case 'x-ar-io-verification-error':
-            verificationStatus.error = headerValue;
+          case 'x-ar-io-digest':
+            digest = headerValue;
             break;
           case 'x-arns-resolved-id':
-            verificationStatus.arnsResolvedId = headerValue;
+            arnsResolvedId = headerValue;
             logger.debug(`ArNS resolved: ${details.url} -> ${headerValue}`);
             break;
           case 'x-ar-io-data-id':
-            verificationStatus.dataId = headerValue;
+            dataId = headerValue;
             break;
         }
       }
 
-      // Cache the verification result
-      if (tabInfo.arUrl) {
-        const { verificationCache } = await import('./utils/verification-cache');
-        await verificationCache.set(tabInfo.arUrl, {
-          verified: verificationStatus.verified,
-          strategy: verificationStatus.strategy || 'unknown',
-          error: verificationStatus.error,
-          timestamp: Date.now(),
-        });
-        
-        // Update daily stats
-        updateDailyStats(verificationStatus.verified ? 'verified' : 'failed');
-        
+      // Check if verification is enabled
+      const { verificationEnabled, showVerificationToasts } =
+        await chrome.storage.local.get([
+          'verificationEnabled',
+          'showVerificationToasts',
+        ]);
+
+      if (verificationEnabled && digest) {
+        // Perform digest verification in the background
         logger.info(
-          `[VERIFY] Captured verification status for ${tabInfo.arUrl}: ${verificationStatus.verified ? 'PASSED' : 'FAILED'}`,
+          '[VERIFY] Starting digest verification for:',
+          tabInfo.arUrl,
         );
-      }
 
-      // Handle strict mode - we can't block, but we can redirect after load
-      const { verificationStrict = false } = await chrome.storage.local.get([
-        'verificationStrict',
-      ]);
+        verifyContentDigest(tabInfo.arUrl, digest, dataId)
+          .then((result) => {
+            logger.info('[VERIFY] Digest verification completed:', {
+              verified: result.verified,
+              confidence: result.confidence,
+              matchingGateways: result.matchingGateways,
+              totalGateways: result.totalGateways,
+            });
 
-      if (verificationStrict && !verificationStatus.verified && tabInfo.arUrl) {
-        // Check if this URL is bypassed
-        const isBypassed = await checkBypass(tabInfo.arUrl);
+            // Update cache with verification result
+            const { verificationCache } = require('./utils/verification-cache');
+            verificationCache.set(tabInfo.arUrl, {
+              verified: result.verified,
+              actualDigest: digest || undefined,
+              status: 'completed',
+              strategy: 'digest-comparison',
+              verificationResult: result,
+              dataId: dataId || arnsResolvedId || undefined,
+              timestamp: Date.now(),
+            });
+
+            // Show toast if enabled
+            if (showVerificationToasts) {
+              showVerificationToast(details.tabId, result);
+            }
+
+            // Update stats
+            if (result.verified) {
+              updateDailyStats('verified');
+            } else if (result.confidence === 'none') {
+              updateDailyStats('failed');
+            }
+          })
+          .catch((error) => {
+            logger.error('[VERIFY] Digest verification error:', error);
+          });
+      } else {
+        // Only cache ArNS resolution data if it exists and verified browsing is enabled
+        const { verifiedBrowsing = false } = await chrome.storage.local.get(['verifiedBrowsing']);
         
-        if (!isBypassed) {
-          // In strict mode, redirect to warning page after content starts loading
-          logger.warn('[VERIFY] Unverified content in strict mode - redirecting to warning');
-          
-          // Clean up first
-          tabStateManager.delete(details.tabId);
-          
-          // Redirect to warning page (use extension URL, not data URL)
-          const warningUrl = chrome.runtime.getURL('warning.html') + 
-            '?url=' + encodeURIComponent(tabInfo.arUrl) +
-            '&strategy=' + encodeURIComponent(verificationStatus.strategy || 'unknown') +
-            '&error=' + encodeURIComponent(verificationStatus.error || 'Verification failed') +
-            '&gateway=' + encodeURIComponent(new URL(details.url).hostname) +
-            '&txId=' + encodeURIComponent(verificationStatus.dataId || '');
-          
-          // Redirect the tab to warning page
-          chrome.tabs.update(details.tabId, { url: warningUrl });
-          
-          // Return early to prevent further processing
-          return;
+        if (verifiedBrowsing && (dataId || arnsResolvedId)) {
+          const { verificationCache } = await import(
+            './utils/verification-cache'
+          );
+          await verificationCache.set(tabInfo.arUrl, {
+            verified: false,
+            actualDigest: digest || undefined,
+            status: 'completed',
+            strategy: 'none',
+            dataId: dataId || arnsResolvedId || undefined,
+            timestamp: Date.now(),
+          });
         }
       }
 
@@ -647,7 +765,7 @@ chrome.webRequest.onHeadersReceived.addListener(
     }
   },
   { urls: ['<all_urls>'] },
-  ['responseHeaders'], // Removed 'blocking' - not available for regular extensions
+  ['responseHeaders'],
 );
 
 /**
@@ -820,12 +938,16 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     'resetAdvancedSettings',
     'getCacheStats',
     'clearVerificationCache',
+    'testConnection',
   ];
   const validTypes = [
     'convertArUrlToHttpUrl',
     'openSettings',
     'checkVerificationCache',
     'proceedWithBypass',
+    'VERIFY_GATEWAY_RESOURCE',
+    'FETCH_VERIFIED_CONTENT',
+    'FETCH_VERIFIED_RESOURCE',
   ];
 
   if (
@@ -884,17 +1006,19 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   if (request.type === 'checkVerificationCache') {
     (async () => {
       try {
-        const { verificationCache } = await import('./utils/verification-cache');
+        const { verificationCache } = await import(
+          './utils/verification-cache'
+        );
         const cached = await verificationCache.get(request.url);
-        
+
         if (cached) {
-          sendResponse({ 
-            cached: true, 
+          sendResponse({
+            cached: true,
             result: {
               verified: cached.verified,
               strategy: cached.strategy,
               error: cached.error,
-            }
+            },
           });
         } else {
           sendResponse({ cached: false });
@@ -929,27 +1053,31 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     (async () => {
       try {
         const { url, permanent } = request;
-        
+
         // Save bypass decision
         if (permanent) {
-          const { [BYPASS_STORAGE_KEY]: bypasses = {} } = await chrome.storage.local.get(BYPASS_STORAGE_KEY);
+          const { [BYPASS_STORAGE_KEY]: bypasses = {} } =
+            await chrome.storage.local.get(BYPASS_STORAGE_KEY);
           bypasses[url] = {
             timestamp: Date.now(),
-            permanent: true
+            permanent: true,
           };
           await chrome.storage.local.set({ [BYPASS_STORAGE_KEY]: bypasses });
         } else {
-          const { [BYPASS_SESSION_KEY]: sessionBypasses = {} } = await chrome.storage.session.get(BYPASS_SESSION_KEY);
+          const { [BYPASS_SESSION_KEY]: sessionBypasses = {} } =
+            await chrome.storage.session.get(BYPASS_SESSION_KEY);
           sessionBypasses[url] = {
             timestamp: Date.now(),
-            permanent: false
+            permanent: false,
           };
-          await chrome.storage.session.set({ [BYPASS_SESSION_KEY]: sessionBypasses });
+          await chrome.storage.session.set({
+            [BYPASS_SESSION_KEY]: sessionBypasses,
+          });
         }
-        
+
         // Get the routable URL
         const result = await getRoutableGatewayUrl(url);
-        
+
         if (result?.url) {
           sendResponse({ success: true, redirectUrl: result.url });
         } else {
@@ -1054,6 +1182,22 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     return true;
   }
 
+  // Handle fetch verified content
+  if (request.type === 'FETCH_VERIFIED_CONTENT') {
+    (async () => {
+      try {
+        const result = await handleVerifiedContentFetch(request.url);
+        sendResponse(result);
+      } catch (error: any) {
+        logger.error('Error fetching verified content:', error);
+        sendResponse({
+          error: error?.message || 'Failed to fetch verified content',
+        });
+      }
+    })();
+    return true;
+  }
+
   // Handle clear verification cache
   if (request.message === 'clearVerificationCache') {
     (async () => {
@@ -1063,6 +1207,87 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
       } catch (error: any) {
         logger.error('Error clearing verification cache:', error);
         sendResponse({ error: error?.message || 'Unknown error' });
+      }
+    })();
+    return true;
+  }
+
+  // Handle verify gateway resource (from service worker)
+  if (request.type === 'VERIFY_GATEWAY_RESOURCE') {
+    (async () => {
+      try {
+        const result = await handleGatewayResourceVerification(request);
+        sendResponse(result);
+      } catch (error: any) {
+        logger.error('Error verifying gateway resource:', error);
+        sendResponse({
+          verified: false,
+          error: error?.message || 'Verification failed',
+        });
+      }
+    })();
+    return true;
+  }
+
+  // Handle connection test
+  if (request.message === 'testConnection') {
+    (async () => {
+      try {
+        // Try to get a gateway from local registry first
+        const { localGatewayAddressRegistry = {} } =
+          await chrome.storage.local.get(['localGatewayAddressRegistry']);
+        const gateways = Object.values(localGatewayAddressRegistry)
+          .filter((g: any) => g.status === 'joined' && g.settings?.fqdn)
+          .sort((a: any, b: any) => (b.operatorStake || 0) - (a.operatorStake || 0));
+
+        let isConnected = false;
+
+        if (gateways.length > 0) {
+          // Use the top gateway from registry
+          const gateway = gateways[0] as any;
+          const url = `${gateway.settings.protocol || 'https'}://${gateway.settings.fqdn}/info`;
+          try {
+            const response = await fetch(url, {
+              method: 'GET',
+              signal: AbortSignal.timeout(5000),
+            });
+            isConnected = response.ok;
+          } catch {
+            isConnected = false;
+          }
+        } else {
+          // Fallback to arweave.net as last resort
+          try {
+            const response = await fetch('https://arweave.net/info', {
+              method: 'GET',
+              signal: AbortSignal.timeout(5000),
+            });
+            isConnected = response.ok;
+          } catch {
+            isConnected = false;
+          }
+        }
+
+        sendResponse({ success: true, isConnected });
+      } catch (error: any) {
+        logger.error('Error testing connection:', error);
+        sendResponse({ success: false, isConnected: false });
+      }
+    })();
+    return true;
+  }
+
+  // Handle fetch verified resource (from proxy page)
+  if (request.type === 'FETCH_VERIFIED_RESOURCE') {
+    (async () => {
+      try {
+        const result = await handleVerifiedResourceFetch(request.url);
+        sendResponse(result);
+      } catch (error: any) {
+        logger.error('Error fetching verified resource:', error);
+        sendResponse({
+          error: error?.message || 'Failed to fetch verified resource',
+        });
       }
     })();
     return true;
@@ -1080,14 +1305,14 @@ async function updateSyncStatus(
     syncStatus: status,
     lastSyncAttempt: Date.now(),
   };
-  
+
   if (status === 'completed') {
     update.lastSyncSuccess = Date.now();
     update.syncError = null;
   } else if (status === 'error' && error) {
     update.syncError = error;
   }
-  
+
   await chrome.storage.local.set(update);
   logger.info(`[SYNC] Status updated to: ${status}`);
 }
@@ -1165,13 +1390,16 @@ async function syncGatewayAddressRegistry(): Promise<void> {
         lastKnownGatewayCount: totalFetched,
         lastSyncTime: Date.now(),
       } as any);
-      
+
       logger.info(`Synced ${totalFetched} gateways to registry.`);
       await updateSyncStatus('completed');
     }
   } catch (error) {
     logger.error('Error syncing Gateway Address Registry:', error);
-    await updateSyncStatus('error', error instanceof Error ? error.message : 'Unknown error');
+    await updateSyncStatus(
+      'error',
+      error instanceof Error ? error.message : 'Unknown error',
+    );
     throw error;
   }
 }
@@ -1201,12 +1429,595 @@ async function reinitializeArIO(): Promise<void> {
 }
 
 /**
+ * Handle verification of individual gateway resources (from service worker)
+ */
+async function handleGatewayResourceVerification(request: {
+  url: string;
+  resourceType: string;
+  strategy?: string;
+}): Promise<{ verified: boolean; error?: string }> {
+  try {
+    const { url, resourceType } = request;
+
+    logger.info(`[VERIFY-RESOURCE] Verifying ${resourceType} from ${url}`);
+
+    // Check if this is actually a gateway URL
+    const urlObj = new URL(url);
+    const isGatewayUrl =
+      urlObj.hostname.includes('arweave') ||
+      urlObj.hostname.includes('ar.io') ||
+      urlObj.hostname.includes('ar-io') ||
+      urlObj.hostname.includes('g8way');
+
+    if (!isGatewayUrl) {
+      // Not a gateway URL, no need to verify
+      return { verified: true };
+    }
+
+    // Extract transaction ID from URL if possible
+    const pathMatch = urlObj.pathname.match(/^\/([a-zA-Z0-9_-]{43})/);
+    if (!pathMatch) {
+      // No transaction ID in path, can't verify
+      logger.warn('[VERIFY-RESOURCE] No transaction ID found in URL');
+      return { verified: false, error: 'No transaction ID in URL' };
+    }
+
+    const txId = pathMatch[1];
+    const arUrl = `ar://${txId}${urlObj.pathname.substring(txId.length + 1)}`;
+
+    // Get Wayfinder instance
+    const wayfinder = await getWayfinderInstance();
+
+    // Attempt to verify using HEAD request
+    try {
+      const response = await wayfinder.request(arUrl, {
+        method: 'HEAD',
+        signal: AbortSignal.timeout(5000),
+      });
+
+      // Check verification header
+      const verifiedHeader = response.headers.get('x-wayfinder-verified');
+      const verified = verifiedHeader === 'true';
+
+      logger.info(
+        `[VERIFY-RESOURCE] Resource ${verified ? 'verified' : 'not verified'}`,
+      );
+
+      return { verified };
+    } catch (verifyError) {
+      // HEAD request failed, try to at least check if resource exists
+      logger.warn('[VERIFY-RESOURCE] Verification failed:', verifyError);
+      return {
+        verified: false,
+        error:
+          verifyError instanceof Error
+            ? verifyError.message
+            : 'Verification failed',
+      };
+    }
+  } catch (error) {
+    logger.error('[VERIFY-RESOURCE] Error:', error);
+    return {
+      verified: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
+
+/**
+ * Handle fetching and verifying content for viewer.html
+ */
+async function handleVerifiedContentFetch(arUrl: string): Promise<{
+  verified: boolean;
+  dataUrl?: string;
+  cacheKey?: string;
+  error?: string;
+  verificationInfo?: any;
+}> {
+  try {
+    logger.info(`[VERIFY] Using Wayfinder to fetch and verify ${arUrl}`);
+
+    const wayfinder = await getWayfinderInstance();
+
+    // Track verification events
+    let verificationSucceeded = false;
+    let verificationError: any = null;
+
+    // Set up one-time event listeners for this request
+    const handleVerificationSuccess = (event: any) => {
+      logger.info(`[VERIFY] Verification succeeded for ${event.txId}`);
+      verificationSucceeded = true;
+    };
+
+    const handleVerificationFailed = (event: any) => {
+      logger.error(`[VERIFY] Verification failed:`, event);
+      verificationError = event;
+    };
+
+    wayfinder.emitter.once('verification-succeeded', handleVerificationSuccess);
+    wayfinder.emitter.once('verification-failed', handleVerificationFailed);
+
+    try {
+      // Make the request - Wayfinder handles routing AND verification in one shot!
+      const response = await wayfinder.request(arUrl);
+
+      // Check if response is ok
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      // Get actual content size by reading the body
+      const blob = await response.blob();
+      const contentLength = blob.size;
+      const contentType = blob.type || response.headers.get('content-type') || 'text/html';
+
+      logger.info(
+        `[VERIFY] Content received: ${contentLength} bytes, type: ${contentType}`,
+      );
+      
+      // Check response headers for verification status
+      const verifiedHeader = response.headers.get('x-wayfinder-verified');
+      const verificationMethod = response.headers.get('x-wayfinder-verification-method');
+      
+      logger.info(`[VERIFY] Response headers - verified: ${verifiedHeader}, method: ${verificationMethod}`);
+
+      // Check if verification is enabled
+      const { verificationEnabled = false } = await chrome.storage.local.get(['verificationEnabled']);
+      
+      // If verification is enabled, check if content was verified (either by event or header)
+      const wasVerified = verificationEnabled && (verificationSucceeded || verifiedHeader === 'true');
+      
+      // If verification is disabled, treat content as "unverified but allowed"
+      const finalVerificationStatus = wasVerified;
+      
+      // Update verification cache
+      const { verificationCache } = await import('./utils/verification-cache');
+      await verificationCache.set(arUrl, {
+        verified: finalVerificationStatus,
+        status: 'completed',
+        strategy: verificationEnabled ? 'wayfinder-request' : 'none',
+        timestamp: Date.now(),
+        error: verificationError?.message || (!verificationEnabled ? 'Verification disabled' : undefined),
+      });
+
+      // Update stats
+      updateDailyStats(verificationSucceeded ? 'verified' : 'failed');
+
+      if (contentLength < 2_000_000) {
+        // 2MB limit for data URLs
+        
+        // For HTML content, rewrite URLs to proxy through our extension
+        if (contentType.includes('text/html')) {
+          const htmlContent = await blob.text();
+          const rewrittenHtml = await rewriteHtmlUrls(htmlContent, arUrl);
+          
+          // Convert rewritten HTML to data URL
+          const rewrittenBlob = new Blob([rewrittenHtml], { type: contentType });
+          const dataUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              if (typeof reader.result === 'string') {
+                resolve(reader.result);
+              } else {
+                reject(new Error('Failed to read blob as data URL'));
+              }
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(rewrittenBlob);
+          });
+          
+          logger.info(`[VERIFY] Converted to data URL with rewritten URLs for ${arUrl}`);
+          
+          return {
+            verified: verificationSucceeded,
+            dataUrl,
+            verificationInfo: {
+              size: contentLength,
+              type: contentType,
+              error: verificationError?.message,
+            },
+          };
+        } else {
+          // Non-HTML content - convert directly
+          const dataUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              if (typeof reader.result === 'string') {
+                resolve(reader.result);
+              } else {
+                reject(new Error('Failed to read blob as data URL'));
+              }
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+
+          logger.info(`[VERIFY] Converted to data URL for ${arUrl}`);
+
+          return {
+            verified: verificationSucceeded,
+            dataUrl,
+            verificationInfo: {
+              size: contentLength,
+              type: contentType,
+              error: verificationError?.message,
+            },
+          };
+        }
+      } else {
+        // Large content - cache it
+        const cache = await caches.open('wayfinder-verified');
+        const cacheKey = `verified-${Date.now()}-${arUrl}`;
+
+        // Create new response from blob since we already consumed the original
+        const newResponse = new Response(blob, {
+          headers: {
+            'content-type': contentType,
+          },
+        });
+        await cache.put(cacheKey, newResponse);
+
+        logger.info(
+          `[VERIFY] Cached large content for ${arUrl} with key ${cacheKey}`,
+        );
+
+        // Schedule cache cleanup after 1 hour
+        setTimeout(
+          async () => {
+            try {
+              await cache.delete(cacheKey);
+              logger.info(`[VERIFY] Cleaned up cached content for ${cacheKey}`);
+            } catch (error) {
+              logger.error(
+                `[VERIFY] Failed to cleanup cache for ${cacheKey}:`,
+                error,
+              );
+            }
+          },
+          60 * 60 * 1000,
+        ); // 1 hour
+
+        return {
+          verified: verificationSucceeded,
+          cacheKey,
+          verificationInfo: {
+            size: contentLength,
+            type: contentType,
+            error: verificationError?.message,
+          },
+        };
+      }
+    } finally {
+      // Clean up event listeners
+      wayfinder.emitter.off(
+        'verification-succeeded',
+        handleVerificationSuccess,
+      );
+      wayfinder.emitter.off('verification-failed', handleVerificationFailed);
+    }
+  } catch (error) {
+    logger.error(
+      `[VERIFY] Failed to fetch verified content for ${arUrl}:`,
+      error,
+    );
+    throw error;
+  }
+}
+
+/**
  * Extract transaction ID from ar:// URL
  */
 // Note: Transaction ID extraction is no longer needed
 // wayfinder-core handles ar:// URLs directly including ArNS names
 
 // ArNS change detection functions moved to verification-cache.ts
+/**
+ * Handle resource requests from viewer iframe
+ */
+async function handleViewerResourceRequest(
+  details: chrome.webRequest.WebResponseHeadersDetails,
+): Promise<void> {
+  try {
+    const url = new URL(details.url);
+    
+    // Check if this is a gateway request
+    const isGateway = await isKnownGateway(url.hostname);
+    if (!isGateway) return;
+    
+    // Determine resource type
+    const resourceType = getResourceType(details);
+    
+    // Check if resource was verified (look for x-wayfinder-verified header)
+    const headers = details.responseHeaders || [];
+    const verifiedHeader = headers.find(
+      h => h.name.toLowerCase() === 'x-wayfinder-verified'
+    );
+    const verified = verifiedHeader?.value === 'true';
+    
+    logger.info(`[VIEWER-RESOURCE] ${resourceType} from ${url.hostname}: ${verified ? 'verified' : 'not verified'}`);
+    
+    // Send update to viewer - need to send to all extension pages since we can't target iframe
+    chrome.runtime.sendMessage({
+      type: 'RESOURCE_VERIFICATION_UPDATE',
+      resourceType,
+      verified,
+      url: details.url,
+    });
+    
+  } catch (error) {
+    logger.error('[VIEWER-RESOURCE] Error handling resource request:', error);
+  }
+}
+
+/**
+ * Determine resource type from request details
+ */
+function getResourceType(
+  details: chrome.webRequest.WebResponseHeadersDetails,
+): string {
+  const contentType = details.responseHeaders?.find(
+    h => h.name.toLowerCase() === 'content-type'
+  )?.value || '';
+  
+  if (contentType.includes('javascript') || details.url.endsWith('.js')) {
+    return 'scripts';
+  } else if (contentType.includes('css') || details.url.endsWith('.css')) {
+    return 'styles';
+  } else if (contentType.startsWith('image/') || 
+             /\.(jpg|jpeg|png|gif|svg|webp)$/i.test(details.url)) {
+    return 'media';
+  } else if (contentType.includes('json') || details.url.includes('/api/')) {
+    return 'api';
+  }
+  
+  return 'other';
+}
+
+/**
+ * Handle fetching and verifying a resource for the proxy
+ */
+async function handleVerifiedResourceFetch(arUrl: string): Promise<{
+  dataUrl?: string;
+  content?: string;
+  contentType?: string;
+  error?: string;
+  verified?: boolean;
+}> {
+  try {
+    logger.info(`[PROXY] Fetching verified resource: ${arUrl}`);
+    
+    const wayfinder = await getWayfinderInstance();
+    
+    // Track verification events
+    let verificationSucceeded = false;
+    let verificationError: any = null;
+    
+    const handleVerificationSuccess = (event: any) => {
+      logger.info(`[PROXY] Resource verification succeeded for ${event.txId}`);
+      verificationSucceeded = true;
+    };
+    
+    const handleVerificationFailed = (event: any) => {
+      logger.error(`[PROXY] Resource verification failed:`, event);
+      verificationError = event;
+    };
+    
+    wayfinder.emitter.once('verification-succeeded', handleVerificationSuccess);
+    wayfinder.emitter.once('verification-failed', handleVerificationFailed);
+    
+    try {
+      // Fetch the resource using Wayfinder
+      const response = await wayfinder.request(arUrl);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      // Get content as blob
+      const blob = await response.blob();
+      const contentType = blob.type || response.headers.get('content-type') || 'application/octet-stream';
+      
+      // Convert to data URL for transfer
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          if (typeof reader.result === 'string') {
+            resolve(reader.result);
+          } else {
+            reject(new Error('Failed to read blob as data URL'));
+          }
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+      
+      // Update stats for resource verification
+      updateDailyStats(verificationSucceeded ? 'verified' : 'failed');
+      
+      // Send verification update to viewer
+      chrome.runtime.sendMessage({
+        type: 'RESOURCE_VERIFICATION_UPDATE',
+        resourceType: getResourceTypeFromUrl(arUrl),
+        verified: verificationSucceeded,
+        url: arUrl,
+      });
+      
+      logger.info(`[PROXY] Successfully fetched and ${verificationSucceeded ? 'verified' : 'failed to verify'} resource: ${arUrl}`);
+      
+      return {
+        dataUrl,
+        contentType,
+        verified: verificationSucceeded,
+      };
+      
+    } finally {
+      // Clean up event listeners
+      wayfinder.emitter.off('verification-succeeded', handleVerificationSuccess);
+      wayfinder.emitter.off('verification-failed', handleVerificationFailed);
+    }
+    
+  } catch (error: any) {
+    logger.error(`[PROXY] Error fetching resource ${arUrl}:`, error);
+    
+    // Update failed stats
+    updateDailyStats('failed');
+    
+    // Send verification update
+    chrome.runtime.sendMessage({
+      type: 'RESOURCE_VERIFICATION_UPDATE',
+      resourceType: getResourceTypeFromUrl(arUrl),
+      verified: false,
+      url: arUrl,
+    });
+    
+    return {
+      error: error?.message || 'Failed to fetch resource',
+      verified: false,
+    };
+  }
+}
+
+/**
+ * Get resource type from URL
+ */
+function getResourceTypeFromUrl(url: string): string {
+  const urlLower = url.toLowerCase();
+  
+  if (urlLower.endsWith('.js') || urlLower.endsWith('.mjs')) {
+    return 'scripts';
+  } else if (urlLower.endsWith('.css')) {
+    return 'styles';
+  } else if (/\.(jpg|jpeg|png|gif|svg|webp|ico)$/i.test(url)) {
+    return 'media';
+  } else if (urlLower.includes('/api/') || urlLower.endsWith('.json')) {
+    return 'api';
+  }
+  
+  return 'other';
+}
+
+/**
+ * Rewrite HTML URLs to proxy through our extension
+ */
+async function rewriteHtmlUrls(html: string, baseArUrl: string): Promise<string> {
+  logger.info(`[REWRITE] Rewriting URLs in HTML for ${baseArUrl}`);
+  
+  // Parse the base URL to understand the context
+  const baseParts = baseArUrl.match(/^ar:\/\/([^\/]+)(\/.*)?$/);
+  if (!baseParts) return html;
+  
+  const baseId = baseParts[1];
+  const basePath = baseParts[2] || '';
+  
+  // Get extension ID for building proxy URLs
+  const extensionId = chrome.runtime.id;
+  
+  // Function to determine if URL should be rewritten
+  const shouldRewriteUrl = (url: string): boolean => {
+    // Skip data: URLs, blob: URLs, and external URLs
+    if (url.startsWith('data:') || url.startsWith('blob:') || url.startsWith('http://') || url.startsWith('https://')) {
+      // Check if it's a gateway URL
+      const gatewayPatterns = [
+        /^https?:\/\/[^\/]*arweave\.[^\/]+\//,
+        /^https?:\/\/[^\/]*ar\.io[^\/]*\//,
+        /^https?:\/\/[^\/]*ar-io[^\/]*\//,
+        /^https?:\/\/[^\/]*g8way[^\/]*\//,
+      ];
+      return gatewayPatterns.some(pattern => pattern.test(url));
+    }
+    // Rewrite relative URLs and ar:// URLs
+    return true;
+  };
+  
+  // Function to convert URL to ar:// format
+  const toArUrl = (url: string): string => {
+    // Already ar:// URL
+    if (url.startsWith('ar://')) return url;
+    
+    // Absolute gateway URL
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      const match = url.match(/^https?:\/\/[^\/]+\/([a-zA-Z0-9_-]{43})(.*)$/);
+      if (match) {
+        return `ar://${match[1]}${match[2]}`;
+      }
+      return url; // Can't convert, return as-is
+    }
+    
+    // Relative URL - resolve against base
+    if (url.startsWith('/')) {
+      // Root-relative URL
+      if (url.match(/^\/[a-zA-Z0-9_-]{43}/)) {
+        // TX ID at root
+        return `ar:/${url}`;
+      } else {
+        // Path under current base
+        return `ar://${baseId}${url}`;
+      }
+    } else {
+      // Document-relative URL
+      const baseDir = basePath.substring(0, basePath.lastIndexOf('/') + 1);
+      return `ar://${baseId}${baseDir}${url}`;
+    }
+  };
+  
+  // Create proxy URL
+  const createProxyUrl = (originalUrl: string): string => {
+    if (!shouldRewriteUrl(originalUrl)) {
+      return originalUrl;
+    }
+    
+    const arUrl = toArUrl(originalUrl);
+    if (arUrl.startsWith('ar://')) {
+      return `chrome-extension://${extensionId}/wayfinder-proxy.html?url=${encodeURIComponent(arUrl)}`;
+    }
+    
+    return originalUrl;
+  };
+  
+  // Rewrite various URL patterns in HTML
+  let rewrittenHtml = html;
+  
+  // Rewrite src attributes
+  rewrittenHtml = rewrittenHtml.replace(
+    /(<(?:img|script|iframe|embed|source|audio|video)[^>]+\s+src\s*=\s*)["']([^"']+)["']/gi,
+    (match, prefix, url) => `${prefix}"${createProxyUrl(url)}"`
+  );
+  
+  // Rewrite href attributes for stylesheets
+  rewrittenHtml = rewrittenHtml.replace(
+    /(<link[^>]+\s+href\s*=\s*)["']([^"']+)["']/gi,
+    (match, prefix, url, offset, string) => {
+      // Only rewrite stylesheet links
+      if (string.substring(Math.max(0, offset - 100), offset + match.length + 100).includes('stylesheet')) {
+        return `${prefix}"${createProxyUrl(url)}"`;
+      }
+      return match;
+    }
+  );
+  
+  // Rewrite url() in inline styles
+  rewrittenHtml = rewrittenHtml.replace(
+    /url\s*\(\s*["']?([^"')]+)["']?\s*\)/gi,
+    (match, url) => `url("${createProxyUrl(url)}")`
+  );
+  
+  // Rewrite srcset attributes
+  rewrittenHtml = rewrittenHtml.replace(
+    /(<img[^>]+\s+srcset\s*=\s*)["']([^"']+)["']/gi,
+    (match, prefix, srcset) => {
+      const rewrittenSrcset = srcset.split(',').map(src => {
+        const [url, descriptor] = src.trim().split(/\s+/);
+        return `${createProxyUrl(url)}${descriptor ? ' ' + descriptor : ''}`;
+      }).join(', ');
+      return `${prefix}"${rewrittenSrcset}"`;
+    }
+  );
+  
+  logger.info(`[REWRITE] Completed URL rewriting for ${baseArUrl}`);
+  return rewrittenHtml;
+}
+
 // REMOVED: Old verifyInBackground function - use verifyInBackgroundWithCache instead
 // REMOVED: updateArNSCache and showVerificationToast functions (moved to background-verification-cached.ts)
 

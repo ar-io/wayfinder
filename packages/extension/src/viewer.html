@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wayfinder - Verified Browsing</title>
+  <link rel="icon" type="image/png" href="assets/icon16.png">
+  <!-- AR.IO Brand Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/variables.css">
+  <link rel="stylesheet" href="viewer.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f5f5;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #verification-bar {
+      background: #2c3e50;
+      color: white;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      z-index: 1000;
+      position: relative;
+    }
+
+    #verification-bar img {
+      width: 20px;
+      height: 20px;
+    }
+
+    #verification-bar.verified {
+      background: #27ae60;
+    }
+
+    #verification-bar.failed {
+      background: #e74c3c;
+    }
+
+    #verification-bar.loading {
+      background: #3498db;
+    }
+
+    #status {
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid transparent;
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    #url {
+      margin-left: auto;
+      opacity: 0.8;
+      font-size: 14px;
+      max-width: 50%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    #content-container {
+      flex: 1;
+      position: relative;
+      background: white;
+    }
+
+    #content-frame {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: none;
+    }
+
+    #error-container {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      padding: 40px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      max-width: 500px;
+      display: none;
+    }
+
+    #error-container h2 {
+      color: #e74c3c;
+      margin-bottom: 16px;
+    }
+
+    #error-container p {
+      color: #666;
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+
+    #error-container button {
+      background: #3498db;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 4px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    #error-container button:hover {
+      background: #2980b9;
+    }
+
+    /* Progress indicator */
+    #progress {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: rgba(52, 152, 219, 0.2);
+      display: none;
+    }
+
+    #progress-bar {
+      height: 100%;
+      background: #3498db;
+      width: 0;
+      transition: width 0.3s ease;
+    }
+  </style>
+</head>
+<body>
+  <!-- Minimizable Header -->
+  <header class="verification-header" id="verificationHeader">
+    <div class="header-top">
+      <div class="brand">
+        <img src="assets/icon48.png" alt="Wayfinder">
+        <div class="brand-text">
+          <h1>Verified Browsing</h1>
+        </div>
+      </div>
+      <div class="url-navigation" id="urlNavigation">
+        <span class="url-prefix">ar://</span>
+        <input type="text" id="urlInput" class="url-input" placeholder="Enter URL" spellcheck="false">
+        <button class="url-go" onclick="navigateToUrl()" title="Navigate">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Trust Indicator -->
+    <div class="trust-indicator" id="trustIndicator">
+      <div class="trust-icon" id="trustIcon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          <path d="M9 12l2 2 4-4" class="checkmark" style="display: none;"/>
+        </svg>
+      </div>
+      <div class="trust-status">
+        <span class="trust-label" id="trustLabel">Verifying Content</span>
+        <span class="trust-details" id="trustDetails">Checking integrity...</span>
+      </div>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="progress-container">
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Minimize Toggle -->
+  <button class="minimize-toggle" id="minimizeToggle" title="Toggle full screen">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polyline points="18 15 12 9 6 15"></polyline>
+    </svg>
+  </button>
+  
+  <!-- Content Area -->
+  <main class="content-area" id="contentArea">
+    <iframe id="verified-content" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads"></iframe>
+    
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+      <div class="loading-content">
+        <div class="loading-spinner"></div>
+        <p class="loading-text" id="loadingText">Verifying content integrity...</p>
+      </div>
+    </div>
+    
+    <!-- Error Overlay -->
+    <div class="error-overlay" id="errorOverlay" style="display: none;">
+      <div class="error-card">
+        <div class="error-icon">⚠️</div>
+        <h2>Verification Failed</h2>
+        <p id="errorMessage">Unable to verify content authenticity</p>
+        <div class="error-actions">
+          <button class="btn btn-secondary" onclick="window.history.back()">Go Back</button>
+          <button class="btn btn-primary" onclick="proceedAnyway()">Proceed Anyway</button>
+        </div>
+      </div>
+    </div>
+  </main>
+  
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+  
+  <!-- Floating Badge (shown when minimized) -->
+  <div class="floating-badge" id="floatingBadge" style="display: none;">
+    <div class="badge-icon">✓</div>
+    <span>Verified Browsing</span>
+  </div>
+  
+  <script src="viewer.js"></script>
+</body>
+</html>

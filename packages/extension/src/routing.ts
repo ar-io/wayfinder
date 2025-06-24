@@ -347,6 +347,9 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
     routingStrategy,
     verificationStrategy: verificationStrategyInstance,
     events: {
+      onVerificationSucceeded: (event: any) => {
+        logger.info('[SUCCESS] Verification succeeded:', event);
+      },
       onVerificationFailed: (error: any) => {
         logger.error('[ERROR] Verification failed:', error);
       },
@@ -377,6 +380,8 @@ export function resetWayfinderInstance(): void {
 
 /**
  * Convert an ar:// URL to a routable gateway URL using Wayfinder core library
+ * When verification is enabled, this will make a HEAD request to verify the gateway
+ * supports the content before returning the URL for navigation.
  */
 export async function getRoutableGatewayUrl(arUrl: string): Promise<{
   url: string;
@@ -385,6 +390,12 @@ export async function getRoutableGatewayUrl(arUrl: string): Promise<{
   gatewayPort: number | null;
   gatewayAddress: string;
   selectedGateway: any;
+  verification?: {
+    enabled: boolean;
+    expectedDigest?: string;
+    txId?: string;
+    strategy?: string;
+  };
 }> {
   try {
     if (!arUrl.startsWith('ar://')) {
@@ -459,19 +470,51 @@ export async function getRoutableGatewayUrl(arUrl: string): Promise<{
       strategy: routingMethod,
     });
 
+    // Check if verified browsing is enabled
+    const { verifiedBrowsing } = await chrome.storage.local.get([
+      'verifiedBrowsing',
+    ]);
+
+    if (!verifiedBrowsing) {
+      // Normal browsing mode - return gateway URL directly
+      return {
+        url: resolvedUrl.toString(),
+        gatewayFQDN,
+        gatewayProtocol,
+        gatewayPort,
+        gatewayAddress: 'CORE_LIBRARY',
+        selectedGateway: {
+          settings: {
+            fqdn: gatewayFQDN,
+            protocol: gatewayProtocol,
+            port: gatewayPort,
+          },
+        },
+        mode: 'normal',
+      };
+    }
+
+    // Verified browsing mode - use viewer.html
+    logger.info(
+      `[VERIFY] Verified browsing enabled - using viewer for ${arUrl}`,
+    );
+
     return {
-      url: resolvedUrl.toString(),
-      gatewayFQDN,
-      gatewayProtocol,
-      gatewayPort,
-      gatewayAddress: 'CORE_LIBRARY', // Core library manages gateway selection
+      url: chrome.runtime.getURL(
+        `viewer.html?url=${encodeURIComponent(arUrl)}`,
+      ),
+      gatewayFQDN: 'wayfinder-viewer',
+      gatewayProtocol: 'chrome-extension',
+      gatewayPort: null,
+      gatewayAddress: 'VERIFIED',
       selectedGateway: {
         settings: {
-          fqdn: gatewayFQDN,
-          protocol: gatewayProtocol,
-          port: gatewayPort,
+          fqdn: 'wayfinder-viewer',
+          protocol: 'chrome-extension',
+          port: null,
         },
       },
+      mode: 'verified',
     };
   } catch (error) {
     // Provide more specific error messages

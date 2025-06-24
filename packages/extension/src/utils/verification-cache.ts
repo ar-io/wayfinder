@@ -6,9 +6,9 @@
 import { logger } from './logger';
 
 interface CachedVerification {
-  txId: string;
-  hash: string;
-  algorithm: 'sha256';
+  txId?: string;
+  hash?: string;
+  algorithm?: 'sha256';
   timestamp: number;
   verified: boolean;
   trustedGatewayHash?: string;
@@ -18,6 +18,12 @@ interface CachedVerification {
   processId?: string; // x-arns-process-id (ArNS smart contract)
   lastVisit?: number; // Last time this ArNS name was accessed
   changeHistory?: ArNSChange[]; // Track changes over time for security
+  // New fields for enhanced verification
+  expectedDigest?: string; // Expected digest from pre-flight HEAD request
+  actualDigest?: string; // Actual digest from browser response
+  status?: 'pending' | 'completed' | 'failed'; // Verification status
+  strategy?: 'preflight' | 'full' | 'background'; // Verification strategy used
+  error?: string; // Error message if verification failed
 }
 
 interface ArNSChange {
@@ -57,11 +63,13 @@ export class VerificationCache {
   /**
    * Get a cached verification result
    */
-  async get(txId: string): Promise<CachedVerification | null> {
-    logger.info(`[CACHE] [GET] Looking for cached verification for ${txId}`);
+  async get(keyOrUrl: string): Promise<CachedVerification | null> {
+    logger.info(
+      `[CACHE] [GET] Looking for cached verification for ${keyOrUrl}`,
+    );
 
     // Check memory cache first
-    const cached = this.memoryCache.get(txId);
+    const cached = this.memoryCache.get(keyOrUrl);
 
     if (cached) {
       const age = Date.now() - cached.timestamp;
@@ -70,16 +78,16 @@ export class VerificationCache {
       // Check if expired
       if (age > this.config.ttl) {
         logger.info(
-          `[CACHE] [EXPIRED] Verification cache expired for ${txId} (age: ${ageHours}h)`,
+          `[CACHE] [EXPIRED] Verification cache expired for ${keyOrUrl} (age: ${ageHours}h)`,
         );
-        this.delete(txId);
+        this.delete(keyOrUrl);
         return null;
       }
 
       // Update LRU order
-      this.updateAccessOrder(txId);
+      this.updateAccessOrder(keyOrUrl);
       logger.info(
-        `[CACHE] [HIT] Using cached verification for ${txId} (verified: ${cached.verified}, age: ${ageHours}h, hash: ${cached.hash?.substring(0, 8)}...)`,
+        `[CACHE] [HIT] Using cached verification for ${keyOrUrl} (verified: ${cached.verified}, status: ${cached.status}, age: ${ageHours}h)`,
       );
 
       if (cached.arnsName) {
@@ -92,7 +100,7 @@ export class VerificationCache {
     }
 
     logger.info(
-      `[CACHE] [MISS] No cached verification found for ${txId} - will perform new verification`,
+      `[CACHE] [MISS] No cached verification found for ${keyOrUrl} - will perform new verification`,
     );
     return null;
   }
@@ -100,21 +108,31 @@ export class VerificationCache {
   /**
    * Set a verification result in cache
    */
-  async set(verification: CachedVerification): Promise<void> {
-    const { txId } = verification;
+  async set(keyOrUrl: string, verification: CachedVerification): Promise<void> {
+    // Use the provided key (could be URL or txId)
+    const cacheKey = keyOrUrl;
 
     // Add timestamp if not provided
     if (!verification.timestamp) {
       verification.timestamp = Date.now();
     }
 
-    const isUpdate = this.memoryCache.has(txId);
+    const isUpdate = this.memoryCache.has(cacheKey);
     const action = isUpdate ? 'UPDATE' : 'NEW';
 
-    logger.info(`[CACHE] [${action}] Caching verification for ${txId}`);
-    logger.info(
-      `[CACHE] [DETAILS] Verified: ${verification.verified}, Hash: ${verification.hash?.substring(0, 8)}..., Algorithm: ${verification.algorithm}`,
-    );
+    // Only log if this is actual verification (not just header caching)
+    if (verification.strategy !== 'none') {
+      logger.info(`[CACHE] [${action}] Caching verification for ${cacheKey}`);
+      logger.info(
+        `[CACHE] [DETAILS] Verified: ${verification.verified}, Status: ${verification.status}, Strategy: ${verification.strategy}`,
+      );
+
+      if (verification.expectedDigest || verification.actualDigest) {
+        logger.info(
+          `[CACHE] [DIGEST] Expected: ${verification.expectedDigest?.substring(0, 8)}..., Actual: ${verification.actualDigest?.substring(0, 8) || 'pending'}`,
+        );
+      }
+    }
 
     if (verification.arnsName) {
       logger.info(
@@ -131,12 +149,15 @@ export class VerificationCache {
     }
 
     // Store in memory
-    this.memoryCache.set(txId, verification);
-    this.updateAccessOrder(txId);
+    this.memoryCache.set(cacheKey, verification);
+    this.updateAccessOrder(cacheKey);
 
-    logger.info(
-      `[CACHE] [SUCCESS] Cached verification for ${txId} (cache size: ${this.memoryCache.size}/${this.config.maxSize})`,
-    );
+    // Only log success for actual verification
+    if (verification.strategy !== 'none') {
+      logger.info(
+        `[CACHE] [SUCCESS] Cached verification for ${cacheKey} (cache size: ${this.memoryCache.size}/${this.config.maxSize})`,
+      );
+    }
 
     // Persist to storage if enabled
     if (this.config.persistToStorage) {
@@ -146,11 +167,35 @@ export class VerificationCache {
   }
 
   /**
+   * Update an existing verification entry
+   */
+  async update(
+    keyOrUrl: string,
+    updates: Partial<CachedVerification>,
+  ): Promise<void> {
+    const existing = this.memoryCache.get(keyOrUrl);
+    if (!existing) {
+      logger.warn(
+        `[CACHE] [UPDATE] No existing entry for ${keyOrUrl}, creating new`,
+      );
+      await this.set(keyOrUrl, {
+        timestamp: Date.now(),
+        verified: false,
+        ...updates,
+      });
+      return;
+    }
+
+    const updated = { ...existing, ...updates, timestamp: Date.now() };
+    await this.set(keyOrUrl, updated);
+  }
+
+  /**
    * Delete a specific entry
    */
-  delete(txId: string): void {
-    this.memoryCache.delete(txId);
-    this.accessOrder = this.accessOrder.filter((id) => id !== txId);
+  delete(keyOrUrl: string): void {
+    this.memoryCache.delete(keyOrUrl);
+    this.accessOrder = this.accessOrder.filter((id) => id !== keyOrUrl);
 
     if (this.config.persistToStorage) {
       this.saveToStorage();
@@ -323,9 +368,17 @@ export class VerificationCache {
       });
 
       await chrome.storage.local.set({ verificationCache: cacheObject });
-      logger.info(
-        `[CACHE] [STORAGE] Successfully saved ${Object.keys(cacheObject).length} verification entries to Chrome storage`,
-      );
+      
+      // Only log storage operations for actual verification entries
+      const verificationEntries = Object.values(cacheObject).filter(
+        (entry: any) => entry.strategy !== 'none'
+      ).length;
+      
+      if (verificationEntries > 0) {
+        logger.info(
+          `[CACHE] [STORAGE] Successfully saved ${verificationEntries} verification entries to Chrome storage`,
+        );
+      }
     } catch (error) {
       logger.error(
         '[CACHE] [STORAGE] Failed to save verification cache to storage:',
