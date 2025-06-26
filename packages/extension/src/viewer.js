@@ -287,7 +287,6 @@ class VerifiedBrowser {
         this.showToast(
           'Main content verified',
           'success',
-          'Now verifying resources...',
         );
       } else {
         // Check if we should show content anyway
@@ -344,8 +343,14 @@ class VerifiedBrowser {
       if (contentType?.includes('text/html')) {
         iframe.src = objectUrl;
       } else {
-        // For non-HTML content, create a viewer
-        iframe.srcdoc = this.createContentViewer(objectUrl, contentType);
+        // For non-HTML content, create a viewer or use native display
+        const viewerContent = this.createContentViewer(objectUrl, contentType);
+        if (viewerContent === null) {
+          // Use native browser display (e.g., for PDFs)
+          iframe.src = objectUrl;
+        } else {
+          iframe.srcdoc = viewerContent;
+        }
       }
 
       // Clean up blob URL when done
@@ -388,21 +393,155 @@ class VerifiedBrowser {
         </body>
         </html>
       `;
-    } else {
+    } else if (type.startsWith('audio/')) {
       return `
         <!DOCTYPE html>
         <html>
         <head>
           <style>
-            body { font-family: system-ui; padding: 20px; }
-            .info { background: #f0f0f0; padding: 20px; border-radius: 8px; }
+            body { 
+              margin: 0; 
+              display: flex; 
+              justify-content: center; 
+              align-items: center; 
+              min-height: 100vh; 
+              background: #1a1a1a;
+              font-family: system-ui, -apple-system, sans-serif;
+            }
+            .audio-container {
+              background: #2a2a2a;
+              padding: 40px;
+              border-radius: 12px;
+              box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+              text-align: center;
+            }
+            .audio-icon {
+              font-size: 64px;
+              margin-bottom: 20px;
+            }
+            audio {
+              width: 300px;
+              margin: 20px 0;
+            }
+            .download-link {
+              color: #2dd4bf;
+              text-decoration: none;
+              font-size: 14px;
+              padding: 8px 16px;
+              border: 1px solid #2dd4bf;
+              border-radius: 6px;
+              display: inline-block;
+              margin-top: 10px;
+              transition: all 0.2s;
+            }
+            .download-link:hover {
+              background: #2dd4bf;
+              color: #000;
+            }
           </style>
         </head>
         <body>
-          <div class="info">
-            <h2>Verified Content</h2>
-            <p>Type: ${type}</p>
-            <a href="${url}" download>Download</a>
+          <div class="audio-container">
+            <div class="audio-icon">🎵</div>
+            <audio src="${url}" controls autoplay></audio>
+            <br>
+            <a href="${url}" download class="download-link">Download Audio</a>
+          </div>
+        </body>
+        </html>
+      `;
+    } else if (type === 'application/pdf') {
+      // For PDFs, use iframe to show native PDF viewer
+      return null; // Signal to use iframe.src directly
+    } else if (
+      type.startsWith('text/plain') || 
+      type.startsWith('text/csv') ||
+      type.startsWith('application/json') ||
+      type.startsWith('application/xml') ||
+      type.includes('javascript') ||
+      type.includes('css')
+    ) {
+      // For text-based content, let browser display natively
+      return null;
+    } else {
+      // For unknown types, provide a nice download interface
+      const fileName = url.split('/').pop() || 'file';
+      return `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { 
+              font-family: system-ui, -apple-system, sans-serif; 
+              margin: 0;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              min-height: 100vh;
+              background: #1a1a1a;
+              color: #fff;
+            }
+            .download-container {
+              background: #2a2a2a;
+              padding: 40px;
+              border-radius: 12px;
+              box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+              text-align: center;
+              max-width: 400px;
+            }
+            .file-icon {
+              font-size: 64px;
+              margin-bottom: 20px;
+            }
+            h2 {
+              margin: 0 0 10px 0;
+              color: #2dd4bf;
+            }
+            .file-type {
+              color: #999;
+              margin-bottom: 30px;
+              font-size: 14px;
+            }
+            .download-btn {
+              background: #2dd4bf;
+              color: #000;
+              text-decoration: none;
+              font-size: 16px;
+              font-weight: 600;
+              padding: 12px 24px;
+              border-radius: 8px;
+              display: inline-block;
+              transition: all 0.2s;
+            }
+            .download-btn:hover {
+              background: #5eead4;
+              transform: translateY(-2px);
+              box-shadow: 0 4px 12px rgba(45, 212, 191, 0.3);
+            }
+            .open-link {
+              color: #999;
+              font-size: 12px;
+              margin-top: 20px;
+              display: block;
+            }
+            .open-link a {
+              color: #2dd4bf;
+              text-decoration: none;
+            }
+            .open-link a:hover {
+              text-decoration: underline;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="download-container">
+            <div class="file-icon">📄</div>
+            <h2>Verified Content Ready</h2>
+            <p class="file-type">Content Type: ${type || 'Unknown'}</p>
+            <a href="${url}" download="${fileName}" class="download-btn">Download File</a>
+            <p class="open-link">
+              Or <a href="${url}" target="_blank">open in new tab</a>
+            </p>
           </div>
         </body>
         </html>
