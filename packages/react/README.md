@@ -25,6 +25,7 @@ import {
   WayfinderProvider,
   useWayfinderRequest,
   useWayfinderUrl,
+  LocalStorageGatewaysProvider,
 } from '@ar.io/wayfinder-react';
 import { NetworkGatewaysProvider } from '@ar.io/wayfinder-core';
 import { ARIO } from '@ar.io/sdk';
@@ -35,10 +36,13 @@ function App() {
     <WayfinderProvider
       // pass in the wayfinder options
       // https://github.com/ar-io/wayfinder/tree/alpha/packages/core#custom-configuration
-      gatewaysProvider={new NetworkGatewaysProvider({ 
-        ario: ARIO.mainnet() 
-        limit: 3,
-        sortBy: 'operatorStake',
+      gatewaysProvider={new LocalStorageGatewaysProvider({ 
+        ttlSeconds: 3600, // cache the gateways locally for 1 hour to avoid unnecessary network requests
+        gatewaysProvider: new NetworkGatewaysProvider({ 
+          ario: ARIO.mainnet() 
+          limit: 10,
+          sortBy: 'operatorStake',
+        }),
       })}
     >
       <YourApp />

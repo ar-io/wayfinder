@@ -42,14 +42,14 @@ export class LocalStorageGatewaysProvider implements GatewaysProvider {
 
   async getGateways(): Promise<URL[]> {
     const cached = this.getCachedGateways();
-    
+
     if (cached && this.isCacheValid(cached)) {
       return cached.gateways;
     }
 
     const gateways = await this.gatewaysProvider.getGateways();
     this.cacheGateways(gateways);
-    
+
     return gateways;
   }
 
@@ -75,7 +75,7 @@ export class LocalStorageGatewaysProvider implements GatewaysProvider {
     const now = Date.now();
     const cacheAge = now - cached.timestamp;
     const ttlMs = (cached.ttlSeconds || this.defaultTtlSeconds) * 1000;
-    
+
     return cacheAge < ttlMs;
   }
 
@@ -88,7 +88,7 @@ export class LocalStorageGatewaysProvider implements GatewaysProvider {
       const cached: CachedGateways = {
         gateways,
         timestamp: Date.now(),
-        ttlSeconds: this.ttlSeconds
+        ttlSeconds: this.ttlSeconds,
       };
 
       window.localStorage.setItem(this.storageKey, JSON.stringify(cached));
