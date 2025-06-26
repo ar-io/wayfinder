@@ -1524,19 +1524,40 @@ async function handleVerifiedContentFetch(arUrl: string): Promise<{
     let verificationSucceeded = false;
     let verificationError: any = null;
 
-    // Set up one-time event listeners for this request
-    const handleVerificationSuccess = (event: any) => {
-      logger.info(`[VERIFY] Verification succeeded for ${event.txId}`);
-      verificationSucceeded = true;
-    };
+    // Set up one-time event listeners for this request with Promise
+    const verificationPromise = new Promise<boolean>((resolve) => {
+      let resolved = false;
+      
+      const handleVerificationSuccess = (event: any) => {
+        if (!resolved) {
+          logger.info(`[VERIFY] Verification succeeded for ${event.txId}`);
+          verificationSucceeded = true;
+          resolved = true;
+          resolve(true);
+        }
+      };
 
-    const handleVerificationFailed = (event: any) => {
-      logger.error(`[VERIFY] Verification failed:`, event);
-      verificationError = event;
-    };
+      const handleVerificationFailed = (event: any) => {
+        if (!resolved) {
+          logger.error(`[VERIFY] Verification failed:`, event);
+          verificationError = event;
+          resolved = true;
+          resolve(false);
+        }
+      };
 
-    wayfinder.emitter.once('verification-succeeded', handleVerificationSuccess);
-    wayfinder.emitter.once('verification-failed', handleVerificationFailed);
+      wayfinder.emitter.once('verification-succeeded', handleVerificationSuccess);
+      wayfinder.emitter.once('verification-failed', handleVerificationFailed);
+      
+      // Set a timeout in case verification events never fire
+      setTimeout(() => {
+        if (!resolved) {
+          logger.warn('[VERIFY] Verification timeout - no event received');
+          resolved = true;
+          resolve(false);
+        }
+      }, 5000);
+    });
 
     try {
       // Make the request - Wayfinder handles routing AND verification in one shot!
@@ -1564,6 +1585,13 @@ async function handleVerifiedContentFetch(arUrl: string): Promise<{
 
       // Check if verification is enabled
       const { verificationEnabled = false } = await chrome.storage.local.get(['verificationEnabled']);
+      
+      // Wait for verification to complete if enabled
+      if (verificationEnabled) {
+        logger.info('[VERIFY] Waiting for verification to complete...');
+        const verificationResult = await verificationPromise;
+        logger.info(`[VERIFY] Verification result: ${verificationResult}`);
+      }
       
       // If verification is enabled, check if content was verified (either by event or header)
       const wasVerified = verificationEnabled && (verificationSucceeded || verifiedHeader === 'true');
@@ -1689,12 +1717,7 @@ async function handleVerifiedContentFetch(arUrl: string): Promise<{
         };
       }
     } finally {
-      // Clean up event listeners
-      wayfinder.emitter.off(
-        'verification-succeeded',
-        handleVerificationSuccess,
-      );
-      wayfinder.emitter.off('verification-failed', handleVerificationFailed);
+      // No need to clean up - we used 'once' listeners
     }
   } catch (error) {
     logger.error(

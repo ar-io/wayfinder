@@ -45,6 +45,9 @@ class VerifiedBrowser {
     if (urlInput && this.arUrl) {
       // Remove ar:// prefix for display
       urlInput.value = this.arUrl.replace(/^ar:\/\//, '');
+      // Focus the input for easy editing
+      urlInput.focus();
+      urlInput.select();
     }
 
     // Set up UI event handlers
@@ -66,6 +69,19 @@ class VerifiedBrowser {
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (message.type === 'RESOURCE_VERIFICATION_UPDATE') {
         this.updateResourceStats(message.resourceType, message.verified);
+      } else if (message.type === 'MAIN_CONTENT_VERIFICATION_UPDATE') {
+        // Update main content verification status when it completes asynchronously
+        console.log('[VIEWER] Main content verification update:', message.verified);
+        this.stats.main.verified = message.verified;
+        this.updateTrustIndicator();
+        
+        if (message.verified) {
+          this.showToast(
+            'Verification complete',
+            'success',
+            'Main content verified',
+          );
+        }
       }
     });
   }
@@ -139,11 +155,6 @@ class VerifiedBrowser {
   toggleMinimize() {
     this.isMinimized = !this.isMinimized;
     document.body.classList.toggle('minimized', this.isMinimized);
-
-    // Show toast when minimizing
-    if (this.isMinimized) {
-      this.showToast('Minimized view active', 'info', 'Press ESC to restore');
-    }
   }
 
   updateLoadingState(state, _details = '') {
@@ -178,8 +189,13 @@ class VerifiedBrowser {
       this.updateLoadingState('VERIFYING');
 
       // Update stats based on verification
+      this.stats.main.verified = response.verified || false;
+      this.stats.main.status = 'complete';
+      
+      console.log('[VIEWER] Main content verification status:', response.verified);
+      console.log('[VIEWER] Verification info:', response.verificationInfo);
+      
       if (response.verified) {
-        this.stats.main.verified = true;
         this.updateLoadingState('COMPLETE');
         this.showToast(
           'Main content verified',
@@ -197,12 +213,15 @@ class VerifiedBrowser {
         } else {
           this.updateLoadingState('COMPLETE');
           this.showToast(
-            'Verification failed',
+            'Verification pending',
             'warning',
-            'Showing unverified content',
+            'Showing content while verification completes',
           );
         }
       }
+      
+      // Update trust indicator to show main content status
+      this.updateTrustIndicator();
 
       // Load content into iframe
       await this.displayContent(response);
@@ -307,10 +326,11 @@ class VerifiedBrowser {
   updateTrustIndicator() {
     const { scripts, styles, media, api } = this.stats.resources;
     
-    // Calculate totals
-    const totalResources = scripts.total + styles.total + media.total + api.total + 1; // +1 for main
+    // Calculate totals - only count main if it's been loaded
+    const mainIncluded = this.stats.main.status === 'complete' || this.stats.main.status === 'error';
+    const totalResources = scripts.total + styles.total + media.total + api.total + (mainIncluded ? 1 : 0);
     const verifiedResources = scripts.verified + styles.verified + media.verified + api.verified + 
-                             (this.stats.main.verified ? 1 : 0);
+                             (mainIncluded && this.stats.main.verified ? 1 : 0);
     const unverifiedResources = totalResources - verifiedResources;
     
     // Calculate trust percentage
@@ -320,23 +340,27 @@ class VerifiedBrowser {
     const trustIcon = document.getElementById('trustIcon');
     const trustLabel = document.getElementById('trustLabel');
     const trustDetails = document.getElementById('trustDetails');
+    const trustIndicator = document.getElementById('trustIndicator');
     const checkmark = trustIcon?.querySelector('.checkmark');
     
     // Show progress until we have some resources
     if (totalResources === 0) {
       trustIcon.className = 'trust-icon';
+      trustIndicator.className = 'trust-indicator';
       trustLabel.textContent = 'Loading';
       trustDetails.textContent = 'Fetching content...';
       if (checkmark) checkmark.style.display = 'none';
     } else if (totalResources === 1 && this.stats.main.verified) {
       // Only main page loaded and verified
       trustIcon.className = 'trust-icon verified';
+      trustIndicator.className = 'trust-indicator complete';
       trustLabel.textContent = 'Page Verified';
       trustDetails.textContent = 'Content integrity confirmed';
       if (checkmark) checkmark.style.display = 'block';
     } else if (totalResources > 1 && unverifiedResources === 0) {
       // All resources verified
       trustIcon.className = 'trust-icon verified';
+      trustIndicator.className = 'trust-indicator complete';
       trustLabel.textContent = 'Fully Verified';
       trustDetails.textContent = `All ${totalResources} resources checked`;
       if (checkmark) checkmark.style.display = 'block';
@@ -344,12 +368,14 @@ class VerifiedBrowser {
       // Some resources not verified
       const verifiedCount = totalResources - unverifiedResources;
       trustIcon.className = 'trust-icon warning';
+      trustIndicator.className = 'trust-indicator warning';
       trustLabel.textContent = 'Partially Verified';
       trustDetails.textContent = `${verifiedCount} of ${totalResources} resources verified`;
       if (checkmark) checkmark.style.display = 'none';
     } else {
       // Main page not verified
       trustIcon.className = 'trust-icon error';
+      trustIndicator.className = 'trust-indicator error';
       trustLabel.textContent = 'Not Verified';
       trustDetails.textContent = 'Content could not be verified';
       if (checkmark) checkmark.style.display = 'none';
@@ -491,6 +517,51 @@ window.navigateToUrl = function() {
     
     // Reload the viewer with new URL
     window.location.href = `viewer.html?url=${encodeURIComponent(fullUrl)}`;
+  }
+};
+
+// Global function for reverification
+window.reverifyContent = async function() {
+  const browser = window.verifiedBrowser;
+  if (!browser) return;
+
+  // Add loading state to button
+  const reverifyBtn = document.getElementById('reverifyBtn');
+  reverifyBtn?.classList.add('loading');
+
+  // Reset stats
+  browser.stats.main = { verified: false, status: 'pending' };
+  Object.keys(browser.stats.resources).forEach((type) => {
+    browser.stats.resources[type] = { total: 0, verified: 0 };
+  });
+
+  // Clear existing iframe content
+  const iframe = document.getElementById('verified-content');
+  iframe.src = 'about:blank';
+
+  // Show loading overlay
+  document.getElementById('loadingOverlay').style.display = 'flex';
+  document.getElementById('errorOverlay').style.display = 'none';
+
+  // Update loading state
+  browser.updateLoadingState('INITIALIZING');
+
+  // Clear any existing toasts
+  document.getElementById('toastContainer').innerHTML = '';
+
+  // Show reverification toast
+  browser.showToast('Reverifying content', 'info', 'Running integrity checks...');
+
+  try {
+    // Re-run verification process
+    await browser.loadVerifiedContent();
+    
+    // Remove loading state from button
+    reverifyBtn?.classList.remove('loading');
+  } catch (error) {
+    console.error('Reverification error:', error);
+    reverifyBtn?.classList.remove('loading');
+    browser.showError(error.message);
   }
 };
 
