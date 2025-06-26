@@ -1,5 +1,13 @@
 # @ar.io/wayfinder-react
 
+## 0.0.5-alpha.6
+
+### Patch Changes
+
+- 113fd9e: Adds support for LocalStorageGatewaysProvider, which can be used in conjunction with any other gateways provider'
+- Updated dependencies [79254d1]
+  - @ar.io/wayfinder-core@0.0.5-alpha.5
+
 ## 0.0.5-alpha.5
 
 ### Patch Changes

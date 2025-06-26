@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-core
 
+## 0.0.5-alpha.5
+
+### Patch Changes
+
+- 79254d1: Make sample rate and service name optional
+
 ## 0.0.5-alpha.4
 
 ### Patch Changes
