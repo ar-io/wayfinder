@@ -353,6 +353,14 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
       onVerificationFailed: (error: any) => {
         logger.error('[ERROR] Verification failed:', error);
       },
+      onVerificationProgress: (event: any) => {
+        const percentage = (event.processedBytes / event.totalBytes) * 100;
+        const processedMB = (event.processedBytes / 1024 / 1024).toFixed(2);
+        const totalMB = (event.totalBytes / 1024 / 1024).toFixed(2);
+        logger.info(
+          `[VERIFY] Progress for ${event.txId}: ${percentage.toFixed(1)}% (${processedMB} MB / ${totalMB} MB)`,
+        );
+      },
     },
     strict: verificationStrict, // Use user preference for blocking/non-blocking
   });

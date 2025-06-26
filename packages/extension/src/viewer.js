@@ -124,6 +124,29 @@ class VerifiedBrowser {
     const floatingBadge = document.getElementById('floatingBadge');
     floatingBadge.addEventListener('click', () => this.toggleMinimize());
 
+    // URL navigation button
+    const urlGoBtn = document.getElementById('urlGoBtn');
+    urlGoBtn?.addEventListener('click', () => navigateToUrl());
+
+    // URL input enter key
+    const urlInput = document.getElementById('urlInput');
+    urlInput?.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        navigateToUrl();
+      }
+    });
+
+    // Reverify button
+    const reverifyBtn = document.getElementById('reverifyBtn');
+    reverifyBtn?.addEventListener('click', () => reverifyContent());
+
+    // Error page buttons
+    const goBackBtn = document.getElementById('goBackBtn');
+    goBackBtn?.addEventListener('click', () => window.history.back());
+
+    const proceedBtn = document.getElementById('proceedBtn');
+    proceedBtn?.addEventListener('click', () => proceedAnyway());
+
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
@@ -147,6 +170,70 @@ class VerifiedBrowser {
     });
 
     this.updateTrustIndicator();
+
+    // Try to intercept navigation from iframe using different approach
+    try {
+      const iframe = document.getElementById('verified-content');
+      if (iframe && iframe.contentWindow) {
+        // For same-origin content, we can try to access the document
+        // Note: This will only work for content served with appropriate headers
+        console.log('[VIEWER] Iframe loaded, checking for navigation interception capability');
+        
+        // Check if we can access the iframe content
+        try {
+          const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+          if (iframeDoc) {
+            // We have access - set up click handler directly
+            iframeDoc.addEventListener('click', (e) => {
+              let target = e.target;
+              while (target && target.tagName !== 'A') {
+                target = target.parentElement;
+              }
+              
+              if (target && target.href) {
+                const url = target.href;
+                
+                // Check if it's an Arweave URL
+                if (url.includes('arweave.net/') || url.includes('ar.io/') || url.startsWith('ar://')) {
+                  e.preventDefault();
+                  
+                  // Convert to ar:// URL
+                  let arUrl = url;
+                  if (url.includes('arweave.net/')) {
+                    // Extract TX ID from arweave.net URLs
+                    const txMatch = url.match(/arweave\.net\/([a-zA-Z0-9_-]{43})/);
+                    if (txMatch) {
+                      arUrl = 'ar://' + txMatch[1];
+                    }
+                  } else if (url.includes('.ar.io/') || url.includes('ar-io.')) {
+                    // Handle ar.io gateway URLs
+                    const match = url.match(/https?:\/\/[^\/]+\/(.*)/);
+                    if (match) {
+                      arUrl = 'ar://' + match[1];
+                    }
+                  }
+                  
+                  console.log('[VIEWER] Intercepted Arweave link click:', {
+                    originalUrl: url,
+                    convertedUrl: arUrl
+                  });
+                  
+                  // Navigate to the new URL in the viewer
+                  window.location.href = `viewer.html?url=${encodeURIComponent(arUrl)}`;
+                }
+              }
+            }, true);
+            
+            console.log('[VIEWER] Navigation interceptor installed via direct access');
+          }
+        } catch (accessError) {
+          // Can't access iframe content directly - this is expected for cross-origin content
+          console.log('[VIEWER] Cannot access iframe content directly (cross-origin):', accessError.message);
+        }
+      }
+    } catch (error) {
+      console.log('[VIEWER] Error setting up navigation interception:', error.message);
+    }
 
     // Note: Resource verification is limited without service worker support in extension pages
     console.log('[VIEWER] Iframe loaded - main content verification complete');
@@ -423,15 +510,18 @@ class VerifiedBrowser {
         <div class="toast-title">${title}</div>
         ${message ? `<div class="toast-message">${message}</div>` : ''}
       </div>
-      <button class="toast-close" onclick="this.parentElement.remove()">✕</button>
+      <button class="toast-close">✕</button>
     `;
 
-    container.appendChild(toast);
+    // Add click handler to close button
+    const closeBtn = toast.querySelector('.toast-close');
+    closeBtn.addEventListener('click', () => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(100%)';
+      setTimeout(() => toast.remove(), 300);
+    });
 
-    // Play subtle sound for important notifications
-    if (type === 'success' || type === 'error') {
-      this.playNotificationSound(type);
-    }
+    container.appendChild(toast);
 
     // Auto-remove after 5 seconds
     setTimeout(() => {
@@ -441,50 +531,6 @@ class VerifiedBrowser {
     }, 5000);
   }
 
-  playNotificationSound(type) {
-    // Create audio context for notification sounds
-    try {
-      const audioContext = new (
-        window.AudioContext || window.webkitAudioContext
-      )();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-
-      if (type === 'success') {
-        // Success sound: ascending notes
-        oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
-        oscillator.frequency.setValueAtTime(
-          659.25,
-          audioContext.currentTime + 0.1,
-        ); // E5
-        oscillator.frequency.setValueAtTime(
-          783.99,
-          audioContext.currentTime + 0.2,
-        ); // G5
-      } else {
-        // Error sound: descending notes
-        oscillator.frequency.setValueAtTime(440, audioContext.currentTime); // A4
-        oscillator.frequency.setValueAtTime(
-          349.23,
-          audioContext.currentTime + 0.1,
-        ); // F4
-      }
-
-      gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(
-        0.01,
-        audioContext.currentTime + 0.3,
-      );
-
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.3);
-    } catch (_e) {
-      // Ignore audio errors
-    }
-  }
 
   showError(message) {
     // Update loading state
@@ -565,15 +611,7 @@ window.reverifyContent = async function() {
   }
 };
 
-// Handle Enter key in URL input
-document.addEventListener('DOMContentLoaded', () => {
-  const urlInput = document.getElementById('urlInput');
-  urlInput?.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-      navigateToUrl();
-    }
-  });
-});
+// Remove duplicate event listener - now handled in setupEventHandlers
 
 // Global function for "Proceed Anyway" button
 window.proceedAnyway = async function () {

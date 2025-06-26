@@ -171,7 +171,7 @@
       <div class="url-navigation" id="urlNavigation">
         <span class="url-prefix">ar://</span>
         <input type="text" id="urlInput" class="url-input" placeholder="Enter URL" spellcheck="false">
-        <button class="url-go" onclick="navigateToUrl()" title="Navigate">
+        <button class="url-go" id="urlGoBtn" title="Navigate">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="9 18 15 12 9 6"></polyline>
           </svg>
@@ -191,7 +191,7 @@
         <span class="trust-label" id="trustLabel">Verifying Content</span>
         <span class="trust-details" id="trustDetails">Checking integrity...</span>
       </div>
-      <button class="reverify-btn" id="reverifyBtn" onclick="reverifyContent()" title="Reverify content integrity">
+      <button class="reverify-btn" id="reverifyBtn" title="Reverify content integrity">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="23 4 23 10 17 10"></polyline>
           <polyline points="1 20 1 14 7 14"></polyline>
@@ -218,7 +218,7 @@
   
   <!-- Content Area -->
   <main class="content-area" id="contentArea">
-    <iframe id="verified-content" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads"></iframe>
+    <iframe id="verified-content" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads allow-modals"></iframe>
     
     <!-- Loading Overlay -->
     <div class="loading-overlay" id="loadingOverlay">
@@ -235,8 +235,8 @@
         <h2>Verification Failed</h2>
         <p id="errorMessage">Unable to verify content authenticity</p>
         <div class="error-actions">
-          <button class="btn btn-secondary" onclick="window.history.back()">Go Back</button>
-          <button class="btn btn-primary" onclick="proceedAnyway()">Proceed Anyway</button>
+          <button class="btn btn-secondary" id="goBackBtn">Go Back</button>
+          <button class="btn btn-primary" id="proceedBtn">Proceed Anyway</button>
         </div>
       </div>
     </div>

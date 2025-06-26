@@ -1528,12 +1528,24 @@ async function handleVerifiedContentFetch(arUrl: string): Promise<{
     const verificationPromise = new Promise<boolean>((resolve) => {
       let resolved = false;
       
+      // Add progress handler
+      const handleVerificationProgress = (event: any) => {
+        const percentage = (event.processedBytes / event.totalBytes) * 100;
+        const processedMB = (event.processedBytes / 1024 / 1024).toFixed(2);
+        const totalMB = (event.totalBytes / 1024 / 1024).toFixed(2);
+        logger.info(
+          `[VERIFY] Progress for ${event.txId}: ${percentage.toFixed(1)}% (${processedMB} MB / ${totalMB} MB)`,
+        );
+      };
+      
       const handleVerificationSuccess = (event: any) => {
         if (!resolved) {
           logger.info(`[VERIFY] Verification succeeded for ${event.txId}`);
           verificationSucceeded = true;
           resolved = true;
           resolve(true);
+          // Clean up progress listener
+          wayfinder.emitter.off('verification-progress', handleVerificationProgress);
         }
       };
 
@@ -1543,20 +1555,25 @@ async function handleVerifiedContentFetch(arUrl: string): Promise<{
           verificationError = event;
           resolved = true;
           resolve(false);
+          // Clean up progress listener
+          wayfinder.emitter.off('verification-progress', handleVerificationProgress);
         }
       };
 
       wayfinder.emitter.once('verification-succeeded', handleVerificationSuccess);
       wayfinder.emitter.once('verification-failed', handleVerificationFailed);
+      wayfinder.emitter.on('verification-progress', handleVerificationProgress);
       
       // Set a timeout in case verification events never fire
       setTimeout(() => {
         if (!resolved) {
-          logger.warn('[VERIFY] Verification timeout - no event received');
+          logger.warn('[VERIFY] Verification timeout - no event received after 30 seconds');
           resolved = true;
           resolve(false);
+          // Clean up progress listener
+          wayfinder.emitter.off('verification-progress', handleVerificationProgress);
         }
-      }, 5000);
+      }, 30000); // 30 seconds for large files
     });
 
     try {
@@ -1574,7 +1591,7 @@ async function handleVerifiedContentFetch(arUrl: string): Promise<{
       const contentType = blob.type || response.headers.get('content-type') || 'text/html';
 
       logger.info(
-        `[VERIFY] Content received: ${contentLength} bytes, type: ${contentType}`,
+        `[VERIFY] Content received: ${contentLength} bytes (${(contentLength / 1024 / 1024).toFixed(2)} MB), type: ${contentType}`,
       );
       
       // Check response headers for verification status
@@ -1590,7 +1607,13 @@ async function handleVerifiedContentFetch(arUrl: string): Promise<{
       if (verificationEnabled) {
         logger.info('[VERIFY] Waiting for verification to complete...');
         const verificationResult = await verificationPromise;
-        logger.info(`[VERIFY] Verification result: ${verificationResult}`);
+        const sizeMB = (contentLength / 1024 / 1024).toFixed(2);
+        logger.info(`[VERIFY] Verification ${verificationResult ? 'SUCCEEDED' : 'FAILED'} for ${arUrl}:`, {
+          verified: verificationResult,
+          contentType,
+          size: `${contentLength} bytes (${sizeMB} MB)`,
+          source: verificationError ? 'failed' : 'cryptographic'
+        });
       }
       
       // If verification is enabled, check if content was verified (either by event or header)
@@ -1676,7 +1699,8 @@ async function handleVerifiedContentFetch(arUrl: string): Promise<{
       } else {
         // Large content - cache it
         const cache = await caches.open('wayfinder-verified');
-        const cacheKey = `verified-${Date.now()}-${arUrl}`;
+        // Create a valid HTTP URL for the cache key
+        const cacheKey = `https://wayfinder-cache.local/verified/${Date.now()}/${arUrl.replace('ar://', '')}`;
 
         // Create new response from blob since we already consumed the original
         const newResponse = new Response(blob, {
