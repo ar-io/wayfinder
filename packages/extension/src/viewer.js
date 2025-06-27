@@ -19,6 +19,7 @@ class VerifiedBrowser {
     this.arUrl = null;
     this.serviceWorker = null;
     this.swMessageChannel = null;
+    this.progressShown = false;
 
     this.loadingStates = {
       INITIALIZING: 'Initializing secure environment...',
@@ -82,6 +83,9 @@ class VerifiedBrowser {
             'Main content verified',
           );
         }
+      } else if (message.type === 'VERIFICATION_PROGRESS') {
+        // Update loading progress display
+        this.updateLoadingProgress(message.percentage, message.processedMB, message.totalMB);
       }
     });
   }
@@ -251,6 +255,36 @@ class VerifiedBrowser {
     }
   }
 
+  updateLoadingProgress(percentage, processedMB, totalMB) {
+    const progressEl = document.getElementById('loadingProgress');
+    const percentEl = document.getElementById('loadingPercent');
+    const mbEl = document.getElementById('loadingMB');
+    
+    if (progressEl && percentEl && mbEl) {
+      // Show progress once we start getting updates
+      if (!this.progressShown) {
+        progressEl.style.display = 'block';
+        this.progressShown = true;
+      }
+      
+      // Update percentage
+      percentEl.textContent = `${Math.round(percentage)}%`;
+      
+      // Update MB progress
+      mbEl.textContent = `${processedMB} MB / ${totalMB} MB`;
+      
+      // Update loading text based on progress
+      const loadingText = document.getElementById('loadingText');
+      if (loadingText) {
+        if (percentage < 100) {
+          loadingText.textContent = 'Verifying content integrity...';
+        } else {
+          loadingText.textContent = 'Finalizing verification...';
+        }
+      }
+    }
+  }
+
   async loadVerifiedContent() {
     try {
       this.updateLoadingState('FETCHING');
@@ -336,7 +370,39 @@ class VerifiedBrowser {
       }
 
       const blob = await cachedResponse.blob();
-      const contentType = cachedResponse.headers.get('content-type');
+      let contentType = cachedResponse.headers.get('content-type');
+      
+      // Special handling for manifests - check if it's JSON that might be a manifest
+      if (contentType === 'application/json' && this.arUrl) {
+        // Check if this looks like a manifest by examining the content
+        try {
+          const text = await blob.text();
+          const json = JSON.parse(text);
+          if (json.manifest === 'arweave/paths' && (json.version === '0.2.0' || json.version === '0.1.0')) {
+            contentType = 'application/x.arweave-manifest+json';
+            console.log('[VIEWER] Detected Arweave manifest from JSON content');
+          }
+          // Create new blob since we consumed the original
+          const newBlob = new Blob([text], { type: contentType });
+          const objectUrl = URL.createObjectURL(newBlob);
+          
+          // For manifests, create special viewer
+          const viewerContent = this.createContentViewer(objectUrl, contentType);
+          if (viewerContent === null) {
+            iframe.src = objectUrl;
+          } else {
+            iframe.srcdoc = viewerContent;
+          }
+          
+          // Clean up blob URL when done
+          iframe.addEventListener('unload', () => {
+            URL.revokeObjectURL(objectUrl);
+          });
+          return;
+        } catch (e) {
+          // Not a manifest, continue with regular JSON handling
+        }
+      }
       
       // Create blob URL for all content types
       const objectUrl = URL.createObjectURL(blob);
@@ -459,7 +525,8 @@ class VerifiedBrowser {
       // For PDFs, use iframe to show native PDF viewer
       return null; // Signal to use iframe.src directly
     } else if (type === 'application/x.arweave-manifest+json') {
-      // Handle Arweave manifests by redirecting to index
+      // For manifests, we need to fetch and parse them differently
+      // Since we have the blob URL, we can fetch it directly
       return `
         <!DOCTYPE html>
         <html>
@@ -495,25 +562,74 @@ class VerifiedBrowser {
               color: #999;
               margin: 20px 0;
             }
+            .error {
+              color: #ff6b6b;
+              margin: 20px 0;
+            }
+            .manifest-info {
+              text-align: left;
+              background: #1a1a1a;
+              padding: 20px;
+              border-radius: 8px;
+              margin-top: 20px;
+              font-family: monospace;
+              font-size: 12px;
+              max-height: 300px;
+              overflow-y: auto;
+            }
           </style>
           <script>
-            // Parse manifest and redirect to index
+            // Fetch the manifest from the blob URL (which will work)
             fetch('${url}')
               .then(res => res.json())
               .then(manifest => {
+                console.log('Manifest loaded:', manifest);
+                
                 if (manifest.index && manifest.index.path) {
-                  // Redirect to the index path
+                  // Get the current AR URL from viewer
                   const currentUrl = new URL(window.location.href);
                   const arUrl = currentUrl.searchParams.get('url');
-                  const baseUrl = arUrl.replace(/\\/[^\\/]*$/, ''); // Remove any path
-                  const indexUrl = baseUrl + '/' + manifest.index.path;
-                  window.location.href = 'viewer.html?url=' + encodeURIComponent(indexUrl);
+                  
+                  console.log('Manifest index found:', manifest.index);
+                  console.log('Current AR URL:', arUrl);
+                  
+                  if (arUrl) {
+                    // Parse the current AR URL to get the base
+                    const match = arUrl.match(/^ar:\\/\\/([^/]+)/);
+                    if (match) {
+                      const txId = match[1];
+                      // Build the index URL
+                      const indexUrl = 'ar://' + txId + '/' + manifest.index.path;
+                      
+                      console.log('Redirecting to index URL:', indexUrl);
+                      document.querySelector('.loading').textContent = 'Redirecting to ' + manifest.index.path + '...';
+                      
+                      // Redirect to the index file using viewer.html
+                      setTimeout(() => {
+                        window.top.location.href = 'viewer.html?url=' + encodeURIComponent(indexUrl);
+                      }, 1000);
+                    } else {
+                      document.querySelector('.loading').className = 'error';
+                      document.querySelector('.error').textContent = 'Invalid AR URL format';
+                    }
+                  } else {
+                    document.querySelector('.loading').className = 'error';
+                    document.querySelector('.error').textContent = 'Could not determine manifest AR URL';
+                  }
                 } else {
-                  document.querySelector('.loading').textContent = 'No index file found in manifest';
+                  // Show manifest contents if no index
+                  document.querySelector('.loading').textContent = 'No index file specified. Manifest contents:';
+                  const info = document.createElement('pre');
+                  info.className = 'manifest-info';
+                  info.textContent = JSON.stringify(manifest, null, 2);
+                  document.querySelector('.manifest-container').appendChild(info);
                 }
               })
               .catch(err => {
-                document.querySelector('.loading').textContent = 'Error loading manifest: ' + err.message;
+                console.error('Manifest fetch error:', err);
+                document.querySelector('.loading').className = 'error';
+                document.querySelector('.error').textContent = 'Error loading manifest: ' + (err.message || 'Unknown error');
+                // Prevent further errors by not propagating
               });
           </script>
         </head>
@@ -521,7 +637,7 @@ class VerifiedBrowser {
           <div class="manifest-container">
             <div class="manifest-icon">📂</div>
             <h2>Arweave Manifest</h2>
-            <p class="loading">Loading manifest index...</p>
+            <p class="loading">Loading manifest...</p>
           </div>
         </body>
         </html>
@@ -529,7 +645,7 @@ class VerifiedBrowser {
     } else if (
       type.startsWith('text/plain') || 
       type.startsWith('text/csv') ||
-      type.startsWith('application/json') ||
+      (type.startsWith('application/json') && !type.includes('manifest')) ||
       type.startsWith('application/xml') ||
       type.includes('javascript') ||
       type.includes('css')
@@ -800,6 +916,15 @@ window.reverifyContent = async function() {
   // Show loading overlay
   document.getElementById('loadingOverlay').style.display = 'flex';
   document.getElementById('errorOverlay').style.display = 'none';
+
+  // Reset progress display
+  browser.progressShown = false;
+  const progressEl = document.getElementById('loadingProgress');
+  if (progressEl) {
+    progressEl.style.display = 'none';
+  }
+  document.getElementById('loadingPercent').textContent = '0%';
+  document.getElementById('loadingMB').textContent = '';
 
   // Update loading state
   browser.updateLoadingState('INITIALIZING');

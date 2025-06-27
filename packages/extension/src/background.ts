@@ -1536,6 +1536,17 @@ async function handleVerifiedContentFetch(arUrl: string): Promise<{
         logger.info(
           `[VERIFY] Progress for ${event.txId}: ${percentage.toFixed(1)}% (${processedMB} MB / ${totalMB} MB)`,
         );
+        
+        // Send progress update to viewer
+        chrome.runtime.sendMessage({
+          type: 'VERIFICATION_PROGRESS',
+          percentage,
+          processedMB,
+          totalMB,
+          txId: event.txId
+        }).catch(() => {
+          // Ignore errors if no viewer is listening
+        });
       };
       
       const handleVerificationSuccess = (event: any) => {
@@ -1578,6 +1589,7 @@ async function handleVerifiedContentFetch(arUrl: string): Promise<{
 
     try {
       // Make the request - Wayfinder handles routing AND verification in one shot!
+      logger.info(`[VERIFY] Making wayfinder request for: ${arUrl}`);
       const response = await wayfinder.request(arUrl);
 
       // Check if response is ok
@@ -1604,6 +1616,7 @@ async function handleVerifiedContentFetch(arUrl: string): Promise<{
       const { verificationEnabled = false } = await chrome.storage.local.get(['verificationEnabled']);
       
       // Wait for verification to complete if enabled
+      let finalVerificationStatus = false;
       if (verificationEnabled) {
         logger.info('[VERIFY] Waiting for verification to complete...');
         const verificationResult = await verificationPromise;
@@ -1614,13 +1627,12 @@ async function handleVerifiedContentFetch(arUrl: string): Promise<{
           size: `${contentLength} bytes (${sizeMB} MB)`,
           source: verificationError ? 'failed' : 'cryptographic'
         });
+        // Use the actual verification result from the promise
+        finalVerificationStatus = verificationResult || verifiedHeader === 'true';
+      } else {
+        // If verification is disabled, treat content as "unverified but allowed"
+        finalVerificationStatus = false;
       }
-      
-      // If verification is enabled, check if content was verified (either by event or header)
-      const wasVerified = verificationEnabled && (verificationSucceeded || verifiedHeader === 'true');
-      
-      // If verification is disabled, treat content as "unverified but allowed"
-      const finalVerificationStatus = wasVerified;
       
       // Update verification cache
       const { verificationCache } = await import('./utils/verification-cache');
@@ -1633,7 +1645,7 @@ async function handleVerifiedContentFetch(arUrl: string): Promise<{
       });
 
       // Update stats
-      updateDailyStats(verificationSucceeded ? 'verified' : 'failed');
+      updateDailyStats(finalVerificationStatus ? 'verified' : 'failed');
 
       // For HTML content, always use cache to avoid CSP restrictions
       if (contentType.includes('text/html')) {
@@ -1673,7 +1685,7 @@ async function handleVerifiedContentFetch(arUrl: string): Promise<{
         ); // 1 hour
 
         return {
-          verified: verificationSucceeded,
+          verified: finalVerificationStatus,
           cacheKey,
           verificationInfo: {
             size: contentLength,
@@ -1699,7 +1711,7 @@ async function handleVerifiedContentFetch(arUrl: string): Promise<{
         logger.info(`[VERIFY] Converted to data URL for ${arUrl}`);
 
         return {
-          verified: verificationSucceeded,
+          verified: finalVerificationStatus,
           dataUrl,
           verificationInfo: {
             size: contentLength,
@@ -1742,7 +1754,7 @@ async function handleVerifiedContentFetch(arUrl: string): Promise<{
         ); // 1 hour
 
         return {
-          verified: verificationSucceeded,
+          verified: finalVerificationStatus,
           cacheKey,
           verificationInfo: {
             size: contentLength,

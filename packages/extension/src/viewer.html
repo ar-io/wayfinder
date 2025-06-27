@@ -223,7 +223,12 @@
     <!-- Loading Overlay -->
     <div class="loading-overlay" id="loadingOverlay">
       <div class="loading-content">
-        <div class="loading-spinner"></div>
+        <div class="loading-spinner">
+          <div class="loading-progress" id="loadingProgress" style="display: none;">
+            <div id="loadingPercent">0%</div>
+            <div class="loading-progress-mb" id="loadingMB"></div>
+          </div>
+        </div>
         <p class="loading-text" id="loadingText">Verifying content integrity...</p>
       </div>
     </div>
