@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-core
 
+## 0.0.5-alpha.6
+
+### Patch Changes
+
+- dc90515: Fix telemetry spans in browser environments
+
 ## 0.0.5-alpha.5
 
 ### Patch Changes

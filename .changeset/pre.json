@@ -7,6 +7,7 @@
     "@ar.io/wayfinder-react": "0.0.5-alpha.3"
   },
   "changesets": [
+    "beige-jeans-travel",
     "five-mirrors-type",
     "grumpy-dragons-appear",
     "khaki-peas-kick",
