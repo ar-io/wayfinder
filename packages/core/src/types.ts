@@ -148,10 +148,10 @@ export interface WayfinderOptions {
   /**
    * Telemetry configuration used to initialize OpenTelemetry tracing
    */
-  telemetrySettings?: TelemetryConfig;
+  telemetrySettings?: TelemetrySettings;
 }
 
-export interface TelemetryConfig {
+export interface TelemetrySettings {
   /** Enable or disable telemetry collection */
   enabled: boolean;
   /** Sampling ratio between 0 and 1 */
@@ -160,8 +160,6 @@ export interface TelemetryConfig {
   apiKey?: string;
   /** Optional custom OTLP exporter URL */
   exporterUrl?: string;
-  /** Service name used for traces */
-  serviceName?: string;
 }
 
 // Interfaces
