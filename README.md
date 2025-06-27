@@ -6,10 +6,10 @@ Wayfinder is a set of tools and libraries that enable decentralized and cryptogr
 
 This monorepo contains the following packages:
 
-- **[@ar.io/wayfinder-core](./packages/core)**: Core JavaScript library for the Wayfinder routing and verification protocol
-- **[@ar.io/wayfinder-react](./packages/react)**: React components for Wayfinder, including Hooks and Context provider
-- **[@ar.io/wayfinder-extension](./packages/extension)**: Chrome extension for Wayfinder
-- **[@ar.io/wayfinder-cli](./packages/cli)**: CLI for interacting with Wayfinder in the terminal
+- **[@ar.io/wayfinder-core](./packages/core)**: Core JavaScript library for the Wayfinder routing and verification protocol (ALPHA)
+- **[@ar.io/wayfinder-react](./packages/react)**: React components for Wayfinder, including Hooks and Context provider (ALPHA)
+- **[@ar.io/wayfinder-extension](./packages/extension)**: Chrome extension for Wayfinder (ALPHA)
+- **[@ar.io/wayfinder-cli](./packages/cli)**: CLI for interacting with Wayfinder in the terminal - COMING SOON
 
 ## What is it?
 
@@ -18,7 +18,7 @@ Wayfinder is a simple, open-source client-side routing and verification protocol
 ## Who is it for?
 
 - **Builders** referencing or pulling data from the centralized and overloaded `arweave.net` community gateway. Wayfinder allows developers to retrieve data from Arweave via the [AR.IO Network](https://ar.io), ensuring decentralized access to all assets of your permaweb app.
-- **Browsers** using the Permaweb. The wayfinder extension allows users to browse the Permaweb without having to interact with tokens or upload data, and gives them a way to verify data and apps they are viewing, and total control of their browsing experience.
+- **Browsers** using the Permaweb. The Wayfinder extension gives users total control of their browsing experience, without having to interact with tokens or upload data. Configure your preferred gateways, verification settings, and more.
 - **Operators** who are part of the [AR.IO Network](https://ar.io). They can configure their gateways to optimally serve wayfinder traffic, and get rewarded for doing so.
 
 ## Releases
