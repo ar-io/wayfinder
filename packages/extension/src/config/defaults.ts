@@ -97,6 +97,7 @@ export const ROUTING_STRATEGY_DEFAULTS = {
 export const VERIFICATION_STRATEGY_DEFAULTS = {
   // Common verification settings
   maxConcurrency: 2,
+  timeoutMs: 30000, // 30 seconds timeout for verification requests
 
   // Hash Verification
   hash: {
@@ -124,7 +125,7 @@ export const VERIFICATION_DEFAULTS = {
   enableVerificationCache: true,
 
   // Verification timing
-  verificationTimeout: 5000, // 5 seconds
+  verificationTimeout: 30000, // 30 seconds (increased for large files)
   verificationRetryDelay: 2000, // 2 seconds
 } as const;
 

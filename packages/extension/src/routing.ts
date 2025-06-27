@@ -318,6 +318,7 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
             trustedGateways,
             logger,
             maxConcurrency: VERIFICATION_STRATEGY_DEFAULTS.maxConcurrency,
+            timeoutMs: VERIFICATION_STRATEGY_DEFAULTS.timeoutMs,
           });
           break;
 
@@ -326,6 +327,7 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
             trustedGateways,
             logger,
             maxConcurrency: VERIFICATION_STRATEGY_DEFAULTS.maxConcurrency,
+            timeoutMs: VERIFICATION_STRATEGY_DEFAULTS.timeoutMs,
           });
           break;
 
@@ -334,6 +336,7 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
             trustedGateways,
             logger,
             maxConcurrency: VERIFICATION_STRATEGY_DEFAULTS.maxConcurrency,
+            timeoutMs: VERIFICATION_STRATEGY_DEFAULTS.timeoutMs,
           });
           break;
 
@@ -343,6 +346,7 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
             trustedGateways,
             logger,
             maxConcurrency: VERIFICATION_STRATEGY_DEFAULTS.maxConcurrency,
+            timeoutMs: VERIFICATION_STRATEGY_DEFAULTS.timeoutMs,
           });
           break;
       }

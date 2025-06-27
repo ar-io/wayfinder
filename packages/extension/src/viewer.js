@@ -20,6 +20,9 @@ class VerifiedBrowser {
     this.serviceWorker = null;
     this.swMessageChannel = null;
     this.progressShown = false;
+    this.skipButtonTimeout = null;
+    this.verificationCancelled = false;
+    this.gatewayUrl = null;
 
     this.loadingStates = {
       INITIALIZING: 'Initializing secure environment...',
@@ -35,20 +38,28 @@ class VerifiedBrowser {
     // Get URL from query params
     const params = new URLSearchParams(window.location.search);
     this.arUrl = params.get('url');
+    this.gatewayUrl = params.get('gateway');
 
     if (!this.arUrl) {
       this.showError('No URL provided');
       return;
     }
 
+    // Log the gateway URL for debugging
+    console.log('[VIEWER] Gateway URL from params:', this.gatewayUrl);
+
     // Display the AR URL in navigation input (without ar:// prefix)
     const urlInput = document.getElementById('urlInput');
     if (urlInput && this.arUrl) {
       // Remove ar:// prefix for display
       urlInput.value = this.arUrl.replace(/^ar:\/\//, '');
-      // Focus the input for easy editing
+      // Focus the input but don't select text
       urlInput.focus();
-      urlInput.select();
+      
+      // Select all text when user clicks on the input
+      urlInput.addEventListener('click', function() {
+        this.select();
+      });
     }
 
     // Set up UI event handlers
@@ -84,8 +95,10 @@ class VerifiedBrowser {
           );
         }
       } else if (message.type === 'VERIFICATION_PROGRESS') {
-        // Update loading progress display
-        this.updateLoadingProgress(message.percentage, message.processedMB, message.totalMB);
+        // Update loading progress display if not cancelled
+        if (!this.verificationCancelled) {
+          this.updateLoadingProgress(message.percentage, message.processedMB, message.totalMB);
+        }
       }
     });
   }
@@ -150,6 +163,14 @@ class VerifiedBrowser {
 
     const proceedBtn = document.getElementById('proceedBtn');
     proceedBtn?.addEventListener('click', () => proceedAnyway());
+
+    // Skip verification button
+    const skipBtn = document.getElementById('skipVerificationBtn');
+    skipBtn?.addEventListener('click', () => this.skipVerification());
+
+    // Share button
+    const shareBtn = document.getElementById('shareBtn');
+    shareBtn?.addEventListener('click', () => this.shareGatewayUrl());
 
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
@@ -290,6 +311,18 @@ class VerifiedBrowser {
       this.updateLoadingState('FETCHING');
       
       console.log('[VIEWER] Fetching verified content for:', this.arUrl);
+      
+      // Show skip button after 5 seconds (only if verification is enabled)
+      chrome.storage.local.get(['verificationEnabled'], ({ verificationEnabled }) => {
+        if (verificationEnabled) {
+          this.skipButtonTimeout = setTimeout(() => {
+            const skipDiv = document.getElementById('skipVerification');
+            if (skipDiv && !this.verificationCancelled) {
+              skipDiv.classList.add('show');
+            }
+          }, 5000);
+        }
+      });
 
       // Request verified content from background
       const response = await chrome.runtime.sendMessage({
@@ -305,6 +338,12 @@ class VerifiedBrowser {
 
       if (response.error) {
         throw new Error(response.error);
+      }
+      
+      // Store the gateway URL for sharing
+      if (response.gatewayUrl) {
+        this.gatewayUrl = response.gatewayUrl;
+        console.log('[VIEWER] Gateway URL:', this.gatewayUrl);
       }
 
       this.updateLoadingState('VERIFYING');
@@ -348,9 +387,110 @@ class VerifiedBrowser {
 
       // Hide loading overlay
       document.getElementById('loadingOverlay').style.display = 'none';
+      
+      // Clear skip button timeout and hide it
+      this.clearSkipButton();
+      
+      // Update share button tooltip if we have a gateway URL
+      if (this.gatewayUrl) {
+        const shareBtn = document.getElementById('shareBtn');
+        if (shareBtn) {
+          // Add tooltip with the gateway URL
+          shareBtn.title = `Share: ${this.gatewayUrl}`;
+        }
+      }
     } catch (error) {
       console.error('Verification error:', error);
       this.showError(error.message);
+      
+      // Clear skip button timeout
+      this.clearSkipButton();
+    }
+  }
+
+  skipVerification() {
+    console.log('[VIEWER] User requested to skip verification');
+    
+    // Set flag to indicate verification was cancelled
+    this.verificationCancelled = true;
+    
+    // Hide skip button
+    this.clearSkipButton();
+    
+    // Update UI
+    this.showToast('Skipping verification', 'warning', 'Loading unverified content');
+    
+    // Load content without verification by navigating directly to gateway
+    const gatewayUrl = this.arUrl.replace('ar://', 'https://arweave.net/');
+    this.gatewayUrl = gatewayUrl; // Store for sharing
+    const iframe = document.getElementById('verified-content');
+    iframe.src = gatewayUrl;
+    
+    // Hide loading overlay
+    document.getElementById('loadingOverlay').style.display = 'none';
+    
+    // Update share button tooltip
+    const shareBtn = document.getElementById('shareBtn');
+    if (shareBtn) {
+      shareBtn.title = `Share: ${gatewayUrl}`;
+    }
+    
+    // Update trust indicator to show unverified
+    this.stats.main.verified = false;
+    this.stats.main.status = 'complete';
+    this.updateTrustIndicator();
+  }
+
+  clearSkipButton() {
+    if (this.skipButtonTimeout) {
+      clearTimeout(this.skipButtonTimeout);
+      this.skipButtonTimeout = null;
+    }
+    
+    const skipDiv = document.getElementById('skipVerification');
+    if (skipDiv) {
+      skipDiv.classList.remove('show');
+    }
+  }
+
+  async shareGatewayUrl() {
+    if (!this.gatewayUrl) {
+      console.warn('[VIEWER] No gateway URL to share');
+      return;
+    }
+    
+    const shareBtn = document.getElementById('shareBtn');
+    const shareBtnText = shareBtn?.querySelector('span');
+    
+    try {
+      await navigator.clipboard.writeText(this.gatewayUrl);
+      
+      // Update button text temporarily
+      if (shareBtnText) {
+        const originalText = shareBtnText.textContent;
+        shareBtnText.textContent = 'Copied!';
+        setTimeout(() => {
+          shareBtnText.textContent = originalText;
+        }, 2000);
+      }
+      
+      // Show success toast
+      this.showToast(
+        'Link copied!',
+        'success',
+        `Gateway URL copied to clipboard`
+      );
+      
+      console.log('[VIEWER] Copied gateway URL to clipboard:', this.gatewayUrl);
+    } catch (err) {
+      console.error('[VIEWER] Failed to copy to clipboard:', err);
+      
+      // Show error toast
+      this.showToast(
+        'Copy failed',
+        'error',
+        'Unable to copy link to clipboard'
+      );
     }
   }
 
@@ -956,6 +1096,13 @@ window.reverifyContent = async function() {
   }
   document.getElementById('loadingPercent').textContent = '0%';
   document.getElementById('loadingMB').textContent = '';
+  
+  // Reset skip button
+  browser.clearSkipButton();
+  browser.verificationCancelled = false;
+  
+  // Reset gateway URL
+  browser.gatewayUrl = null;
 
   // Update loading state
   browser.updateLoadingState('INITIALIZING');
@@ -997,6 +1144,14 @@ window.proceedAnyway = async function () {
 
     // Update UI to show unverified state
     const browser = window.verifiedBrowser;
+    browser.gatewayUrl = gatewayUrl; // Store for sharing
+    
+    // Update share button tooltip
+    const shareBtn = document.getElementById('shareBtn');
+    if (shareBtn) {
+      shareBtn.title = `Share: ${gatewayUrl}`;
+    }
+    
     browser.showToast(
       'Loading unverified content',
       'warning',
