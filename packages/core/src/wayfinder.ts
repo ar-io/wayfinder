@@ -24,12 +24,15 @@ import { initTelemetry, startRequestSpans } from './telemetry.js';
 import type {
   GatewaysProvider,
   Logger,
-  TelemetrySettings,
+  TelemetryConfig,
+  VerificationConfig,
+  RoutingConfig,
   VerificationStrategy,
   WayfinderEvent,
   WayfinderEventArgs,
   WayfinderFetch,
   WayfinderOptions,
+  WayfinderConfig,
 } from './types.js';
 import { sandboxFromId } from './utils/base64.js';
 import { HashVerificationStrategy } from './verification/hash-verifier.js';
@@ -276,41 +279,66 @@ export const wayfinderFetch = ({
 }: {
   logger?: Logger;
   gatewaysProvider: GatewaysProvider;
-  verificationSettings: NonNullable<WayfinderOptions['verificationSettings']>;
-  routingSettings: NonNullable<WayfinderOptions['routingSettings']>;
+  verificationSettings: VerificationConfig;
+  routingSettings: RoutingConfig;
   emitter?: WayfinderEmitter;
   tracer?: Tracer;
 }) => {
   return async (
     input: URL | RequestInfo,
     init?: RequestInit & {
-      verificationSettings?: NonNullable<
-        WayfinderOptions['verificationSettings']
-      >;
-      routingSettings?: NonNullable<WayfinderOptions['routingSettings']>;
+      verificationSettings?: VerificationConfig;
+      routingSettings?: RoutingConfig;
+      verification?: VerificationConfig;
+      routing?: RoutingConfig;
     },
   ): Promise<Response> => {
     const {
       // allows for overriding the verification and routing settings for a single request
       verificationSettings: requestVerificationSettings,
       routingSettings: requestRoutingSettings,
+      verification: requestVerification,
+      routing: requestRouting,
       ...restInit
     } = init ?? {};
 
+    // Handle both legacy and new config patterns for request-level overrides
+    let finalVerificationSettings = verificationSettings;
+    let finalRoutingSettings = routingSettings;
+
+    // New direct pattern takes precedence
+    if (requestVerification) {
+      finalVerificationSettings = requestVerification;
+    } else if (requestVerificationSettings) {
+      // Legacy pattern with deprecation warning
+      console.warn('[DEPRECATED] verificationSettings in request init is deprecated. Use verification instead.');
+      finalVerificationSettings = requestVerificationSettings;
+    }
+
+    if (requestRouting) {
+      finalRoutingSettings = requestRouting;
+    } else if (requestRoutingSettings) {
+      // Legacy pattern with deprecation warning
+      console.warn('[DEPRECATED] routingSettings in request init is deprecated. Use routing instead.');
+      finalRoutingSettings = requestRoutingSettings;
+    }
+
     const url = input instanceof URL ? input.toString() : input.toString();
     const requestEmitter = new WayfinderEmitter({
-      verification: requestVerificationSettings?.events,
-      routing: requestRoutingSettings?.events,
+      verification: finalVerificationSettings?.events,
+      routing: finalRoutingSettings?.events,
       parentEmitter: emitter,
     });
 
     const { parentSpan } = startRequestSpans({
       originalUrl: url,
-      verificationSettings: requestVerificationSettings ?? verificationSettings,
-      routingSettings: requestRoutingSettings ?? routingSettings,
-      gatewaysProvider,
       emitter: requestEmitter,
       tracer,
+      wayfinderConfig: {
+        verification: finalVerificationSettings,
+        routing: finalRoutingSettings,
+        gatewaysProvider,
+      },
     });
 
     if (!url.toString().startsWith('ar://')) {
@@ -333,7 +361,7 @@ export const wayfinderFetch = ({
     for (let i = 0; i < maxRetries; i++) {
       try {
         // select the target gateway
-        const selectedGateway = await routingSettings.strategy?.selectGateway({
+        const selectedGateway = await finalRoutingSettings.strategy?.selectGateway({
           gateways: await gatewaysProvider.getGateways(),
           path: url.split('/').slice(1).join('/'), // everything after the first /
           subdomain: '',
@@ -413,8 +441,8 @@ export const wayfinderFetch = ({
         // if verification is disabled, return the response
         if (
           !(
-            verificationSettings.enabled &&
-            verificationSettings.strategy?.verifyData
+            finalVerificationSettings.enabled &&
+            finalVerificationSettings.strategy?.verifyData
           )
         ) {
           logger?.debug(
@@ -464,12 +492,12 @@ export const wayfinderFetch = ({
           const newClientStream = tapAndVerifyReadableStream({
             originalStream: response.body,
             contentLength,
-            verifyData: verificationSettings.strategy?.verifyData.bind(
-              verificationSettings.strategy,
+            verifyData: finalVerificationSettings.strategy?.verifyData.bind(
+              finalVerificationSettings.strategy,
             ),
             txId,
             emitter: requestEmitter,
-            strict: verificationSettings.strict,
+            strict: finalVerificationSettings.strict,
           });
 
           return new Response(newClientStream, {
@@ -531,18 +559,16 @@ export class Wayfinder {
    * This includes the routing strategy and event handlers for routing events.
    * If not provided, the default FastestPingRoutingStrategy will be used.
    */
-  public readonly routingSettings: Required<
-    NonNullable<WayfinderOptions['routingSettings']>
-  >;
+  public readonly routingSettings: Required<RoutingConfig>;
   /**
    * The verification settings to use when verifying data.
    */
-  public readonly verificationSettings: WayfinderOptions['verificationSettings'];
+  public readonly verificationSettings: VerificationConfig;
 
   /**
    * Telemetry configuration used for OpenTelemetry tracing
    */
-  public readonly telemetrySettings: TelemetrySettings;
+  public readonly telemetrySettings: TelemetryConfig;
 
   /**
    * OpenTelemetry tracer instance
@@ -669,13 +695,42 @@ export class Wayfinder {
    * The constructor for the wayfinder
    * @param options - Wayfinder configuration options
    */
-  constructor({
-    logger = defaultLogger,
-    gatewaysProvider, // forcing it to be required to avoid making ar-io-sdk a dependency
-    verificationSettings,
-    routingSettings,
-    telemetrySettings,
-  }: WayfinderOptions) {
+  constructor(options: WayfinderOptions | WayfinderConfig) {
+    const {
+      logger = defaultLogger,
+      gatewaysProvider, // forcing it to be required to avoid making ar-io-sdk a dependency
+    } = options;
+
+    // Handle backward compatibility for old pattern
+    let verificationSettings: VerificationConfig | undefined;
+    let routingSettings: RoutingConfig | undefined;
+    let telemetrySettings: TelemetryConfig | undefined;
+
+    if ('verification' in options || 'routing' in options || 'telemetry' in options) {
+      // New direct config pattern
+      const newOptions = options as WayfinderConfig;
+      verificationSettings = newOptions.verification;
+      routingSettings = newOptions.routing;
+      telemetrySettings = newOptions.telemetry;
+    } else {
+      // Legacy flat pattern with deprecation warnings
+      const legacyOptions = options as WayfinderOptions;
+      
+      if (legacyOptions.verificationSettings !== undefined) {
+        console.warn('[DEPRECATED] verificationSettings is deprecated. Use verification instead.');
+        verificationSettings = legacyOptions.verificationSettings;
+      }
+      
+      if (legacyOptions.routingSettings !== undefined) {
+        console.warn('[DEPRECATED] routingSettings is deprecated. Use routing instead.');
+        routingSettings = legacyOptions.routingSettings;
+      }
+      
+      if (legacyOptions.telemetrySettings !== undefined) {
+        console.warn('[DEPRECATED] telemetrySettings is deprecated. Use telemetry instead.');
+        telemetrySettings = legacyOptions.telemetrySettings;
+      }
+    }
     this.logger = logger;
     this.gatewaysProvider = gatewaysProvider;
 

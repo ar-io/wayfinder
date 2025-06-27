@@ -38,9 +38,8 @@ import {
 } from '@opentelemetry/semantic-conventions';
 import 'zone.js';
 import type {
-  GatewaysProvider,
-  TelemetrySettings,
-  WayfinderOptions,
+  TelemetryConfig,
+  WayfinderConfig,
 } from './types.js';
 import { WayfinderEmitter } from './wayfinder.js';
 
@@ -49,7 +48,7 @@ export const initTelemetry = ({
   sampleRate = 0.1, // 10% sample rate by default
   exporterUrl = 'https://api.honeycomb.io/v1/traces',
   apiKey = 'c8gU8dHlu6V7e5k2Gn9LaG', // intentionally left here - if it gets abused we'll disable it
-}: TelemetrySettings): Tracer | undefined => {
+}: TelemetryConfig): Tracer | undefined => {
   if (enabled === false) return undefined;
   diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.ERROR);
 
@@ -98,33 +97,30 @@ export const startRequestSpans = ({
   originalUrl,
   emitter,
   tracer,
-  verificationSettings,
-  routingSettings,
-  gatewaysProvider,
+  wayfinderConfig,
 }: {
   originalUrl?: string;
   emitter?: WayfinderEmitter;
   tracer?: Tracer;
-  verificationSettings?: WayfinderOptions['verificationSettings'];
-  routingSettings?: WayfinderOptions['routingSettings'];
-  gatewaysProvider?: GatewaysProvider;
+  wayfinderConfig?: WayfinderConfig;
 } = {}) => {
+
   const parentSpan = tracer?.startSpan(
     'wayfinder.request',
     {
       attributes: {
         originalUrl: originalUrl ?? 'undefined',
-        'verification.enabled': verificationSettings?.enabled ?? false,
+        'verification.enabled': wayfinderConfig?.verification?.enabled ?? false,
         'verification.strategy':
-          verificationSettings?.strategy?.constructor.name ?? 'undefined',
-        'verification.strict': verificationSettings?.strict ?? false,
+          wayfinderConfig?.verification?.strategy?.constructor.name ?? 'undefined',
+        'verification.strict': wayfinderConfig?.verification?.strict ?? false,
         'verification.trustedGateways':
-          verificationSettings?.strategy?.trustedGateways
+          wayfinderConfig?.verification?.strategy?.trustedGateways
             ?.map((gateway) => gateway.toString())
             .join(','),
         'routing.strategy':
-          routingSettings?.strategy?.constructor.name ?? 'undefined',
-        gatewaysProvider: gatewaysProvider?.constructor.name,
+          wayfinderConfig?.routing?.strategy?.constructor.name ?? 'undefined',
+        gatewaysProvider: wayfinderConfig?.gatewaysProvider?.constructor.name,
       },
     },
     context.active(),

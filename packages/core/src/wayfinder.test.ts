@@ -34,11 +34,44 @@ const stubbedGatewaysProvider: GatewaysProvider = {
 } as unknown as GatewaysProvider;
 
 describe('Wayfinder', () => {
+  describe('new config pattern', () => {
+    it('should work with new config structure', async () => {
+      const wayfinder = new Wayfinder({
+        gatewaysProvider: stubbedGatewaysProvider,
+        routing: {
+          strategy: new RandomRoutingStrategy(),
+        },
+      });
+
+      const response = await wayfinder.request('ar://ao');
+      assert.strictEqual(response.status, 200);
+    });
+
+    it('should show deprecation warnings for legacy pattern', async () => {
+      const consoleSpy = [];
+      const originalWarn = console.warn;
+      console.warn = (message) => consoleSpy.push(message);
+
+      try {
+        new Wayfinder({
+          gatewaysProvider: stubbedGatewaysProvider,
+          routingSettings: {
+            strategy: new RandomRoutingStrategy(),
+          },
+        });
+
+        assert.ok(consoleSpy.some(msg => msg.includes('[DEPRECATED] routingSettings is deprecated')));
+      } finally {
+        console.warn = originalWarn;
+      }
+    });
+  });
+
   describe('fetch', () => {
     let wayfinder: Wayfinder;
     before(() => {
       wayfinder = new Wayfinder({
-        routingSettings: {
+        routing: {
           strategy: new RandomRoutingStrategy(),
         },
         gatewaysProvider: stubbedGatewaysProvider,
@@ -162,12 +195,12 @@ describe('Wayfinder', () => {
     it('should emit default events on the wayfinder event emitter when request is made', async () => {
       const wayfinder = new Wayfinder({
         gatewaysProvider: stubbedGatewaysProvider,
-        routingSettings: {
+        routing: {
           strategy: new StaticRoutingStrategy({
             gateway: `http://${gatewayUrl}`,
           }),
         },
-        verificationSettings: {
+        verification: {
           strategy: {
             verifyData: async () => {
               // do nothing
@@ -202,12 +235,12 @@ describe('Wayfinder', () => {
     it('should emit events and trigger request callbacks when request is made with custom events, and not emit global events', async () => {
       const wayfinder = new Wayfinder({
         gatewaysProvider: stubbedGatewaysProvider,
-        routingSettings: {
+        routing: {
           strategy: new StaticRoutingStrategy({
             gateway: `http://${gatewayUrl}`,
           }),
         },
-        verificationSettings: {
+        verification: {
           strategy: {
             verifyData: async () => {
               // do nothing
@@ -222,7 +255,7 @@ describe('Wayfinder', () => {
       const response = await wayfinder.request(
         'ar://c7wkwt6TKgcWJUfgvpJ5q5qi4DIZyJ1_TqhjXgURh0U',
         {
-          verificationSettings: {
+          verification: {
             events: {
               onVerificationFailed: (
                 event: WayfinderEvent['verification-failed'],
@@ -244,7 +277,7 @@ describe('Wayfinder', () => {
               },
             },
           },
-          routingSettings: {
+          routing: {
             events: {
               onRoutingStarted: (event: WayfinderEvent['routing-started']) => {
                 requestEvents.push({ type: 'routing-started', ...event });
@@ -298,12 +331,12 @@ describe('Wayfinder', () => {
       let verificationSucceeded = false;
       const wayfinder = new Wayfinder({
         gatewaysProvider: stubbedGatewaysProvider,
-        routingSettings: {
+        routing: {
           strategy: new StaticRoutingStrategy({
             gateway: `http://${gatewayUrl}`,
           }),
         },
-        verificationSettings: {
+        verification: {
           strict: true,
           strategy: new HashVerificationStrategy({
             trustedGateways: [new URL(`http://${gatewayUrl}`)],
@@ -499,7 +532,7 @@ describe('Wayfinder', () => {
     let wayfinder: Wayfinder;
     before(() => {
       wayfinder = new Wayfinder({
-        routingSettings: {
+        routing: {
           strategy: new StaticRoutingStrategy({
             gateway: `http://${gatewayUrl}`,
           }),

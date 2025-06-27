@@ -25,8 +25,12 @@ import type { WayfinderEmitter } from './wayfinder.js';
 export type WayfinderFetch = (
   input: URL | RequestInfo,
   init?: RequestInit & {
-    verificationSettings?: WayfinderOptions['verificationSettings'];
-    routingSettings?: WayfinderOptions['routingSettings'];
+    // @deprecated - use verification and routing instead
+    verificationSettings?: VerificationConfig;
+    // @deprecated - use verification and routing instead
+    routingSettings?: RoutingConfig;
+    verification?: VerificationConfig;
+    routing?: RoutingConfig;
   },
 ) => Promise<Response>;
 
@@ -87,7 +91,97 @@ export interface WayfinderEventArgs {
 }
 
 /**
- * Configuration options for the Wayfinder
+ * Verification configuration
+ */
+export interface VerificationConfig {
+  /**
+   * Whether verification is enabled. If false, verification will be skipped for all requests. If true, strategy must be provided.
+   * @default true
+   */
+  enabled?: boolean;
+
+  /**
+   * The events to use for verification
+   */
+  events?: WayfinderVerificationEventArgs | undefined;
+
+  /**
+   * The verification strategy to use for verifying data
+   */
+  strategy?: VerificationStrategy;
+
+  /**
+   * Whether verification should be strict (blocking)
+   * If true, verification failures will cause requests to fail
+   * If false, verification will be performed asynchronously with events emitted
+   * @default false
+   */
+  strict?: boolean;
+}
+
+/**
+ * Routing configuration
+ */
+export interface RoutingConfig {
+  /**
+   * The events to use for routing requests
+   */
+  events?: WayfinderRoutingEventArgs;
+
+  /**
+   * The routing strategy to use for routing requests
+   */
+  strategy?: RoutingStrategy;
+}
+
+/**
+ * Telemetry configuration used to initialize OpenTelemetry tracing
+ */
+export interface TelemetryConfig {
+  /** Enable or disable telemetry collection */
+  enabled: boolean;
+  /** Sampling ratio between 0 and 1 */
+  sampleRate?: number;
+  /** Honeycomb API key */
+  apiKey?: string;
+  /** Optional custom OTLP exporter URL */
+  exporterUrl?: string;
+}
+
+/**
+ * New nested configuration structure
+ */
+export interface WayfinderConfig {
+  /**
+   * Logger to use for logging
+   * @default defaultLogger (standard console logger)
+   */
+  logger?: Logger;
+
+  /**
+   * The gateways provider to use for routing requests.
+   */
+  gatewaysProvider: GatewaysProvider;
+
+  /**
+   * Verification configuration
+   */
+  verification?: VerificationConfig;
+
+  /**
+   * Routing configuration
+   */
+  routing?: RoutingConfig;
+
+  /**
+   * Telemetry configuration
+   */
+  telemetry?: TelemetryConfig;
+}
+
+/**
+ * Configuration options for the Wayfinder (legacy)
+ * @deprecated Use WayfinderConfig instead
  */
 export interface WayfinderOptions {
   /**
@@ -103,64 +197,23 @@ export interface WayfinderOptions {
 
   /**
    * The verification settings to use for verifying data
+   * @deprecated Use verification instead
    */
-  verificationSettings?: {
-    /**
-     * Whether verification is enabled. If false, verification will be skipped for all requests. If true, strategy must be provided.
-     * @default true
-     */
-    enabled?: boolean;
-
-    /**
-     * The events to use for verification
-     */
-    events?: WayfinderVerificationEventArgs | undefined;
-
-    /**
-     * The verification strategy to use for verifying data
-     */
-    strategy?: VerificationStrategy;
-
-    /**
-     * Whether verification should be strict (blocking)
-     * If true, verification failures will cause requests to fail
-     * If false, verification will be performed asynchronously with events emitted
-     * @default false
-     */
-    strict?: boolean;
-  };
+  verificationSettings?: VerificationConfig;
 
   /**
    * The routing settings to use for routing requests
+   * @deprecated Use routing instead
    */
-  routingSettings?: {
-    /**
-     * The events to use for routing requests
-     */
-    events?: WayfinderRoutingEventArgs;
-
-    /**
-     * The routing strategy to use for routing requests
-     */
-    strategy?: RoutingStrategy;
-  };
+  routingSettings?: RoutingConfig;
 
   /**
    * Telemetry configuration used to initialize OpenTelemetry tracing
+   * @deprecated Use telemetry instead
    */
-  telemetrySettings?: TelemetrySettings;
+  telemetrySettings?: TelemetryConfig;
 }
 
-export interface TelemetrySettings {
-  /** Enable or disable telemetry collection */
-  enabled: boolean;
-  /** Sampling ratio between 0 and 1 */
-  sampleRate?: number;
-  /** Honeycomb API key */
-  apiKey?: string;
-  /** Optional custom OTLP exporter URL */
-  exporterUrl?: string;
-}
 
 // Interfaces
 
