@@ -911,7 +911,38 @@ window.reverifyContent = async function() {
 
   // Clear existing iframe content
   const iframe = document.getElementById('verified-content');
+  
+  // Try to stop any playing media in the iframe first
+  try {
+    // Access iframe content and pause any media elements
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (iframeDoc) {
+      // Pause all video elements
+      const videos = iframeDoc.querySelectorAll('video');
+      videos.forEach(video => {
+        video.pause();
+        video.src = '';
+        video.load();
+      });
+      
+      // Pause all audio elements
+      const audios = iframeDoc.querySelectorAll('audio');
+      audios.forEach(audio => {
+        audio.pause();
+        audio.src = '';
+        audio.load();
+      });
+    }
+  } catch (e) {
+    // Ignore errors - might be cross-origin
+    console.log('[VIEWER] Could not access iframe content to stop media');
+  }
+  
+  // Clear the iframe completely
   iframe.src = 'about:blank';
+  
+  // Force a new browsing context to ensure everything stops
+  iframe.contentWindow?.location.replace('about:blank');
 
   // Show loading overlay
   document.getElementById('loadingOverlay').style.display = 'flex';
