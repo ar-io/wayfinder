@@ -15,10 +15,11 @@ This monorepo contains the following packages:
 
 Wayfinder is a simple, open-source client-side routing and verification protocol for the permaweb. It leverages the [AR.IO Network](https://ar.io) to route users to the most optimal gateway for a given request.
 
-## Who is it built for?
+## Who is it for?
 
-- Anyone who wants to browse the Permaweb. Since no wallet is required, the user does not need to have ever touched tokens or uploaded data.
-- Developers who want to integrate ar:// protocol. Wayfinder allows developers to retrieve data from Arweave via the [ar.io network], ensuring decentralized access to all assets of your permaweb app.
+- **Builders** referencing or pulling data from the centralized and overloaded `arweave.net` community gateway. Wayfinder allows developers to retrieve data from Arweave via the [AR.IO Network](https://ar.io), ensuring decentralized access to all assets of your permaweb app.
+- **Browsers** using the Permaweb. The wayfinder extension allows users to browse the Permaweb without having to interact with tokens or upload data, and gives them a way to verify data and apps they are viewing, and total control of their browsing experience.
+- **Operators** who are part of the [AR.IO Network](https://ar.io). They can configure their gateways to optimally serve wayfinder traffic, and get rewarded for doing so.
 
 ## Releases
 
@@ -34,12 +35,24 @@ npx changeset
 
 This will guide you through the process of documenting your changes and selecting which packages are affected. Changesets will be used during the release process to update package versions and generate changelogs.
 
+### Contributing
+
+1. Branch from `alpha`
+2. Create a new branch for your changes (e.g. `feat/my-feature`)
+3. Make your changes on your branch, push them to your branch
+4. As you make commits/changes or once you're ready to release, create a changeset describing your changes via `npx changeset`.
+5. Follow the prompts to select the packages that are affected by your changes.
+6. Add and commit the changeset to your branch
+7. Request review from a maintainer, and once approved, merge your changes into the `alpha` branch
+8. A release PR will be automatically created with all pending changesets to the `alpha` branch
+9. The maintainer will review the PR and merge it into `alpha`, which will trigger the automated release process using all pending changesets
+
 ### Automated Releases
 
 This repository is configured with GitHub Actions workflows that automate the release process:
 
 - **Main Branch**: When changes are merged to `main`, a standard release is created
-- **Alpha Branch**: When changes are merged to `alpha`, a prerelease (beta tagged) is created
+- **Alpha Branch**: When changes are merged to `alpha`, a prerelease (alpha tagged) is created
 
 The workflow automatically:
 1. Determines whether to create a prerelease or standard release based on the branch
@@ -54,16 +67,14 @@ To use the automated process:
 3. Create a pull request to `alpha` (for prereleases) or `main` (for standard releases)
 4. When the PR is merged, the release will be automatically created
 
+
 ### Manual Release Process
 
 If you need to release manually, follow these steps:
 
-#### Normal Releases
+#### Alpha Releases
 
-To release a new version:
-
-1. Ensure all changes are documented with changesets
-2. Run the version command to update package versions and changelogs:
+To release a new alpha version:
 
 ```bash
 npx changeset version
