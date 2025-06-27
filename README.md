@@ -19,7 +19,7 @@ Wayfinder is a simple, open-source client-side routing and verification protocol
 
 - **Builders** who need reliable, decentralized access to Arweave data through the powerful [AR.IO Network](https://ar.io)
 - **Browsers** who demand complete control over their permaweb journey with customizable gateways and robust verification settings for enhanced security and reliability
-- **Operators** who power the [AR.IO Network](https://ar.io) infrastructure and want to earn rewards by serving high-performance wayfinder traffic to the growing permaweb ecosystem
+- **Operators** who power the [AR.IO Network](https://ar.io) infrastructure and want to earn rewards<sup>*</sup> by serving wayfinder traffic for the growing permaweb ecosystem
 
 ## Releases
 
