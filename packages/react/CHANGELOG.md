@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-react
 
+## 0.0.5-alpha.8
+
+### Patch Changes
+
+- f5e742b: Fix LocalStorageGatewaysProvider to cache gateway url strings instead of URL objects'
+
 ## 0.0.5-alpha.7
 
 ### Patch Changes
