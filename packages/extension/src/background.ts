@@ -1635,67 +1635,78 @@ async function handleVerifiedContentFetch(arUrl: string): Promise<{
       // Update stats
       updateDailyStats(verificationSucceeded ? 'verified' : 'failed');
 
-      if (contentLength < 2_000_000) {
-        // 2MB limit for data URLs
+      // For HTML content, always use cache to avoid CSP restrictions
+      if (contentType.includes('text/html')) {
+        // Always cache HTML to allow scripts to run
+        const cache = await caches.open('wayfinder-verified');
+        const cacheKey = `https://wayfinder-cache.local/verified/${Date.now()}/${arUrl.replace('ar://', '')}`;
+
+        // Rewrite URLs first
+        const htmlContent = await blob.text();
+        const rewrittenHtml = await rewriteHtmlUrls(htmlContent, arUrl);
         
-        // For HTML content, rewrite URLs to proxy through our extension
-        if (contentType.includes('text/html')) {
-          const htmlContent = await blob.text();
-          const rewrittenHtml = await rewriteHtmlUrls(htmlContent, arUrl);
-          
-          // Convert rewritten HTML to data URL
-          const rewrittenBlob = new Blob([rewrittenHtml], { type: contentType });
-          const dataUrl = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-              if (typeof reader.result === 'string') {
-                resolve(reader.result);
-              } else {
-                reject(new Error('Failed to read blob as data URL'));
-              }
-            };
-            reader.onerror = reject;
-            reader.readAsDataURL(rewrittenBlob);
-          });
-          
-          logger.info(`[VERIFY] Converted to data URL with rewritten URLs for ${arUrl}`);
-          
-          return {
-            verified: verificationSucceeded,
-            dataUrl,
-            verificationInfo: {
-              size: contentLength,
-              type: contentType,
-              error: verificationError?.message,
-            },
-          };
-        } else {
-          // Non-HTML content - convert directly
-          const dataUrl = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-              if (typeof reader.result === 'string') {
-                resolve(reader.result);
-              } else {
-                reject(new Error('Failed to read blob as data URL'));
-              }
-            };
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-          });
+        // Create new response with rewritten HTML
+        const rewrittenBlob = new Blob([rewrittenHtml], { type: contentType });
+        const newResponse = new Response(rewrittenBlob, {
+          headers: {
+            'content-type': contentType,
+          },
+        });
+        await cache.put(cacheKey, newResponse);
 
-          logger.info(`[VERIFY] Converted to data URL for ${arUrl}`);
+        logger.info(`[VERIFY] Cached HTML content for ${arUrl} with key ${cacheKey} (CSP-safe)`);
 
-          return {
-            verified: verificationSucceeded,
-            dataUrl,
-            verificationInfo: {
-              size: contentLength,
-              type: contentType,
-              error: verificationError?.message,
-            },
+        // Schedule cache cleanup after 1 hour
+        setTimeout(
+          async () => {
+            try {
+              await cache.delete(cacheKey);
+              logger.info(`[VERIFY] Cleaned up cached content for ${cacheKey}`);
+            } catch (error) {
+              logger.error(
+                `[VERIFY] Failed to cleanup cache for ${cacheKey}:`,
+                error,
+              );
+            }
+          },
+          60 * 60 * 1000,
+        ); // 1 hour
+
+        return {
+          verified: verificationSucceeded,
+          cacheKey,
+          verificationInfo: {
+            size: contentLength,
+            type: contentType,
+            error: verificationError?.message,
+          },
+        };
+      } else if (contentLength < 2_000_000) {
+        // Non-HTML small content can still use data URLs
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            if (typeof reader.result === 'string') {
+              resolve(reader.result);
+            } else {
+              reject(new Error('Failed to read blob as data URL'));
+            }
           };
-        }
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+
+        logger.info(`[VERIFY] Converted to data URL for ${arUrl}`);
+
+        return {
+          verified: verificationSucceeded,
+          dataUrl,
+          verificationInfo: {
+            size: contentLength,
+            type: contentType,
+            error: verificationError?.message,
+          },
+        };
       } else {
         // Large content - cache it
         const cache = await caches.open('wayfinder-verified');
@@ -2009,13 +2020,14 @@ async function rewriteHtmlUrls(html: string, baseArUrl: string): Promise<string>
   };
   
   // Create proxy URL
-  const createProxyUrl = (originalUrl: string): string => {
+  const createProxyUrl = (originalUrl: string, isResource: boolean = false): string => {
     if (!shouldRewriteUrl(originalUrl)) {
       return originalUrl;
     }
     
     const arUrl = toArUrl(originalUrl);
     if (arUrl.startsWith('ar://')) {
+      // Always use proxy for verification, but we'll handle resources specially
       return `chrome-extension://${extensionId}/wayfinder-proxy.html?url=${encodeURIComponent(arUrl)}`;
     }
     

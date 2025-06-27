@@ -336,11 +336,16 @@ class VerifiedBrowser {
       }
 
       const blob = await cachedResponse.blob();
-      const objectUrl = URL.createObjectURL(blob);
-
-      // Handle different content types
       const contentType = cachedResponse.headers.get('content-type');
+      
+      // Create blob URL for all content types
+      const objectUrl = URL.createObjectURL(blob);
+      
+      // For HTML content, we need to ensure scripts can load
       if (contentType?.includes('text/html')) {
+        // CRITICAL: Set sandbox to allow scripts but maintain security
+        iframe.removeAttribute('sandbox');
+        iframe.sandbox = 'allow-scripts allow-same-origin allow-forms allow-popups allow-downloads allow-modals';
         iframe.src = objectUrl;
       } else {
         // For non-HTML content, create a viewer or use native display
@@ -453,6 +458,74 @@ class VerifiedBrowser {
     } else if (type === 'application/pdf') {
       // For PDFs, use iframe to show native PDF viewer
       return null; // Signal to use iframe.src directly
+    } else if (type === 'application/x.arweave-manifest+json') {
+      // Handle Arweave manifests by redirecting to index
+      return `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { 
+              font-family: system-ui, -apple-system, sans-serif; 
+              margin: 0;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              min-height: 100vh;
+              background: #1a1a1a;
+              color: #fff;
+            }
+            .manifest-container {
+              background: #2a2a2a;
+              padding: 40px;
+              border-radius: 12px;
+              box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+              text-align: center;
+              max-width: 500px;
+            }
+            .manifest-icon {
+              font-size: 64px;
+              margin-bottom: 20px;
+            }
+            h2 {
+              margin: 0 0 10px 0;
+              color: #2dd4bf;
+            }
+            .loading {
+              color: #999;
+              margin: 20px 0;
+            }
+          </style>
+          <script>
+            // Parse manifest and redirect to index
+            fetch('${url}')
+              .then(res => res.json())
+              .then(manifest => {
+                if (manifest.index && manifest.index.path) {
+                  // Redirect to the index path
+                  const currentUrl = new URL(window.location.href);
+                  const arUrl = currentUrl.searchParams.get('url');
+                  const baseUrl = arUrl.replace(/\\/[^\\/]*$/, ''); // Remove any path
+                  const indexUrl = baseUrl + '/' + manifest.index.path;
+                  window.location.href = 'viewer.html?url=' + encodeURIComponent(indexUrl);
+                } else {
+                  document.querySelector('.loading').textContent = 'No index file found in manifest';
+                }
+              })
+              .catch(err => {
+                document.querySelector('.loading').textContent = 'Error loading manifest: ' + err.message;
+              });
+          </script>
+        </head>
+        <body>
+          <div class="manifest-container">
+            <div class="manifest-icon">📂</div>
+            <h2>Arweave Manifest</h2>
+            <p class="loading">Loading manifest index...</p>
+          </div>
+        </body>
+        </html>
+      `;
     } else if (
       type.startsWith('text/plain') || 
       type.startsWith('text/csv') ||

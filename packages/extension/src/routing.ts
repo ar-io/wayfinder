@@ -168,11 +168,32 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
         break;
 
       case 'roundRobin': {
-        // Get gateways first for round robin
+        // Get gateways first for round robin - it needs them for tracking
         const gateways = await gatewayProvider.getGateways();
-        routingStrategy = new RoundRobinRoutingStrategy({
-          gateways,
+        logger.info(`[ROUTING] Initializing round robin with ${gateways.length} gateways`);
+        
+        // Convert gateway objects to URL array if needed
+        const gatewayUrls = gateways.map(gateway => {
+          if (gateway instanceof URL) {
+            return gateway;
+          } else if (typeof gateway === 'string') {
+            return new URL(gateway);
+          } else if (gateway.url) {
+            return new URL(gateway.url);
+          } else {
+            // Construct URL from gateway object
+            const protocol = gateway.settings?.protocol || 'https';
+            const fqdn = gateway.settings?.fqdn || gateway.fqdn;
+            const port = gateway.settings?.port;
+            const portSuffix = port && port !== (protocol === 'https' ? 443 : 80) ? `:${port}` : '';
+            return new URL(`${protocol}://${fqdn}${portSuffix}`);
+          }
         });
+        
+        routingStrategy = new RoundRobinRoutingStrategy({
+          gateways: gatewayUrls,
+        });
+        logger.info('[ROUTING] Using round robin routing strategy');
         break;
       }
 
