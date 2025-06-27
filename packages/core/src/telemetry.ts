@@ -45,12 +45,11 @@ import type {
 import { WayfinderEmitter } from './wayfinder.js';
 
 export const initTelemetry = ({
-    enabled = false,
-    sampleRate = 0.1, // 10% sample rate by default
-    exporterUrl = 'https://api.honeycomb.io/v1/traces',
-    apiKey = 'c8gU8dHlu6V7e5k2Gn9LaG', // intentionally left here - if it gets abused we'll disable it
-  }: TelemetrySettings,
-): Tracer | undefined => {
+  enabled = false,
+  sampleRate = 0.1, // 10% sample rate by default
+  exporterUrl = 'https://api.honeycomb.io/v1/traces',
+  apiKey = 'c8gU8dHlu6V7e5k2Gn9LaG', // intentionally left here - if it gets abused we'll disable it
+}: TelemetrySettings): Tracer | undefined => {
   if (enabled === false) return undefined;
   diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.ERROR);
 

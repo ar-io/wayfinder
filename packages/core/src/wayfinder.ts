@@ -23,7 +23,7 @@ import { FastestPingRoutingStrategy } from './routing/ping.js';
 import { initTelemetry, startRequestSpans } from './telemetry.js';
 import type {
   GatewaysProvider,
-  Logger, 
+  Logger,
   TelemetrySettings,
   VerificationStrategy,
   WayfinderEvent,
