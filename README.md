@@ -36,15 +36,14 @@ This will guide you through the process of documenting your changes and selectin
 
 ### Contributing
 
-1. Branch from `alpha`
-2. Create a new branch for your changes (e.g. `feat/my-feature`)
-3. Make your changes on your branch, push them to your branch
-4. As you make commits/changes or once you're ready to release, create a changeset describing your changes via `npx changeset`.
-5. Follow the prompts to select the packages that are affected by your changes.
-6. Add and commit the changeset to your branch
-7. Request review from a maintainer, and once approved, merge your changes into the `alpha` branch
-8. A release PR will be automatically created with all pending changesets to the `alpha` branch
-9. The maintainer will review the PR and merge it into `alpha`, which will trigger the automated release process using all pending changesets
+1. Branch from `alpha`.
+2. Make changes, push them to your branch.
+3. Create a changeset describing your changes via `npx changeset`.
+4. Follow the prompts to select the packages that are affected by your changes.
+5. Commit the changeset to your branch.
+6. Request review from a maintainer, and once approved, merge your changes into the `alpha` branch.
+7. A release PR will be automatically created with all pending changesets to the `alpha` branch.
+8. The maintainer will merge the PR into `alpha`, which will trigger an `alpha` release of all pending changesets.
 
 ### Automated Releases
 
