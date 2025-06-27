@@ -23,7 +23,7 @@
   "scripts": {
     "build": "tsc",
     "clean": "rimraf dist",
-    "test": "echo \"Passing\"",
+    "test": "tsx --test 'src/**/*.test.ts'",
     "lint:fix": "biome check --write --unsafe",
     "lint:check": "biome check --unsafe",
     "format:fix": "biome format --write",

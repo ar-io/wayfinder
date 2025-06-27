@@ -17,7 +17,7 @@
 import { GatewaysProvider } from '@ar.io/wayfinder-core';
 
 interface CachedGateways {
-  gateways: URL[];
+  gateways: string[];
   timestamp: number;
   ttlSeconds: number;
 }
@@ -44,7 +44,7 @@ export class LocalStorageGatewaysProvider implements GatewaysProvider {
     const cached = this.getCachedGateways();
 
     if (cached && this.isCacheValid(cached)) {
-      return cached.gateways;
+      return cached.gateways.map((gateway) => new URL(gateway));
     }
 
     const gateways = await this.gatewaysProvider.getGateways();
@@ -53,21 +53,21 @@ export class LocalStorageGatewaysProvider implements GatewaysProvider {
     return gateways;
   }
 
-  private getCachedGateways(): CachedGateways | null {
+  private getCachedGateways(): CachedGateways | undefined {
     try {
       if (typeof window === 'undefined' || !window.localStorage) {
-        return null;
+        return undefined;
       }
 
       const cached = window.localStorage.getItem(this.storageKey);
       if (!cached) {
-        return null;
+        return undefined;
       }
 
-      return JSON.parse(cached) as CachedGateways;
+      return <CachedGateways>JSON.parse(cached);
     } catch (error) {
       console.warn('Failed to retrieve cached gateways:', error);
-      return null;
+      return undefined;
     }
   }
 
@@ -86,7 +86,7 @@ export class LocalStorageGatewaysProvider implements GatewaysProvider {
       }
 
       const cached: CachedGateways = {
-        gateways,
+        gateways: gateways.map((gateway) => gateway.toString()),
         timestamp: Date.now(),
         ttlSeconds: this.ttlSeconds,
       };
