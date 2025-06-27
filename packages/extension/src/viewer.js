@@ -55,9 +55,9 @@ class VerifiedBrowser {
       urlInput.value = this.arUrl.replace(/^ar:\/\//, '');
       // Focus the input but don't select text
       urlInput.focus();
-      
+
       // Select all text when user clicks on the input
-      urlInput.addEventListener('click', function() {
+      urlInput.addEventListener('click', function () {
         this.select();
       });
     }
@@ -75,18 +75,23 @@ class VerifiedBrowser {
   async registerServiceWorker() {
     // Service workers cannot be registered from extension pages in Manifest V3
     // Instead, we'll monitor resource loading through the iframe and verify via background script
-    console.log('[VIEWER] Resource verification will be handled by background script');
-    
+    console.log(
+      '[VIEWER] Resource verification will be handled by background script',
+    );
+
     // Set up message listener for resource verification updates from background
-    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    chrome.runtime.onMessage.addListener((message, _sender, _sendResponse) => {
       if (message.type === 'RESOURCE_VERIFICATION_UPDATE') {
         this.updateResourceStats(message.resourceType, message.verified);
       } else if (message.type === 'MAIN_CONTENT_VERIFICATION_UPDATE') {
         // Update main content verification status when it completes asynchronously
-        console.log('[VIEWER] Main content verification update:', message.verified);
+        console.log(
+          '[VIEWER] Main content verification update:',
+          message.verified,
+        );
         this.stats.main.verified = message.verified;
         this.updateTrustIndicator();
-        
+
         if (message.verified) {
           this.showToast(
             'Verification complete',
@@ -97,7 +102,11 @@ class VerifiedBrowser {
       } else if (message.type === 'VERIFICATION_PROGRESS') {
         // Update loading progress display if not cancelled
         if (!this.verificationCancelled) {
-          this.updateLoadingProgress(message.percentage, message.processedMB, message.totalMB);
+          this.updateLoadingProgress(
+            message.percentage,
+            message.processedMB,
+            message.totalMB,
+          );
         }
       }
     });
@@ -116,20 +125,6 @@ class VerifiedBrowser {
 
     // Update trust indicator
     this.updateTrustIndicator();
-
-    // Show toast for failed verifications in strict mode
-    chrome.storage.local.get(
-      ['verificationStrict'],
-      ({ verificationStrict }) => {
-        if (!verified && verificationStrict) {
-          this.showToast(
-            'Resource blocked',
-            'error',
-            `Unverified ${resourceType}`,
-          );
-        }
-      },
-    );
   }
 
   setupEventHandlers() {
@@ -143,26 +138,26 @@ class VerifiedBrowser {
 
     // URL navigation button
     const urlGoBtn = document.getElementById('urlGoBtn');
-    urlGoBtn?.addEventListener('click', () => navigateToUrl());
+    urlGoBtn?.addEventListener('click', () => window.navigateToUrl());
 
     // URL input enter key
     const urlInput = document.getElementById('urlInput');
     urlInput?.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
-        navigateToUrl();
+        window.navigateToUrl();
       }
     });
 
     // Reverify button
     const reverifyBtn = document.getElementById('reverifyBtn');
-    reverifyBtn?.addEventListener('click', () => reverifyContent());
+    reverifyBtn?.addEventListener('click', () => window.reverifyContent());
 
     // Error page buttons
     const goBackBtn = document.getElementById('goBackBtn');
     goBackBtn?.addEventListener('click', () => window.history.back());
 
     const proceedBtn = document.getElementById('proceedBtn');
-    proceedBtn?.addEventListener('click', () => proceedAnyway());
+    proceedBtn?.addEventListener('click', () => window.proceedAnyway());
 
     // Skip verification button
     const skipBtn = document.getElementById('skipVerificationBtn');
@@ -202,62 +197,86 @@ class VerifiedBrowser {
       if (iframe && iframe.contentWindow) {
         // For same-origin content, we can try to access the document
         // Note: This will only work for content served with appropriate headers
-        console.log('[VIEWER] Iframe loaded, checking for navigation interception capability');
-        
+        console.log(
+          '[VIEWER] Iframe loaded, checking for navigation interception capability',
+        );
+
         // Check if we can access the iframe content
         try {
-          const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+          const iframeDoc =
+            iframe.contentDocument || iframe.contentWindow.document;
           if (iframeDoc) {
             // We have access - set up click handler directly
-            iframeDoc.addEventListener('click', (e) => {
-              let target = e.target;
-              while (target && target.tagName !== 'A') {
-                target = target.parentElement;
-              }
-              
-              if (target && target.href) {
-                const url = target.href;
-                
-                // Check if it's an Arweave URL
-                if (url.includes('arweave.net/') || url.includes('ar.io/') || url.startsWith('ar://')) {
-                  e.preventDefault();
-                  
-                  // Convert to ar:// URL
-                  let arUrl = url;
-                  if (url.includes('arweave.net/')) {
-                    // Extract TX ID from arweave.net URLs
-                    const txMatch = url.match(/arweave\.net\/([a-zA-Z0-9_-]{43})/);
-                    if (txMatch) {
-                      arUrl = 'ar://' + txMatch[1];
-                    }
-                  } else if (url.includes('.ar.io/') || url.includes('ar-io.')) {
-                    // Handle ar.io gateway URLs
-                    const match = url.match(/https?:\/\/[^\/]+\/(.*)/);
-                    if (match) {
-                      arUrl = 'ar://' + match[1];
-                    }
-                  }
-                  
-                  console.log('[VIEWER] Intercepted Arweave link click:', {
-                    originalUrl: url,
-                    convertedUrl: arUrl
-                  });
-                  
-                  // Navigate to the new URL in the viewer
-                  window.location.href = `viewer.html?url=${encodeURIComponent(arUrl)}`;
+            iframeDoc.addEventListener(
+              'click',
+              (e) => {
+                let target = e.target;
+                while (target && target.tagName !== 'A') {
+                  target = target.parentElement;
                 }
-              }
-            }, true);
-            
-            console.log('[VIEWER] Navigation interceptor installed via direct access');
+
+                if (target && target.href) {
+                  const url = target.href;
+
+                  // Check if it's an Arweave URL
+                  if (
+                    url.includes('arweave.net/') ||
+                    url.includes('ar.io/') ||
+                    url.startsWith('ar://')
+                  ) {
+                    e.preventDefault();
+
+                    // Convert to ar:// URL
+                    let arUrl = url;
+                    if (url.includes('arweave.net/')) {
+                      // Extract TX ID from arweave.net URLs
+                      const txMatch = url.match(
+                        /arweave\.net\/([a-zA-Z0-9_-]{43})/,
+                      );
+                      if (txMatch) {
+                        arUrl = 'ar://' + txMatch[1];
+                      }
+                    } else if (
+                      url.includes('.ar.io/') ||
+                      url.includes('ar-io.')
+                    ) {
+                      // Handle ar.io gateway URLs
+                      const match = url.match(/https?:\/\/[^\/]+\/(.*)/);
+                      if (match) {
+                        arUrl = 'ar://' + match[1];
+                      }
+                    }
+
+                    console.log('[VIEWER] Intercepted Arweave link click:', {
+                      originalUrl: url,
+                      convertedUrl: arUrl,
+                    });
+
+                    // Navigate to the new URL in the viewer
+                    window.location.href = `viewer.html?url=${encodeURIComponent(arUrl)}`;
+                  }
+                }
+              },
+              true,
+            );
+
+            console.log(
+              '[VIEWER] Navigation interceptor installed via direct access',
+            );
           }
         } catch (accessError) {
           // Can't access iframe content directly - this is expected for cross-origin content
-          console.log('[VIEWER] Cannot access iframe content directly (cross-origin):', accessError.message);
+          console.log(
+            '[VIEWER] Cannot access iframe content directly (cross-origin):',
+            accessError.message,
+          );
         }
       }
     } catch (error) {
-      console.log('[VIEWER] Error setting up navigation interception:', error.message);
+      console.log(
+        '[VIEWER] Error setting up navigation interception:',
+        error.message,
+      );
     }
 
     // Note: Resource verification is limited without service worker support in extension pages
@@ -280,20 +299,20 @@ class VerifiedBrowser {
     const progressEl = document.getElementById('loadingProgress');
     const percentEl = document.getElementById('loadingPercent');
     const mbEl = document.getElementById('loadingMB');
-    
+
     if (progressEl && percentEl && mbEl) {
       // Show progress once we start getting updates
       if (!this.progressShown) {
         progressEl.style.display = 'block';
         this.progressShown = true;
       }
-      
+
       // Update percentage
       percentEl.textContent = `${Math.round(percentage)}%`;
-      
+
       // Update MB progress
       mbEl.textContent = `${processedMB} MB / ${totalMB} MB`;
-      
+
       // Update loading text based on progress
       const loadingText = document.getElementById('loadingText');
       if (loadingText) {
@@ -309,27 +328,30 @@ class VerifiedBrowser {
   async loadVerifiedContent() {
     try {
       this.updateLoadingState('FETCHING');
-      
+
       console.log('[VIEWER] Fetching verified content for:', this.arUrl);
-      
+
       // Show skip button after 5 seconds (only if verification is enabled)
-      chrome.storage.local.get(['verificationEnabled'], ({ verificationEnabled }) => {
-        if (verificationEnabled) {
-          this.skipButtonTimeout = setTimeout(() => {
-            const skipDiv = document.getElementById('skipVerification');
-            if (skipDiv && !this.verificationCancelled) {
-              skipDiv.classList.add('show');
-            }
-          }, 5000);
-        }
-      });
+      chrome.storage.local.get(
+        ['verificationEnabled'],
+        ({ verificationEnabled }) => {
+          if (verificationEnabled) {
+            this.skipButtonTimeout = setTimeout(() => {
+              const skipDiv = document.getElementById('skipVerification');
+              if (skipDiv && !this.verificationCancelled) {
+                skipDiv.classList.add('show');
+              }
+            }, 5000);
+          }
+        },
+      );
 
       // Request verified content from background
       const response = await chrome.runtime.sendMessage({
         type: 'FETCH_VERIFIED_CONTENT',
         url: this.arUrl,
       });
-      
+
       console.log('[VIEWER] Received response:', response);
 
       if (!response) {
@@ -339,7 +361,7 @@ class VerifiedBrowser {
       if (response.error) {
         throw new Error(response.error);
       }
-      
+
       // Store the gateway URL for sharing
       if (response.gatewayUrl) {
         this.gatewayUrl = response.gatewayUrl;
@@ -351,34 +373,26 @@ class VerifiedBrowser {
       // Update stats based on verification
       this.stats.main.verified = response.verified || false;
       this.stats.main.status = 'complete';
-      
-      console.log('[VIEWER] Main content verification status:', response.verified);
+
+      console.log(
+        '[VIEWER] Main content verification status:',
+        response.verified,
+      );
       console.log('[VIEWER] Verification info:', response.verificationInfo);
-      
+
       if (response.verified) {
         this.updateLoadingState('COMPLETE');
-        this.showToast(
-          'Main content verified',
-          'success',
-        );
+        this.showToast('Main content verified', 'success');
       } else {
-        // Check if we should show content anyway
-        const { verificationStrict } = await chrome.storage.local.get([
-          'verificationStrict',
-        ]);
-
-        if (verificationStrict) {
-          throw new Error('Content verification failed - strict mode enabled');
-        } else {
-          this.updateLoadingState('COMPLETE');
-          this.showToast(
-            'Verification pending',
-            'warning',
-            'Showing content while verification completes',
-          );
-        }
+        // Show content with warning since verification failed
+        this.updateLoadingState('COMPLETE');
+        this.showToast(
+          'Verification pending',
+          'warning',
+          'Showing content while verification completes',
+        );
       }
-      
+
       // Update trust indicator to show main content status
       this.updateTrustIndicator();
 
@@ -387,10 +401,10 @@ class VerifiedBrowser {
 
       // Hide loading overlay
       document.getElementById('loadingOverlay').style.display = 'none';
-      
+
       // Clear skip button timeout and hide it
       this.clearSkipButton();
-      
+
       // Update share button tooltip if we have a gateway URL
       if (this.gatewayUrl) {
         const shareBtn = document.getElementById('shareBtn');
@@ -402,7 +416,7 @@ class VerifiedBrowser {
     } catch (error) {
       console.error('Verification error:', error);
       this.showError(error.message);
-      
+
       // Clear skip button timeout
       this.clearSkipButton();
     }
@@ -410,31 +424,36 @@ class VerifiedBrowser {
 
   skipVerification() {
     console.log('[VIEWER] User requested to skip verification');
-    
+
     // Set flag to indicate verification was cancelled
     this.verificationCancelled = true;
-    
+
     // Hide skip button
     this.clearSkipButton();
-    
+
     // Update UI
-    this.showToast('Skipping verification', 'warning', 'Loading unverified content');
-    
+    this.showToast(
+      'Skipping verification',
+      'warning',
+      'Loading unverified content',
+    );
+
     // Load content without verification by navigating directly to gateway
-    const gatewayUrl = this.arUrl.replace('ar://', 'https://arweave.net/');
-    this.gatewayUrl = gatewayUrl; // Store for sharing
+    // Use the gateway URL from query params if available, otherwise fallback
+    const gatewayUrl =
+      this.gatewayUrl || this.arUrl.replace('ar://', 'https://arweave.net/');
     const iframe = document.getElementById('verified-content');
     iframe.src = gatewayUrl;
-    
+
     // Hide loading overlay
     document.getElementById('loadingOverlay').style.display = 'none';
-    
+
     // Update share button tooltip
     const shareBtn = document.getElementById('shareBtn');
     if (shareBtn) {
       shareBtn.title = `Share: ${gatewayUrl}`;
     }
-    
+
     // Update trust indicator to show unverified
     this.stats.main.verified = false;
     this.stats.main.status = 'complete';
@@ -446,7 +465,7 @@ class VerifiedBrowser {
       clearTimeout(this.skipButtonTimeout);
       this.skipButtonTimeout = null;
     }
-    
+
     const skipDiv = document.getElementById('skipVerification');
     if (skipDiv) {
       skipDiv.classList.remove('show');
@@ -458,13 +477,13 @@ class VerifiedBrowser {
       console.warn('[VIEWER] No gateway URL to share');
       return;
     }
-    
+
     const shareBtn = document.getElementById('shareBtn');
     const shareBtnText = shareBtn?.querySelector('span');
-    
+
     try {
       await navigator.clipboard.writeText(this.gatewayUrl);
-      
+
       // Update button text temporarily
       if (shareBtnText) {
         const originalText = shareBtnText.textContent;
@@ -473,23 +492,23 @@ class VerifiedBrowser {
           shareBtnText.textContent = originalText;
         }, 2000);
       }
-      
+
       // Show success toast
       this.showToast(
         'Link copied!',
         'success',
-        `Gateway URL copied to clipboard`
+        `Gateway URL copied to clipboard`,
       );
-      
+
       console.log('[VIEWER] Copied gateway URL to clipboard:', this.gatewayUrl);
     } catch (err) {
       console.error('[VIEWER] Failed to copy to clipboard:', err);
-      
+
       // Show error toast
       this.showToast(
         'Copy failed',
         'error',
-        'Unable to copy link to clipboard'
+        'Unable to copy link to clipboard',
       );
     }
   }
@@ -511,47 +530,54 @@ class VerifiedBrowser {
 
       const blob = await cachedResponse.blob();
       let contentType = cachedResponse.headers.get('content-type');
-      
+
       // Special handling for manifests - check if it's JSON that might be a manifest
       if (contentType === 'application/json' && this.arUrl) {
         // Check if this looks like a manifest by examining the content
         try {
           const text = await blob.text();
           const json = JSON.parse(text);
-          if (json.manifest === 'arweave/paths' && (json.version === '0.2.0' || json.version === '0.1.0')) {
+          if (
+            json.manifest === 'arweave/paths' &&
+            (json.version === '0.2.0' || json.version === '0.1.0')
+          ) {
             contentType = 'application/x.arweave-manifest+json';
             console.log('[VIEWER] Detected Arweave manifest from JSON content');
           }
           // Create new blob since we consumed the original
           const newBlob = new Blob([text], { type: contentType });
           const objectUrl = URL.createObjectURL(newBlob);
-          
+
           // For manifests, create special viewer
-          const viewerContent = this.createContentViewer(objectUrl, contentType);
+          const viewerContent = this.createContentViewer(
+            objectUrl,
+            contentType,
+          );
           if (viewerContent === null) {
             iframe.src = objectUrl;
           } else {
             iframe.srcdoc = viewerContent;
           }
-          
+
           // Clean up blob URL when done
           iframe.addEventListener('unload', () => {
             URL.revokeObjectURL(objectUrl);
           });
           return;
-        } catch (e) {
+        } catch (_e) {
           // Not a manifest, continue with regular JSON handling
         }
       }
-      
+
       // Create blob URL for all content types
       const objectUrl = URL.createObjectURL(blob);
-      
+
       // For HTML content, we need to ensure scripts can load
       if (contentType?.includes('text/html')) {
         // CRITICAL: Set sandbox to allow scripts but maintain security
         iframe.removeAttribute('sandbox');
-        iframe.sandbox = 'allow-scripts allow-same-origin allow-forms allow-popups allow-downloads allow-modals';
+        iframe.sandbox =
+          'allow-scripts allow-same-origin allow-forms allow-popups allow-downloads allow-modals';
         iframe.src = objectUrl;
       } else {
         // For non-HTML content, create a viewer or use native display
@@ -783,7 +809,7 @@ class VerifiedBrowser {
         </html>
       `;
     } else if (
-      type.startsWith('text/plain') || 
+      type.startsWith('text/plain') ||
       type.startsWith('text/csv') ||
       (type.startsWith('application/json') && !type.includes('manifest')) ||
       type.startsWith('application/xml') ||
@@ -880,24 +906,38 @@ class VerifiedBrowser {
 
   updateTrustIndicator() {
     const { scripts, styles, media, api } = this.stats.resources;
-    
+
     // Calculate totals - only count main if it's been loaded
-    const mainIncluded = this.stats.main.status === 'complete' || this.stats.main.status === 'error';
-    const totalResources = scripts.total + styles.total + media.total + api.total + (mainIncluded ? 1 : 0);
-    const verifiedResources = scripts.verified + styles.verified + media.verified + api.verified + 
-                             (mainIncluded && this.stats.main.verified ? 1 : 0);
+    const mainIncluded =
+      this.stats.main.status === 'complete' ||
+      this.stats.main.status === 'error';
+    const totalResources =
+      scripts.total +
+      styles.total +
+      media.total +
+      api.total +
+      (mainIncluded ? 1 : 0);
+    const verifiedResources =
+      scripts.verified +
+      styles.verified +
+      media.verified +
+      api.verified +
+      (mainIncluded && this.stats.main.verified ? 1 : 0);
     const unverifiedResources = totalResources - verifiedResources;
-    
+
     // Calculate trust percentage
-    const trustPercentage = totalResources > 0 ? Math.round((verifiedResources / totalResources) * 100) : 0;
-    
+    const trustPercentage =
+      totalResources > 0
+        ? Math.round((verifiedResources / totalResources) * 100)
+        : 0;
+
     // Update trust icon and status
     const trustIcon = document.getElementById('trustIcon');
     const trustLabel = document.getElementById('trustLabel');
     const trustDetails = document.getElementById('trustDetails');
     const trustIndicator = document.getElementById('trustIndicator');
     const checkmark = trustIcon?.querySelector('.checkmark');
-    
+
     // Show progress until we have some resources
     if (totalResources === 0) {
       trustIcon.className = 'trust-icon';
@@ -935,12 +975,12 @@ class VerifiedBrowser {
       trustDetails.textContent = 'Content could not be verified';
       if (checkmark) checkmark.style.display = 'none';
     }
-    
+
     // Update progress bar
     const progress = document.getElementById('progress');
     if (progress) {
       progress.style.width = `${trustPercentage}%`;
-      
+
       // Add active class when verifying
       if (trustPercentage > 0 && trustPercentage < 100) {
         progress.classList.add('active');
@@ -948,9 +988,9 @@ class VerifiedBrowser {
         progress.classList.remove('active');
       }
     }
-    
+
     // Removed floating badge
-    
+
     // Show completion message
     if (totalResources > 1 && unverifiedResources === 0) {
       this.updateLoadingState('COMPLETE');
@@ -999,7 +1039,6 @@ class VerifiedBrowser {
     }, 5000);
   }
 
-
   showError(message) {
     // Update loading state
     this.updateLoadingState('ERROR');
@@ -1021,21 +1060,21 @@ class VerifiedBrowser {
 }
 
 // Global function for navigation
-window.navigateToUrl = function() {
+window.navigateToUrl = function () {
   const urlInput = document.getElementById('urlInput');
   const url = urlInput?.value?.trim();
-  
+
   if (url) {
     // Add ar:// prefix if not present
     const fullUrl = url.startsWith('ar://') ? url : `ar://${url}`;
-    
+
     // Reload the viewer with new URL
     window.location.href = `viewer.html?url=${encodeURIComponent(fullUrl)}`;
   }
 };
 
 // Global function for reverification
-window.reverifyContent = async function() {
+window.reverifyContent = async function () {
   const browser = window.verifiedBrowser;
   if (!browser) return;
 
@@ -1051,7 +1090,7 @@ window.reverifyContent = async function() {
 
   // Clear existing iframe content
   const iframe = document.getElementById('verified-content');
-  
+
   // Try to stop any playing media in the iframe first
   try {
     // Access iframe content and pause any media elements
@@ -1059,28 +1098,28 @@ window.reverifyContent = async function() {
     if (iframeDoc) {
       // Pause all video elements
       const videos = iframeDoc.querySelectorAll('video');
-      videos.forEach(video => {
+      videos.forEach((video) => {
         video.pause();
         video.src = '';
         video.load();
       });
-      
+
       // Pause all audio elements
       const audios = iframeDoc.querySelectorAll('audio');
-      audios.forEach(audio => {
+      audios.forEach((audio) => {
         audio.pause();
         audio.src = '';
         audio.load();
       });
     }
-  } catch (e) {
+  } catch (_e) {
     // Ignore errors - might be cross-origin
     console.log('[VIEWER] Could not access iframe content to stop media');
   }
-  
+
   // Clear the iframe completely
   iframe.src = 'about:blank';
-  
+
   // Force a new browsing context to ensure everything stops
   iframe.contentWindow?.location.replace('about:blank');
 
@@ -1096,11 +1135,11 @@ window.reverifyContent = async function() {
   }
   document.getElementById('loadingPercent').textContent = '0%';
   document.getElementById('loadingMB').textContent = '';
-  
+
   // Reset skip button
   browser.clearSkipButton();
   browser.verificationCancelled = false;
-  
+
   // Reset gateway URL
   browser.gatewayUrl = null;
 
@@ -1111,12 +1150,16 @@ window.reverifyContent = async function() {
   document.getElementById('toastContainer').innerHTML = '';
 
   // Show reverification toast
-  browser.showToast('Reverifying content', 'info', 'Running integrity checks...');
+  browser.showToast(
+    'Reverifying content',
+    'info',
+    'Running integrity checks...',
+  );
 
   try {
     // Re-run verification process
     await browser.loadVerifiedContent();
-    
+
     // Remove loading state from button
     reverifyBtn?.classList.remove('loading');
   } catch (error) {
@@ -1145,13 +1188,13 @@ window.proceedAnyway = async function () {
     // Update UI to show unverified state
     const browser = window.verifiedBrowser;
     browser.gatewayUrl = gatewayUrl; // Store for sharing
-    
+
     // Update share button tooltip
     const shareBtn = document.getElementById('shareBtn');
     if (shareBtn) {
       shareBtn.title = `Share: ${gatewayUrl}`;
     }
-    
+
     browser.showToast(
       'Loading unverified content',
       'warning',

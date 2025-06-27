@@ -1,6 +1,18 @@
 /**
- * WayFinder Verification Cache
- * Lightweight caching system for verification hashes to improve performance
+ * WayFinder
+ * Copyright (C) 2022-2025 Permanent Data Solutions, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 import { logger } from './logger';
@@ -368,12 +380,12 @@ export class VerificationCache {
       });
 
       await chrome.storage.local.set({ verificationCache: cacheObject });
-      
+
       // Only log storage operations for actual verification entries
       const verificationEntries = Object.values(cacheObject).filter(
-        (entry: any) => entry.strategy !== 'none'
+        (entry: any) => entry.strategy !== 'none',
       ).length;
-      
+
       if (verificationEntries > 0) {
         logger.info(
           `[CACHE] [STORAGE] Successfully saved ${verificationEntries} verification entries to Chrome storage`,

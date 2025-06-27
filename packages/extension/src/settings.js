@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Handle hash navigation
     handleHashNavigation();
-    
+
     // Debug: Check if Advanced Settings section exists
     const advancedSection = document.getElementById('advanced');
     const advancedToggle = document.getElementById('advancedToggle');
@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       advancedToggle: !!advancedToggle,
       advancedContent: !!advancedContent,
       advancedToggleTagName: advancedToggle?.tagName,
-      advancedToggleClasses: advancedToggle?.className
+      advancedToggleClasses: advancedToggle?.className,
     });
   }, 50);
 });
@@ -73,7 +73,7 @@ function handleHashNavigation() {
         }
         chrome.storage.local.set({ advancedSettingsExpanded: true });
       }
-      
+
       // Scroll to the element with a small offset for better visibility
       targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
@@ -119,7 +119,7 @@ function setupEventHandlers() {
       console.log('[DEBUG] Click event triggered on advancedToggle', e);
       toggleAdvancedSettings();
     });
-    
+
     // Also check if the element is actually clickable
     const computedStyle = window.getComputedStyle(advancedToggle);
     console.log('[DEBUG] advancedToggle computed styles:', {
@@ -127,7 +127,7 @@ function setupEventHandlers() {
       visibility: computedStyle.visibility,
       pointerEvents: computedStyle.pointerEvents,
       cursor: computedStyle.cursor,
-      zIndex: computedStyle.zIndex
+      zIndex: computedStyle.zIndex,
     });
   } else {
     console.error('[ERROR] advancedToggle element not found');
@@ -175,6 +175,14 @@ function setupEventHandlers() {
   document
     .getElementById('ensResolution')
     ?.addEventListener('change', saveEnsResolution);
+
+  // Telemetry settings
+  document
+    .getElementById('telemetryEnabled')
+    ?.addEventListener('change', handleTelemetryToggle);
+  document
+    .getElementById('telemetrySampleRate')
+    ?.addEventListener('input', handleTelemetrySampleRateChange);
 
   // Advanced settings are now saved automatically on change
   document
@@ -235,12 +243,6 @@ function setupEventHandlers() {
     ?.addEventListener('change', handleVerifiedBrowsingToggle);
 
   document
-    .querySelectorAll('input[name="verifiedBrowsingStrict"]')
-    .forEach((radio) => {
-      radio.addEventListener('change', handleVerifiedBrowsingStrictChange);
-    });
-
-  document
     .getElementById('manageExceptions')
     ?.addEventListener('click', toggleExceptionsList);
 
@@ -259,7 +261,7 @@ function setupExpandableSections() {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') {
         return;
       }
-      
+
       const section = header.closest('.expandable');
       section.classList.toggle('expanded');
     });
@@ -272,22 +274,22 @@ function toggleAdvancedSettings() {
   const advancedContent = document.getElementById('advancedContent');
   const advancedToggle = document.getElementById('advancedToggle');
   const expandIcon = advancedToggle?.querySelector('.expand-icon');
-  
+
   console.log('[DEBUG] Elements found:', {
     advancedSection: !!advancedSection,
     advancedContent: !!advancedContent,
     advancedToggle: !!advancedToggle,
-    expandIcon: !!expandIcon
+    expandIcon: !!expandIcon,
   });
-  
+
   if (!advancedContent || !advancedToggle) {
     console.error('[ERROR] Required elements not found');
     return;
   }
-  
+
   // Check if section is currently expanded by checking the toggle's class
   const isExpanded = advancedToggle.classList.contains('expanded');
-  
+
   if (isExpanded) {
     // Collapse
     advancedToggle.classList.remove('expanded');
@@ -297,7 +299,7 @@ function toggleAdvancedSettings() {
     advancedToggle.classList.add('expanded');
     // Let CSS handle the animation
   }
-  
+
   // Save preference
   chrome.storage.local.set({ advancedSettingsExpanded: !isExpanded });
 }
@@ -478,23 +480,13 @@ async function loadCurrentSettings() {
       verifiedBrowsingToggle.checked = verifiedBrowsing;
       updateVerifiedBrowsingUI(verifiedBrowsing);
     }
-    
+
     // Restore advanced settings expanded state
     if (settings.advancedSettingsExpanded) {
       const advancedToggle = document.getElementById('advancedToggle');
       if (advancedToggle) {
         advancedToggle.classList.add('expanded');
       }
-    }
-    
-    // Load strictness setting
-    const strict = settings.verificationStrict || false;
-    const strictnessRadio = document.querySelector(
-      `input[name="verifiedBrowsingStrict"][value="${strict}"]`
-    );
-    if (strictnessRadio) {
-      strictnessRadio.checked = true;
-      updateStrictnessDescription(strict);
     }
 
     // Load exceptions
@@ -532,6 +524,33 @@ async function loadCurrentSettings() {
     );
     if (gatewayCacheTTLValueEl) {
       gatewayCacheTTLValueEl.textContent = gatewayCacheTTL;
+    }
+
+    // Load telemetry settings
+    const telemetryEnabled = settings.telemetryEnabled || false;
+    const telemetryEnabledEl = document.getElementById('telemetryEnabled');
+    if (telemetryEnabledEl) {
+      telemetryEnabledEl.checked = telemetryEnabled;
+    }
+
+    const telemetrySampleRate = settings.telemetrySampleRate || 0.1;
+    const telemetrySampleRateEl = document.getElementById(
+      'telemetrySampleRate',
+    );
+    if (telemetrySampleRateEl) {
+      telemetrySampleRateEl.value = telemetrySampleRate;
+    }
+    const telemetrySampleRateValueEl = document.getElementById(
+      'telemetrySampleRateValue',
+    );
+    if (telemetrySampleRateValueEl) {
+      telemetrySampleRateValueEl.textContent = `${Math.round(telemetrySampleRate * 100)}%`;
+    }
+
+    // Show/hide telemetry settings based on enabled state
+    const telemetrySettings = document.getElementById('telemetrySettings');
+    if (telemetrySettings) {
+      telemetrySettings.style.display = telemetryEnabled ? 'block' : 'none';
     }
   } catch (error) {
     console.error('Error loading settings:', error);
@@ -1069,20 +1088,20 @@ async function resetSettings() {
 
 async function handleProcessIdChange(event) {
   const processId = event.target.value.trim();
-  
+
   try {
     if (processId) {
       await chrome.storage.local.set({ processId });
     } else {
       await chrome.storage.local.remove(['processId']);
     }
-    
+
     // Notify background script
     await chrome.runtime.sendMessage({
       message: 'updateAdvancedSettings',
       settings: { processId },
     });
-    
+
     showToast('Process ID updated', 'success');
   } catch (error) {
     console.error('Error updating process ID:', error);
@@ -1092,7 +1111,7 @@ async function handleProcessIdChange(event) {
 
 async function handleAoCuUrlChange(event) {
   const aoCuUrl = event.target.value.trim();
-  
+
   try {
     if (aoCuUrl) {
       // Validate URL
@@ -1101,13 +1120,13 @@ async function handleAoCuUrlChange(event) {
     } else {
       await chrome.storage.local.remove(['aoCuUrl']);
     }
-    
+
     // Notify background script
     await chrome.runtime.sendMessage({
       message: 'updateAdvancedSettings',
       settings: { aoCuUrl },
     });
-    
+
     showToast('AO CU URL updated', 'success');
   } catch (error) {
     console.error('Error updating AO CU URL:', error);
@@ -1592,24 +1611,26 @@ function setupVerifiedBrowsingUI() {
 
 async function handleVerifiedBrowsingToggle(event) {
   const enabled = event.target.checked;
-  
+
   // Sync both settings
-  await chrome.storage.local.set({ 
+  await chrome.storage.local.set({
     verifiedBrowsing: enabled,
-    verificationEnabled: enabled 
+    verificationEnabled: enabled,
   });
-  
+
   // Reset wayfinder to apply new verification setting
   try {
     await chrome.runtime.sendMessage({ message: 'resetWayfinder' });
   } catch (error) {
     console.error('Error resetting wayfinder:', error);
   }
-  
+
   updateVerifiedBrowsingUI(enabled);
 
   showToast(
-    enabled ? 'Verified Browsing enabled - all content will be cryptographically verified' : 'Verified Browsing disabled',
+    enabled
+      ? 'Verified Browsing enabled - all content will be cryptographically verified'
+      : 'Verified Browsing disabled',
     'success',
   );
 }
@@ -1622,31 +1643,9 @@ function updateVerifiedBrowsingUI(enabled) {
   if (details) details.style.display = enabled ? 'block' : 'none';
   if (options) options.style.display = enabled ? 'block' : 'none';
   if (exceptions) exceptions.style.display = enabled ? 'block' : 'none';
-  
+
   // The verification section is now always within advanced settings,
   // so we don't need to hide/show it based on verified browsing toggle
-}
-
-async function handleVerifiedBrowsingStrictChange(event) {
-  const strict = event.target.value === 'true';
-  await chrome.storage.local.set({ verificationStrict: strict });
-  updateStrictnessDescription(strict);
-
-  showToast(
-    strict
-      ? 'Strict mode enabled - unverified resources will be blocked'
-      : 'Warn mode enabled - unverified resources will show warnings',
-    'success',
-  );
-}
-
-function updateStrictnessDescription(strict) {
-  const desc = document.getElementById('strictnessDesc');
-  if (desc) {
-    desc.textContent = strict
-      ? 'Blocks unverified resources from loading (most secure)'
-      : 'Shows warnings for unverified resources but allows them to load';
-  }
 }
 
 function toggleExceptionsList() {
@@ -1728,4 +1727,34 @@ async function removeException(index) {
 
   loadExceptions(verifiedBrowsingExceptions);
   showToast('Exception removed', 'success');
+}
+
+// Telemetry handlers
+async function handleTelemetryToggle(event) {
+  const enabled = event.target.checked;
+  await chrome.storage.local.set({ telemetryEnabled: enabled });
+
+  // Show/hide telemetry settings
+  const telemetrySettings = document.getElementById('telemetrySettings');
+  if (telemetrySettings) {
+    telemetrySettings.style.display = enabled ? 'block' : 'none';
+  }
+
+  showToast(
+    enabled
+      ? 'Telemetry enabled - Thank you for helping improve Wayfinder!'
+      : 'Telemetry disabled',
+    'success',
+  );
+}
+
+async function handleTelemetrySampleRateChange(event) {
+  const sampleRate = parseFloat(event.target.value);
+  await chrome.storage.local.set({ telemetrySampleRate: sampleRate });
+
+  // Update display
+  const displayEl = document.getElementById('telemetrySampleRateValue');
+  if (displayEl) {
+    displayEl.textContent = `${Math.round(sampleRate * 100)}%`;
+  }
 }

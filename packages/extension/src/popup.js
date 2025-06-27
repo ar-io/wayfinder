@@ -114,9 +114,9 @@ function setupEventHandlers() {
     const enabled = e.target.checked;
 
     // Save both settings to keep them in sync
-    await chrome.storage.local.set({ 
+    await chrome.storage.local.set({
       verifiedBrowsing: enabled,
-      verificationEnabled: enabled  // Sync with the internal verification setting
+      verificationEnabled: enabled, // Sync with the internal verification setting
     });
 
     // Reset wayfinder to apply new verification setting
@@ -131,7 +131,10 @@ function setupEventHandlers() {
 
     // Show toast
     if (enabled) {
-      showToast('Verified Browsing enabled - all content will be cryptographically verified', 'success');
+      showToast(
+        'Verified Browsing enabled - all content will be cryptographically verified',
+        'success',
+      );
     } else {
       showToast('Verified Browsing disabled', 'info');
     }
@@ -253,8 +256,10 @@ async function loadCurrentStrategy() {
 async function updateConnectionStatus() {
   try {
     // Test connection via background script (avoids CORS issues)
-    const response = await chrome.runtime.sendMessage({ message: 'testConnection' });
-    
+    const response = await chrome.runtime.sendMessage({
+      message: 'testConnection',
+    });
+
     const statusElement = document.getElementById('connectionStatus');
     if (!statusElement) return;
 
@@ -317,14 +322,16 @@ window
 // Load Verified Browsing state on startup
 async function loadVerifiedBrowsingState() {
   try {
-    const { verifiedBrowsing = false } = await chrome.storage.local.get(['verifiedBrowsing']);
-    
+    const { verifiedBrowsing = false } = await chrome.storage.local.get([
+      'verifiedBrowsing',
+    ]);
+
     // Update toggle state
     const toggle = document.getElementById('verifiedBrowsingToggle');
     if (toggle) {
       toggle.checked = verifiedBrowsing;
     }
-    
+
     // Update UI
     updateVerifiedBrowsingUI(verifiedBrowsing);
   } catch (error) {

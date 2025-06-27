@@ -1,8 +1,18 @@
 /**
- * WayFinder Extension - Default Configuration
+ * WayFinder
+ * Copyright (C) 2022-2025 Permanent Data Solutions, Inc.
  *
- * Centralized location for all default settings used throughout the extension.
- * This file provides a single source of truth for default values.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 import {
@@ -51,8 +61,7 @@ export const WAYFINDER_DEFAULTS = {
 
   // Verification Configuration (used when verified browsing is ON)
   verificationStrategy: 'hash',
-  verificationStrict: false,
-  verificationEnabled: false,
+  verificationEnabled: false, // This gets synced with verifiedBrowsing in settings
 
   // Gateway Management
   gatewayCacheTTL: 3600, // 1 hour in seconds
@@ -63,6 +72,10 @@ export const WAYFINDER_DEFAULTS = {
   verificationGatewayMode: 'automatic',
   verificationGatewayCount: 3,
   verificationTrustedGateways: [],
+
+  // Telemetry Configuration (opt-in, default disabled)
+  telemetryEnabled: false,
+  telemetrySampleRate: 0.1, // 10% sample rate when enabled
 } as const;
 
 /**
@@ -97,7 +110,7 @@ export const ROUTING_STRATEGY_DEFAULTS = {
 export const VERIFICATION_STRATEGY_DEFAULTS = {
   // Common verification settings
   maxConcurrency: 2,
-  timeoutMs: 30000, // 30 seconds timeout for verification requests
+  timeoutMs: 60000, // 60 seconds timeout for verification requests
 
   // Hash Verification
   hash: {
@@ -120,12 +133,11 @@ export const VERIFICATION_STRATEGY_DEFAULTS = {
  */
 export const VERIFICATION_DEFAULTS = {
   verificationEnabled: false,
-  verificationStrict: false,
   showVerificationToasts: false,
   enableVerificationCache: true,
 
   // Verification timing
-  verificationTimeout: 30000, // 30 seconds (increased for large files)
+  verificationTimeout: 60000, // 60 seconds (increased for large files)
   verificationRetryDelay: 2000, // 2 seconds
 } as const;
 
