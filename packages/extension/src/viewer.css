@@ -431,7 +431,6 @@ body.minimized .minimize-toggle svg {
   transition: all var(--transition-fast);
   opacity: 0;
   visibility: hidden;
-  margin-left: auto;
 }
 
 .reverify-btn svg {
@@ -464,6 +463,14 @@ body.minimized .minimize-toggle svg {
   visibility: visible;
 }
 
+/* Show share button when content is loaded */
+.trust-indicator.complete .share-btn,
+.trust-indicator.warning .share-btn,
+.trust-indicator.error .share-btn {
+  opacity: 1;
+  visibility: visible;
+}
+
 /* Animate button during reverification */
 .reverify-btn.loading svg {
   animation: spin 1s linear infinite;
@@ -472,6 +479,47 @@ body.minimized .minimize-toggle svg {
 .reverify-btn.loading {
   pointer-events: none;
   opacity: 0.7;
+}
+
+/* Share Button */
+.share-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: transparent;
+  border: 1px solid var(--ario-light-grey);
+  border-radius: 6px;
+  color: var(--ario-white);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  opacity: 0;
+  visibility: hidden;
+  margin-left: auto;
+  margin-right: 12px;
+}
+
+.share-btn svg {
+  width: 16px;
+  height: 16px;
+  stroke: var(--ario-white);
+  transition: transform var(--transition-fast);
+}
+
+.share-btn:hover {
+  background: var(--ario-grey);
+  border-color: var(--ario-teal);
+  color: var(--ario-teal);
+}
+
+.share-btn:hover svg {
+  stroke: var(--ario-teal);
+}
+
+.share-btn:active {
+  transform: scale(0.98);
 }
 
 /* Progress Bar */
@@ -716,6 +764,48 @@ body.minimized .minimize-toggle svg {
   color: var(--ario-teal);
   font-weight: 500;
   letter-spacing: 0.5px;
+}
+
+.skip-verification {
+  margin-top: 20px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  display: none;
+}
+
+.skip-verification.show {
+  display: block;
+  animation: fadeIn 0.5s ease forwards;
+}
+
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+  }
+}
+
+.skip-verification button {
+  background: transparent;
+  border: 1px solid var(--ario-grey);
+  color: #999;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-weight: 500;
+}
+
+.skip-verification button:hover {
+  border-color: var(--ario-teal);
+  color: var(--ario-teal);
+  background: rgba(45, 211, 190, 0.1);
+}
+
+.skip-verification .skip-text {
+  font-size: 11px;
+  color: #666;
+  margin-bottom: 8px;
 }
 
 /* Error State */
