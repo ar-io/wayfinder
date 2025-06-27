@@ -34,12 +34,24 @@ npx changeset
 
 This will guide you through the process of documenting your changes and selecting which packages are affected. Changesets will be used during the release process to update package versions and generate changelogs.
 
+### Contributing
+
+1. Branch from `alpha`
+2. Create a new branch for your changes (e.g. `feat/my-feature`)
+3. Make your changes on your branch, push them to your branch
+4. As you make commits/changes or once you're ready to release, create a changeset describing your changes via `npx changeset`.
+5. Follow the prompts to select the packages that are affected by your changes.
+6. Add and commit the changeset to your branch
+7. Request review from a maintainer, and once approved, merge your changes into the `alpha` branch
+8. A release PR will be automatically created with all pending changesets to the `alpha` branch
+9. The maintainer will review the PR and merge it into `alpha`, which will trigger the automated release process using all pending changesets
+
 ### Automated Releases
 
 This repository is configured with GitHub Actions workflows that automate the release process:
 
 - **Main Branch**: When changes are merged to `main`, a standard release is created
-- **Alpha Branch**: When changes are merged to `alpha`, a prerelease (beta tagged) is created
+- **Alpha Branch**: When changes are merged to `alpha`, a prerelease (alpha tagged) is created
 
 The workflow automatically:
 1. Determines whether to create a prerelease or standard release based on the branch
@@ -54,16 +66,14 @@ To use the automated process:
 3. Create a pull request to `alpha` (for prereleases) or `main` (for standard releases)
 4. When the PR is merged, the release will be automatically created
 
+
 ### Manual Release Process
 
 If you need to release manually, follow these steps:
 
-#### Normal Releases
+#### Alpha Releases
 
-To release a new version:
-
-1. Ensure all changes are documented with changesets
-2. Run the version command to update package versions and changelogs:
+To release a new alpha version:
 
 ```bash
 npx changeset version
