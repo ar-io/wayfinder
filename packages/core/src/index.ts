@@ -36,6 +36,8 @@ export * from './verification/data-root-verifier.js';
 export * from './verification/hash-verifier.js';
 export * from './verification/signature-verifier.js';
 
+// emitter
+export * from './emitter.js';
+
 // wayfinder
-// TODO: consider exporting just Wayfinder and move all the types to the types folder
 export * from './wayfinder.js';

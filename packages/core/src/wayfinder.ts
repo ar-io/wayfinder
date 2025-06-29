@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { EventEmitter } from 'eventemitter3';
 
 import { defaultLogger } from './logger.js';
 
@@ -26,137 +25,97 @@ import type {
   Logger,
   TelemetrySettings,
   VerificationStrategy,
-  WayfinderEvent,
-  WayfinderEventArgs,
   WayfinderFetch,
   WayfinderOptions,
 } from './types.js';
 import { sandboxFromId } from './utils/base64.js';
 import { HashVerificationStrategy } from './verification/hash-verifier.js';
+import { WayfinderEmitter } from './emitter.js';
 
 // known regexes for wayfinder urls
 export const arnsRegex = /^[a-z0-9_-]{1,51}$/;
 export const txIdRegex = /^[A-Za-z0-9_-]{43}$/;
 
 /**
- * Core function that converts a wayfinder url to the proper ar-io gateway URL
- * @param originalUrl - the wayfinder url to resolve
- * @param selectedGateway - the target gateway to resolve the url against
- * @returns the resolved url that can be used to make a request
+ * Extracts subdomain and path information from an ar:// URL for routing purposes
+ * @param arUrl - the ar:// URL to parse
+ * @returns object containing subdomain and path for gateway routing
  */
-export const resolveWayfinderUrl = ({
-  originalUrl,
-  selectedGateway,
-  logger,
-}: {
-  originalUrl: string;
-  selectedGateway: URL;
-  logger?: Logger;
-}): URL => {
-  if (originalUrl.toString().startsWith('ar://')) {
-    logger?.debug(`Applying wayfinder routing protocol to ${originalUrl}`, {
-      originalUrl,
-    });
-    const [, path] = originalUrl.toString().split('ar://');
-
-    // e.g. ar:///info should route to the info endpoint of the target gateway
-    if (path.startsWith('/')) {
-      logger?.debug(`Routing to ${path.slice(1)} on ${selectedGateway}`, {
-        originalUrl,
-        selectedGateway,
-      });
-      return new URL(path.slice(1), selectedGateway);
-    }
-
-    // Split path to get the first part (name/txId) and remaining path components
-    const [firstPart, ...rest] = path.split('/');
-
-    // TODO: this breaks 43 character named arns names - we should check a a local name cache list before resolving raw transaction ids
-    if (txIdRegex.test(firstPart)) {
-      const sandbox = sandboxFromId(firstPart);
-      return new URL(
-        `${firstPart}${rest.length > 0 ? '/' + rest.join('/') : ''}`,
-        `${selectedGateway.protocol}//${sandbox}.${selectedGateway.hostname}`,
-      );
-    }
-
-    if (arnsRegex.test(firstPart)) {
-      // TODO: tests to ensure arns names support query params and paths
-      const arnsUrl = `${selectedGateway.protocol}//${firstPart}.${selectedGateway.hostname}${selectedGateway.port ? `:${selectedGateway.port}` : ''}`;
-      logger?.debug(`Routing to ${path} on ${arnsUrl}`, {
-        originalUrl,
-        selectedGateway,
-      });
-      return new URL(rest.length > 0 ? rest.join('/') : '', arnsUrl);
-    }
-
-    // TODO: support .eth addresses
-    // TODO: "gasless" routing via DNS TXT records
+export const extractRoutingInfo = (
+  arUrl: string,
+): { subdomain: string; path: string } => {
+  if (!arUrl.startsWith('ar://')) {
+    return { subdomain: '', path: '' };
   }
 
-  logger?.debug('No wayfinder routing protocol applied', {
-    originalUrl,
-  });
+  const [, pathPart] = arUrl.split('ar://');
 
-  // return the original url if it's not a wayfinder url
-  return new URL(originalUrl);
+  // Handle ar:///info style URLs (direct gateway endpoints)
+  if (pathPart.startsWith('/')) {
+    return { subdomain: '', path: pathPart };
+  }
+
+  // Split path to get the first part (name/txId) and remaining path components
+  const [firstPart, ...rest] = pathPart.split('/');
+  const remainingPath = rest.length > 0 ? `/${rest.join('/')}` : '';
+
+  if (txIdRegex.test(firstPart)) {
+    // For transaction IDs, use sandbox subdomain
+    const sandbox = sandboxFromId(firstPart);
+    return {
+      subdomain: sandbox,
+      path: `/${firstPart}${remainingPath}`,
+    };
+  }
+
+  if (arnsRegex.test(firstPart)) {
+    // For ArNS names, use the name as subdomain
+    return {
+      subdomain: firstPart,
+      path: remainingPath || '/',
+    };
+  }
+
+  // Default case - no special routing
+  return { subdomain: '', path: `/${pathPart}` };
 };
 
-export class WayfinderEmitter extends EventEmitter<WayfinderEvent> {
-  constructor({
-    verification,
-    routing,
-    parentEmitter,
-  }: WayfinderEventArgs = {}) {
-    super();
-    if (verification) {
-      if (verification.onVerificationSucceeded) {
-        this.on('verification-succeeded', verification.onVerificationSucceeded);
-      }
-      if (verification.onVerificationFailed) {
-        this.on('verification-failed', verification.onVerificationFailed);
-      }
-      if (verification.onVerificationProgress) {
-        this.on('verification-progress', verification.onVerificationProgress);
-      }
-    }
-    if (routing) {
-      if (routing.onRoutingStarted) {
-        this.on('routing-started', routing.onRoutingStarted);
-      }
-      if (routing.onRoutingSkipped) {
-        this.on('routing-skipped', routing.onRoutingSkipped);
-      }
-      if (routing.onRoutingSucceeded) {
-        this.on('routing-succeeded', routing.onRoutingSucceeded);
-      }
-    }
+/**
+ * Constructs the final gateway URL using the selected gateway and routing information
+ * @param selectedGateway - the selected gateway
+ * @param subdomain - the subdomain to prepend to the gateway
+ * @param path - the path to append to the gateway
+ * @param logger - optional logger for debugging
+ * @returns the constructed URL
+ */
+export const constructGatewayUrl = ({
+  selectedGateway,
+  subdomain,
+  path,
+  logger,
+}: {
+  selectedGateway: URL;
+  subdomain: string;
+  path: string;
+  logger?: Logger;
+}): URL => {
+  const gatewayUrl = new URL(selectedGateway);
 
-    if (parentEmitter) {
-      this.on('routing-started', (event) => {
-        parentEmitter.emit('routing-started', event);
-      });
-      this.on('routing-skipped', (event) => {
-        parentEmitter.emit('routing-skipped', event);
-      });
-      this.on('routing-succeeded', (event) => {
-        parentEmitter.emit('routing-succeeded', event);
-      });
-      this.on('verification-succeeded', (event) => {
-        parentEmitter.emit('verification-succeeded', event);
-      });
-      this.on('verification-failed', (event) => {
-        parentEmitter.emit('verification-failed', event);
-      });
-      this.on('verification-progress', (event) => {
-        parentEmitter.emit('verification-progress', event);
-      });
-      this.on('verification-skipped', (event) => {
-        parentEmitter.emit('verification-skipped', event);
-      });
-    }
+  if (subdomain) {
+    gatewayUrl.hostname = `${subdomain}.${gatewayUrl.hostname}`;
   }
-}
+
+  gatewayUrl.pathname = path;
+
+  logger?.debug(`Constructed gateway URL`, {
+    selectedGateway: selectedGateway.toString(),
+    subdomain,
+    path,
+    resultUrl: gatewayUrl.toString(),
+  });
+
+  return gatewayUrl;
+};
 
 export function tapAndVerifyReadableStream({
   originalStream,
@@ -332,11 +291,14 @@ export const wayfinderFetch = ({
 
     for (let i = 0; i < maxRetries; i++) {
       try {
+        // extract routing information from the ar:// URL
+        const { subdomain, path } = extractRoutingInfo(url);
+
         // select the target gateway
         const selectedGateway = await routingSettings.strategy?.selectGateway({
           gateways: await gatewaysProvider.getGateways(),
-          path: url.split('/').slice(1).join('/'), // everything after the first /
-          subdomain: '',
+          path,
+          subdomain,
         });
 
         if (!selectedGateway) {
@@ -348,10 +310,11 @@ export const wayfinderFetch = ({
           selectedGateway: selectedGateway?.toString(),
         });
 
-        // route the request to the target gateway
-        const redirectUrl = await resolveWayfinderUrl({
-          originalUrl: url.toString(),
+        // construct the final gateway URL
+        const redirectUrl = constructGatewayUrl({
           selectedGateway,
+          subdomain,
+          path,
           logger,
         });
 
@@ -727,15 +690,26 @@ export class Wayfinder {
     });
 
     this.resolveUrl = async ({ originalUrl, logger = this.logger }) => {
+      // extract routing information from the original URL
+      const { subdomain, path } = extractRoutingInfo(originalUrl);
+
+      // if not an ar:// URL, return as-is
+      if (!originalUrl.startsWith('ar://')) {
+        return new URL(originalUrl);
+      }
+
       const selectedGateway = await this.routingSettings.strategy.selectGateway(
         {
           gateways: await this.gatewaysProvider.getGateways(),
+          path,
+          subdomain,
         },
       );
 
-      return resolveWayfinderUrl({
-        originalUrl,
+      return constructGatewayUrl({
         selectedGateway,
+        subdomain,
+        path,
         logger,
       });
     };

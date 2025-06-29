@@ -19,13 +19,10 @@ import { before, describe, it } from 'node:test';
 
 import { RandomRoutingStrategy } from './routing/random.js';
 import { StaticRoutingStrategy } from './routing/static.js';
-import { GatewaysProvider, WayfinderEvent } from './types.js';
+import { GatewaysProvider, WayfinderEvent, RoutingStrategy } from './types.js';
 import { HashVerificationStrategy } from './verification/hash-verifier.js';
-import {
-  Wayfinder,
-  WayfinderEmitter,
-  tapAndVerifyReadableStream,
-} from './wayfinder.js';
+import { Wayfinder, tapAndVerifyReadableStream } from './wayfinder.js';
+import { WayfinderEmitter } from './emitter.js';
 
 // TODO: replace with locally running gateway
 const gatewayUrl = 'permagate.io';
@@ -169,6 +166,7 @@ describe('Wayfinder', () => {
         },
         verificationSettings: {
           strategy: {
+            trustedGateways: [new URL(`http://${gatewayUrl}`)],
             verifyData: async () => {
               // do nothing
               return;
@@ -209,6 +207,7 @@ describe('Wayfinder', () => {
         },
         verificationSettings: {
           strategy: {
+            trustedGateways: [new URL(`http://${gatewayUrl}`)],
             verifyData: async () => {
               // do nothing
               return;
@@ -336,166 +335,7 @@ describe('Wayfinder', () => {
     });
   });
 
-  describe('tapAndVerifyReadableStream', () => {
-    describe('strict mode enabled', () => {
-      it('should duplicate the ReadableStream, verify the first and return the second if verification passes', async () => {
-        // create a simple readable
-        const chunks = [
-          Buffer.from('foo'),
-          Buffer.from('bar'),
-          Buffer.from('baz'),
-        ];
-        const contentLength = chunks.reduce((sum, c) => sum + c.length, 0);
-
-        // a stream that will emit chunks
-        const originalStream = new ReadableStream({
-          start(controller) {
-            for (const chunk of chunks) {
-              controller.enqueue(chunk);
-            }
-            controller.close();
-          },
-        });
-        let seen = Buffer.alloc(0);
-        const verifyData = async ({
-          data,
-        }: {
-          data: AsyncIterable<Uint8Array>;
-        }): Promise<void> => {
-          // verify the data
-          for await (const chunk of data) {
-            seen = Buffer.concat([seen, chunk]);
-          }
-          return;
-        };
-
-        const txId = 'test-tx-1';
-        const emitter = new WayfinderEmitter();
-        const events: any[] = [];
-        emitter.on('verification-progress', (e) =>
-          events.push({ type: 'verification-progress', ...e }),
-        );
-        emitter.on('verification-succeeded', (e) =>
-          events.push({ type: 'verification-succeeded', ...e }),
-        );
-
-        // tap with verification
-        const tapped = tapAndVerifyReadableStream({
-          originalStream,
-          contentLength,
-          verifyData,
-          txId,
-          emitter,
-          strict: true,
-        });
-
-        // read the stream
-        const out: Buffer[] = [];
-        for await (const chunk of tapped) {
-          out.push(chunk);
-        }
-
-        // assert the stream is the same
-        assert.strictEqual(
-          Buffer.concat(out).toString(),
-          Buffer.concat(chunks).toString(),
-          'The tapped stream should emit exactly the original data',
-        );
-
-        assert.ok(
-          events.find((e) => e.type === 'verification-progress'),
-          'Should emit at least one verification-progress',
-        );
-        assert.ok(
-          events.find(
-            (e) => e.type === 'verification-succeeded' && e.txId === txId,
-          ),
-          'Should emit at least one verification-succeeded',
-        );
-      });
-
-      it('should throw an error on the client stream if verification fails', async () => {
-        const chunks = [
-          Buffer.from('foo'),
-          Buffer.from('bar'),
-          Buffer.from('baz'),
-        ];
-        const contentLength = chunks.reduce((sum, c) => sum + c.length, 0);
-
-        // a stream that will emit chunks
-        const originalStream = new ReadableStream({
-          start(controller) {
-            for (const chunk of chunks) {
-              controller.enqueue(chunk);
-            }
-            controller.close();
-          },
-        });
-        const verifyData = async ({
-          txId,
-        }: {
-          txId: string;
-        }): Promise<void> => {
-          throw new Error('Verification failed for txId: ' + txId);
-        };
-
-        const txId = 'test-tx-1';
-        const emitter = new WayfinderEmitter();
-        const events: any[] = [];
-        emitter.on('verification-progress', (e) =>
-          events.push({ type: 'verification-progress', ...e }),
-        );
-        emitter.on('verification-failed', (e) =>
-          events.push({ type: 'verification-failed', ...e }),
-        );
-
-        // tap with verification (using strict mode)
-        const tapped = tapAndVerifyReadableStream({
-          originalStream,
-          contentLength,
-          verifyData,
-          txId,
-          emitter,
-          strict: true,
-        });
-
-        // read the stream and expect verification to fail
-        try {
-          const out: Buffer[] = [];
-          const reader = tapped.getReader();
-          while (true) {
-            try {
-              const { done, value } = await reader.read();
-              if (done) break;
-              out.push(Buffer.from(value));
-            } catch {
-              // This is expected - verification should fail
-              break;
-            }
-          }
-          // If we get here, verification didn't throw as expected
-          assert.fail('Should have thrown an error during verification');
-        } catch {
-          // Wait a bit for the event to be emitted
-          await new Promise((resolve) => setTimeout(resolve, 100));
-
-          // Now we should have the verification-failed event
-          assert.ok(events.length > 0, 'Should have emitted events');
-
-          // Check if one of them is verification-failed
-          const failedEvent = events.find(
-            (e) => e.type === 'verification-failed',
-          );
-          assert.ok(
-            failedEvent,
-            'Should emit at least one verification-failed event',
-          );
-        }
-      });
-    });
-  });
-
-  describe('URL resolution', () => {
+  describe('resolveUrl', () => {
     let wayfinder: Wayfinder;
     before(() => {
       wayfinder = new Wayfinder({
@@ -824,6 +664,361 @@ describe('Wayfinder', () => {
 
         assert.strictEqual(result.toString(), originalUrl);
       });
+    });
+  });
+
+  describe('request', () => {
+    describe('selectGateway is called with correct parameters', () => {
+      it('should call selectGateway with correct subdomain and path for ArNS names', async () => {
+        let capturedParams: {
+          gateways: URL[];
+          path?: string;
+          subdomain?: string;
+        } = { gateways: [] };
+
+        const mockRoutingStrategy: RoutingStrategy = {
+          selectGateway: async (params) => {
+            capturedParams = params;
+            return new URL(`http://${gatewayUrl}`);
+          },
+        };
+
+        const mockGatewaysProvider: GatewaysProvider = {
+          getGateways: async () => [new URL(`http://${gatewayUrl}`)],
+        };
+
+        const wayfinder = new Wayfinder({
+          gatewaysProvider: mockGatewaysProvider,
+          verificationSettings: { enabled: false },
+          routingSettings: { strategy: mockRoutingStrategy, events: {} },
+        });
+
+        // Mock global fetch to avoid network calls
+        const originalFetch = global.fetch;
+        global.fetch = async () => new Response('test', { status: 200 });
+
+        try {
+          await wayfinder.request('ar://myapp/dashboard/users');
+
+          assert.ok(capturedParams, 'selectGateway should have been called');
+          assert.strictEqual(
+            capturedParams?.subdomain,
+            'myapp',
+            'Should extract ArNS name as subdomain',
+          );
+          assert.strictEqual(
+            capturedParams?.path,
+            '/dashboard/users',
+            'Should extract remaining path',
+          );
+        } finally {
+          global.fetch = originalFetch;
+        }
+      });
+
+      it('should call selectGateway with correct subdomain and path for transaction IDs', async () => {
+        let capturedParams: {
+          gateways: URL[];
+          path?: string;
+          subdomain?: string;
+        } = { gateways: [] };
+
+        const mockRoutingStrategy: RoutingStrategy = {
+          selectGateway: async (params) => {
+            capturedParams = params;
+            return new URL(`http://${gatewayUrl}`);
+          },
+        };
+
+        const mockGatewaysProvider: GatewaysProvider = {
+          getGateways: async () => [new URL(`http://${gatewayUrl}`)],
+        };
+
+        const wayfinder = new Wayfinder({
+          gatewaysProvider: mockGatewaysProvider,
+          verificationSettings: { enabled: false },
+          routingSettings: { strategy: mockRoutingStrategy },
+        });
+
+        // Mock global fetch to avoid network calls
+        const originalFetch = global.fetch;
+        global.fetch = async () => new Response('test', { status: 200 });
+
+        const txId = 'c7wkwt6TKgcWJUfgvpJ5q5qi4DIZyJ1_TqhjXgURh0U';
+        const expectedSandbox =
+          'oo6cjqw6smvaofrfi7ql5etzvonkfybsdhej272ovbrv4birq5cq';
+
+        try {
+          await wayfinder.request(`ar://${txId}/path/to/app`);
+
+          assert.ok(capturedParams, 'selectGateway should have been called');
+          assert.strictEqual(
+            capturedParams?.subdomain,
+            expectedSandbox,
+            'Should extract sandbox as subdomain for transaction ID',
+          );
+          assert.strictEqual(
+            capturedParams?.path,
+            `/${txId}/path/to/app`,
+            'Should include transaction ID and path',
+          );
+        } finally {
+          global.fetch = originalFetch;
+        }
+      });
+
+      it('should call selectGateway with correct parameters for gateway endpoints', async () => {
+        let capturedParams: {
+          gateways: URL[];
+          path?: string;
+          subdomain?: string;
+        } = { gateways: [] };
+
+        const mockRoutingStrategy: RoutingStrategy = {
+          selectGateway: async (params) => {
+            capturedParams = params;
+            return new URL(`http://${gatewayUrl}`);
+          },
+        };
+
+        const mockGatewaysProvider: GatewaysProvider = {
+          getGateways: async () => [new URL(`http://${gatewayUrl}`)],
+        };
+
+        const wayfinder = new Wayfinder({
+          gatewaysProvider: mockGatewaysProvider,
+          verificationSettings: { enabled: false },
+          routingSettings: { strategy: mockRoutingStrategy },
+        });
+
+        // Mock global fetch to avoid network calls
+        const originalFetch = global.fetch;
+        global.fetch = async () => new Response('test', { status: 200 });
+
+        try {
+          await wayfinder.request('ar:///ar-io/info');
+
+          assert.ok(capturedParams, 'selectGateway should have been called');
+          assert.strictEqual(
+            capturedParams?.subdomain,
+            '',
+            'Should have empty subdomain for gateway endpoints',
+          );
+          assert.strictEqual(
+            capturedParams?.path,
+            '/ar-io/info',
+            'Should pass through gateway endpoint path',
+          );
+        } finally {
+          global.fetch = originalFetch;
+        }
+      });
+
+      it('should call selectGateway with correct parameters for ArNS names without paths', async () => {
+        let capturedParams: {
+          gateways: URL[];
+          path?: string;
+          subdomain?: string;
+        } = { gateways: [] };
+
+        const mockRoutingStrategy: RoutingStrategy = {
+          selectGateway: async (params) => {
+            capturedParams = params;
+            return new URL(`http://${gatewayUrl}`);
+          },
+        };
+
+        const mockGatewaysProvider: GatewaysProvider = {
+          getGateways: async () => [new URL(`http://${gatewayUrl}`)],
+        };
+
+        const wayfinder = new Wayfinder({
+          gatewaysProvider: mockGatewaysProvider,
+          verificationSettings: { enabled: false },
+          routingSettings: { strategy: mockRoutingStrategy },
+        });
+
+        // Mock global fetch to avoid network calls
+        const originalFetch = global.fetch;
+        global.fetch = async () => new Response('test', { status: 200 });
+
+        try {
+          await wayfinder.request('ar://myapp');
+
+          assert.ok(capturedParams, 'selectGateway should have been called');
+          assert.strictEqual(
+            capturedParams?.subdomain,
+            'myapp',
+            'Should extract ArNS name as subdomain',
+          );
+          assert.strictEqual(
+            capturedParams?.path,
+            '/',
+            'Should default to root path for ArNS names without paths',
+          );
+        } finally {
+          global.fetch = originalFetch;
+        }
+      });
+    });
+  });
+});
+
+describe('tapAndVerifyReadableStream', () => {
+  describe('strict mode enabled', () => {
+    it('should duplicate the ReadableStream, verify the first and return the second if verification passes', async () => {
+      // create a simple readable
+      const chunks = [
+        Buffer.from('foo'),
+        Buffer.from('bar'),
+        Buffer.from('baz'),
+      ];
+      const contentLength = chunks.reduce((sum, c) => sum + c.length, 0);
+
+      // a stream that will emit chunks
+      const originalStream = new ReadableStream({
+        start(controller) {
+          for (const chunk of chunks) {
+            controller.enqueue(chunk);
+          }
+          controller.close();
+        },
+      });
+      let seen = Buffer.alloc(0);
+      const verifyData = async ({
+        data,
+      }: {
+        data: AsyncIterable<Uint8Array>;
+      }): Promise<void> => {
+        // verify the data
+        for await (const chunk of data) {
+          seen = Buffer.concat([seen, chunk]);
+        }
+        return;
+      };
+
+      const txId = 'test-tx-1';
+      const emitter = new WayfinderEmitter();
+      const events: any[] = [];
+      emitter.on('verification-progress', (e) =>
+        events.push({ type: 'verification-progress', ...e }),
+      );
+      emitter.on('verification-succeeded', (e) =>
+        events.push({ type: 'verification-succeeded', ...e }),
+      );
+
+      // tap with verification
+      const tapped = tapAndVerifyReadableStream({
+        originalStream,
+        contentLength,
+        verifyData,
+        txId,
+        emitter,
+        strict: true,
+      });
+
+      // read the stream
+      const out: Buffer[] = [];
+      for await (const chunk of tapped) {
+        out.push(chunk);
+      }
+
+      // assert the stream is the same
+      assert.strictEqual(
+        Buffer.concat(out).toString(),
+        Buffer.concat(chunks).toString(),
+        'The tapped stream should emit exactly the original data',
+      );
+
+      assert.ok(
+        events.find((e) => e.type === 'verification-progress'),
+        'Should emit at least one verification-progress',
+      );
+      assert.ok(
+        events.find(
+          (e) => e.type === 'verification-succeeded' && e.txId === txId,
+        ),
+        'Should emit at least one verification-succeeded',
+      );
+    });
+
+    it('should throw an error on the client stream if verification fails', async () => {
+      const chunks = [
+        Buffer.from('foo'),
+        Buffer.from('bar'),
+        Buffer.from('baz'),
+      ];
+      const contentLength = chunks.reduce((sum, c) => sum + c.length, 0);
+
+      // a stream that will emit chunks
+      const originalStream = new ReadableStream({
+        start(controller) {
+          for (const chunk of chunks) {
+            controller.enqueue(chunk);
+          }
+          controller.close();
+        },
+      });
+      const verifyData = async ({
+        txId,
+      }: {
+        txId: string;
+      }): Promise<void> => {
+        throw new Error('Verification failed for txId: ' + txId);
+      };
+
+      const txId = 'test-tx-1';
+      const emitter = new WayfinderEmitter();
+      const events: any[] = [];
+      emitter.on('verification-progress', (e) =>
+        events.push({ type: 'verification-progress', ...e }),
+      );
+      emitter.on('verification-failed', (e) =>
+        events.push({ type: 'verification-failed', ...e }),
+      );
+
+      // tap with verification (using strict mode)
+      const tapped = tapAndVerifyReadableStream({
+        originalStream,
+        contentLength,
+        verifyData,
+        txId,
+        emitter,
+        strict: true,
+      });
+
+      // read the stream and expect verification to fail
+      try {
+        const out: Buffer[] = [];
+        const reader = tapped.getReader();
+        while (true) {
+          try {
+            const { done, value } = await reader.read();
+            if (done) break;
+            out.push(Buffer.from(value));
+          } catch {
+            // This is expected - verification should fail
+            break;
+          }
+        }
+        // If we get here, verification didn't throw as expected
+        assert.fail('Should have thrown an error during verification');
+      } catch {
+        // Wait a bit for the event to be emitted
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        // Now we should have the verification-failed event
+        assert.ok(events.length > 0, 'Should have emitted events');
+
+        // Check if one of them is verification-failed
+        const failedEvent = events.find(
+          (e) => e.type === 'verification-failed',
+        );
+        assert.ok(
+          failedEvent,
+          'Should emit at least one verification-failed event',
+        );
+      }
     });
   });
 });
