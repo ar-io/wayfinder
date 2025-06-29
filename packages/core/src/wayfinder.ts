@@ -105,8 +105,12 @@ export const constructGatewayUrl = ({
     gatewayUrl.hostname = `${subdomain}.${gatewayUrl.hostname}`;
   }
 
-  gatewayUrl.pathname = path;
+  const [pathname, rawQuery] = path.split('?');
+  gatewayUrl.pathname = pathname;
 
+  if (rawQuery) {
+    gatewayUrl.search = rawQuery;
+  }
   return gatewayUrl;
 };
 

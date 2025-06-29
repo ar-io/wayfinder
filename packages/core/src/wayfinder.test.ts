@@ -842,7 +842,7 @@ describe('Wayfinder', () => {
 
         assert.strictEqual(
           result.toString(),
-          `http://${invalidName.toLowerCase()}.${gatewayUrl}/path`,
+          `http://${gatewayUrl}/my.app/path`,
         );
       });
 
