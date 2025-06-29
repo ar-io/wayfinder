@@ -37,12 +37,12 @@ import {
   ATTR_SERVICE_VERSION,
 } from '@opentelemetry/semantic-conventions';
 import 'zone.js';
+import { WayfinderEmitter } from './emitter.js';
 import type {
   GatewaysProvider,
   TelemetrySettings,
   WayfinderOptions,
 } from './types.js';
-import { WayfinderEmitter } from './emitter.js';
 
 export const initTelemetry = ({
   enabled = false,
