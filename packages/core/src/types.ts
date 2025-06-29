@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import type { WayfinderEmitter } from './wayfinder.js';
+import type { WayfinderEmitter } from './emitter.js';
 
 // Types
 

@@ -18,6 +18,7 @@
 import { defaultLogger } from './logger.js';
 
 import { type Tracer, context, trace } from '@opentelemetry/api';
+import { WayfinderEmitter } from './emitter.js';
 import { FastestPingRoutingStrategy } from './routing/ping.js';
 import { initTelemetry, startRequestSpans } from './telemetry.js';
 import type {
@@ -30,7 +31,6 @@ import type {
 } from './types.js';
 import { sandboxFromId } from './utils/base64.js';
 import { HashVerificationStrategy } from './verification/hash-verifier.js';
-import { WayfinderEmitter } from './emitter.js';
 
 // known regexes for wayfinder urls
 export const arnsRegex = /^[a-z0-9_-]{1,51}$/;
@@ -68,10 +68,12 @@ export const extractRoutingInfo = (
     };
   }
 
-  if (arnsRegex.test(firstPart)) {
+  const firstPartLowerCase = firstPart.toLowerCase();
+
+  if (arnsRegex.test(firstPartLowerCase)) {
     // For ArNS names, use the name as subdomain
     return {
-      subdomain: firstPart,
+      subdomain: firstPartLowerCase,
       path: remainingPath || '/',
     };
   }
@@ -92,12 +94,10 @@ export const constructGatewayUrl = ({
   selectedGateway,
   subdomain,
   path,
-  logger,
 }: {
   selectedGateway: URL;
   subdomain: string;
   path: string;
-  logger?: Logger;
 }): URL => {
   const gatewayUrl = new URL(selectedGateway);
 
@@ -106,13 +106,6 @@ export const constructGatewayUrl = ({
   }
 
   gatewayUrl.pathname = path;
-
-  logger?.debug(`Constructed gateway URL`, {
-    selectedGateway: selectedGateway.toString(),
-    subdomain,
-    path,
-    resultUrl: gatewayUrl.toString(),
-  });
 
   return gatewayUrl;
 };
@@ -315,7 +308,6 @@ export const wayfinderFetch = ({
           selectedGateway,
           subdomain,
           path,
-          logger,
         });
 
         requestEmitter.emit('routing-succeeded', {
@@ -689,7 +681,7 @@ export class Wayfinder {
       tracer: this.tracer,
     });
 
-    this.resolveUrl = async ({ originalUrl, logger = this.logger }) => {
+    this.resolveUrl = async ({ originalUrl }) => {
       // extract routing information from the original URL
       const { subdomain, path } = extractRoutingInfo(originalUrl);
 
@@ -710,7 +702,6 @@ export class Wayfinder {
         selectedGateway,
         subdomain,
         path,
-        logger,
       });
     };
 

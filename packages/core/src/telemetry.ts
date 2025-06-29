@@ -42,7 +42,7 @@ import type {
   TelemetrySettings,
   WayfinderOptions,
 } from './types.js';
-import { WayfinderEmitter } from './wayfinder.js';
+import { WayfinderEmitter } from './emitter.js';
 
 export const initTelemetry = ({
   enabled = false,

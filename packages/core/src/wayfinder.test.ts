@@ -17,12 +17,12 @@
 import assert from 'node:assert';
 import { before, describe, it } from 'node:test';
 
+import { WayfinderEmitter } from './emitter.js';
 import { RandomRoutingStrategy } from './routing/random.js';
 import { StaticRoutingStrategy } from './routing/static.js';
-import { GatewaysProvider, WayfinderEvent, RoutingStrategy } from './types.js';
+import { GatewaysProvider, RoutingStrategy, WayfinderEvent } from './types.js';
 import { HashVerificationStrategy } from './verification/hash-verifier.js';
 import { Wayfinder, tapAndVerifyReadableStream } from './wayfinder.js';
-import { WayfinderEmitter } from './emitter.js';
 
 // TODO: replace with locally running gateway
 const gatewayUrl = 'permagate.io';
@@ -31,7 +31,7 @@ const stubbedGatewaysProvider: GatewaysProvider = {
 } as unknown as GatewaysProvider;
 
 describe('Wayfinder', () => {
-  describe('fetch', () => {
+  describe('request', () => {
     let wayfinder: Wayfinder;
     before(() => {
       wayfinder = new Wayfinder({
@@ -152,6 +152,200 @@ describe('Wayfinder', () => {
       ]);
       assert.strictEqual(response.status, nativeFetch.status);
       assert.strictEqual(response.statusText, nativeFetch.statusText);
+    });
+
+    describe('selectGateway is called with correct parameters', () => {
+      it('should call selectGateway with correct subdomain and path for ArNS names', async () => {
+        let capturedParams: {
+          gateways: URL[];
+          path?: string;
+          subdomain?: string;
+        } = { gateways: [] };
+
+        const mockRoutingStrategy: RoutingStrategy = {
+          selectGateway: async (params) => {
+            capturedParams = params;
+            return new URL(`http://${gatewayUrl}`);
+          },
+        };
+
+        const mockGatewaysProvider: GatewaysProvider = {
+          getGateways: async () => [new URL(`http://${gatewayUrl}`)],
+        };
+
+        const wayfinder = new Wayfinder({
+          gatewaysProvider: mockGatewaysProvider,
+          verificationSettings: { enabled: false },
+          routingSettings: { strategy: mockRoutingStrategy, events: {} },
+        });
+
+        // Mock global fetch to avoid network calls
+        const originalFetch = global.fetch;
+        global.fetch = async () => new Response('test', { status: 200 });
+
+        try {
+          await wayfinder.request('ar://myapp/dashboard/users');
+
+          assert.ok(capturedParams, 'selectGateway should have been called');
+          assert.strictEqual(
+            capturedParams?.subdomain,
+            'myapp',
+            'Should extract ArNS name as subdomain',
+          );
+          assert.strictEqual(
+            capturedParams?.path,
+            '/dashboard/users',
+            'Should extract remaining path',
+          );
+        } finally {
+          global.fetch = originalFetch;
+        }
+      });
+
+      it('should call selectGateway with correct subdomain and path for transaction IDs', async () => {
+        let capturedParams: {
+          gateways: URL[];
+          path?: string;
+          subdomain?: string;
+        } = { gateways: [] };
+
+        const mockRoutingStrategy: RoutingStrategy = {
+          selectGateway: async (params) => {
+            capturedParams = params;
+            return new URL(`http://${gatewayUrl}`);
+          },
+        };
+
+        const mockGatewaysProvider: GatewaysProvider = {
+          getGateways: async () => [new URL(`http://${gatewayUrl}`)],
+        };
+
+        const wayfinder = new Wayfinder({
+          gatewaysProvider: mockGatewaysProvider,
+          verificationSettings: { enabled: false },
+          routingSettings: { strategy: mockRoutingStrategy },
+        });
+
+        // Mock global fetch to avoid network calls
+        const originalFetch = global.fetch;
+        global.fetch = async () => new Response('test', { status: 200 });
+
+        const txId = 'c7wkwt6TKgcWJUfgvpJ5q5qi4DIZyJ1_TqhjXgURh0U';
+        const expectedSandbox =
+          'oo6cjqw6smvaofrfi7ql5etzvonkfybsdhej272ovbrv4birq5cq';
+
+        try {
+          await wayfinder.request(`ar://${txId}/path/to/app`);
+
+          assert.ok(capturedParams, 'selectGateway should have been called');
+          assert.strictEqual(
+            capturedParams?.subdomain,
+            expectedSandbox,
+            'Should extract sandbox as subdomain for transaction ID',
+          );
+          assert.strictEqual(
+            capturedParams?.path,
+            `/${txId}/path/to/app`,
+            'Should include transaction ID and path',
+          );
+        } finally {
+          global.fetch = originalFetch;
+        }
+      });
+
+      it('should call selectGateway with correct parameters for gateway endpoints', async () => {
+        let capturedParams: {
+          gateways: URL[];
+          path?: string;
+          subdomain?: string;
+        } = { gateways: [] };
+
+        const mockRoutingStrategy: RoutingStrategy = {
+          selectGateway: async (params) => {
+            capturedParams = params;
+            return new URL(`http://${gatewayUrl}`);
+          },
+        };
+
+        const mockGatewaysProvider: GatewaysProvider = {
+          getGateways: async () => [new URL(`http://${gatewayUrl}`)],
+        };
+
+        const wayfinder = new Wayfinder({
+          gatewaysProvider: mockGatewaysProvider,
+          verificationSettings: { enabled: false },
+          routingSettings: { strategy: mockRoutingStrategy },
+        });
+
+        // Mock global fetch to avoid network calls
+        const originalFetch = global.fetch;
+        global.fetch = async () => new Response('test', { status: 200 });
+
+        try {
+          await wayfinder.request('ar:///ar-io/info');
+
+          assert.ok(capturedParams, 'selectGateway should have been called');
+          assert.strictEqual(
+            capturedParams?.subdomain,
+            '',
+            'Should have empty subdomain for gateway endpoints',
+          );
+          assert.strictEqual(
+            capturedParams?.path,
+            '/ar-io/info',
+            'Should pass through gateway endpoint path',
+          );
+        } finally {
+          global.fetch = originalFetch;
+        }
+      });
+
+      it('should call selectGateway with correct parameters for ArNS names without paths', async () => {
+        let capturedParams: {
+          gateways: URL[];
+          path?: string;
+          subdomain?: string;
+        } = { gateways: [] };
+
+        const mockRoutingStrategy: RoutingStrategy = {
+          selectGateway: async (params) => {
+            capturedParams = params;
+            return new URL(`http://${gatewayUrl}`);
+          },
+        };
+
+        const mockGatewaysProvider: GatewaysProvider = {
+          getGateways: async () => [new URL(`http://${gatewayUrl}`)],
+        };
+
+        const wayfinder = new Wayfinder({
+          gatewaysProvider: mockGatewaysProvider,
+          verificationSettings: { enabled: false },
+          routingSettings: { strategy: mockRoutingStrategy },
+        });
+
+        // Mock global fetch to avoid network calls
+        const originalFetch = global.fetch;
+        global.fetch = async () => new Response('test', { status: 200 });
+
+        try {
+          await wayfinder.request('ar://myapp');
+
+          assert.ok(capturedParams, 'selectGateway should have been called');
+          assert.strictEqual(
+            capturedParams?.subdomain,
+            'myapp',
+            'Should extract ArNS name as subdomain',
+          );
+          assert.strictEqual(
+            capturedParams?.path,
+            '/',
+            'Should default to root path for ArNS names without paths',
+          );
+        } finally {
+          global.fetch = originalFetch;
+        }
+      });
     });
   });
 
@@ -633,7 +827,10 @@ describe('Wayfinder', () => {
           originalUrl,
         });
 
-        assert.strictEqual(result.toString(), originalUrl);
+        assert.strictEqual(
+          result.toString(),
+          `http://${gatewayUrl}/${tooLongName}/path`,
+        );
       });
 
       it('should fallback for names with invalid characters', async () => {
@@ -643,7 +840,10 @@ describe('Wayfinder', () => {
           originalUrl,
         });
 
-        assert.strictEqual(result.toString(), originalUrl);
+        assert.strictEqual(
+          result.toString(),
+          `http://${invalidName.toLowerCase()}.${gatewayUrl}/path`,
+        );
       });
 
       it('should fallback for names with uppercase letters', async () => {
@@ -653,212 +853,19 @@ describe('Wayfinder', () => {
           originalUrl,
         });
 
-        assert.strictEqual(result.toString(), originalUrl);
+        assert.strictEqual(
+          result.toString(),
+          `http://${upperCaseName.toLowerCase()}.${gatewayUrl}/path`,
+        );
       });
 
-      it('should fallback for empty names', async () => {
+      it('should fallback for empty path', async () => {
         const originalUrl = 'ar://';
         const result = await wayfinder.resolveUrl({
           originalUrl,
         });
 
-        assert.strictEqual(result.toString(), originalUrl);
-      });
-    });
-  });
-
-  describe('request', () => {
-    describe('selectGateway is called with correct parameters', () => {
-      it('should call selectGateway with correct subdomain and path for ArNS names', async () => {
-        let capturedParams: {
-          gateways: URL[];
-          path?: string;
-          subdomain?: string;
-        } = { gateways: [] };
-
-        const mockRoutingStrategy: RoutingStrategy = {
-          selectGateway: async (params) => {
-            capturedParams = params;
-            return new URL(`http://${gatewayUrl}`);
-          },
-        };
-
-        const mockGatewaysProvider: GatewaysProvider = {
-          getGateways: async () => [new URL(`http://${gatewayUrl}`)],
-        };
-
-        const wayfinder = new Wayfinder({
-          gatewaysProvider: mockGatewaysProvider,
-          verificationSettings: { enabled: false },
-          routingSettings: { strategy: mockRoutingStrategy, events: {} },
-        });
-
-        // Mock global fetch to avoid network calls
-        const originalFetch = global.fetch;
-        global.fetch = async () => new Response('test', { status: 200 });
-
-        try {
-          await wayfinder.request('ar://myapp/dashboard/users');
-
-          assert.ok(capturedParams, 'selectGateway should have been called');
-          assert.strictEqual(
-            capturedParams?.subdomain,
-            'myapp',
-            'Should extract ArNS name as subdomain',
-          );
-          assert.strictEqual(
-            capturedParams?.path,
-            '/dashboard/users',
-            'Should extract remaining path',
-          );
-        } finally {
-          global.fetch = originalFetch;
-        }
-      });
-
-      it('should call selectGateway with correct subdomain and path for transaction IDs', async () => {
-        let capturedParams: {
-          gateways: URL[];
-          path?: string;
-          subdomain?: string;
-        } = { gateways: [] };
-
-        const mockRoutingStrategy: RoutingStrategy = {
-          selectGateway: async (params) => {
-            capturedParams = params;
-            return new URL(`http://${gatewayUrl}`);
-          },
-        };
-
-        const mockGatewaysProvider: GatewaysProvider = {
-          getGateways: async () => [new URL(`http://${gatewayUrl}`)],
-        };
-
-        const wayfinder = new Wayfinder({
-          gatewaysProvider: mockGatewaysProvider,
-          verificationSettings: { enabled: false },
-          routingSettings: { strategy: mockRoutingStrategy },
-        });
-
-        // Mock global fetch to avoid network calls
-        const originalFetch = global.fetch;
-        global.fetch = async () => new Response('test', { status: 200 });
-
-        const txId = 'c7wkwt6TKgcWJUfgvpJ5q5qi4DIZyJ1_TqhjXgURh0U';
-        const expectedSandbox =
-          'oo6cjqw6smvaofrfi7ql5etzvonkfybsdhej272ovbrv4birq5cq';
-
-        try {
-          await wayfinder.request(`ar://${txId}/path/to/app`);
-
-          assert.ok(capturedParams, 'selectGateway should have been called');
-          assert.strictEqual(
-            capturedParams?.subdomain,
-            expectedSandbox,
-            'Should extract sandbox as subdomain for transaction ID',
-          );
-          assert.strictEqual(
-            capturedParams?.path,
-            `/${txId}/path/to/app`,
-            'Should include transaction ID and path',
-          );
-        } finally {
-          global.fetch = originalFetch;
-        }
-      });
-
-      it('should call selectGateway with correct parameters for gateway endpoints', async () => {
-        let capturedParams: {
-          gateways: URL[];
-          path?: string;
-          subdomain?: string;
-        } = { gateways: [] };
-
-        const mockRoutingStrategy: RoutingStrategy = {
-          selectGateway: async (params) => {
-            capturedParams = params;
-            return new URL(`http://${gatewayUrl}`);
-          },
-        };
-
-        const mockGatewaysProvider: GatewaysProvider = {
-          getGateways: async () => [new URL(`http://${gatewayUrl}`)],
-        };
-
-        const wayfinder = new Wayfinder({
-          gatewaysProvider: mockGatewaysProvider,
-          verificationSettings: { enabled: false },
-          routingSettings: { strategy: mockRoutingStrategy },
-        });
-
-        // Mock global fetch to avoid network calls
-        const originalFetch = global.fetch;
-        global.fetch = async () => new Response('test', { status: 200 });
-
-        try {
-          await wayfinder.request('ar:///ar-io/info');
-
-          assert.ok(capturedParams, 'selectGateway should have been called');
-          assert.strictEqual(
-            capturedParams?.subdomain,
-            '',
-            'Should have empty subdomain for gateway endpoints',
-          );
-          assert.strictEqual(
-            capturedParams?.path,
-            '/ar-io/info',
-            'Should pass through gateway endpoint path',
-          );
-        } finally {
-          global.fetch = originalFetch;
-        }
-      });
-
-      it('should call selectGateway with correct parameters for ArNS names without paths', async () => {
-        let capturedParams: {
-          gateways: URL[];
-          path?: string;
-          subdomain?: string;
-        } = { gateways: [] };
-
-        const mockRoutingStrategy: RoutingStrategy = {
-          selectGateway: async (params) => {
-            capturedParams = params;
-            return new URL(`http://${gatewayUrl}`);
-          },
-        };
-
-        const mockGatewaysProvider: GatewaysProvider = {
-          getGateways: async () => [new URL(`http://${gatewayUrl}`)],
-        };
-
-        const wayfinder = new Wayfinder({
-          gatewaysProvider: mockGatewaysProvider,
-          verificationSettings: { enabled: false },
-          routingSettings: { strategy: mockRoutingStrategy },
-        });
-
-        // Mock global fetch to avoid network calls
-        const originalFetch = global.fetch;
-        global.fetch = async () => new Response('test', { status: 200 });
-
-        try {
-          await wayfinder.request('ar://myapp');
-
-          assert.ok(capturedParams, 'selectGateway should have been called');
-          assert.strictEqual(
-            capturedParams?.subdomain,
-            'myapp',
-            'Should extract ArNS name as subdomain',
-          );
-          assert.strictEqual(
-            capturedParams?.path,
-            '/',
-            'Should default to root path for ArNS names without paths',
-          );
-        } finally {
-          global.fetch = originalFetch;
-        }
+        assert.strictEqual(result.toString(), `http://${gatewayUrl}/`);
       });
     });
   });
