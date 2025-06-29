@@ -68,12 +68,6 @@ jobs:
       - name: Push Tags
         if: steps.changesets.outputs.published == 'true'
         run: git push --follow-tags
-        
-      - name: Create GitHub Release
-        if: steps.changesets.outputs.published == 'true'
-        uses: ncipollo/release-action@v1
-        with:
-          generateReleaseNotes: true
-          prerelease: ${{ github.ref == 'refs/heads/alpha' }}
-          tag: ${{ steps.changesets.outputs.publishedPackages[0].name }}@${{ steps.changesets.outputs.publishedPackages[0].version }}
-          token: ${{ secrets.GITHUB_TOKEN }}
+
+  # TODO: send slack notification
+
