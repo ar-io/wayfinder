@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-core
 
+## 0.0.5-alpha.7
+
+### Patch Changes
+
+- 4f062ad: Fixed ArNS subdomain routing to properly handle multi-level gateway domains
+
 ## 0.0.5-alpha.6
 
 ### Patch Changes
