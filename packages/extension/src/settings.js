@@ -423,7 +423,6 @@ async function loadCurrentSettings() {
     }
 
     // Verification mode is now controlled by Verified Browsing toggle
-    // verificationEnabled is synced with verifiedBrowsing
     // verificationStrict is controlled by the strictness selector in Verified Browsing section
 
     // Load switches
@@ -955,17 +954,14 @@ async function handleVerificationModeChange(event) {
   // Update storage based on mode
   if (mode === 'off') {
     await chrome.storage.local.set({
-      verificationEnabled: false,
       verificationStrict: false,
     });
   } else if (mode === 'background') {
     await chrome.storage.local.set({
-      verificationEnabled: true,
       verificationStrict: false,
     });
   } else if (mode === 'strict') {
     await chrome.storage.local.set({
-      verificationEnabled: true,
       verificationStrict: true,
     });
   }
@@ -1612,10 +1608,9 @@ function setupVerifiedBrowsingUI() {
 async function handleVerifiedBrowsingToggle(event) {
   const enabled = event.target.checked;
 
-  // Sync both settings
+  // Update verified browsing setting
   await chrome.storage.local.set({
     verifiedBrowsing: enabled,
-    verificationEnabled: enabled,
   });
 
   // Reset wayfinder to apply new verification setting

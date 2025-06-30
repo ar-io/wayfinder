@@ -61,7 +61,6 @@ export const WAYFINDER_DEFAULTS = {
 
   // Verification Configuration (used when verified browsing is ON)
   verificationStrategy: 'hash',
-  verificationEnabled: false, // This gets synced with verifiedBrowsing in settings
 
   // Gateway Management
   gatewayCacheTTL: 3600, // 1 hour in seconds
@@ -132,7 +131,6 @@ export const VERIFICATION_STRATEGY_DEFAULTS = {
  * Background verification defaults
  */
 export const VERIFICATION_DEFAULTS = {
-  verificationEnabled: false,
   showVerificationToasts: false,
   enableVerificationCache: true,
 
@@ -172,7 +170,6 @@ export const UI_DEFAULTS = {
   // Verification indicators
   showVerificationIndicators: true,
   showVerificationToasts: false,
-  enableContentVerification: false, // Disabled to avoid extra requests (background verification still runs)
 
   // Error display
   showDetailedErrors: true,

@@ -184,17 +184,15 @@ async function processArUrl(
   // Check if verification indicators are enabled
   const storage = await new Promise<{
     showVerificationIndicators?: boolean;
-    enableContentVerification?: boolean;
   }>((resolve) => {
     chrome.storage.local.get(
-      ['showVerificationIndicators', 'enableContentVerification'],
+      ['showVerificationIndicators'],
       resolve,
     );
   });
 
   const showVerificationIndicators =
     storage.showVerificationIndicators !== false;
-  const enableContentVerification = storage.enableContentVerification === true; // Default to false
 
   // Add pending indicator if enabled
   if (showVerificationIndicators) {
@@ -224,7 +222,7 @@ async function processArUrl(
     // For transaction IDs, optionally verify in content script for immediate UI feedback
     // Note: This makes an additional request beyond the background verification
     const txIdMatch = arUrl.match(/^ar:\/\/([a-zA-Z0-9_-]{43})/);
-    if (txIdMatch && enableContentVerification) {
+    if (txIdMatch) {
       const txId = txIdMatch[1];
 
       try {
@@ -313,7 +311,7 @@ async function processArUrl(
         }
         logger.warn(`Verification error for ${txId}:`, verifyError);
       }
-    } else if (enableContentVerification) {
+    } else {
       // For ArNS names, just show as verified since we can't verify them directly
       if (showVerificationIndicators) {
         addVerificationIndicator(element, 'verified');

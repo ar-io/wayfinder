@@ -333,9 +333,9 @@ class VerifiedBrowser {
 
       // Show skip button after 5 seconds (only if verification is enabled)
       chrome.storage.local.get(
-        ['verificationEnabled'],
-        ({ verificationEnabled }) => {
-          if (verificationEnabled) {
+        ['verifiedBrowsing'],
+        ({ verifiedBrowsing }) => {
+          if (verifiedBrowsing) {
             this.skipButtonTimeout = setTimeout(() => {
               const skipDiv = document.getElementById('skipVerification');
               if (skipDiv && !this.verificationCancelled) {

@@ -695,13 +695,13 @@ chrome.webRequest.onHeadersReceived.addListener(
       }
 
       // Check if verification is enabled
-      const { verificationEnabled, showVerificationToasts } =
+      const { verifiedBrowsing, showVerificationToasts } =
         await chrome.storage.local.get([
-          'verificationEnabled',
+          'verifiedBrowsing',
           'showVerificationToasts',
         ]);
 
-      if (verificationEnabled && digest) {
+      if (verifiedBrowsing && digest) {
         // Perform digest verification in the background
         logger.info(
           '[VERIFY] Starting digest verification for:',
@@ -1702,13 +1702,13 @@ async function handleVerifiedContentFetch(arUrl: string): Promise<{
       );
 
       // Check if verification is enabled
-      const { verificationEnabled = false } = await chrome.storage.local.get([
-        'verificationEnabled',
+      const { verifiedBrowsing = false } = await chrome.storage.local.get([
+        'verifiedBrowsing',
       ]);
 
       // Wait for verification to complete if enabled
       let finalVerificationStatus = false;
-      if (verificationEnabled) {
+      if (verifiedBrowsing) {
         logger.info('[VERIFY] Waiting for verification to complete...');
         const verificationResult = await verificationPromise;
         const sizeMB = (contentLength / 1024 / 1024).toFixed(2);
@@ -1736,11 +1736,11 @@ async function handleVerifiedContentFetch(arUrl: string): Promise<{
       await verificationCache.set(arUrl, {
         verified: finalVerificationStatus,
         status: 'completed',
-        strategy: verificationEnabled ? 'wayfinder-request' : 'none',
+        strategy: verifiedBrowsing ? 'wayfinder-request' : 'none',
         timestamp: Date.now(),
         error:
           verificationError?.message ||
-          (!verificationEnabled ? 'Verification disabled' : undefined),
+          (!verifiedBrowsing ? 'Verification disabled' : undefined),
       });
 
       // Update stats

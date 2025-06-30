@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { VERIFICATION_DEFAULTS } from './config/defaults';
+import { VERIFICATION_DEFAULTS, WAYFINDER_DEFAULTS } from './config/defaults';
 import {
   cacheArNSResolution,
   useVerificationCacheWithArNS,
@@ -40,18 +40,18 @@ export async function verifyInBackgroundWithCache(
 
     // Get verification settings
     const {
-      verificationEnabled = VERIFICATION_DEFAULTS.verificationEnabled,
-      verificationStrict = VERIFICATION_DEFAULTS.verificationStrict,
+      verifiedBrowsing = WAYFINDER_DEFAULTS.verifiedBrowsing,
+      verificationStrict = WAYFINDER_DEFAULTS.verificationStrict,
       showVerificationToasts = VERIFICATION_DEFAULTS.showVerificationToasts,
       enableVerificationCache = VERIFICATION_DEFAULTS.enableVerificationCache,
     } = await chrome.storage.local.get([
-      'verificationEnabled',
+      'verifiedBrowsing',
       'verificationStrict',
       'showVerificationToasts',
       'enableVerificationCache',
     ]);
 
-    if (!verificationEnabled) {
+    if (!verifiedBrowsing) {
       logger.info('[SKIP] [VERIFY] Verification is disabled, skipping');
       return;
     }

@@ -34,7 +34,7 @@
   },
   "dependencies": {
     "@ar.io/sdk": "^3.5.0",
-    "@ar.io/wayfinder-core": "^0.0.5-alpha.6",
+    "@ar.io/wayfinder-core": "^0.0.5-alpha.7",
     "@permaweb/aoconnect": "0.0.69"
   }
 }

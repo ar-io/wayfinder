@@ -105,7 +105,7 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
     routingMethod = WAYFINDER_DEFAULTS.routingMethod,
     staticGateway = WAYFINDER_DEFAULTS.staticGateway,
     verificationStrategy = WAYFINDER_DEFAULTS.verificationStrategy,
-    verificationEnabled = WAYFINDER_DEFAULTS.verificationEnabled,
+    verifiedBrowsing = WAYFINDER_DEFAULTS.verifiedBrowsing,
     gatewayCacheTTL = WAYFINDER_DEFAULTS.gatewayCacheTTL,
     gatewaySortBy = WAYFINDER_DEFAULTS.gatewaySortBy,
     gatewaySortOrder = WAYFINDER_DEFAULTS.gatewaySortOrder,
@@ -115,7 +115,7 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
     'routingMethod',
     'staticGateway',
     'verificationStrategy',
-    'verificationEnabled',
+    'verifiedBrowsing',
     'gatewayCacheTTL',
     'gatewaySortBy',
     'gatewaySortOrder',
@@ -235,10 +235,10 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
   let verificationStrategyInstance: any | undefined;
 
   logger.info(
-    `[INIT] Verification configuration - enabled: ${verificationEnabled}, strategy: ${verificationStrategy}`,
+    `[INIT] Verification configuration - enabled: ${verifiedBrowsing}, strategy: ${verificationStrategy}`,
   );
 
-  if (verificationEnabled) {
+  if (verifiedBrowsing) {
     try {
       // Get trusted gateways configuration
       const {
@@ -358,8 +358,17 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
       }
 
       logger.info(`Verification enabled with ${verificationStrategy} strategy`);
+      
+      // Log trusted gateways for debugging
+      logger.info('[DEBUG] Trusted gateways for verification:', 
+        trustedGateways.map(g => g.toString())
+      );
     } catch (error) {
       logger.error('[ERROR] Failed to create verification strategy:', error);
+      logger.error('[ERROR] Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
       // Disable verification if we can't create the strategy
       verificationStrategyInstance = undefined;
       logger.warn(
@@ -381,32 +390,64 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
     }`,
   );
 
+  // DEBUG: Log the actual verification strategy instance
+  logger.info('[DEBUG] Verification strategy instance:', {
+    exists: !!verificationStrategyInstance,
+    type: typeof verificationStrategyInstance,
+    className: verificationStrategyInstance?.constructor?.name,
+    instance: verificationStrategyInstance
+  });
+
   // Create Wayfinder instance
-  const instance = new Wayfinder({
+  const wayfinderConfig = {
     logger,
     gatewaysProvider: gatewayProvider,
-    routingStrategy,
-    verificationStrategy: verificationStrategyInstance,
-    telemetrySettings: {
-      enabled: telemetryEnabled,
-      sampleRate: telemetrySampleRate,
-      service: 'wayfinder-extension',
-    },
-    events: {
-      onRoutingSucceeded: (event: any) => {
-        logger.info('[ROUTING] Routing succeeded:', event);
-      },
-      onVerificationSucceeded: (event: any) => {
-        logger.info('[SUCCESS] Verification succeeded:', event);
-      },
-      onVerificationFailed: (error: any) => {
-        logger.error('[ERROR] Verification failed:', error);
-      },
-      onVerificationProgress: (_event: any) => {
-        // Progress calculation removed - was only used for logging
+    routingSettings: {
+      strategy: routingStrategy,
+      events: {
+        onRoutingSucceeded: (event: any) => {
+          logger.info('[ROUTING] Routing succeeded:', event);
+        },
       },
     },
+    verificationSettings: verificationStrategyInstance ? {
+      enabled: true,
+      strategy: verificationStrategyInstance,
+      events: {
+        onVerificationSucceeded: (event: any) => {
+          logger.info('[SUCCESS] Verification succeeded:', event);
+        },
+        onVerificationFailed: (error: any) => {
+          logger.error('[ERROR] Verification failed:', error);
+        },
+        onVerificationProgress: (event: any) => {
+          logger.info('[PROGRESS] Verification progress:', {
+            txId: event.txId,
+            percentage: ((event.processedBytes / event.totalBytes) * 100).toFixed(1),
+            processedMB: (event.processedBytes / 1024 / 1024).toFixed(2),
+            totalMB: (event.totalBytes / 1024 / 1024).toFixed(2)
+          });
+        },
+      },
+    } : undefined,
+    // Note: telemetrySettings is not part of WayfinderOptions interface
+  };
+  
+  // Log the complete configuration being passed to Wayfinder
+  logger.info('[DEBUG] Complete Wayfinder configuration:', {
+    hasLogger: !!wayfinderConfig.logger,
+    hasGatewaysProvider: !!wayfinderConfig.gatewaysProvider,
+    hasRoutingSettings: !!wayfinderConfig.routingSettings,
+    routingStrategyType: wayfinderConfig.routingSettings?.strategy?.constructor?.name,
+    hasVerificationSettings: !!wayfinderConfig.verificationSettings,
+    verificationEnabled: wayfinderConfig.verificationSettings?.enabled,
+    verificationStrategyType: wayfinderConfig.verificationSettings?.strategy?.constructor?.name,
+    telemetryEnabled: wayfinderConfig.telemetrySettings?.enabled,
+    // Log the keys to see what's actually being passed
+    configKeys: Object.keys(wayfinderConfig),
   });
+  
+  const instance = new Wayfinder(wayfinderConfig);
 
   logger.info(
     `[INIT] Wayfinder instance initialized with verification: ${

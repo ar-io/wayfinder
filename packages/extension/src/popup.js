@@ -116,7 +116,6 @@ function setupEventHandlers() {
     // Save both settings to keep them in sync
     await chrome.storage.local.set({
       verifiedBrowsing: enabled,
-      verificationEnabled: enabled, // Sync with the internal verification setting
     });
 
     // Reset wayfinder to apply new verification setting

@@ -429,32 +429,13 @@ export function installVerificationHandler() {
 
   // Auto-verify on page load if configured
   window.addEventListener('load', async () => {
-    const { enableContentVerification, showVerificationToasts } =
+    const { showVerificationToasts } =
       await chrome.storage.local.get([
-        'enableContentVerification',
         'showVerificationToasts',
       ]);
 
-    if (enableContentVerification) {
-      // Check if this page was loaded via ar://
-      const isArweaveContent =
-        window.location.hostname.includes('arweave') ||
-        document.querySelector('meta[name="x-ar-io-digest"]') !== null;
-
-      if (isArweaveContent) {
-        const result = await verifyLoadedContent('text/html');
-
-        logger.info('[VERIFY] Page verification result:', result);
-
-        // Show toast if enabled
-        if (showVerificationToasts && result.confidence !== 'none') {
-          showVerificationToast(
-            `Content verification: ${result.confidence} confidence`,
-            result.verified ? 'info' : 'warning',
-          );
-        }
-      }
-    }
+    // Removed enableContentVerification check - verification happens in background
+    // Content verification is now handled by the background script
   });
 }
 
