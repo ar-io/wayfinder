@@ -430,7 +430,7 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
         },
       },
     } : undefined,
-    // Note: telemetrySettings is not part of WayfinderOptions interface
+    // Note: telemetrySettings shown in examples but not implemented in Wayfinder Core yet
   };
   
   // Log the complete configuration being passed to Wayfinder

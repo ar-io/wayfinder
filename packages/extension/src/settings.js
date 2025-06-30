@@ -158,20 +158,13 @@ function setupEventHandlers() {
       radio.addEventListener('change', handleVerificationStrategyChange);
     });
 
-  // Verification mode handlers
-  document
-    .querySelectorAll('input[name="verificationMode"]')
-    .forEach((radio) => {
-      radio.addEventListener('change', handleVerificationModeChange);
-    });
+  // Verification mode handlers removed - no longer used
 
   // Switches
   document
     .getElementById('showVerificationIndicators')
     ?.addEventListener('change', saveVerificationIndicators);
-  document
-    .getElementById('showVerificationToasts')
-    ?.addEventListener('change', saveVerificationToasts);
+  // Removed showVerificationToasts - digest verification has been removed
   document
     .getElementById('ensResolution')
     ?.addEventListener('change', saveEnsResolution);
@@ -335,24 +328,7 @@ function setupRoutingStrategyDetails() {
 }
 
 function setupVerificationModeExplanations() {
-  document
-    .querySelectorAll('input[name="verificationMode"]')
-    .forEach((radio) => {
-      radio.addEventListener('change', () => {
-        // Hide all descriptions
-        document.querySelectorAll('.mode-description').forEach((desc) => {
-          desc.style.display = 'none';
-        });
-
-        // Show selected description
-        const selectedDesc = document.querySelector(
-          `[data-mode="${radio.value}"]`,
-        );
-        if (selectedDesc) {
-          selectedDesc.style.display = 'block';
-        }
-      });
-    });
+  // Verification modes removed - no longer used
 }
 
 async function loadCurrentSettings() {
@@ -361,11 +337,11 @@ async function loadCurrentSettings() {
       'routingMethod',
       'staticGateway',
       'verificationStrategy',
-      'verificationStrict',
+      // 'verificationStrict', // Removed - no longer used
       'verifiedBrowsing',
       'verifiedBrowsingExceptions',
       'showVerificationIndicators',
-      'showVerificationToasts',
+      // 'showVerificationToasts', // Removed - digest verification removed
       'ensResolutionEnabled',
       'theme',
       'processId',
@@ -375,6 +351,8 @@ async function loadCurrentSettings() {
       'gatewaySortOrder',
       'gatewayCacheTTL',
       'advancedSettingsExpanded',
+      'telemetryEnabled',
+      'telemetrySampleRate',
     ]);
 
     // Load static gateway URL if set
@@ -434,11 +412,7 @@ async function loadCurrentSettings() {
       showIndicatorsEl.checked = showIndicators;
     }
 
-    const showToasts = settings.showVerificationToasts === true; // Default false to avoid spam
-    const showToastsEl = document.getElementById('showVerificationToasts');
-    if (showToastsEl) {
-      showToastsEl.checked = showToasts;
-    }
+    // Removed showVerificationToasts - digest verification has been removed
 
     const ensEnabled = settings.ensResolutionEnabled !== false;
     const ensEl = document.getElementById('ensResolution');
@@ -946,82 +920,16 @@ async function handleVerificationStrategyChange(event) {
   }
 }
 
-async function handleVerificationModeChange(event) {
-  if (!event.isTrusted) return; // Skip programmatic changes
-
-  const mode = event.target.value;
-
-  // Update storage based on mode
-  if (mode === 'off') {
-    await chrome.storage.local.set({
-      verificationStrict: false,
-    });
-  } else if (mode === 'background') {
-    await chrome.storage.local.set({
-      verificationStrict: false,
-    });
-  } else if (mode === 'strict') {
-    await chrome.storage.local.set({
-      verificationStrict: true,
-    });
-  }
-
-  // Update description
-  const descriptions = {
-    off: 'Verification is disabled - data will not be verified',
-    background:
-      'Verifies data in the background without blocking requests (recommended)',
-    strict:
-      'Blocks requests until verification completes - slower but more secure',
-  };
-
-  const descElement = document.getElementById('verificationModeDesc');
-  if (descElement) {
-    descElement.textContent = descriptions[mode] || descriptions.background;
-  }
-
-  // Show success feedback
-  const modeNames = {
-    off: 'Off',
-    background: 'Background (Non-blocking)',
-    strict: 'Strict (Blocking)',
-  };
-  showToast(`Verification mode changed to ${modeNames[mode]}`, 'success');
-
-  // Update current value display
-  const currentValueEl = document.getElementById('currentVerificationMode');
-  if (currentValueEl) {
-    currentValueEl.textContent = modeNames[mode].split(' ')[0]; // Just show "Off", "Background", or "Strict"
-  }
-
-  // Show/hide verification strategy options
-  const strategyWrapper = document.getElementById(
-    'verificationStrategyWrapper',
-  );
-  if (strategyWrapper) {
-    if (mode === 'off') {
-      strategyWrapper.classList.add('hidden');
-    } else {
-      strategyWrapper.classList.remove('hidden');
-    }
-  }
-
-  try {
-    await chrome.runtime.sendMessage({ message: 'resetWayfinder' });
-  } catch (error) {
-    console.error('Error updating verification mode:', error);
-  }
-}
+// Removed: handleVerificationModeChange function
+// Verification modes are no longer used - verification is controlled by the
+// 'verifiedBrowsing' toggle which enables/disables the verification viewer
 
 async function saveVerificationIndicators(event) {
   const enabled = event.target.checked;
   await chrome.storage.local.set({ showVerificationIndicators: enabled });
 }
 
-async function saveVerificationToasts(event) {
-  const enabled = event.target.checked;
-  await chrome.storage.local.set({ showVerificationToasts: enabled });
-}
+// Removed saveVerificationToasts - digest verification has been removed
 
 async function saveEnsResolution(event) {
   const enabled = event.target.checked;
@@ -1064,7 +972,7 @@ async function resetSettings() {
     await chrome.storage.local.remove([
       'routingMethod',
       'staticGateway',
-      'verificationMode',
+      // 'verificationMode', // Removed - no longer used
       'processId',
       'aoCuUrl',
       'theme',

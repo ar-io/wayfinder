@@ -26,10 +26,6 @@ import {
 import { EXTENSION_DEFAULTS, WAYFINDER_DEFAULTS } from './config/defaults';
 import { ARIO_MAINNET_PROCESS_ID, DEFAULT_AO_CU_URL } from './constants';
 import {
-  showVerificationToast,
-  verifyContentDigest,
-} from './digest-verification';
-import {
   isKnownGateway,
   normalizeGatewayFQDN,
   updateGatewayPerformance,
@@ -197,12 +193,10 @@ let arIO = ARIO.init({
     routingMethod,
     blacklistedGateways,
     ensResolutionEnabled,
-    verificationStrict: existingVerificationStrict,
   } = await chrome.storage.local.get([
     'routingMethod',
     'blacklistedGateways',
     'ensResolutionEnabled',
-    'verificationStrict',
   ]);
 
   if (routingMethod === undefined)
@@ -211,8 +205,7 @@ let arIO = ARIO.init({
     updates.blacklistedGateways = EXTENSION_DEFAULTS.blacklistedGateways;
   if (ensResolutionEnabled === undefined)
     updates.ensResolutionEnabled = EXTENSION_DEFAULTS.ensResolutionEnabled;
-  if (existingVerificationStrict === undefined)
-    updates.verificationStrict = WAYFINDER_DEFAULTS.verificationStrict;
+  // Removed verificationStrict - no longer used
 
   await chrome.storage.local.set(updates);
   logger.info('Initialized storage with defaults', updates);
@@ -694,75 +687,23 @@ chrome.webRequest.onHeadersReceived.addListener(
         }
       }
 
-      // Check if verification is enabled
-      const { verifiedBrowsing, showVerificationToasts } =
-        await chrome.storage.local.get([
-          'verifiedBrowsing',
-          'showVerificationToasts',
-        ]);
+      // Only cache ArNS resolution data if it exists and verified browsing is enabled
+      const { verifiedBrowsing = false } = await chrome.storage.local.get([
+        'verifiedBrowsing',
+      ]);
 
-      if (verifiedBrowsing && digest) {
-        // Perform digest verification in the background
-        logger.info(
-          '[VERIFY] Starting digest verification for:',
-          tabInfo.arUrl,
+      if (verifiedBrowsing && (dataId || arnsResolvedId)) {
+        const { verificationCache } = await import(
+          './utils/verification-cache'
         );
-
-        verifyContentDigest(tabInfo.arUrl, digest, dataId)
-          .then((result) => {
-            logger.info('[VERIFY] Digest verification completed:', {
-              verified: result.verified,
-              confidence: result.confidence,
-              matchingGateways: result.matchingGateways,
-              totalGateways: result.totalGateways,
-            });
-
-            // Update cache with verification result
-            const { verificationCache } = require('./utils/verification-cache');
-            verificationCache.set(tabInfo.arUrl, {
-              verified: result.verified,
-              actualDigest: digest || undefined,
-              status: 'completed',
-              strategy: 'digest-comparison',
-              verificationResult: result,
-              dataId: dataId || arnsResolvedId || undefined,
-              timestamp: Date.now(),
-            });
-
-            // Show toast if enabled
-            if (showVerificationToasts) {
-              showVerificationToast(details.tabId, result);
-            }
-
-            // Update stats
-            if (result.verified) {
-              updateDailyStats('verified');
-            } else if (result.confidence === 'none') {
-              updateDailyStats('failed');
-            }
-          })
-          .catch((error) => {
-            logger.error('[VERIFY] Digest verification error:', error);
-          });
-      } else {
-        // Only cache ArNS resolution data if it exists and verified browsing is enabled
-        const { verifiedBrowsing = false } = await chrome.storage.local.get([
-          'verifiedBrowsing',
-        ]);
-
-        if (verifiedBrowsing && (dataId || arnsResolvedId)) {
-          const { verificationCache } = await import(
-            './utils/verification-cache'
-          );
-          await verificationCache.set(tabInfo.arUrl, {
-            verified: false,
-            actualDigest: digest || undefined,
-            status: 'completed',
-            strategy: 'none',
-            dataId: dataId || arnsResolvedId || undefined,
-            timestamp: Date.now(),
-          });
-        }
+        await verificationCache.set(tabInfo.arUrl, {
+          verified: false,
+          actualDigest: digest || undefined,
+          status: 'completed',
+          strategy: 'none',
+          dataId: dataId || arnsResolvedId || undefined,
+          timestamp: Date.now(),
+        });
       }
 
       // Clean up
@@ -1125,21 +1066,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     return true; // Keep message channel open for async response
   }
 
-  // Handle verification mode updates
-  if (request.message === 'updateVerificationMode') {
-    (async () => {
-      try {
-        await chrome.storage.local.set({ verificationMode: request.mode });
-        // Reset Wayfinder instance to use new verification mode
-        resetWayfinderInstance();
-        sendResponse({ success: true });
-      } catch (error: any) {
-        logger.error('Error updating verification mode:', error);
-        sendResponse({ error: error?.message || 'Unknown error' });
-      }
-    })();
-    return true;
-  }
+  // Removed: updateVerificationMode handler - verification modes no longer used
 
   // Handle advanced settings updates
   if (request.message === 'updateAdvancedSettings') {

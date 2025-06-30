@@ -131,7 +131,6 @@ export const VERIFICATION_STRATEGY_DEFAULTS = {
  * Background verification defaults
  */
 export const VERIFICATION_DEFAULTS = {
-  showVerificationToasts: false,
   enableVerificationCache: true,
 
   // Verification timing
@@ -169,7 +168,6 @@ export const UI_DEFAULTS = {
 
   // Verification indicators
   showVerificationIndicators: true,
-  showVerificationToasts: false,
 
   // Error display
   showDetailedErrors: true,

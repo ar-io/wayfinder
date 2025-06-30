@@ -50,38 +50,34 @@ function showVerificationToast(
   message: string,
   type: 'success' | 'error' | 'info' = 'info',
 ) {
-  // Check if verification toasts are enabled (avoid spam)
-  chrome.storage.local
-    .get(['showVerificationToasts'])
-    .then(({ showVerificationToasts = false }) => {
-      if (!showVerificationToasts) return;
+  // Always show toasts when user clicks on verification indicators
+  // (removed showVerificationToasts check since digest verification is removed)
 
-      const toast = document.createElement('div');
-      toast.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
-      color: white;
-      padding: 12px 16px;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 500;
-      z-index: 10000;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      max-width: 300px;
-      word-break: break-word;
-    `;
-      toast.textContent = message;
+  const toast = document.createElement('div');
+  toast.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
+    color: white;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 10000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    max-width: 300px;
+    word-break: break-word;
+  `;
+  toast.textContent = message;
 
-      document.body.appendChild(toast);
+  document.body.appendChild(toast);
 
-      setTimeout(() => {
-        if (toast.parentNode) {
-          toast.parentNode.removeChild(toast);
-        }
-      }, 3000);
-    });
+  setTimeout(() => {
+    if (toast.parentNode) {
+      toast.parentNode.removeChild(toast);
+    }
+  }, 3000);
 }
 
 // Enhanced content script with verification status indicators
