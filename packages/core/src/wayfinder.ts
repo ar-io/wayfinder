@@ -28,6 +28,8 @@ import type {
   VerificationStrategy,
   WayfinderFetch,
   WayfinderOptions,
+  WayfinderURL,
+  WayfinderURLParams,
 } from './types.js';
 import { sandboxFromId } from './utils/base64.js';
 import { HashVerificationStrategy } from './verification/hash-verifier.js';
@@ -48,6 +50,44 @@ export const wayfinderRequestHeaders = ({
 // known regexes for wayfinder urls
 export const arnsRegex = /^[a-z0-9_-]{1,51}$/;
 export const txIdRegex = /^[A-Za-z0-9_-]{43}$/;
+
+/**
+ * Parses the original URL from the params and returns a WayfinderURL (e.g. ar://<txId>)
+ * @param params - The params to parse
+ * @returns The WayfinderURL
+ */
+export const createWayfinderUrl = (params: WayfinderURLParams): WayfinderURL => {
+  // only allow one of the params to be provided
+  if (Object.keys(params).length !== 1) {
+    throw new Error('Invalid URL params, only one of the following is allowed: originalUrl, wayfinderUrl, txId, arnsName');
+  }
+
+  let wayfinderUrl: WayfinderURL;
+  if ('originalUrl' in params) {
+    // for backwards compatibility, if the original url is already a wayfinder url, return it as-is
+    if (params.originalUrl.startsWith('ar://')) {
+      return params.originalUrl as WayfinderURL;
+    }
+    // parse out old urls to arweave.net and arweave.dev, e.g. put it into a URL and get the path
+    const url = new URL(params.originalUrl);
+    // hard coded for now, but can extend to other hosts
+    if (url.hostname.toLowerCase().includes('arweave.net') || url.hostname.toLowerCase().includes('arweave.dev')) {
+      wayfinderUrl = `ar://${url.pathname.startsWith('/') ? url.pathname.slice(1) : url.pathname}`;
+    } else {
+      throw new Error('Invalid URL');
+    }
+  } else if ('wayfinderUrl' in params) {
+    wayfinderUrl = params.wayfinderUrl;
+  } else if ('txId' in params) {
+    wayfinderUrl = `ar://${params.txId}`;
+  } else if ('arnsName' in params) {
+    wayfinderUrl = `ar://${params.arnsName}`;
+  } else {
+    throw new Error('Invalid URL params');
+  }
+
+  return wayfinderUrl;
+};
 
 /**
  * Extracts subdomain and path information from an ar:// URL for routing purposes
@@ -529,9 +569,10 @@ export class Wayfinder {
   protected tracer?: Tracer;
 
   /**
-   * A helper function that resolves the redirect url for ar:// requests to a target gateway.
+   * A helper function that resolves a provided url to a target gateway.
    *
-   * Note: no verification is done when resolving an ar://<path> url to a wayfinder route.
+   * Note: no verification is done when calling this function.
+   * It just generates the redirect url based on the routing strategy.
    * In order to verify the data, you must use the `request` function or request the data and
    * verify it yourself via the `verifyData` function.
    *
@@ -539,14 +580,28 @@ export class Wayfinder {
    * const { resolveUrl } = new Wayfinder();
    *
    * // returns the redirected URL based on the routing strategy and the original url
-   * const redirectUrl = await resolveUrl({ originalUrl: 'ar://example' });
+   * const redirectUrl = await resolveUrl({
+   *   originalUrl: 'https://arweave.net/<txId>',
+   * });
+   * 
+   * // returns the redirected URL based on the routing strategy and the provided arns name
+   * const redirectUrl = await resolveUrl({
+   *   arnsName: 'ardrive',
+   * });
+   * 
+   * // returns the redirected URL based on the routing strategy and the provided wayfinder url
+   * const redirectUrl = await resolveUrl({
+   *   wayfinderUrl: 'ar://1234567890',
+   * });
+   * 
+   * // returns the redirected URL based on the routing strategy and the provided txId
+   * const redirectUrl = await resolveUrl({
+   *   txId: '1234567890',
+   * });
    *
    * window.open(redirectUrl.toString(), '_blank');
    */
-  public readonly resolveUrl: (params: {
-    originalUrl: string;
-    logger?: Logger;
-  }) => Promise<URL>;
+  public readonly resolveUrl: (params: WayfinderURLParams) => Promise<URL>;
 
   /**
    * A wrapped fetch function that supports ar:// protocol. If a verification strategy is provided,
@@ -705,14 +760,11 @@ export class Wayfinder {
       tracer: this.tracer,
     });
 
-    this.resolveUrl = async ({ originalUrl }) => {
-      // extract routing information from the original URL
-      const { subdomain, path } = extractRoutingInfo(originalUrl);
+    this.resolveUrl = async (params: WayfinderURLParams) => {
+      const wayfinderUrl = createWayfinderUrl(params);
 
-      // if not an ar:// URL, return as-is
-      if (!originalUrl.startsWith('ar://')) {
-        return new URL(originalUrl);
-      }
+      // extract routing information from the original URL
+      const { subdomain, path } = extractRoutingInfo(wayfinderUrl);
 
       const selectedGateway = await this.routingSettings.strategy.selectGateway(
         {

@@ -86,6 +86,22 @@ export interface WayfinderEventArgs {
   parentEmitter?: WayfinderEmitter;
 }
 
+export type WayfinderURL = `ar://${string}`;
+
+export type WayfinderURLParams =
+  | {
+      originalUrl: string; // e.g. https://arweave.net/<txId>
+    }
+  | {
+      wayfinderUrl: WayfinderURL; // e.g. ar://<txId>
+    }
+  | {
+      txId: string; // e.g. <txId>
+    }
+  | {
+      arnsName: string; // e.g. <arnsName>
+    };
+
 /**
  * Configuration options for the Wayfinder
  */
