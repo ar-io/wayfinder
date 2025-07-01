@@ -43,6 +43,7 @@ import type {
   TelemetrySettings,
   WayfinderOptions,
 } from './types.js';
+import { WAYFINDER_CORE_VERSION } from './version.js';
 
 export const initTelemetry = ({
   enabled = false,
@@ -57,7 +58,7 @@ export const initTelemetry = ({
     url: exporterUrl,
     headers: {
       'x-honeycomb-team': apiKey,
-      'x-honeycomb-dataset': 'wayfinder-dev',
+      'x-honeycomb-dataset': 'wayfinder-core',
     },
   });
 
@@ -66,7 +67,7 @@ export const initTelemetry = ({
   const sampler = new TraceIdRatioBasedSampler(sampleRate);
   const resource = resourceFromAttributes({
     [ATTR_SERVICE_NAME]: 'wayfinder-core',
-    [ATTR_SERVICE_VERSION]: 'v0.0.5-alpha.7', // hard coded for now as importing JSON breaks wayfinder-react
+    [ATTR_SERVICE_VERSION]: WAYFINDER_CORE_VERSION,
   });
 
   const provider = isBrowser

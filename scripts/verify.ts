@@ -116,7 +116,6 @@ async function main() {
       telemetrySettings: {
         enabled: true,
         sampleRate: 1,
-        serviceName: 'verify-script',
       },
       verificationSettings: {
         enabled: true,

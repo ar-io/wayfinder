@@ -32,6 +32,19 @@ import type {
 import { sandboxFromId } from './utils/base64.js';
 import { HashVerificationStrategy } from './verification/hash-verifier.js';
 
+// headers
+export const wayfinderRequestHeaders = ({
+  traceId,
+}: {
+  traceId?: string;
+}) => {
+  return {
+    'x-ar-io-component': 'wayfinder',
+    // TODO: add the version to the header
+    ...(traceId ? { 'x-ar-io-trace-id': traceId } : {}),
+  };
+};
+
 // known regexes for wayfinder urls
 export const arnsRegex = /^[a-z0-9_-]{1,51}$/;
 export const txIdRegex = /^[A-Za-z0-9_-]{43}$/;
@@ -338,6 +351,13 @@ export const wayfinderFetch = ({
           // enforce CORS given we're likely going to a different origin, but always allow the client to override
           redirect: 'follow',
           mode: 'cors',
+          headers: {
+            // add wayfinder headers, but allow the client to override
+            ...wayfinderRequestHeaders({
+              traceId: requestSpan?.spanContext().traceId,
+            }),
+            ...restInit.headers,
+          },
           ...restInit,
         });
 
