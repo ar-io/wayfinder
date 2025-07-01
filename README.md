@@ -1,58 +1,138 @@
-# What is it?
+# Wayfinder
 
-WayFinder (alpha) is a simple, open source, Google Chrome extension that intelligently routes users to optimal AR.IO gateways, ensuring streamlined access to the permaweb on Arweave.
+Wayfinder is a set of tools and libraries that enable decentralized and cryptographically verified access to data stored on Arweave via the [AR.IO Network](https://ar.io).
 
-# Who is it built for?
+## Packages
 
-- Anyone who wants to browse the Permaweb. Since no wallet is needed, the user does not have to have ever touched tokens or even uploaded data.
-- Developers who want to integrate ar:// protocol. Wayfinder shows how the ar:// protocol could be leveraged along with how to discover gateways on the ar.io network.
+This monorepo contains the following packages:
 
-# MVP Features
+- **[@ar.io/wayfinder-core](./packages/core)**: Core JavaScript library for the Wayfinder routing and verification protocol (ALPHA)
+- **[@ar.io/wayfinder-react](./packages/react)**: React components for Wayfinder, including Hooks and Context provider (ALPHA)
+- **[@ar.io/wayfinder-extension](./packages/extension)**: Chrome extension for Wayfinder (ALPHA)
+- **[@ar.io/wayfinder-cli](./packages/cli)**: CLI for interacting with Wayfinder in the terminal - COMING SOON
 
-- ar:// routing in the browser search bar and within pages that use ar:// hyperlinks, images, video, audio and embedded iframes, objects
-- Automatically routes ArNS names and Arweave Transaction IDs to an available gateway.
-- DNS TXT Record Redirection: Uses DNS TXT records to link Arweave transaction IDs with domains, thus offering a gasless, secure, and user-friendly method to navigate the permaweb with familiar URLs.
-- Algorithmic Gateway Selection: Utilizes basic algorithm to route users through the most optimal gateway.
-- Gateway Discovery: Synchronizes the AR.IO Gateway Address registry providing up to date gateway selection.
-- Static Gateway Configuration: Allows advanced users to pin their sessions to a specific gateway.
-- Continuous Gateway Health Checks: Monitors the health of gateways, by checking if they are online or offline.
-- Usage History: Logs gateway accesses, providing detailed metrics including timestamps and accessed URLs, along with referencing the resolved Arweave transaction ID served by the gateway.
-- UI Theming: Offers both light and dark themes with basic UI/UX.
-- Privacy-Preserving Design: Zero personal data logging, upholding user anonymity.
-- Open Source: The community can verify the code and contribute to the extension’s success.
+## What is it?
 
-# Want to learn more?
+Wayfinder is a simple, open-source client-side routing and verification protocol for the permaweb. It leverages the [AR.IO Network](https://ar.io) to route users to the most optimal gateway for a given request.
 
-Join our discord for more information about WayFinder or how to contribute. https://discord.gg/zAZ8p9ARqC
+## Who is it for?
 
-## Developers
+- **Builders** who need reliable, decentralized access to Arweave data through the powerful [AR.IO Network](https://ar.io)
+- **Browsers** who demand complete control over their permaweb journey with customizable gateways and robust verification settings for enhanced security and reliability
+- **Operators** who power the [AR.IO Network](https://ar.io) and want to earn rewards<sup>*</sup> for serving wayfinder traffic to the growing permaweb ecosystem
 
-### Requirements
+## Contributing
 
-- `node` - v18+
-- `yarn` - v1.4
+1. Branch from `alpha`
+2. Create a new branch for your changes (e.g. `feat/my-feature`)
+3. Make your changes on your branch, push them to your branch
+4. As you make commits/changes or once you're ready to release, create a changeset describing your changes via `npx changeset`.
+5. Follow the prompts to select the packages that are affected by your changes.
+6. Add and commit the changeset to your branch
+7. Request review from a maintainer, and once approved, merge your changes into the `alpha` branch
+8. A release PR will be automatically created with all pending changesets to the `alpha` branch
+9. The maintainer will review the PR and merge it into `alpha`, which will trigger the automated release process using all pending changesets
 
-### Dependencies
+## Releases
 
-Dependencies should be installed using [Yarn]
+This project uses [Changesets](https://github.com/changesets/changesets) to manage versioning and package releases.
 
-```bash
-yarn
-```
+### Creating a Changeset
 
-### Build
-
-The extension uses [Webpack] to bundle extension files into minimized javascript.
+To create a changeset when making changes:
 
 ```bash
-yarn build
+npx changeset
 ```
 
-### Loading into Chrome
+This will guide you through the process of documenting your changes and selecting which packages are affected. Changesets will be used during the release process to update package versions and generate changelogs.
 
-To load the bundled app as an extension in Chrome:
+### Automated Releases
 
-1. Run `yarn build` to create a fresh `dist` directory
-1. Navigate to `Manage Extensions`
-1. Click `Load unpacked`
-1. Select the `dist` directory and hit `Load`
+This repository is configured with GitHub Actions workflows that automate the release process:
+
+- **Main Branch**: When changes are merged to `main`, a standard release is created
+- **Alpha Branch**: When changes are merged to `alpha`, a prerelease (alpha tagged) is created
+
+The workflow automatically:
+1. Determines whether to create a prerelease or standard release based on the branch
+2. Versions packages using changesets
+3. Publishes to npm
+4. Creates GitHub releases
+5. Pushes tags back to the repository
+
+To use the automated process:
+1. Create changesets for your changes
+2. Push your changes to a feature branch
+3. Create a pull request to `alpha` (for prereleases) or `main` (for standard releases)
+4. When the PR is merged, the release will be automatically created
+
+
+### Manual Release Process
+
+If you need to release manually, follow these steps:
+
+#### Alpha Releases
+
+To release a new alpha version:
+
+```bash
+npx changeset version
+```
+
+3. Review the version changes and changelogs
+4. Commit the changes:
+
+```bash
+git add .
+git commit -m "chore(release): version packages"
+```
+
+5. Publish the packages to npm:
+
+```bash
+npm run build
+npx changeset publish
+```
+
+6. Push the changes and tags:
+
+```bash
+git push origin main --follow-tags
+```
+
+#### Prerelease Mode
+
+For prerelease versions (e.g., beta, alpha):
+
+1. Enter prerelease mode specifying the tag:
+
+```bash
+npx changeset pre enter beta
+```
+
+2. Create changesets as normal:
+
+```bash
+npx changeset
+```
+
+3. Version and publish as normal:
+
+```bash
+npx changeset version
+# Review changes
+git add .
+git commit -m "chore(release): prerelease version packages"
+npm run build
+npx changeset publish
+git push origin main --follow-tags
+```
+
+4. Exit prerelease mode when ready for a stable release:
+
+```bash
+npx changeset pre exit
+```
+
+5. Follow the normal release process for the stable version.

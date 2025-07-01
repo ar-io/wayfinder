@@ -9,6 +9,6 @@
     "sourceMap": true,
     "baseUrl": "."
   },
-  "include": ["packages/**/*.ts", "packages/**/*.tsx", "scripts/**/*.ts"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["node_modules"]
 }

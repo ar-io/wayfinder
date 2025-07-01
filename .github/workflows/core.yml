@@ -1,0 +1,72 @@
+name: Core Library
+
+on:
+  push:
+    branches: [ main, alpha ]
+    paths:
+      - 'packages/core/**'
+      - '.github/workflows/core.yml'
+      - 'package.json'
+  pull_request:
+    branches: [ main, alpha ]
+    paths:
+      - 'packages/core/**'
+      - '.github/workflows/core.yml'
+      - 'package.json'
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version-file: '.nvmrc'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm install --frozen-lockfile
+
+    - name: Lint
+      run: npm run lint:check -w @ar.io/wayfinder-core
+
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version-file: '.nvmrc'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm install --frozen-lockfile
+
+    - name: Test
+      run: npm run test:unit -w @ar.io/wayfinder-core
+
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version-file: '.nvmrc'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm install --frozen-lockfile
+
+    - name: Build core library
+      run: npm run build -w @ar.io/wayfinder-core
+      
+    # TODO: Upload artifacts and use changeset for publishing new versions

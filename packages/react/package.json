@@ -1,0 +1,45 @@
+{
+  "name": "@ar.io/wayfinder-react",
+  "version": "0.0.5-alpha.10",
+  "description": "React components for WayFinder",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": ["dist", "package.json", "README.md", "LICENSE"],
+  "author": {
+    "name": "Permanent Data Solutions Inc",
+    "email": "info@ar.io",
+    "website": "https://ar.io"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ar-io/wayfinder.git"
+  },
+  "scripts": {
+    "build": "tsc",
+    "clean": "rimraf dist",
+    "test": "tsx --test 'src/**/*.test.ts'",
+    "lint:fix": "biome check --write --unsafe",
+    "lint:check": "biome check --unsafe",
+    "format:fix": "biome format --write",
+    "format:check": "biome format"
+  },
+  "dependencies": {
+    "@ar.io/wayfinder-core": "1.0.0-alpha.8",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  }
+}

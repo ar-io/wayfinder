@@ -1,0 +1,46 @@
+name: Chrome Extension
+
+on:
+  push:
+    branches: [ main, alpha ]
+    paths:
+      - 'packages/extension/**'
+      - 'packages/core/**'
+      - '.github/workflows/extension.yml'
+      - 'package.json'
+  pull_request:
+    branches: [ main, alpha ]
+    paths:
+      - 'packages/extension/**'
+      - 'packages/core/**'
+      - '.github/workflows/extension.yml'
+      - 'package.json'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version-file: '.nvmrc'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm install --frozen-lockfile
+
+    - name: Lint
+      run: npm run lint:check -w @ar.io/wayfinder-extension
+      
+    - name: Build core library first
+      run: npm run build -w @ar.io/wayfinder-core
+      
+    - name: Build extension
+      run: npm run build -w @ar.io/wayfinder-extension
+      
+    # TODO: Upload artifacts and use changeset for publishing new versions
+
+

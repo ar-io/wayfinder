@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AR.IO WayFinder</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="assets/css/styles.css" />
+    <script type="module" src="popup.js"></script>
+  </head>
+  <body>
+    <div id="aboutSection">
+      <h2>About the ar:// protocol</h2>
+      <p>
+        WayFinder uses the <code>ar://</code> protocol. This is a unique web
+        address schema powered by the
+        <a href="https://ar.io" target="_blank" id="arioLink">AR.IO Network</a>
+        and used to access content stored on the Arweave Permaweb. By using this
+        protocol, users can directly navigate to and interact with decentralized
+        web pages and applications via their
+        <a href="https://ar.io/arns" target="_blank" id="arioLink">ArNS Name</a>
+        or Arweave transaction ID.
+      </p>
+    </div>
+    <div id="gatewayAddressRegistrySection">
+      <h2 id="gatewayListTitle" style="display: none">
+        Gateway Address Registry
+      </h2>
+      <div id="gatewayListHeader" style="display: none">
+        <span class="active-gateways"
+          >Active: <span id="activeGatewayCount">0</span></span
+        >
+        <span class="total-gateways"
+          >Total: <span id="totalGatewayCount">0</span></span
+        >
+        <span class="refresh-gateways"
+          ><span id="refreshGateways"
+            ><a
+              href="#"
+              id="refreshIcon"
+              title="Refresh the gateway address registry"
+              >↺</a
+            ></span
+          ></span
+        >
+      </div>
+      <ul id="gatewayList" style="display: none">
+        <li class="gateway-header">
+          <span class="gateway-url">Gateway</span>
+          <span class="online-status">Status</span>
+          <span class="response-time">Response Time</span>
+        </li>
+      </ul>
+    </div>
+    <h2 id="historyListTitle" style="display: none">Usage History</h2>
+    <ul id="historyList" style="display: none"></ul>
+    <h2 id="settingsListTitle" style="display: none">Settings</h2>
+    <ul id="settingsList" style="display: none"></ul>
+    <div id="settingsSection" style="display: none">
+      <div class="setting">
+        <label for="themeToggle" title="Switch between light and dark themes."
+          >Theme:</label
+        >
+        <select id="themeToggle">
+          <option value="dark">Dark Mode</option>
+          <option value="light">Light Mode</option>
+        </select>
+      </div>
+      <div class="setting">
+        <label for="ensResolutionToggle" title="Enable or disable experimental ENS name resolution.">
+          Experimental ENS Resolution:
+        </label>
+        <label class="switch">
+          <input type="checkbox" id="ensResolutionToggle">
+          <span class="slider round"></span>
+        </label>
+      </div>
+      
+      <div class="setting">
+        <label
+          for="routingToggle"
+          title="Switch the ar:// routing protocol Wayfinder uses."
+          >Routing Method:</label
+        >
+        <select id="routingToggle">
+          <option
+            value="optimalGateway"
+            title="Route to the most optimal gateway based on onchain and offchain performance indicators."
+          >
+            Most Optimal Gateway
+          </option>
+          <option
+            value="topFiveStake"
+            title="Route to one of the top 5 staked gateways."
+          >
+            Random Top 5 Stake
+          </option>
+          <option
+            value="weightedOnchainPerformance"
+            title="Route to a gateway based on its onchain performance."
+          >
+            Weighted Onchain Performance
+          </option>
+          <option
+            value="stakeRandom"
+            title="Route to gateways based on a weighted list by stake."
+          >
+            Stake-weighted Random
+          </option>
+          <option
+            value="highestStake"
+            title="Route to the gateway with the highest stake."
+          >
+            Highest Stake
+          </option>
+          <option value="random" title="Route to a random gateway.">
+            Random
+          </option>
+        </select>
+      </div>
+      <div class="setting">
+        <label
+          for="staticGateway"
+          title="Route all ar:// requests to a single, static gateway"
+          >Static Gateway:</label
+        >
+        <input
+          type="text"
+          id="staticGateway"
+          placeholder="e.g. https://ar-io.dev"
+        />
+        <button id="saveStaticGateway">✔</button>
+      </div>
+      <div class="setting">
+        <label
+          for="arIOProcessId"
+          title="Configure a different AR.IO Process ID for the Gateway Address Registry."
+          >AR.IO Process ID:</label
+        >
+        <input
+          type="text"
+          id="arIOProcessId"
+          placeholder="e.g. agYcCFJtrMG6cqMuZfskIkFTGvUPddICmtQSBIoPdiA"
+        />
+        <button id="saveArIOProcessId">✔</button>
+      </div>
+      <div class="setting">
+        <label
+          for="aoCuUrl"
+          title="Configure a different AO Compute Unit URL that serves as the source for the Gateway Address Registry."
+          >AO CU Url:</label
+        >
+        <input
+          type="text"
+          id="aoCuUrl"
+          placeholder="e.g. https://cu.ardrive.io"
+        />
+        <button id="saveAoCuUrl">✔</button>
+      </div>
+    </div>
+    <button id="showGateways">Gateway Address Registry</button>
+    <button id="showHistory">Usage History</button>
+    <button id="showSettings">Settings</button>
+    <div id="gatewayModal" class="modal">
+      <div class="modal-content">
+        <span class="close-btn" tabindex="0" title="Close">&times;</span>
+        <h2>Gateway Details</h2>
+        <p title="The root domain of this gateway.  Click to view details.">
+          <strong
+            ><a id="modal-gateway-url" href="#" target="_blank"
+              >url...</a
+            ></strong
+          >
+        </p>
+        <p
+          title="The unique wallet address of the gateway. Click to view details on from Viewblock."
+        >
+          <strong>Gateway Address:</strong>
+          <a id="modal-gateway-wallet" href="#" target="_blank"
+            >shortened_address...</a
+          >
+        </p>
+        <p
+          title="The amount of stake committed by this gateway. This indicates the gateway's vested interest in the network."
+        >
+          <strong>Total Stake:</strong>
+          <span id="modal-total-stake">placeholder_stake_value</span>
+        </p>
+        <p
+        title="The average response time for this gateway."
+      >
+        <strong>Avg Response Time:</strong>
+        <span id="modal-gateway-avg-response-time">placeholder_gateway_average_response_time</span>
+      </p>
+        <p title="When this gateway joined the network.">
+          <strong>Joined Since:</strong>
+          <span id="modal-start">placeholder_start_date</span>
+        </p>
+        <p title="A note from the gateway operator." id="modal-note">
+          placeholder_note
+        </p>
+        <p title="Find more information about this gateway from the AR.IO Network App."
+        >
+        <strong>
+        <a id="modal-gateway-more-info" href="#" target="_blank"
+          >more_info_link...</a
+        ></strong>
+        </p>
+        <button id="blacklistButton">Blacklist Gateway</button>
+      </div>
+    </div>
+    <footer>
+      <a
+        href="https://discord.gg/zAZ8p9ARqC"
+        target="_blank"
+        id="discordLink"
+        title="Join the community discussion"
+        >Discord</a
+      >
+      <a
+        href="https://github.com/ar-io/wayfinder"
+        target="_blank"
+        id="githubLink"
+        title="Wayfinder Source Code"
+        >Github</a
+      >
+      <a
+        href="https://github.com/ar-io/ar-io-network-process"
+        target="_blank"
+        id="contractCodeLink"
+        title="AR.IO Network Testnet AO Process"
+        >Network</a
+      >
+    </footer>
+  </body>
+</html>

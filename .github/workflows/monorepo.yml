@@ -1,0 +1,46 @@
+name: Monorepo
+
+on:
+  push:
+    branches: [ main, alpha ]
+    paths-ignore:
+      - 'packages/core/**'
+      - 'packages/extension/**'
+      - 'packages/react/**'
+      - '.github/workflows/core.yml'
+      - '.github/workflows/extension.yml'
+      - '.github/workflows/react.yml'
+  pull_request:
+    branches: [ main, alpha ]
+    paths-ignore:
+      - 'packages/core/**'
+      - 'packages/extension/**'
+      - 'packages/react/**'
+      - '.github/workflows/core.yml'
+      - '.github/workflows/extension.yml'
+      - '.github/workflows/react.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version-file: '.nvmrc'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm install --frozen-lockfile
+
+    - name: Lint
+      run: npm run lint:check --workspaces
+      
+    - name: Build all packages
+      run: npm run build --workspaces
+
+    - name: Run tests
+      run: npm run test --workspaces

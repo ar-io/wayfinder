@@ -1,0 +1,592 @@
+body {
+  font-family: "Rubik", sans-serif;
+  background-color: #010905;
+  color: #e0e0e0;
+  padding: 20px;
+  width: 325px;
+  max-height: calc(100vh - 40px); /* 100vh is the full viewport height. We subtract some pixels to give a little room. */
+  overflow: hidden;
+  margin: 1px;
+}
+/* Styling for the links in the body */
+p a {
+  color: #ededed; /* Initial color */
+  text-decoration: none; /* Removes underline */
+  transition: color 0.3s; /* Smooth transition for hover effect */
+}
+
+p a:hover {
+  color: #fafafa; /* Lighter color when hovering over the link */
+}
+
+h2 {
+  color: #ededed;
+  font-size: 24px;
+  border-bottom: 1px solid #323232;
+  padding-bottom: 15px;
+  margin-bottom: 6px;
+  margin-top: 2px;
+}
+
+p {
+  color: #9e9e9e;
+  font-size: 14px;
+  margin-bottom: 15px;
+  line-height: 1.6;
+}
+
+button {
+  display: block;
+  width: 100%;
+  background-color: #010905;
+  border: 2px solid #ededed;
+  color: #ededed;
+  padding: 6px;
+  text-align: center;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.3s, color 0.3s;
+  border-radius: 4px;
+  margin-bottom: 6px;
+}
+
+button:hover {
+  background-color: #1f1f1f;
+  color: #fafafa;
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+ul {
+  display: flex;
+  flex-direction: column;
+  list-style-type: none;
+  padding: 0;
+  border: 1px solid #323232;
+  border-radius: 4px;
+  margin-top: 15px;
+  overflow: hidden;
+  transition: all 0.3s ease-in-out;
+  border-radius: 5px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.status-icon {
+  width: 24px;
+  height: 24px;
+  margin-left: 10px; /* Adds some spacing between the gateway name and the icon */
+}
+.online {
+  color: green;
+}
+
+.offline {
+  color: red;
+}
+
+.blacklisted .offline,
+.blacklisted .online {
+  color: grey; /* or any shade of grey you prefer */
+}
+
+ul::-webkit-scrollbar {
+  width: 10px;
+}
+
+ul::-webkit-scrollbar-thumb {
+  background-color: #9e9e9e;
+  border-radius: 5px;
+}
+
+ul::-webkit-scrollbar-track {
+  background-color: #171717;
+}
+
+li {
+  padding: 4px 4px;
+  border-bottom: 1px solid #9e9e9e;
+  background-color: #1f1f1f;
+  transition: background-color 0.3s;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+li:hover {
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  background-color: #323232;
+}
+
+li:last-child {
+  border-bottom: none;
+}
+
+li a {
+  text-decoration: none;
+  color: inherit; /* This makes the link have the same color as the list item */
+  display: block; /* Makes the entire list item area clickable */
+  padding: 4px 4px;
+  transition: background-color 0.3s;
+}
+
+li a:hover {
+  background-color: #323232;
+}
+
+button,
+li {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+button:hover {
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  transform: scale(1.025); /* Slight zoom effect on hover */
+}
+
+#gatewayList {
+  transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s
+    cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateY(0);
+  opacity: 1;
+  max-height: 365px; /* The subtracted value here depends on the combined height of your other elements (like headers, paragraphs, buttons). You might need to adjust this value to fit your content perfectly. */
+  overflow-y: auto;
+  margin-bottom: 20px; /* Adjust value as necessary */
+  border-radius: 5px;
+  margin-top: 6px;
+}
+
+.gatewayListHeader {
+  list-style-type: none;
+  padding: 0;
+  border: 1px solid #323232;
+  border-radius: 5px;
+  margin-top: 15px;
+  overflow: hidden;
+  transition: all 0.3s ease-in-out;
+  border-radius: 5px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.gateway {
+  display: flex;
+  flex-direction: column;
+  padding: 6px;
+  border-bottom: 1px solid #9e9e9e;
+  background-color: #1f1f1f;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.gateway:hover,
+.gateway.blacklisted:hover {
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  background-color: #323232;
+}
+
+.light-mode .gateway.blacklisted:hover {
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  background-color: #e0e0e0;
+}
+
+.gateway-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.gateway-url {
+  font-size: 1.1em;
+}
+
+.gateway-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.gateway-address {
+  color: #0077b6;
+  text-decoration: none;
+}
+
+.operator-stake,
+.online-status {
+  font-size: 0.9em;
+  color: #666;
+}
+
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0, 0, 0, 0.4);
+}
+
+.modal-content {
+  background-color: #1f1f1f;
+  margin: 15% auto;
+  padding: 20px;
+  border: 1px solid #888;
+  width: 80%;
+  max-width: 400px;
+}
+
+.close-btn {
+  color: #aaaaaa;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.close-btn:hover,
+.close-btn:focus {
+  color: #fafafa;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+#historyList {
+  transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s
+    cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateY(0);
+  opacity: 1;
+  max-height: 310px; /* The subtracted value here depends on the combined height of your other elements (like headers, paragraphs, buttons). You might need to adjust this value to fit your content perfectly. */
+  overflow-y: auto;
+  margin-bottom: 20px; /* Adjust value as necessary */
+}
+#aboutSection {
+  transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s
+    cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateY(0);
+  opacity: 1;
+  max-height: 400px; /* You can adjust this based on your needs */
+  overflow: hidden;
+}
+.setting {
+  padding: 6px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+}
+
+.setting button {
+  display: block;
+  width: 30px;
+  background-color: #010905;
+  border: 2px solid #ededed;
+  color: #ededed;
+  padding: 8px;
+  text-align: center;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.3s, color 0.3s;
+  border-radius: 4px;
+  margin-bottom: 0px;
+}
+
+.setting label {
+  flex: 1;
+  font-weight: bold;
+  margin-right: 10px;
+  color: #e0e0e0;
+}
+
+.setting input {
+  flex: 2;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-right: 12px;
+  width: 160px;
+}
+
+select {
+  width: 65%;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 14px;
+}
+
+/* Compact toggle switch */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 32px; /* Slightly wider for balance */
+  height: 18px; /* Slightly taller */
+}
+
+/* Hide default checkbox */
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* Toggle appearance */
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #555;
+  transition: 0.3s;
+  border-radius: 16px;
+  width: 32px;
+}
+
+/* Toggle knob */
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 14px;
+  width: 14px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+}
+
+/* Toggle ON state */
+input:checked + .slider {
+  background-color: #4caf50;
+}
+
+input:checked + .slider:before {
+  transform: translateX(14px);
+}
+
+.icon {
+  width: 24px;
+  height: 24px;
+  vertical-align: middle;
+  margin: 0 10px;
+}
+
+footer {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 10px;
+  border-top: 2px solid #323232; /* Thin line separator */
+  margin-top: 15px;
+}
+footer a {
+  color: #9e9e9e; /* Lighter grey color for footer text */
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: 500; /* Slightly bolder font */
+  transition: color 0.3s, transform 0.3s; /* Added transform for hover effect */
+  padding: 5px; /* Padding for a larger clickable area and spacing */
+  border-radius: 4px; /* For the hover effect */
+  position: relative; /* To place the icons if added later */
+}
+footer a:hover {
+  color: #ededed; /* Change color on hover */
+  background-color: #323232; /* Background change on hover */
+  transform: scale(1.05); /* Slight zoom effect on hover */
+}
+.footer-icon {
+  position: absolute;
+  left: -30px; /* Adjust based on actual icon size */
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px; /* Adjust based on actual icon size */
+  height: auto;
+}
+
+.light-mode {
+  /* Explicit custom properties for light mode */
+  color: #333333;
+  background-color: #fafafa;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  --primary-bg: #fafafa;
+  --primary-text-color: #333333;
+  --secondary-text-color: #7d7d7d;
+  --link-color: #007bff;
+  --link-hover-color: #0056b3;
+  --border-color: #eaeaea;
+  --button-bg: #f7f7f7;
+  --button-border-color: #cccccc;
+  --button-hover-bg: #eaeaea;
+  --button-hover-color: #333333;
+  --list-bg: #fafafa;
+  --list-hover-bg: #f7f7f7;
+  --scrollbar-thumb: #7d7d7d;
+  --scrollbar-track: #f7f7f7;
+  --modal-bg: #fafafa;
+}
+
+.light-mode p a {
+  color: #555555;
+  transition: color 0.3s;
+}
+
+.light-mode p a:hover {
+  color: #7d7d7d;
+}
+
+.light-mode h2 {
+  color: #555555;
+  border-bottom: 1px solid #dddddd;
+}
+
+.light-mode p {
+  color: #777777;
+}
+
+.light-mode button {
+  background-color: #ededed;
+  border: 2px solid #555555;
+  color: #333333;
+}
+
+.light-mode button:hover {
+  background-color: #dddddd;
+  color: #111111;
+}
+
+.light-mode ul {
+  border: 1px solid #dddddd;
+}
+
+.light-mode #gatewayList {
+  border: 1px solid #dddddd;
+}
+
+.light-mode ul::-webkit-scrollbar-thumb {
+  background-color: #cccccc;
+}
+
+.light-mode ul::-webkit-scrollbar-track {
+  background-color: #efefef;
+}
+
+.light-mode li {
+  background-color: #efefef;
+}
+
+.light-mode .gateway {
+  background-color: #efefef;
+}
+
+.light-mode a:hover {
+  background-color: #e0e0e0;
+}
+
+.light-mode li:hover {
+  background-color: #e0e0e0;
+}
+
+.light-mode .gateway:hover {
+  background-color: #e0e0e0;
+}
+
+.light-mode button,
+.light-mode li {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.light-mode button:hover,
+.light-mode li:hover {
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.08);
+}
+
+.light-mode .setting label {
+  color: #333333;
+}
+
+.light-mode footer a {
+  color: #777777;
+}
+
+.light-mode footer a:hover {
+  color: #555555;
+  background-color: #efefef;
+}
+
+.light-mode .modal-content {
+  background-color: #eaeaea;
+  border: 1px solid #333333;
+}
+
+.refreshGateways {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1000;
+}
+
+#refreshIcon {
+  font-size: 18px; /* Adjust based on your design needs */
+  font-weight: bold;
+  color: #ededed; /* Choose a suitable color */
+  text-decoration: none;
+  cursor: pointer;
+  padding-left: 180px;
+}
+
+@keyframes ellipsis {
+  0% {
+    content: "Refreshing  ";
+  }
+  20% {
+    content: "Refreshing . ";
+  }
+  40% {
+    content: "Refreshing ..";
+  }
+  60% {
+    content: "Refreshing ...   ";
+  }
+  80% {
+    content: "Refreshing ....   ";
+  }
+}
+
+.refreshing-text::after {
+  content: "Refreshing";
+  animation: ellipsis 2s infinite;
+}
+
+#refreshIcon:hover {
+  color: #555; /* Darker shade for hover effect, adjust as needed */
+}
+
+.light-mode #refreshIcon {
+  font-size: 18px; /* Adjust based on your design needs */
+  font-weight: bold;
+  color: #333333; /* Choose a suitable color */
+  text-decoration: none;
+  cursor: pointer;
+  padding-left: 180px;
+}
+
+.light-mode #refreshIcon:hover {
+  background-color: #fafafa;
+  color: #777777; /* Darker shade for hover effect, adjust as needed */
+}
+
+.light-mode .gateway.blacklisted {
+  background-color: white; /* Light gray for blacklisted gateways */
+  /* color: white; /* Dark gray text for readability */
+}
+
+.gateway.blacklisted {
+  background-color: #010905;
+  /*color: white; /* Setting text color to white for readability */
+}
