@@ -22,7 +22,11 @@ import { RandomRoutingStrategy } from './routing/random.js';
 import { StaticRoutingStrategy } from './routing/static.js';
 import { GatewaysProvider, RoutingStrategy, WayfinderEvent } from './types.js';
 import { HashVerificationStrategy } from './verification/hash-verifier.js';
-import { Wayfinder, tapAndVerifyReadableStream } from './wayfinder.js';
+import {
+  Wayfinder,
+  createWayfinderUrl,
+  tapAndVerifyReadableStream,
+} from './wayfinder.js';
 
 // TODO: replace with locally running gateway
 const gatewayUrl = 'permagate.io';
@@ -542,36 +546,6 @@ describe('Wayfinder', () => {
       });
     });
 
-    describe('Non-ar:// URLs (fallback)', () => {
-      it('should pass through non-ar:// URLs unchanged', async () => {
-        const originalUrl = 'https://example.com/path';
-        const resolvedUrl = await wayfinder.resolveUrl({
-          originalUrl,
-        });
-
-        assert.strictEqual(resolvedUrl.toString(), originalUrl);
-      });
-
-      it('should return unchanged HTTPS URLs with query params', async () => {
-        const originalUrl =
-          'https://api.example.com/v1/data?key=value&limit=10';
-        const result = await wayfinder.resolveUrl({
-          originalUrl,
-        });
-
-        assert.strictEqual(result.toString(), originalUrl);
-      });
-
-      it('should return unchanged file:// URLs', async () => {
-        const originalUrl = 'file:///path/to/local/file.txt';
-        const result = await wayfinder.resolveUrl({
-          originalUrl,
-        });
-
-        assert.strictEqual(result.toString(), originalUrl);
-      });
-    });
-
     describe('Gateway endpoint routing (path starts with /)', () => {
       it('should route to gateway endpoints correctly', async () => {
         const resolvedUrl = await wayfinder.resolveUrl({
@@ -868,6 +842,17 @@ describe('Wayfinder', () => {
         assert.strictEqual(result.toString(), `http://${gatewayUrl}/`);
       });
     });
+
+    describe('Non-ar:// URLs', () => {
+      it('should throw error for non-ar:// URLs', async () => {
+        await assert.rejects(
+          wayfinder.resolveUrl({
+            originalUrl: 'https://example.com/path',
+          }),
+          { message: 'Invalid URL' },
+        );
+      });
+    });
   });
 });
 
@@ -1026,6 +1011,175 @@ describe('tapAndVerifyReadableStream', () => {
           'Should emit at least one verification-failed event',
         );
       }
+    });
+  });
+});
+
+describe('createWayfinderUrl', () => {
+  describe('originalUrl parameter', () => {
+    it('should parse arweave.net URL with transaction ID', () => {
+      const result = createWayfinderUrl({
+        originalUrl:
+          'https://arweave.net/abc123def456ghi789jkl012mno345pqr678stu901vwx',
+      });
+      assert.strictEqual(
+        result,
+        'ar://abc123def456ghi789jkl012mno345pqr678stu901vwx',
+      );
+    });
+
+    it('should parse arweave.dev URL with transaction ID', () => {
+      const result = createWayfinderUrl({
+        originalUrl:
+          'https://arweave.dev/abc123def456ghi789jkl012mno345pqr678stu901vwx',
+      });
+      assert.strictEqual(
+        result,
+        'ar://abc123def456ghi789jkl012mno345pqr678stu901vwx',
+      );
+    });
+    it('should handle URLs with additional path segments', () => {
+      const result = createWayfinderUrl({
+        originalUrl:
+          'https://arweave.net/abc123def456ghi789jkl012mno345pqr678stu901vwx/path/to/file',
+      });
+      assert.strictEqual(
+        result,
+        'ar://abc123def456ghi789jkl012mno345pqr678stu901vwx/path/to/file',
+      );
+    });
+
+    it('should handle URLs with query parameters', () => {
+      const result = createWayfinderUrl({
+        originalUrl:
+          'https://arweave.net/abc123def456ghi789jkl012mno345pqr678stu901vwx?param=value',
+      });
+      assert.strictEqual(
+        result,
+        'ar://abc123def456ghi789jkl012mno345pqr678stu901vwx',
+      );
+    });
+
+    it('should handle URLs with hash fragments', () => {
+      const result = createWayfinderUrl({
+        originalUrl:
+          'https://arweave.net/abc123def456ghi789jkl012mno345pqr678stu901vwx#section',
+      });
+      assert.strictEqual(
+        result,
+        'ar://abc123def456ghi789jkl012mno345pqr678stu901vwx',
+      );
+    });
+
+    it('should throw error for invalid hostname', () => {
+      assert.throws(
+        () => {
+          createWayfinderUrl({
+            originalUrl:
+              'https://invalid-host.com/abc123def456ghi789jkl012mno345pqr678stu901vwx',
+          });
+        },
+        { message: 'Invalid URL' },
+      );
+    });
+  });
+
+  describe('wayfinderUrl parameter', () => {
+    it('should return wayfinderUrl as-is when already in ar:// format', () => {
+      const wayfinderUrl = 'ar://abc123def456ghi789jkl012mno345pqr678stu901vwx';
+      const result = createWayfinderUrl({ wayfinderUrl });
+      assert.strictEqual(result, wayfinderUrl);
+    });
+
+    it('should handle wayfinderUrl with ArNS name', () => {
+      const wayfinderUrl = 'ar://my-arns-name';
+      const result = createWayfinderUrl({ wayfinderUrl });
+      assert.strictEqual(result, wayfinderUrl);
+    });
+
+    it('should handle wayfinderUrl with path segments', () => {
+      const wayfinderUrl =
+        'ar://abc123def456ghi789jkl012mno345pqr678stu901vwx/path/to/file';
+      const result = createWayfinderUrl({ wayfinderUrl });
+      assert.strictEqual(result, wayfinderUrl);
+    });
+  });
+
+  describe('txId parameter', () => {
+    it('should wrap transaction ID with ar:// protocol', () => {
+      const result = createWayfinderUrl({
+        txId: 'abc123def456ghi789jkl012mno345pqr678stu901vwx',
+      });
+      assert.strictEqual(
+        result,
+        'ar://abc123def456ghi789jkl012mno345pqr678stu901vwx',
+      );
+    });
+
+    it('should handle short transaction ID', () => {
+      const result = createWayfinderUrl({
+        txId: 'abc123',
+      });
+      assert.strictEqual(result, 'ar://abc123');
+    });
+
+    it('should handle transaction ID with special characters', () => {
+      const result = createWayfinderUrl({
+        txId: 'abc-123_DEF',
+      });
+      assert.strictEqual(result, 'ar://abc-123_DEF');
+    });
+  });
+
+  describe('arnsName parameter', () => {
+    it('should wrap ArNS name with ar:// protocol', () => {
+      const result = createWayfinderUrl({
+        arnsName: 'my-arns-name',
+      });
+      assert.strictEqual(result, 'ar://my-arns-name');
+    });
+
+    it('should handle ArNS name with underscores', () => {
+      const result = createWayfinderUrl({
+        arnsName: 'my_arns_name',
+      });
+      assert.strictEqual(result, 'ar://my_arns_name');
+    });
+
+    it('should handle ArNS name with numbers', () => {
+      const result = createWayfinderUrl({
+        arnsName: 'arns123',
+      });
+      assert.strictEqual(result, 'ar://arns123');
+    });
+  });
+
+  describe('error handling', () => {
+    it('should throw error when no valid parameters are provided', () => {
+      assert.throws(
+        () => {
+          createWayfinderUrl({} as any);
+        },
+        {
+          message:
+            'Invalid URL params, only one of the following is allowed: originalUrl, wayfinderUrl, txId, arnsName',
+        },
+      );
+    });
+
+    it('should throw error when multiple parameters are provided', () => {
+      assert.throws(
+        () => {
+          createWayfinderUrl({
+            txId: 'abc123',
+            arnsName: 'my-arns',
+          } as any);
+        },
+        {
+          message:
+            'Invalid URL params, only one of the following is allowed: originalUrl, wayfinderUrl, txId, arnsName',
+        },
+      );
     });
   });
 });
