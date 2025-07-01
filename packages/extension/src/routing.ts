@@ -26,19 +26,19 @@ import {
   SimpleCacheGatewaysProvider,
   StaticRoutingStrategy,
   Wayfinder,
-} from '@ar.io/wayfinder-core';
-import { ChromeStorageGatewayProvider } from './adapters/chrome-storage-gateway-provider';
+} from "@ar.io/wayfinder-core";
+import { ChromeStorageGatewayProvider } from "./adapters/chrome-storage-gateway-provider";
 import {
   ROUTING_STRATEGY_DEFAULTS,
   VERIFICATION_STRATEGY_DEFAULTS,
   WAYFINDER_DEFAULTS,
-} from './config/defaults';
+} from "./config/defaults";
 import {
   DNS_LOOKUP_API,
   FALLBACK_GATEWAY,
   GASLESS_ARNS_DNS_EXPIRATION_TIME,
-} from './constants';
-import { fetchEnsArweaveTxId } from './ens';
+} from "./constants";
+import { fetchEnsArweaveTxId } from "./ens";
 
 /**
  * Extension-specific logger that writes to console with proper prefixes
@@ -111,14 +111,14 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
     gatewaySortOrder = WAYFINDER_DEFAULTS.gatewaySortOrder,
     telemetryEnabled = WAYFINDER_DEFAULTS.telemetryEnabled,
   } = await chrome.storage.local.get([
-    'routingMethod',
-    'staticGateway',
-    'verificationStrategy',
-    'verifiedBrowsing',
-    'gatewayCacheTTL',
-    'gatewaySortBy',
-    'gatewaySortOrder',
-    'telemetryEnabled',
+    "routingMethod",
+    "staticGateway",
+    "verificationStrategy",
+    "verifiedBrowsing",
+    "gatewayCacheTTL",
+    "gatewaySortBy",
+    "gatewaySortOrder",
+    "telemetryEnabled",
   ]);
 
   // Create the base gateway provider with configurable sorting
@@ -135,18 +135,18 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
 
   // Single consolidated log for routing strategy
   const routingMethodName =
-    routingMethod === 'static' && staticGateway
+    routingMethod === "static" && staticGateway
       ? `static (${staticGateway.settings.fqdn})`
       : routingMethod;
 
   let routingStrategy;
 
   // Select routing strategy based on configuration
-  if (routingMethod === 'static' && staticGateway) {
+  if (routingMethod === "static" && staticGateway) {
     // Use static routing only if explicitly selected AND a static gateway is configured
     const { protocol, fqdn, port } = staticGateway.settings;
     const portSuffix =
-      port && port !== (protocol === 'https' ? 443 : 80) ? `:${port}` : '';
+      port && port !== (protocol === "https" ? 443 : 80) ? `:${port}` : "";
     const staticUrl = new URL(`${protocol}://${fqdn}${portSuffix}`);
 
     routingStrategy = new StaticRoutingStrategy({
@@ -156,7 +156,7 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
   } else {
     // Use dynamic routing based on method
     switch (routingMethod) {
-      case 'fastestPing':
+      case "fastestPing":
         routingStrategy = new FastestPingRoutingStrategy({
           timeoutMs: ROUTING_STRATEGY_DEFAULTS.fastestPing.timeoutMs,
           maxConcurrency: ROUTING_STRATEGY_DEFAULTS.fastestPing.maxConcurrency,
@@ -164,12 +164,12 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
         });
         break;
 
-      case 'random':
+      case "random":
         routingStrategy = new RandomRoutingStrategy();
         // Log handled at end of function
         break;
 
-      case 'roundRobin': {
+      case "roundRobin": {
         // Get gateways first for round robin - it needs them for tracking
         const gateways = await gatewayProvider.getGateways();
         // Gateway count included in summary log
@@ -178,19 +178,19 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
         const gatewayUrls = gateways.map((gateway) => {
           if (gateway instanceof URL) {
             return gateway;
-          } else if (typeof gateway === 'string') {
+          } else if (typeof gateway === "string") {
             return new URL(gateway);
           } else if (gateway.url) {
             return new URL(gateway.url);
           } else {
             // Construct URL from gateway object
-            const protocol = gateway.settings?.protocol || 'https';
+            const protocol = gateway.settings?.protocol || "https";
             const fqdn = gateway.settings?.fqdn || gateway.fqdn;
             const port = gateway.settings?.port;
             const portSuffix =
-              port && port !== (protocol === 'https' ? 443 : 80)
+              port && port !== (protocol === "https" ? 443 : 80)
                 ? `:${port}`
-                : '';
+                : "";
             return new URL(`${protocol}://${fqdn}${portSuffix}`);
           }
         });
@@ -202,7 +202,7 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
         break;
       }
 
-      case 'static':
+      case "static":
         // If we get here, either no static gateway is configured or method mismatch
         // Static routing fallback to fastest ping
         // Intentionally fall through to default
@@ -239,27 +239,27 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
         verificationTrustedGateways = WAYFINDER_DEFAULTS.verificationTrustedGateways,
         localGatewayAddressRegistry = {},
       } = await chrome.storage.local.get([
-        'verificationGatewayMode',
-        'verificationGatewayCount',
-        'verificationTrustedGateways',
-        'localGatewayAddressRegistry',
+        "verificationGatewayMode",
+        "verificationGatewayCount",
+        "verificationTrustedGateways",
+        "localGatewayAddressRegistry",
       ]);
 
       let trustedGateways: URL[] = [];
 
-      if (verificationGatewayMode === 'automatic') {
+      if (verificationGatewayMode === "automatic") {
         // Get top N gateways by stake from the registry
         const gateways = Object.entries(localGatewayAddressRegistry)
           .map(([address, gateway]: [string, any]) => ({
             address,
             fqdn: gateway.settings?.fqdn,
-            protocol: gateway.settings?.protocol || 'https',
+            protocol: gateway.settings?.protocol || "https",
             port: gateway.settings?.port,
             operatorStake: gateway.operatorStake || 0,
             totalDelegatedStake: gateway.totalDelegatedStake || 0,
             status: gateway.status,
           }))
-          .filter((gateway) => gateway.status === 'joined' && gateway.fqdn)
+          .filter((gateway) => gateway.status === "joined" && gateway.fqdn)
           .sort((a, b) => {
             const stakeA = a.operatorStake + a.totalDelegatedStake;
             const stakeB = b.operatorStake + b.totalDelegatedStake;
@@ -269,15 +269,15 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
           .map((gateway) => {
             const port =
               gateway.port &&
-              gateway.port !== (gateway.protocol === 'https' ? 443 : 80)
+              gateway.port !== (gateway.protocol === "https" ? 443 : 80)
                 ? `:${gateway.port}`
-                : '';
+                : "";
             return new URL(`${gateway.protocol}://${gateway.fqdn}${port}`);
           });
 
         if (gateways.length === 0) {
           // Fallback to arweave.net when no gateways in registry
-          trustedGateways = [new URL('https://arweave.net')];
+          trustedGateways = [new URL("https://arweave.net")];
           // Fallback to arweave.net for verification
         } else {
           trustedGateways = gateways;
@@ -292,7 +292,7 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
 
         if (trustedGateways.length === 0) {
           // Fallback to arweave.net when no manual gateways selected
-          trustedGateways = [new URL('https://arweave.net')];
+          trustedGateways = [new URL("https://arweave.net")];
           // Fallback to arweave.net for verification
         } else {
           // Using manually selected gateways for verification
@@ -301,30 +301,27 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
 
       // Use the new API pattern from Roam - pass trustedGateways directly
       switch (verificationStrategy) {
-        case 'hash':
+        case "hash":
           verificationStrategyInstance = new HashVerificationStrategy({
             trustedGateways,
             logger,
             maxConcurrency: VERIFICATION_STRATEGY_DEFAULTS.maxConcurrency,
-            timeoutMs: VERIFICATION_STRATEGY_DEFAULTS.timeoutMs,
           });
           break;
 
-        case 'dataRoot':
+        case "dataRoot":
           verificationStrategyInstance = new DataRootVerificationStrategy({
             trustedGateways,
             logger,
             maxConcurrency: VERIFICATION_STRATEGY_DEFAULTS.maxConcurrency,
-            timeoutMs: VERIFICATION_STRATEGY_DEFAULTS.timeoutMs,
           });
           break;
 
-        case 'signature':
+        case "signature":
           verificationStrategyInstance = new SignatureVerificationStrategy({
             trustedGateways,
             logger,
             maxConcurrency: VERIFICATION_STRATEGY_DEFAULTS.maxConcurrency,
-            timeoutMs: VERIFICATION_STRATEGY_DEFAULTS.timeoutMs,
           });
           break;
 
@@ -334,7 +331,6 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
             trustedGateways,
             logger,
             maxConcurrency: VERIFICATION_STRATEGY_DEFAULTS.maxConcurrency,
-            timeoutMs: VERIFICATION_STRATEGY_DEFAULTS.timeoutMs,
           });
           break;
       }
@@ -342,8 +338,8 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
       // Verification details included in summary log
     } catch (error) {
       logger.error(
-        '[ERROR] Failed to create verification strategy:',
-        error instanceof Error ? error.message : 'Unknown error',
+        "[ERROR] Failed to create verification strategy:",
+        error instanceof Error ? error.message : "Unknown error"
       );
       // Disable verification if we can't create the strategy
       verificationStrategyInstance = undefined;
@@ -379,7 +375,7 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
               // Verification succeeded
             },
             onVerificationFailed: (error: any) => {
-              logger.error('[VERIFY] Failed:', error.message || error);
+              logger.error("[VERIFY] Failed:", error.message || error);
             },
             onVerificationProgress: (event: any) => {
               const percentage =
@@ -401,7 +397,7 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
   };
 
   // Log telemetry configuration
-  logger.info('[WAYFINDER] Creating instance with config:', {
+  logger.info("[WAYFINDER] Creating instance with config:", {
     telemetryEnabled,
     telemetrySettings: wayfinderConfig.telemetrySettings,
   });
@@ -410,18 +406,22 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
   try {
     instance = new Wayfinder(wayfinderConfig);
   } catch (error) {
-    logger.error('[WAYFINDER] Failed to create instance:', error);
-    
+    logger.error("[WAYFINDER] Failed to create instance:", error);
+
     // Check if it's the async_hooks error
-    if (error instanceof Error && error.message.includes('AsyncLocalStorage')) {
-      logger.warn('[WAYFINDER] Telemetry initialization failed due to browser incompatibility');
-      logger.warn('[WAYFINDER] Retrying without telemetry...');
-      
+    if (error instanceof Error && error.message.includes("AsyncLocalStorage")) {
+      logger.warn(
+        "[WAYFINDER] Telemetry initialization failed due to browser incompatibility"
+      );
+      logger.warn("[WAYFINDER] Retrying without telemetry...");
+
       // Remove telemetry and retry
       delete wayfinderConfig.telemetrySettings;
       instance = new Wayfinder(wayfinderConfig);
-      
-      logger.info('[WAYFINDER] Successfully created instance without telemetry');
+
+      logger.info(
+        "[WAYFINDER] Successfully created instance without telemetry"
+      );
     } else {
       throw error;
     }
@@ -430,15 +430,15 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
   // Create a concise summary of Wayfinder configuration
   const configSummary = {
     routing: routingMethodName,
-    verification: verifiedBrowsing ? verificationStrategy : 'disabled',
-    telemetry: telemetryEnabled ? '10%' : 'disabled',
+    verification: verifiedBrowsing ? verificationStrategy : "disabled",
+    telemetry: telemetryEnabled ? "10%" : "disabled",
     gateways: {
       cache: `${gatewayCacheTTL}s`,
       sort: `${gatewaySortBy} ${gatewaySortOrder}`,
     },
   };
 
-  logger.info('[WAYFINDER] Initialized:', configSummary);
+  logger.info("[WAYFINDER] Initialized:", configSummary);
 
   return instance;
 }
@@ -473,26 +473,26 @@ export async function getRoutableGatewayUrl(arUrl: string): Promise<{
   };
 }> {
   try {
-    if (!arUrl.startsWith('ar://')) {
+    if (!arUrl.startsWith("ar://")) {
       throw new Error(`Invalid ar:// URL format: ${arUrl}`);
     }
 
     const wayfinder = await getWayfinderInstance();
 
     // Handle ENS resolution if enabled
-    const arUrlParts = arUrl.slice(5).split('/');
+    const arUrlParts = arUrl.slice(5).split("/");
     const baseName = arUrlParts[0];
     const path =
-      arUrlParts.length > 1 ? '/' + arUrlParts.slice(1).join('/') : '';
+      arUrlParts.length > 1 ? "/" + arUrlParts.slice(1).join("/") : "";
 
     let processedUrl = arUrl;
 
     // Check if ENS resolution is enabled
     const { ensResolutionEnabled } = await chrome.storage.local.get([
-      'ensResolutionEnabled',
+      "ensResolutionEnabled",
     ]);
 
-    if (baseName.endsWith('.eth') && ensResolutionEnabled) {
+    if (baseName.endsWith(".eth") && ensResolutionEnabled) {
       const txId = await fetchEnsArweaveTxId(baseName);
       if (txId) {
         processedUrl = `ar://${txId}${path}`;
@@ -500,7 +500,7 @@ export async function getRoutableGatewayUrl(arUrl: string): Promise<{
       } else {
         throw new Error(`ENS name ${baseName} does not have an Arweave TX ID.`);
       }
-    } else if (baseName.includes('.')) {
+    } else if (baseName.includes(".")) {
       // Handle gasless ArNS domains
       const txId = await lookupArweaveTxIdForDomain(baseName);
       if (txId) {
@@ -517,7 +517,7 @@ export async function getRoutableGatewayUrl(arUrl: string): Promise<{
         logger,
       });
     } catch (resolveError) {
-      logger.error('[ROUTING] resolveUrl failed:', resolveError);
+      logger.error("[ROUTING] resolveUrl failed:", resolveError);
       throw resolveError;
     }
 
@@ -532,7 +532,7 @@ export async function getRoutableGatewayUrl(arUrl: string): Promise<{
 
     // Check if verified browsing is enabled
     const { verifiedBrowsing } = await chrome.storage.local.get([
-      'verifiedBrowsing',
+      "verifiedBrowsing",
     ]);
 
     if (!verifiedBrowsing) {
@@ -542,7 +542,7 @@ export async function getRoutableGatewayUrl(arUrl: string): Promise<{
         gatewayFQDN,
         gatewayProtocol,
         gatewayPort,
-        gatewayAddress: 'CORE_LIBRARY',
+        gatewayAddress: "CORE_LIBRARY",
         selectedGateway: {
           settings: {
             fqdn: gatewayFQDN,
@@ -550,7 +550,7 @@ export async function getRoutableGatewayUrl(arUrl: string): Promise<{
             port: gatewayPort,
           },
         },
-        mode: 'normal',
+        mode: "normal",
       };
     }
 
@@ -560,56 +560,56 @@ export async function getRoutableGatewayUrl(arUrl: string): Promise<{
     // Pass the gateway URL as a query parameter to viewer.html
     const viewerUrl = chrome.runtime.getURL(
       `viewer.html?url=${encodeURIComponent(
-        arUrl,
-      )}&gateway=${encodeURIComponent(resolvedUrl.toString())}`,
+        arUrl
+      )}&gateway=${encodeURIComponent(resolvedUrl.toString())}`
     );
 
     return {
       url: viewerUrl,
-      gatewayFQDN: 'wayfinder-viewer',
-      gatewayProtocol: 'chrome-extension',
+      gatewayFQDN: "wayfinder-viewer",
+      gatewayProtocol: "chrome-extension",
       gatewayPort: null,
-      gatewayAddress: 'VERIFIED',
+      gatewayAddress: "VERIFIED",
       selectedGateway: {
         settings: {
-          fqdn: 'wayfinder-viewer',
-          protocol: 'chrome-extension',
+          fqdn: "wayfinder-viewer",
+          protocol: "chrome-extension",
           port: null,
         },
       },
-      mode: 'verified',
+      mode: "verified",
     };
   } catch (error) {
     // Provide more specific error messages
-    let errorMessage = 'Unknown error occurred';
-    let userFriendlyMessage = 'Failed to route request';
+    let errorMessage = "Unknown error occurred";
+    let userFriendlyMessage = "Failed to route request";
 
     if (error instanceof Error) {
       errorMessage = error.message;
 
       // Specific error handling based on error type
-      if (errorMessage.includes('No gateways available')) {
+      if (errorMessage.includes("No gateways available")) {
         userFriendlyMessage =
-          'No gateways available. Please sync gateway registry in settings.';
+          "No gateways available. Please sync gateway registry in settings.";
       } else if (
-        errorMessage.includes('Failed to fetch') ||
-        errorMessage.includes('NetworkError')
+        errorMessage.includes("Failed to fetch") ||
+        errorMessage.includes("NetworkError")
       ) {
         userFriendlyMessage =
-          'Network connection issue. Please check your internet connection.';
-      } else if (errorMessage.includes('Invalid ar://')) {
+          "Network connection issue. Please check your internet connection.";
+      } else if (errorMessage.includes("Invalid ar://")) {
         userFriendlyMessage = `Invalid ar:// URL format: ${arUrl}`;
-      } else if (errorMessage.includes('timeout')) {
+      } else if (errorMessage.includes("timeout")) {
         userFriendlyMessage =
-          'Request timed out. All gateways may be slow or unreachable.';
-      } else if (errorMessage.includes('ENS name')) {
+          "Request timed out. All gateways may be slow or unreachable.";
+      } else if (errorMessage.includes("ENS name")) {
         userFriendlyMessage = errorMessage; // ENS errors are already user-friendly
       }
 
       // Single error log with context
-      logger.error('[ROUTING] Failed:', userFriendlyMessage);
+      logger.error("[ROUTING] Failed:", userFriendlyMessage);
     } else {
-      logger.error('[ROUTING] Non-Error thrown:', error);
+      logger.error("[ROUTING] Non-Error thrown:", error);
     }
 
     // Try fallback gateway as last resort
@@ -619,9 +619,9 @@ export async function getRoutableGatewayUrl(arUrl: string): Promise<{
 
       // Extract the transaction ID or ArNS name from the original ar:// URL
       const arPath = arUrl.slice(5); // Remove 'ar://' prefix
-      const [basePart, ...pathParts] = arPath.split('/');
+      const [basePart, ...pathParts] = arPath.split("/");
       const remainingPath =
-        pathParts.length > 0 ? '/' + pathParts.join('/') : '';
+        pathParts.length > 0 ? "/" + pathParts.join("/") : "";
 
       let fallbackUrl;
       // Check if it's a transaction ID (43 chars of base64url) or an ArNS name
@@ -630,12 +630,12 @@ export async function getRoutableGatewayUrl(arUrl: string): Promise<{
       if (isTxId) {
         // For transaction IDs, use path format: https://arweave.net/txid
         fallbackUrl = `${protocol}://${fqdn}${
-          port ? `:${port}` : ''
+          port ? `:${port}` : ""
         }/${basePart}${remainingPath}`;
       } else {
         // For ArNS names, use subdomain format: https://name.arweave.net
         fallbackUrl = `${protocol}://${basePart}.${fqdn}${
-          port ? `:${port}` : ''
+          port ? `:${port}` : ""
         }${remainingPath}`;
       }
 
@@ -646,12 +646,12 @@ export async function getRoutableGatewayUrl(arUrl: string): Promise<{
         gatewayFQDN: fqdn,
         gatewayProtocol: protocol,
         gatewayPort: port,
-        gatewayAddress: fallbackGateway.gatewayAddress || 'FALLBACK',
+        gatewayAddress: fallbackGateway.gatewayAddress || "FALLBACK",
         selectedGateway: fallbackGateway,
         // error: userFriendlyMessage, // Include error message for UI display
       };
     } catch (_fallbackError) {
-      logger.error('[CRITICAL] Fallback failed');
+      logger.error("[CRITICAL] Fallback failed");
       throw new Error(userFriendlyMessage);
     }
   }
@@ -662,7 +662,7 @@ export async function getRoutableGatewayUrl(arUrl: string): Promise<{
  * (Kept from legacy implementation for gasless ArNS support)
  */
 async function lookupArweaveTxIdForDomain(
-  domain: string,
+  domain: string
 ): Promise<string | null> {
   const cacheKey = `dnsCache_${domain}`;
 
@@ -683,7 +683,7 @@ async function lookupArweaveTxIdForDomain(
     }
 
     // Perform DNS lookup
-    logger.debug('Checking DNS TXT record for:', domain);
+    logger.debug("Checking DNS TXT record for:", domain);
     const response = await fetch(`${DNS_LOOKUP_API}?name=${domain}&type=TXT`);
 
     if (!response.ok) {
@@ -711,7 +711,7 @@ async function lookupArweaveTxIdForDomain(
 
     return null;
   } catch (error) {
-    logger.error('[ERROR] Failed to lookup DNS TXT records:', error);
+    logger.error("[ERROR] Failed to lookup DNS TXT records:", error);
     return null;
   }
 }
@@ -721,7 +721,7 @@ async function lookupArweaveTxIdForDomain(
  */
 export async function makeVerifiedRequest(
   arUrl: string,
-  init?: RequestInit,
+  init?: RequestInit
 ): Promise<Response> {
   const wayfinder = await getWayfinderInstance();
 

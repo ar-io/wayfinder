@@ -783,7 +783,7 @@ async function populateGatewayDropdown() {
       const stakeDisplay =
         totalStake > 0 ? formatStake(totalStake) : 'No stake';
 
-      // Display format: "gateway.com • 1.2M IO"
+      // Display format: "gateway.com • 1.2M ARIO"
       option.textContent = `${gateway.fqdn} • ${stakeDisplay}`;
       dropdown.appendChild(option);
     });
@@ -812,11 +812,11 @@ async function populateGatewayDropdown() {
 // Helper function to format stake amounts
 function formatStake(stake) {
   if (stake >= 1000000) {
-    return (stake / 1000000).toFixed(1) + 'M IO';
+    return (stake / 1000000).toFixed(1) + 'M ARIO';
   } else if (stake >= 1000) {
-    return (stake / 1000).toFixed(1) + 'K IO';
+    return (stake / 1000).toFixed(1) + 'K ARIO';
   } else {
-    return stake.toFixed(0) + ' IO';
+    return stake.toFixed(0) + ' ARIO';
   }
 }
 
