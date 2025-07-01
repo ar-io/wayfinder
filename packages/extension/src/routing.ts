@@ -512,9 +512,9 @@ export async function getRoutableGatewayUrl(arUrl: string): Promise<{
     // Use Wayfinder to resolve the URL
     let resolvedUrl;
     try {
+      // In Wayfinder Core 1.0.0, resolveUrl only accepts the URL parameters, not logger
       resolvedUrl = await wayfinder.resolveUrl({
         originalUrl: processedUrl,
-        logger,
       });
     } catch (resolveError) {
       logger.error("[ROUTING] resolveUrl failed:", resolveError);
