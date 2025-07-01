@@ -19,10 +19,11 @@ type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 class Logger {
   private isDevelopment = false; // Set to false for production
+  private enabledLevels: Set<LogLevel> = new Set(['info', 'warn', 'error']);
 
   private log(level: LogLevel, message: string, ...args: any[]) {
-    if (!this.isDevelopment && level === 'debug') {
-      return; // Skip debug logs in production
+    if (!this.enabledLevels.has(level)) {
+      return; // Skip disabled log levels
     }
 
     const timestamp = new Date().toISOString();

@@ -74,7 +74,7 @@ class TabStateManager {
     for (const [tabId, state] of this.states) {
       if (now - state.timestamp > timeout) {
         this.states.delete(tabId);
-        logger.debug(`Cleaned up stale tab state for tab ${tabId}`);
+        // Cleaned up stale tab state
       }
     }
   }
@@ -95,7 +95,7 @@ const requestTimings = new Map<string, number>();
 const BYPASS_STORAGE_KEY = 'verificationBypasses';
 const BYPASS_SESSION_KEY = 'verificationBypassSession';
 
-logger.info('Initializing Wayfinder Extension with Core Library');
+// Initializing Wayfinder Extension
 
 // Removed checkBypass function - unused
 
@@ -137,9 +137,7 @@ async function updateDailyStats(
   }
 
   await chrome.storage.local.set({ dailyStats: stats });
-  logger.debug(
-    `Updated daily stats: ${type} - Total requests today: ${stats.requestCount}`,
-  );
+  // Daily stats updated
 }
 
 // Initialize AR.IO SDK
@@ -189,15 +187,12 @@ let arIO = ARIO.init({
       EXTENSION_DEFAULTS.localGatewayAddressRegistry;
 
   // Only set these if they don't exist in storage
-  const {
-    routingMethod,
-    blacklistedGateways,
-    ensResolutionEnabled,
-  } = await chrome.storage.local.get([
-    'routingMethod',
-    'blacklistedGateways',
-    'ensResolutionEnabled',
-  ]);
+  const { routingMethod, blacklistedGateways, ensResolutionEnabled } =
+    await chrome.storage.local.get([
+      'routingMethod',
+      'blacklistedGateways',
+      'ensResolutionEnabled',
+    ]);
 
   if (routingMethod === undefined)
     updates.routingMethod = EXTENSION_DEFAULTS.routingMethod;
@@ -208,7 +203,7 @@ let arIO = ARIO.init({
   // Removed verificationStrict - no longer used
 
   await chrome.storage.local.set(updates);
-  logger.info('Initialized storage with defaults', updates);
+  // Storage initialized
 })();
 
 // Initialize performance data structure if needed
@@ -217,7 +212,7 @@ chrome.storage.local
   .then(({ gatewayPerformance }) => {
     if (!gatewayPerformance) {
       chrome.storage.local.set({ gatewayPerformance: {} });
-      logger.debug('Initialized empty gateway performance storage');
+      // Initialized empty gateway performance storage
     }
   })
   .catch((error) => {
@@ -231,7 +226,7 @@ const gatewayProvider = new ChromeStorageGatewayProvider();
  * Initialize Wayfinder with gateway sync and core library setup
  */
 async function initializeWayfinder() {
-  logger.debug('Initializing Wayfinder with Core Library');
+  // Initializing Wayfinder
 
   try {
     // Sync gateway registry first
@@ -248,11 +243,11 @@ async function initializeWayfinder() {
         'No gateways found after sync. Users will need to manually sync or fallback gateways will be used.',
       );
     } else {
-      logger.info(`Successfully synced ${gatewayCount} gateways`);
+      logger.info(`[SYNC] ${gatewayCount} gateways loaded`);
     }
 
     // Initialize Wayfinder instance - this will be created lazily on first use
-    logger.info('Wayfinder initialization completed');
+    // Wayfinder initialization completed
   } catch (error) {
     logger.error('Error during Wayfinder initialization:', error);
     logger.warn(
@@ -340,9 +335,7 @@ chrome.webNavigation.onBeforeNavigate.addListener(
             );
 
             if (isApiEndpoint) {
-              logger.info(
-                `[VERIFIED-BROWSING] Skipping API endpoint: ${url.href}`,
-              );
+              // Skipping API endpoint
               return;
             }
 
@@ -360,15 +353,11 @@ chrome.webNavigation.onBeforeNavigate.addListener(
             });
 
             if (isException) {
-              logger.info(
-                `[VERIFIED-BROWSING] URL is in exceptions, skipping verification: ${arUrl}`,
-              );
+              // URL in exceptions - skipping
               return;
             }
 
-            logger.info(
-              `[VERIFIED-BROWSING] Intercepting gateway URL: ${url.href} -> ${arUrl}`,
-            );
+            // Intercepting gateway URL
 
             // Redirect to viewer.html with both ar:// URL and gateway URL
             const viewerUrl = chrome.runtime.getURL(
@@ -391,7 +380,7 @@ chrome.webNavigation.onBeforeNavigate.addListener(
         return;
       }
 
-      logger.debug(`Processing ar:// navigation: ${arUrl}`);
+      // Processing ar:// navigation
 
       // Process immediately without setTimeout to prevent race conditions
       const startTime = performance.now();
@@ -411,9 +400,7 @@ chrome.webNavigation.onBeforeNavigate.addListener(
 
         // Navigate to the gateway URL directly
         chrome.tabs.update(details.tabId, { url: result.url });
-        logger.debug(
-          `Redirected ${arUrl} to ${result.url} via ${result.gatewayFQDN}`,
-        );
+        // Redirected to gateway
 
         // Track the request
         updateDailyStats('request');
@@ -585,7 +572,7 @@ chrome.webNavigation.onBeforeNavigate.addListener(
  */
 chrome.tabs.onRemoved.addListener((tabId) => {
   if (tabStateManager.delete(tabId)) {
-    logger.debug(`Cleaned up state for closed tab ${tabId}`);
+    // Cleaned up tab state
   }
 });
 
@@ -622,9 +609,7 @@ chrome.webRequest.onCompleted.addListener(
     // Record success in circuit breaker
     circuitBreaker.onSuccess(gatewayFQDN);
 
-    logger.debug(
-      `Updated performance for ${gatewayFQDN}: ${responseTime.toFixed(2)}ms`,
-    );
+    // Performance metrics updated
 
     // Clean up tracking
     tabStateManager.delete(details.tabId);
@@ -679,7 +664,7 @@ chrome.webRequest.onHeadersReceived.addListener(
             break;
           case 'x-arns-resolved-id':
             arnsResolvedId = headerValue;
-            logger.debug(`ArNS resolved: ${details.url} -> ${headerValue}`);
+            // ArNS resolved
             break;
           case 'x-ar-io-data-id':
             dataId = headerValue;
@@ -1054,7 +1039,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
         const { routingMethod } =
           await chrome.storage.local.get('routingMethod');
         logger.info(
-          `[SETTINGS] Verified routing method in storage: ${routingMethod}`,
+          `[SETTINGS] Wayfinder will reinitialize with routing: ${routingMethod}`,
         );
 
         sendResponse({ success: true });
@@ -1075,6 +1060,13 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
         await chrome.storage.local.set(request.settings);
         // Reset Wayfinder instance to use new settings
         resetWayfinderInstance();
+
+        // Log what changed
+        const changedSettings = Object.keys(request.settings).join(', ');
+        logger.info(
+          `[SETTINGS] Wayfinder will reinitialize with updated: ${changedSettings}`,
+        );
+
         sendResponse({ success: true });
       } catch (error: any) {
         logger.error('Error updating advanced settings:', error);
@@ -1289,9 +1281,7 @@ async function syncGatewayAddressRegistry(): Promise<void> {
       });
     }
 
-    logger.info(
-      `Syncing Gateway Address Registry from ${aoCuUrl || DEFAULT_AO_CU_URL}`,
-    );
+    // Syncing Gateway Address Registry
 
     const registry: Record<WalletAddress, AoGateway> = {};
     let cursor: string | undefined = undefined;
@@ -1327,7 +1317,7 @@ async function syncGatewayAddressRegistry(): Promise<void> {
         lastSyncTime: Date.now(),
       } as any);
 
-      logger.info(`Synced ${totalFetched} gateways to registry.`);
+      logger.info(`[SYNC] ${totalFetched} gateways synced`);
       await updateSyncStatus('completed');
     }
   } catch (error) {
@@ -1357,7 +1347,7 @@ async function reinitializeArIO(): Promise<void> {
       }),
     });
 
-    logger.info('AR.IO reinitialized with Process ID:', processId);
+    // AR.IO reinitialized
   } catch (error) {
     logger.error('Failed to reinitialize AR.IO, using default:', error);
     arIO = ARIO.init();
@@ -1373,9 +1363,9 @@ async function handleGatewayResourceVerification(request: {
   strategy?: string;
 }): Promise<{ verified: boolean; error?: string }> {
   try {
-    const { url, resourceType } = request;
+    const { url } = request;
 
-    logger.info(`[VERIFY-RESOURCE] Verifying ${resourceType} from ${url}`);
+    // Verifying resource
 
     // Check if this is actually a gateway URL
     const urlObj = new URL(url);

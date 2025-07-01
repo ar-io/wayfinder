@@ -169,14 +169,6 @@ function setupEventHandlers() {
     .getElementById('ensResolution')
     ?.addEventListener('change', saveEnsResolution);
 
-  // Telemetry settings
-  document
-    .getElementById('telemetryEnabled')
-    ?.addEventListener('change', handleTelemetryToggle);
-  document
-    .getElementById('telemetrySampleRate')
-    ?.addEventListener('input', handleTelemetrySampleRateChange);
-
   // Advanced settings are now saved automatically on change
   document
     .getElementById('processId')
@@ -245,6 +237,11 @@ function setupEventHandlers() {
 
   // Initialize Verified Browsing UI
   setupVerifiedBrowsingUI();
+
+  // Telemetry toggle
+  document
+    .getElementById('telemetryToggle')
+    ?.addEventListener('change', handleTelemetryToggle);
 }
 
 function setupExpandableSections() {
@@ -352,7 +349,6 @@ async function loadCurrentSettings() {
       'gatewayCacheTTL',
       'advancedSettingsExpanded',
       'telemetryEnabled',
-      'telemetrySampleRate',
     ]);
 
     // Load static gateway URL if set
@@ -501,29 +497,14 @@ async function loadCurrentSettings() {
 
     // Load telemetry settings
     const telemetryEnabled = settings.telemetryEnabled || false;
-    const telemetryEnabledEl = document.getElementById('telemetryEnabled');
-    if (telemetryEnabledEl) {
-      telemetryEnabledEl.checked = telemetryEnabled;
-    }
-
-    const telemetrySampleRate = settings.telemetrySampleRate || 0.1;
-    const telemetrySampleRateEl = document.getElementById(
-      'telemetrySampleRate',
-    );
-    if (telemetrySampleRateEl) {
-      telemetrySampleRateEl.value = telemetrySampleRate;
-    }
-    const telemetrySampleRateValueEl = document.getElementById(
-      'telemetrySampleRateValue',
-    );
-    if (telemetrySampleRateValueEl) {
-      telemetrySampleRateValueEl.textContent = `${Math.round(telemetrySampleRate * 100)}%`;
-    }
-
-    // Show/hide telemetry settings based on enabled state
-    const telemetrySettings = document.getElementById('telemetrySettings');
-    if (telemetrySettings) {
-      telemetrySettings.style.display = telemetryEnabled ? 'block' : 'none';
+    const telemetryToggle = document.getElementById('telemetryToggle');
+    if (telemetryToggle) {
+      telemetryToggle.checked = telemetryEnabled;
+      // Update details visibility
+      const telemetryDetails = document.getElementById('telemetryDetails');
+      if (telemetryDetails) {
+        telemetryDetails.style.display = telemetryEnabled ? 'block' : 'none';
+      }
     }
   } catch (error) {
     console.error('Error loading settings:', error);
@@ -1632,32 +1613,25 @@ async function removeException(index) {
   showToast('Exception removed', 'success');
 }
 
-// Telemetry handlers
+// Telemetry handler
 async function handleTelemetryToggle(event) {
   const enabled = event.target.checked;
+
   await chrome.storage.local.set({ telemetryEnabled: enabled });
 
-  // Show/hide telemetry settings
-  const telemetrySettings = document.getElementById('telemetrySettings');
-  if (telemetrySettings) {
-    telemetrySettings.style.display = enabled ? 'block' : 'none';
+  // Reset wayfinder to apply telemetry changes
+  chrome.runtime.sendMessage({ message: 'resetWayfinder' });
+
+  // Update telemetry details visibility
+  const details = document.getElementById('telemetryDetails');
+  if (details) {
+    details.style.display = enabled ? 'block' : 'none';
   }
 
   showToast(
     enabled
-      ? 'Telemetry enabled - Thank you for helping improve Wayfinder!'
-      : 'Telemetry disabled',
-    'success',
+      ? 'Telemetry enabled - Reload extension to apply changes'
+      : 'Telemetry disabled - Reload extension to apply changes',
+    'info',
   );
-}
-
-async function handleTelemetrySampleRateChange(event) {
-  const sampleRate = parseFloat(event.target.value);
-  await chrome.storage.local.set({ telemetrySampleRate: sampleRate });
-
-  // Update display
-  const displayEl = document.getElementById('telemetrySampleRateValue');
-  if (displayEl) {
-    displayEl.textContent = `${Math.round(sampleRate * 100)}%`;
-  }
 }

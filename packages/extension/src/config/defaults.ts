@@ -64,7 +64,7 @@ export const WAYFINDER_DEFAULTS = {
 
   // Gateway Management
   gatewayCacheTTL: 3600, // 1 hour in seconds
-  gatewaySortBy: 'operatorStake',
+  gatewaySortBy: 'totalDelegatedStake',
   gatewaySortOrder: 'desc',
 
   // Verification Gateway Selection
@@ -74,7 +74,6 @@ export const WAYFINDER_DEFAULTS = {
 
   // Telemetry Configuration (opt-in, default disabled)
   telemetryEnabled: false,
-  telemetrySampleRate: 0.1, // 10% sample rate when enabled
 } as const;
 
 /**

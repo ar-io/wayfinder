@@ -181,10 +181,7 @@ async function processArUrl(
   const storage = await new Promise<{
     showVerificationIndicators?: boolean;
   }>((resolve) => {
-    chrome.storage.local.get(
-      ['showVerificationIndicators'],
-      resolve,
-    );
+    chrome.storage.local.get(['showVerificationIndicators'], resolve);
   });
 
   const showVerificationIndicators =
@@ -219,7 +216,7 @@ async function processArUrl(
     // Note: This makes an additional request beyond the background verification
     const txIdMatch = arUrl.match(/^ar:\/\/([a-zA-Z0-9_-]{43})/);
     if (txIdMatch) {
-      const txId = txIdMatch[1];
+      const _txId = txIdMatch[1];
 
       try {
         // Wait a moment for the browser request to complete and cache to be populated
@@ -248,9 +245,7 @@ async function processArUrl(
           cacheCheckResponse.result
         ) {
           // Use cached result from the browser's navigation request
-          logger.debug(
-            `[CACHED] Using verification result from browser request for ${txId}`,
-          );
+          // Using cached verification result
           verifyResponse = {
             success: true,
             response: {
@@ -263,9 +258,7 @@ async function processArUrl(
           };
         } else {
           // No verification data available (verification might be disabled)
-          logger.debug(
-            `[NO VERIFY] No verification data available for ${txId}`,
-          );
+          // No verification data available
           verifyResponse = null;
         }
 
@@ -279,33 +272,26 @@ async function processArUrl(
                 `Data verified using ${verification.strategy} strategy`,
                 'success',
               );
-              logger.debug(
-                `[SUCCESS] Verified data integrity for ${txId} using ${verification.strategy}`,
-              );
+              // Data verified successfully
             } else if (verification) {
               addVerificationIndicator(element, 'failed');
               showVerificationToast(
                 `Verification failed: ${verification.error || 'Unknown error'}`,
                 'error',
               );
-              logger.warn(
-                `[FAILED] Verification failed for ${txId}:`,
-                verification.error || 'Unknown verification error',
-              );
+              // Verification failed
             }
           }
         } else if (showVerificationIndicators && !verifyResponse) {
           // No verification data - verification might be disabled
-          logger.debug(
-            `[INFO] No verification indicators shown - verification may be disabled`,
-          );
+          // Verification disabled
         }
-      } catch (verifyError) {
+      } catch (_verifyError) {
         // If verification fails, still allow the content to load but show failed status
         if (showVerificationIndicators) {
           addVerificationIndicator(element, 'failed');
         }
-        logger.warn(`Verification error for ${txId}:`, verifyError);
+        // Verification error occurred
       }
     } else {
       // For ArNS names, just show as verified since we can't verify them directly
@@ -322,7 +308,10 @@ async function processArUrl(
       indicator.remove();
     }
 
-    logger.error(`Failed to process ar:// URL ${arUrl}:`, error);
+    logger.error(
+      `[CONTENT] Failed to process ${arUrl}:`,
+      error.message || error,
+    );
   }
 }
 
@@ -330,7 +319,7 @@ async function processArUrl(
  * Main content script initialization with enhanced verification
  */
 async function afterContentDOMLoaded(): Promise<void> {
-  logger.debug('Wayfinder Content Script: Processing ar:// URLs');
+  // Processing ar:// URLs
 
   // Gather all elements with `ar://` protocol
   const arElements = document.querySelectorAll(
@@ -339,7 +328,7 @@ async function afterContentDOMLoaded(): Promise<void> {
       'link[href^="ar://"], embed[src^="ar://"], object[data^="ar://"]',
   );
 
-  logger.debug(`Found ${arElements.length} ar:// elements to process`);
+  // Found ar:// elements to process
 
   // Process each element
   for (const element of arElements) {
@@ -391,7 +380,7 @@ async function afterContentDOMLoaded(): Promise<void> {
     if (arUrl && attribute) {
       // Process each URL with verification
       processArUrl(element, arUrl, attribute).catch((error) =>
-        logger.error('Error processing ar:// URL:', error),
+        logger.error('[CONTENT] Error:', error.message || error),
       );
 
       // Special handling for media elements
@@ -433,7 +422,10 @@ async function afterContentDOMLoaded(): Promise<void> {
             const value = element.getAttribute(attr);
             if (value && value.startsWith('ar://')) {
               processArUrl(element, value, attr).catch((error) =>
-                logger.error('Error processing dynamic ar:// URL:', error),
+                logger.error(
+                  '[CONTENT] Dynamic error:',
+                  error.message || error,
+                ),
               );
             }
           }
@@ -463,7 +455,7 @@ async function afterContentDOMLoaded(): Promise<void> {
 
             if (arUrl && attribute) {
               processArUrl(childElement, arUrl, attribute).catch((error) =>
-                logger.error('Error processing child ar:// URL:', error),
+                logger.error('[CONTENT] Child error:', error.message || error),
               );
             }
           });
@@ -478,5 +470,5 @@ async function afterContentDOMLoaded(): Promise<void> {
     subtree: true,
   });
 
-  logger.debug('Wayfinder Content Script: Initialization complete');
+  // Content script initialized
 }

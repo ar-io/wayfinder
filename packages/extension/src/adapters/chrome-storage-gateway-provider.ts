@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 import { AoGatewayWithAddress } from '@ar.io/sdk/web';
-import { NetworkGatewaysProvider } from '@ar.io/wayfinder-core';
 /**
  * WayFinder
  * Copyright (C) 2022-2025 Permanent Data Solutions, Inc. All Rights Reserved.
@@ -107,33 +106,10 @@ export class ChromeStorageGatewayProvider {
       return new URL(`${protocol}://${fqdn}${portSuffix}`);
     });
 
-    // If no gateways are available (registry not synced or empty), try to fetch from network
+    // If no gateways are available (registry not synced or empty), use fallback
     if (gateways.length === 0) {
       console.warn(
-        '[ChromeStorageGatewayProvider] No gateways in local registry, attempting to fetch from AR.IO network',
-      );
-
-      try {
-        // Try to get gateways from the AR.IO network
-        const networkProvider = new NetworkGatewaysProvider({} as any);
-        const networkGateways = await networkProvider.getGateways();
-
-        if (networkGateways.length > 0) {
-          console.log(
-            '[ChromeStorageGatewayProvider] Successfully fetched gateways from AR.IO network',
-          );
-          return networkGateways;
-        }
-      } catch (error) {
-        console.error(
-          '[ChromeStorageGatewayProvider] Failed to fetch from AR.IO network:',
-          error,
-        );
-      }
-
-      // Absolute last resort: return arweave.net
-      console.warn(
-        '[ChromeStorageGatewayProvider] Using arweave.net as last resort fallback',
+        '[ChromeStorageGatewayProvider] No gateways in local registry, using arweave.net as fallback',
       );
       return [new URL('https://arweave.net')];
     }

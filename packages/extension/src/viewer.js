@@ -45,8 +45,7 @@ class VerifiedBrowser {
       return;
     }
 
-    // Log the gateway URL for debugging
-    console.log('[VIEWER] Gateway URL from params:', this.gatewayUrl);
+    // Gateway URL stored for verification
 
     // Display the AR URL in navigation input (without ar:// prefix)
     const urlInput = document.getElementById('urlInput');
@@ -75,9 +74,7 @@ class VerifiedBrowser {
   async registerServiceWorker() {
     // Service workers cannot be registered from extension pages in Manifest V3
     // Instead, we'll monitor resource loading through the iframe and verify via background script
-    console.log(
-      '[VIEWER] Resource verification will be handled by background script',
-    );
+    // Resource verification handled by background script
 
     // Set up message listener for resource verification updates from background
     chrome.runtime.onMessage.addListener((message, _sender, _sendResponse) => {
@@ -85,10 +82,7 @@ class VerifiedBrowser {
         this.updateResourceStats(message.resourceType, message.verified);
       } else if (message.type === 'MAIN_CONTENT_VERIFICATION_UPDATE') {
         // Update main content verification status when it completes asynchronously
-        console.log(
-          '[VIEWER] Main content verification update:',
-          message.verified,
-        );
+        // Main content verification status updated
         this.stats.main.verified = message.verified;
         this.updateTrustIndicator();
 
@@ -197,9 +191,7 @@ class VerifiedBrowser {
       if (iframe && iframe.contentWindow) {
         // For same-origin content, we can try to access the document
         // Note: This will only work for content served with appropriate headers
-        console.log(
-          '[VIEWER] Iframe loaded, checking for navigation interception capability',
-        );
+        // Navigation interception check
 
         // Check if we can access the iframe content
         try {
@@ -247,10 +239,7 @@ class VerifiedBrowser {
                       }
                     }
 
-                    console.log('[VIEWER] Intercepted Arweave link click:', {
-                      originalUrl: url,
-                      convertedUrl: arUrl,
-                    });
+                    // Intercepted Arweave link click
 
                     // Navigate to the new URL in the viewer
                     window.location.href = `viewer.html?url=${encodeURIComponent(arUrl)}`;
@@ -260,27 +249,19 @@ class VerifiedBrowser {
               true,
             );
 
-            console.log(
-              '[VIEWER] Navigation interceptor installed via direct access',
-            );
+            // Navigation interceptor installed
           }
-        } catch (accessError) {
+        } catch (_accessError) {
           // Can't access iframe content directly - this is expected for cross-origin content
-          console.log(
-            '[VIEWER] Cannot access iframe content directly (cross-origin):',
-            accessError.message,
-          );
+          // Cross-origin content - expected behavior
         }
       }
-    } catch (error) {
-      console.log(
-        '[VIEWER] Error setting up navigation interception:',
-        error.message,
-      );
+    } catch (_error) {
+      // Navigation interception setup failed - expected for cross-origin
     }
 
     // Note: Resource verification is limited without service worker support in extension pages
-    console.log('[VIEWER] Iframe loaded - main content verification complete');
+    // Iframe loaded
   }
 
   toggleMinimize() {
@@ -329,22 +310,19 @@ class VerifiedBrowser {
     try {
       this.updateLoadingState('FETCHING');
 
-      console.log('[VIEWER] Fetching verified content for:', this.arUrl);
+      // Initial load
 
       // Show skip button after 5 seconds (only if verification is enabled)
-      chrome.storage.local.get(
-        ['verifiedBrowsing'],
-        ({ verifiedBrowsing }) => {
-          if (verifiedBrowsing) {
-            this.skipButtonTimeout = setTimeout(() => {
-              const skipDiv = document.getElementById('skipVerification');
-              if (skipDiv && !this.verificationCancelled) {
-                skipDiv.classList.add('show');
-              }
-            }, 5000);
-          }
-        },
-      );
+      chrome.storage.local.get(['verifiedBrowsing'], ({ verifiedBrowsing }) => {
+        if (verifiedBrowsing) {
+          this.skipButtonTimeout = setTimeout(() => {
+            const skipDiv = document.getElementById('skipVerification');
+            if (skipDiv && !this.verificationCancelled) {
+              skipDiv.classList.add('show');
+            }
+          }, 5000);
+        }
+      });
 
       // Request verified content from background
       const response = await chrome.runtime.sendMessage({
@@ -352,7 +330,7 @@ class VerifiedBrowser {
         url: this.arUrl,
       });
 
-      console.log('[VIEWER] Received response:', response);
+      // Response received from background
 
       if (!response) {
         throw new Error('No response from background script');
@@ -365,7 +343,7 @@ class VerifiedBrowser {
       // Store the gateway URL for sharing
       if (response.gatewayUrl) {
         this.gatewayUrl = response.gatewayUrl;
-        console.log('[VIEWER] Gateway URL:', this.gatewayUrl);
+        // Gateway URL received
       }
 
       this.updateLoadingState('VERIFYING');
@@ -374,11 +352,8 @@ class VerifiedBrowser {
       this.stats.main.verified = response.verified || false;
       this.stats.main.status = 'complete';
 
-      console.log(
-        '[VIEWER] Main content verification status:',
-        response.verified,
-      );
-      console.log('[VIEWER] Verification info:', response.verificationInfo);
+      // Main content verification complete
+      // Verification info received
 
       if (response.verified) {
         this.updateLoadingState('COMPLETE');
@@ -414,7 +389,7 @@ class VerifiedBrowser {
         }
       }
     } catch (error) {
-      console.error('Verification error:', error);
+      console.error('[VIEWER] Failed to load:', error.message || error);
       this.showError(error.message);
 
       // Clear skip button timeout
@@ -423,7 +398,7 @@ class VerifiedBrowser {
   }
 
   skipVerification() {
-    console.log('[VIEWER] User requested to skip verification');
+    // Skip verification requested
 
     // Set flag to indicate verification was cancelled
     this.verificationCancelled = true;
@@ -474,7 +449,7 @@ class VerifiedBrowser {
 
   async shareGatewayUrl() {
     if (!this.gatewayUrl) {
-      console.warn('[VIEWER] No gateway URL to share');
+      // No gateway URL to share
       return;
     }
 
@@ -500,9 +475,9 @@ class VerifiedBrowser {
         `Gateway URL copied to clipboard`,
       );
 
-      console.log('[VIEWER] Copied gateway URL to clipboard:', this.gatewayUrl);
-    } catch (err) {
-      console.error('[VIEWER] Failed to copy to clipboard:', err);
+      // Copied to clipboard
+    } catch (_err) {
+      // Copy failed
 
       // Show error toast
       this.showToast(
@@ -542,7 +517,7 @@ class VerifiedBrowser {
             (json.version === '0.2.0' || json.version === '0.1.0')
           ) {
             contentType = 'application/x.arweave-manifest+json';
-            console.log('[VIEWER] Detected Arweave manifest from JSON content');
+            // Detected Arweave manifest
           }
           // Create new blob since we consumed the original
           const newBlob = new Blob([text], { type: contentType });
@@ -749,15 +724,14 @@ class VerifiedBrowser {
             fetch('${url}')
               .then(res => res.json())
               .then(manifest => {
-                console.log('Manifest loaded:', manifest);
+                // Manifest loaded
                 
                 if (manifest.index && manifest.index.path) {
                   // Get the current AR URL from viewer
                   const currentUrl = new URL(window.location.href);
                   const arUrl = currentUrl.searchParams.get('url');
                   
-                  console.log('Manifest index found:', manifest.index);
-                  console.log('Current AR URL:', arUrl);
+                  // Manifest index found
                   
                   if (arUrl) {
                     // Parse the current AR URL to get the base
@@ -767,7 +741,7 @@ class VerifiedBrowser {
                       // Build the index URL
                       const indexUrl = 'ar://' + txId + '/' + manifest.index.path;
                       
-                      console.log('Redirecting to index URL:', indexUrl);
+                      // Redirecting to index
                       document.querySelector('.loading').textContent = 'Redirecting to ' + manifest.index.path + '...';
                       
                       // Redirect to the index file using viewer.html
@@ -792,7 +766,7 @@ class VerifiedBrowser {
                 }
               })
               .catch(err => {
-                console.error('Manifest fetch error:', err);
+                console.error('[VIEWER] Manifest fetch failed:', err.message || err);
                 document.querySelector('.loading').className = 'error';
                 document.querySelector('.error').textContent = 'Error loading manifest: ' + (err.message || 'Unknown error');
                 // Prevent further errors by not propagating
@@ -1114,7 +1088,7 @@ window.reverifyContent = async function () {
     }
   } catch (_e) {
     // Ignore errors - might be cross-origin
-    console.log('[VIEWER] Could not access iframe content to stop media');
+    // Could not access iframe content to stop media
   }
 
   // Clear the iframe completely
@@ -1163,7 +1137,7 @@ window.reverifyContent = async function () {
     // Remove loading state from button
     reverifyBtn?.classList.remove('loading');
   } catch (error) {
-    console.error('Reverification error:', error);
+    console.error('[VIEWER] Reverification failed:', error.message || error);
     reverifyBtn?.classList.remove('loading');
     browser.showError(error.message);
   }

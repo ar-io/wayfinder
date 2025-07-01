@@ -258,6 +258,43 @@
           </div>
         </section>
 
+        <!-- Telemetry Settings -->
+        <section class="settings-section telemetry-config" id="telemetry">
+          <div class="section-header">
+            <h2>Usage Telemetry</h2>
+            <p>Help improve Wayfinder with anonymous usage data</p>
+          </div>
+          
+          <div class="telemetry-options">
+            <div class="option-card">
+              <div class="option-header">
+                <div class="option-main">
+                  <div class="option-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg></div>
+                  <div class="option-info">
+                    <h3>Anonymous Telemetry</h3>
+                    <p>Share anonymous usage statistics to help improve Wayfinder</p>
+                  </div>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="telemetryToggle">
+                  <span class="switch-slider"></span>
+                </label>
+              </div>
+              <div class="option-details" id="telemetryDetails" style="display: none;">
+                <div class="feature-list">
+                  <div class="feature">✓ Anonymous performance metrics</div>
+                  <div class="feature">✓ Gateway routing statistics</div>
+                  <div class="feature">✓ No personal data collected</div>
+                  <div class="feature">✓ 10% sample rate</div>
+                </div>
+                <div class="input-description" style="margin-top: 10px;">
+                  <strong>Note:</strong> Telemetry requires extension reload to apply changes. If you experience browser compatibility issues, the extension will automatically disable telemetry and continue working.
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <!-- Advanced Settings -->
         <section class="settings-section advanced-config" id="advanced">
           <div class="advanced-settings-card">
@@ -481,51 +518,6 @@
           </div>
         </section>
 
-        <!-- Telemetry Section -->
-        <section class="settings-section telemetry-section">
-          <div class="section-header">
-            <h2>Telemetry</h2>
-            <p>Help improve Wayfinder by sharing anonymous usage data</p>
-          </div>
-          
-          <div class="config-card">
-            <div class="config-section">
-              <div class="option-card">
-                <div class="option-header">
-                  <div class="option-icon">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M12 20v-2m0-14v2m-8 10h2m14 0h2"></path>
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <path d="M12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6 6 6 0 0 1-6-6 6 6 0 0 1 6-6z"></path>
-                      <circle cx="12" cy="12" r="2"></circle>
-                    </svg>
-                  </div>
-                  <div class="option-info">
-                    <h3>Enable Telemetry</h3>
-                    <p>Share anonymous performance and usage data to help improve the Wayfinder network</p>
-                  </div>
-                  <label class="switch">
-                    <input type="checkbox" id="telemetryEnabled">
-                    <span class="switch-slider"></span>
-                  </label>
-                </div>
-              </div>
-              
-              <div id="telemetrySettings" style="display: none;">
-                <div class="input-group">
-                  <label for="telemetrySampleRate">Sample Rate</label>
-                  <div class="slider-group">
-                    <input type="range" id="telemetrySampleRate" min="0.1" max="1" value="0.1" step="0.1" class="slider">
-                    <span class="slider-value" id="telemetrySampleRateValue">10%</span>
-                  </div>
-                  <div class="input-description">
-                    Percentage of events to collect (lower values reduce performance impact)
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
 
         <!-- Reset Section (at bottom) -->
         <section class="settings-section reset-section">
