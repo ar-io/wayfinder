@@ -1,5 +1,21 @@
 # @ar.io/wayfinder-core
 
+## 1.0.0
+
+### Major Changes
+
+- 89c0efe: Initial wayfinder-core release
+
+### Patch Changes
+
+- dc90515: Fix telemetry spans in browser environments
+- 09b3759: Add x-ar-io-\* headers on requests, use version.ts in telemetry data
+- 2d72bba: Adds optional telemetry support for wayfinder requests
+- 79254d1: Make sample rate and service name optional
+- 4f062ad: Fixed ArNS subdomain routing to properly handle multi-level gateway domains
+- e9245df: Adds support for parsing arweave.net and arweave.dev urls in resolveUrl
+- 063e480: Updates type exports from wayfinder-core
+
 ## 1.0.0-alpha.8
 
 ### Major Changes

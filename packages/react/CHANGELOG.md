@@ -1,5 +1,26 @@
 # @ar.io/wayfinder-react
 
+## 1.0.0
+
+### Major Changes
+
+- ec79105: Initial release of wayfinder-react
+
+### Patch Changes
+
+- 46fe8a4: Adds useWayfinderUrl and useWayfinderRequest hooks
+- f5e742b: Fix LocalStorageGatewaysProvider to cache gateway url strings instead of URL objects'
+- 113fd9e: Adds support for LocalStorageGatewaysProvider, which can be used in conjunction with any other gateways provider'
+- Updated dependencies [dc90515]
+- Updated dependencies [09b3759]
+- Updated dependencies [2d72bba]
+- Updated dependencies [79254d1]
+- Updated dependencies [89c0efe]
+- Updated dependencies [4f062ad]
+- Updated dependencies [e9245df]
+- Updated dependencies [063e480]
+  - @ar.io/wayfinder-core@1.0.0
+
 ## 0.0.5-alpha.10
 
 ### Patch Changes
