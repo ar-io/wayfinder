@@ -56,10 +56,14 @@ export const txIdRegex = /^[A-Za-z0-9_-]{43}$/;
  * @param params - The params to parse
  * @returns The WayfinderURL
  */
-export const createWayfinderUrl = (params: WayfinderURLParams): WayfinderURL => {
+export const createWayfinderUrl = (
+  params: WayfinderURLParams,
+): WayfinderURL => {
   // only allow one of the params to be provided
   if (Object.keys(params).length !== 1) {
-    throw new Error('Invalid URL params, only one of the following is allowed: originalUrl, wayfinderUrl, txId, arnsName');
+    throw new Error(
+      'Invalid URL params, only one of the following is allowed: originalUrl, wayfinderUrl, txId, arnsName',
+    );
   }
 
   let wayfinderUrl: WayfinderURL;
@@ -71,7 +75,10 @@ export const createWayfinderUrl = (params: WayfinderURLParams): WayfinderURL => 
     // parse out old urls to arweave.net and arweave.dev, e.g. put it into a URL and get the path
     const url = new URL(params.originalUrl);
     // hard coded for now, but can extend to other hosts
-    if (url.hostname.toLowerCase().includes('arweave.net') || url.hostname.toLowerCase().includes('arweave.dev')) {
+    if (
+      url.hostname.toLowerCase().includes('arweave.net') ||
+      url.hostname.toLowerCase().includes('arweave.dev')
+    ) {
       wayfinderUrl = `ar://${url.pathname.startsWith('/') ? url.pathname.slice(1) : url.pathname}`;
     } else {
       throw new Error('Invalid URL');
@@ -583,17 +590,17 @@ export class Wayfinder {
    * const redirectUrl = await resolveUrl({
    *   originalUrl: 'https://arweave.net/<txId>',
    * });
-   * 
+   *
    * // returns the redirected URL based on the routing strategy and the provided arns name
    * const redirectUrl = await resolveUrl({
    *   arnsName: 'ardrive',
    * });
-   * 
+   *
    * // returns the redirected URL based on the routing strategy and the provided wayfinder url
    * const redirectUrl = await resolveUrl({
    *   wayfinderUrl: 'ar://1234567890',
    * });
-   * 
+   *
    * // returns the redirected URL based on the routing strategy and the provided txId
    * const redirectUrl = await resolveUrl({
    *   txId: '1234567890',
