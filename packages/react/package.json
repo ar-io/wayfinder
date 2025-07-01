@@ -1,6 +1,6 @@
 {
   "name": "@ar.io/wayfinder-react",
-  "version": "0.0.5-alpha.9",
+  "version": "0.0.5-alpha.10",
   "description": "React components for WayFinder",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -30,7 +30,7 @@
     "format:check": "biome format"
   },
   "dependencies": {
-    "@ar.io/wayfinder-core": "0.0.5-alpha.7",
+    "@ar.io/wayfinder-core": "1.0.0-alpha.8",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },

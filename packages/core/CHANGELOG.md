@@ -1,5 +1,16 @@
 # @ar.io/wayfinder-core
 
+## 1.0.0-alpha.8
+
+### Major Changes
+
+- 89c0efe: Initial wayfinder-core release
+
+### Patch Changes
+
+- 09b3759: Add x-ar-io-\* headers on requests, use version.ts in telemetry data
+- e9245df: Adds support for parsing arweave.net and arweave.dev urls in resolveUrl
+
 ## 0.0.5-alpha.7
 
 ### Patch Changes
