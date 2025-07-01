@@ -12,6 +12,7 @@ jobs:
     uses: ./.github/workflows/pr-check.yml
 
   release:
+    needs: monorepo
     name: Release
     runs-on: ubuntu-latest
     permissions:
