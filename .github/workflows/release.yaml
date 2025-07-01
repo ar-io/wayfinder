@@ -51,6 +51,16 @@ jobs:
             npx changeset pre enter alpha
           fi
 
+      - name: Exit Prerelease Mode for Main Branch
+        if: github.ref == 'refs/heads/main'
+        run: |
+          if [ -f ".changeset/pre.json" ]; then
+            echo "Exiting pre-release mode for main branch..."
+            npx changeset pre exit
+          else
+            echo "Not in pre-release mode, skipping..."
+          fi
+
       - name: Build all packages
         run: npm run build --workspaces
         
