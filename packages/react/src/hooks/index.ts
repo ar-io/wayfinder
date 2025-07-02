@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Wayfinder } from '@ar.io/wayfinder-core';
+import { Wayfinder, WayfinderURLParams } from '@ar.io/wayfinder-core';
 import { useContext, useEffect, useState } from 'react';
 import {
   WayfinderContext,
@@ -48,14 +48,14 @@ export const useWayfinderRequest = (): Wayfinder['request'] => {
  * @param txId - The transaction ID to resolve
  * @returns Object containing the resolved URL and loading state
  */
-export const useWayfinderUrl = ({ txId }: { txId: string }) => {
+export const useWayfinderUrl = (params: WayfinderURLParams) => {
   const { wayfinder } = useWayfinder();
   const [resolvedUrl, setResolvedUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    if (!txId) {
+    if (!params) {
       setResolvedUrl(null);
       setError(null);
       return;
@@ -66,9 +66,7 @@ export const useWayfinderUrl = ({ txId }: { txId: string }) => {
 
     (async () => {
       try {
-        const resolved = await wayfinder.resolveUrl({
-          originalUrl: `ar://${txId}`,
-        });
+        const resolved = await wayfinder.resolveUrl(params);
         setResolvedUrl(resolved.toString());
       } catch (err) {
         setError(
@@ -78,7 +76,7 @@ export const useWayfinderUrl = ({ txId }: { txId: string }) => {
         setIsLoading(false);
       }
     })();
-  }, [txId, wayfinder]);
+  }, [params, wayfinder]);
 
-  return { resolvedUrl, isLoading, error, txId };
+  return { resolvedUrl, isLoading, error };
 };
