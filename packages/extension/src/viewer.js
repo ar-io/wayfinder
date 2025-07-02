@@ -23,6 +23,8 @@ class VerifiedBrowser {
     this.skipButtonTimeout = null;
     this.verificationCancelled = false;
     this.gatewayUrl = null;
+    this.resources = []; // Track individual resource verification
+    this.verificationPanel = null;
 
     this.loadingStates = {
       INITIALIZING: 'Initializing secure environment...',
@@ -80,6 +82,13 @@ class VerifiedBrowser {
     chrome.runtime.onMessage.addListener((message, _sender, _sendResponse) => {
       if (message.type === 'RESOURCE_VERIFICATION_UPDATE') {
         this.updateResourceStats(message.resourceType, message.verified);
+        
+        // Update individual resource status if we have the URL
+        if (message.url) {
+          const status = message.verified ? 'verified' : 'failed';
+          const reason = message.verified ? 'Cryptographically verified' : (message.error || 'Verification failed');
+          this.updateResourceStatus(message.url, status, reason);
+        }
       } else if (message.type === 'MAIN_CONTENT_VERIFICATION_UPDATE') {
         // Update main content verification status when it completes asynchronously
         // Main content verification status updated
@@ -119,16 +128,27 @@ class VerifiedBrowser {
 
     // Update trust indicator
     this.updateTrustIndicator();
+
+    // Start tracking resource loading
+    this.trackResourceLoading();
   }
 
   setupEventHandlers() {
     // Minimize toggle
     const minimizeBtn = document.getElementById('minimizeToggle');
-    minimizeBtn.addEventListener('click', () => this.toggleMinimize());
+    minimizeBtn?.addEventListener('click', () => this.toggleMinimize());
 
     // Floating badge click (restore from minimized)
     const floatingBadge = document.getElementById('floatingBadge');
-    floatingBadge.addEventListener('click', () => this.toggleMinimize());
+    floatingBadge?.addEventListener('click', () => this.toggleMinimize());
+
+    // Verification details button
+    const verificationDetailsBtn = document.getElementById('verificationDetailsBtn');
+    verificationDetailsBtn?.addEventListener('click', () => this.toggleVerificationPanel());
+
+    // Close verification panel
+    const closeVerificationPanel = document.getElementById('closeVerificationPanel');
+    closeVerificationPanel?.addEventListener('click', () => this.hideVerificationPanel());
 
     // URL navigation button
     const urlGoBtn = document.getElementById('urlGoBtn');
@@ -172,7 +192,7 @@ class VerifiedBrowser {
 
     // Listen for iframe load to start resource tracking
     const iframe = document.getElementById('verified-content');
-    iframe.addEventListener('load', () => {
+    iframe?.addEventListener('load', () => {
       this.onIframeLoad();
     });
   }
@@ -375,7 +395,10 @@ class VerifiedBrowser {
       await this.displayContent(response);
 
       // Hide loading overlay
-      document.getElementById('loadingOverlay').style.display = 'none';
+      const loadingOverlay = document.getElementById('loadingOverlay');
+      if (loadingOverlay) {
+        loadingOverlay.style.display = 'none';
+      }
 
       // Clear skip button timeout and hide it
       this.clearSkipButton();
@@ -421,7 +444,10 @@ class VerifiedBrowser {
     iframe.src = gatewayUrl;
 
     // Hide loading overlay
-    document.getElementById('loadingOverlay').style.display = 'none';
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    if (loadingOverlay) {
+      loadingOverlay.style.display = 'none';
+    }
 
     // Update share button tooltip
     const shareBtn = document.getElementById('shareBtn');
@@ -549,11 +575,72 @@ class VerifiedBrowser {
 
       // For HTML content, we need to ensure scripts can load
       if (contentType?.includes('text/html')) {
-        // CRITICAL: Set sandbox to allow scripts but maintain security
-        iframe.removeAttribute('sandbox');
-        iframe.sandbox =
-          'allow-scripts allow-same-origin allow-forms allow-popups allow-downloads allow-modals';
-        iframe.src = objectUrl;
+        // Check if the HTML contains external scripts that would be blocked by CSP
+        const htmlContent = await blob.text();
+        
+        // Store HTML content for resource scanning
+        this.lastHtmlContent = htmlContent;
+        console.log('[VIEWER] Stored HTML content for resource scanning');
+        
+        // Scan for resources immediately
+        setTimeout(() => {
+          this.scanHtmlString(htmlContent);
+        }, 100);
+        
+        const hasExternalScripts = /<script[^>]+src=["']https?:\/\/(?!.*ar\.io|.*arweave|.*g8way)[^"']+["']/i.test(htmlContent);
+        const hasInlineScripts = /<script(?![^>]*src=)[^>]*>[\s\S]*?<\/script>/i.test(htmlContent);
+        
+        if (hasExternalScripts || hasInlineScripts) {
+          // Content has scripts that would be blocked by extension CSP
+          // Load from gateway directly to bypass CSP restrictions
+          iframe.removeAttribute('sandbox');
+          iframe.sandbox = 'allow-scripts allow-same-origin allow-forms allow-popups allow-downloads allow-modals';
+          
+          // Use the gateway URL directly - this should be set from the background response
+          let gatewayUrl = this.gatewayUrl;
+          console.log('[VIEWER] this.gatewayUrl:', this.gatewayUrl);
+          
+          if (!gatewayUrl) {
+            // Extract from URL params 
+            const urlParams = new URLSearchParams(window.location.search);
+            gatewayUrl = urlParams.get('gateway');
+            console.log('[VIEWER] Gateway from URL params:', gatewayUrl);
+            
+            if (!gatewayUrl && this.arUrl) {
+              // Last resort: construct basic arweave.net URL (but this shouldn't happen)
+              const txId = this.arUrl.replace('ar://', '');
+              gatewayUrl = `https://arweave.net/${txId}`;
+              console.log('[VIEWER] Constructed fallback URL:', gatewayUrl);
+            }
+          }
+          
+          console.log('[VIEWER] Loading from gateway URL:', gatewayUrl);
+          iframe.src = gatewayUrl;
+          
+          // Update trust indicator to show partial verification
+          setTimeout(() => {
+            const trustIndicator = document.getElementById('trustIndicator');
+            const trustLabel = document.getElementById('trustLabel');
+            const trustDetails = document.getElementById('trustDetails');
+            if (trustIndicator && trustLabel && trustDetails) {
+              trustLabel.textContent = '⚠️ Partially Verified';
+              trustIndicator.className = 'trust-indicator partial';
+              trustDetails.textContent = 'Main content verified. External resources loaded without verification due to browser restrictions.';
+            }
+          }, 100);
+          
+          // Show a toast notification
+          this.showToast(
+            'Loading with external scripts',
+            'warning',
+            'Content contains external scripts. Loading from gateway to ensure functionality.'
+          );
+        } else {
+          // No problematic scripts - safe to use blob URL
+          iframe.removeAttribute('sandbox');
+          iframe.sandbox = 'allow-scripts allow-same-origin allow-forms allow-popups allow-downloads allow-modals';
+          iframe.src = objectUrl;
+        }
       } else {
         // For non-HTML content, create a viewer or use native display
         const viewerContent = this.createContentViewer(objectUrl, contentType);
@@ -914,39 +1001,39 @@ class VerifiedBrowser {
 
     // Show progress until we have some resources
     if (totalResources === 0) {
-      trustIcon.className = 'trust-icon';
-      trustIndicator.className = 'trust-indicator';
-      trustLabel.textContent = 'Loading';
-      trustDetails.textContent = 'Fetching content...';
+      if (trustIcon) trustIcon.className = 'trust-icon';
+      if (trustIndicator) trustIndicator.className = 'trust-indicator';
+      if (trustLabel) trustLabel.textContent = 'Loading';
+      if (trustDetails) trustDetails.textContent = 'Fetching content...';
       if (checkmark) checkmark.style.display = 'none';
     } else if (totalResources === 1 && this.stats.main.verified) {
       // Only main page loaded and verified
-      trustIcon.className = 'trust-icon verified';
-      trustIndicator.className = 'trust-indicator complete';
-      trustLabel.textContent = 'Page Verified';
-      trustDetails.textContent = 'Content integrity confirmed';
+      if (trustIcon) trustIcon.className = 'trust-icon verified';
+      if (trustIndicator) trustIndicator.className = 'trust-indicator complete';
+      if (trustLabel) trustLabel.textContent = 'Page Verified';
+      if (trustDetails) trustDetails.textContent = 'Content integrity confirmed';
       if (checkmark) checkmark.style.display = 'block';
     } else if (totalResources > 1 && unverifiedResources === 0) {
       // All resources verified
-      trustIcon.className = 'trust-icon verified';
-      trustIndicator.className = 'trust-indicator complete';
-      trustLabel.textContent = 'Fully Verified';
-      trustDetails.textContent = `All ${totalResources} resources checked`;
+      if (trustIcon) trustIcon.className = 'trust-icon verified';
+      if (trustIndicator) trustIndicator.className = 'trust-indicator complete';
+      if (trustLabel) trustLabel.textContent = 'Fully Verified';
+      if (trustDetails) trustDetails.textContent = `All ${totalResources} resources checked`;
       if (checkmark) checkmark.style.display = 'block';
     } else if (unverifiedResources > 0) {
       // Some resources not verified
       const verifiedCount = totalResources - unverifiedResources;
-      trustIcon.className = 'trust-icon warning';
-      trustIndicator.className = 'trust-indicator warning';
-      trustLabel.textContent = 'Partially Verified';
-      trustDetails.textContent = `${verifiedCount} of ${totalResources} resources verified`;
+      if (trustIcon) trustIcon.className = 'trust-icon warning';
+      if (trustIndicator) trustIndicator.className = 'trust-indicator warning';
+      if (trustLabel) trustLabel.textContent = 'Partially Verified';
+      if (trustDetails) trustDetails.textContent = `${verifiedCount} of ${totalResources} resources verified`;
       if (checkmark) checkmark.style.display = 'none';
     } else {
       // Main page not verified
-      trustIcon.className = 'trust-icon error';
-      trustIndicator.className = 'trust-indicator error';
-      trustLabel.textContent = 'Not Verified';
-      trustDetails.textContent = 'Content could not be verified';
+      if (trustIcon) trustIcon.className = 'trust-icon error';
+      if (trustIndicator) trustIndicator.className = 'trust-indicator error';
+      if (trustLabel) trustLabel.textContent = 'Not Verified';
+      if (trustDetails) trustDetails.textContent = 'Content could not be verified';
       if (checkmark) checkmark.style.display = 'none';
     }
 
@@ -973,6 +1060,10 @@ class VerifiedBrowser {
 
   showToast(title, type = 'info', message = '') {
     const container = document.getElementById('toastContainer');
+    if (!container) {
+      console.warn('[VIEWER] Toast container not found');
+      return;
+    }
 
     // Create toast element
     const toast = document.createElement('div');
@@ -1018,11 +1109,16 @@ class VerifiedBrowser {
     this.updateLoadingState('ERROR');
 
     // Update error message
-    document.getElementById('errorMessage').textContent = message;
+    const errorMessage = document.getElementById('errorMessage');
+    if (errorMessage) {
+      errorMessage.textContent = message;
+    }
 
     // Show error overlay
-    document.getElementById('loadingOverlay').style.display = 'none';
-    document.getElementById('errorOverlay').style.display = 'flex';
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const errorOverlay = document.getElementById('errorOverlay');
+    if (loadingOverlay) loadingOverlay.style.display = 'none';
+    if (errorOverlay) errorOverlay.style.display = 'flex';
 
     // Show error toast
     this.showToast('Verification Error', 'error', message);
@@ -1030,6 +1126,311 @@ class VerifiedBrowser {
 
   displayUrl() {
     // Removed - URL now displayed in navigation input
+  }
+
+  // Resource tracking and verification panel methods
+  addResource(url, type, status = 'pending', reason = null) {
+    const resource = {
+      url,
+      type,
+      status, // 'pending', 'verified', 'skipped', 'failed'
+      reason,
+      timestamp: Date.now()
+    };
+    this.resources.push(resource);
+    this.updateVerificationPanel();
+    console.log('[VIEWER] Added resource:', resource);
+  }
+
+  updateResourceStatus(url, status, reason = null) {
+    const resource = this.resources.find(r => r.url === url);
+    if (resource) {
+      resource.status = status;
+      resource.reason = reason;
+      this.updateVerificationPanel();
+      console.log('[VIEWER] Updated resource status:', { url, status, reason });
+    }
+  }
+
+  toggleVerificationPanel() {
+    const panel = document.getElementById('verificationPanel');
+    if (panel) {
+      if (panel.style.display === 'none' || !panel.style.display) {
+        this.showVerificationPanel();
+      } else {
+        this.hideVerificationPanel();
+      }
+    }
+  }
+
+  showVerificationPanel() {
+    const panel = document.getElementById('verificationPanel');
+    if (panel) {
+      panel.style.display = 'block';
+      this.updateVerificationPanel();
+    }
+  }
+
+  hideVerificationPanel() {
+    const panel = document.getElementById('verificationPanel');
+    if (panel) {
+      panel.style.display = 'none';
+    }
+  }
+
+  updateVerificationPanel() {
+    const verifiedCount = this.resources.filter(r => r.status === 'verified').length;
+    const skippedCount = this.resources.filter(r => r.status === 'skipped').length;
+    const failedCount = this.resources.filter(r => r.status === 'failed').length;
+
+    // Update summary counts
+    const verifiedCountEl = document.getElementById('verifiedCount');
+    const skippedCountEl = document.getElementById('skippedCount');
+    const failedCountEl = document.getElementById('failedCount');
+
+    if (verifiedCountEl) verifiedCountEl.textContent = verifiedCount;
+    if (skippedCountEl) skippedCountEl.textContent = skippedCount;
+    if (failedCountEl) failedCountEl.textContent = failedCount;
+
+    // Update resource list
+    this.updateResourceList();
+  }
+
+  updateResourceList() {
+    const resourceList = document.getElementById('resourceList');
+    if (!resourceList) return;
+
+    resourceList.innerHTML = '';
+
+    // Add main content
+    const mainItem = document.createElement('div');
+    mainItem.className = 'resource-item';
+    mainItem.innerHTML = `
+      <div class="resource-status ${this.stats.main.verified ? 'verified' : 'failed'}"></div>
+      <div class="resource-info">
+        <div class="resource-url">${this.arUrl}</div>
+        <div class="resource-type">MAIN CONTENT</div>
+        <div class="resource-reason">${this.stats.main.verified ? 'Cryptographically verified' : 'Verification failed'}</div>
+      </div>
+    `;
+    resourceList.appendChild(mainItem);
+
+    // Add individual resources
+    this.resources.forEach(resource => {
+      const item = document.createElement('div');
+      item.className = 'resource-item';
+      
+      const displayUrl = resource.url.length > 60 
+        ? resource.url.substring(0, 57) + '...' 
+        : resource.url;
+
+      const reasonText = resource.reason || this.getDefaultReason(resource.status);
+
+      item.innerHTML = `
+        <div class="resource-status ${resource.status}"></div>
+        <div class="resource-info">
+          <div class="resource-url" title="${resource.url}">${displayUrl}</div>
+          <div class="resource-type">${resource.type.toUpperCase()}</div>
+          <div class="resource-reason">${reasonText}</div>
+        </div>
+      `;
+      resourceList.appendChild(item);
+    });
+  }
+
+  getDefaultReason(status) {
+    switch (status) {
+      case 'verified': return 'Cryptographically verified';
+      case 'skipped': return 'External resource - not verified';
+      case 'failed': return 'Verification failed';
+      case 'pending': return 'Verification in progress...';
+      default: return 'Unknown status';
+    }
+  }
+
+  // Intercept resource loading to track them
+  trackResourceLoading() {
+    // Monitor iframe content loading
+    const iframe = document.getElementById('verified-content');
+    if (iframe) {
+      iframe.addEventListener('load', () => {
+        this.scanIframeResources();
+      });
+    }
+  }
+
+  scanIframeResources() {
+    console.log('[VIEWER] Attempting to scan iframe resources...');
+    
+    try {
+      const iframe = document.getElementById('verified-content');
+      if (!iframe) {
+        console.log('[VIEWER] No iframe found');
+        return;
+      }
+      
+      if (!iframe.contentDocument) {
+        console.log('[VIEWER] Cannot access iframe.contentDocument (likely cross-origin)');
+        // For cross-origin content, try to scan the HTML source instead
+        this.scanFromHtmlSource();
+        return;
+      }
+
+      const doc = iframe.contentDocument;
+      console.log('[VIEWER] Scanning iframe content document...');
+      
+      // Scan scripts
+      const scripts = doc.querySelectorAll('script[src]');
+      console.log(`[VIEWER] Found ${scripts.length} scripts`);
+      scripts.forEach(script => {
+        const src = script.src;
+        console.log('[VIEWER] Processing script:', src);
+        if (src && !this.resources.find(r => r.url === src)) {
+          const isExternal = this.isExternalResource(src);
+          console.log(`[VIEWER] Script ${src} is ${isExternal ? 'external' : 'Arweave'}`);
+          this.addResource(src, 'script', isExternal ? 'skipped' : 'pending', 
+            isExternal ? 'External CDN resource' : null);
+        }
+      });
+
+      // Scan stylesheets
+      const links = doc.querySelectorAll('link[rel="stylesheet"]');
+      console.log(`[VIEWER] Found ${links.length} stylesheets`);
+      links.forEach(link => {
+        const href = link.href;
+        console.log('[VIEWER] Processing stylesheet:', href);
+        if (href && !this.resources.find(r => r.url === href)) {
+          const isExternal = this.isExternalResource(href);
+          console.log(`[VIEWER] Stylesheet ${href} is ${isExternal ? 'external' : 'Arweave'}`);
+          this.addResource(href, 'stylesheet', isExternal ? 'skipped' : 'pending',
+            isExternal ? 'External CDN resource' : null);
+        }
+      });
+
+      // Scan images
+      const images = doc.querySelectorAll('img[src]');
+      console.log(`[VIEWER] Found ${images.length} images`);
+      images.forEach(img => {
+        const src = img.src;
+        console.log('[VIEWER] Processing image:', src);
+        if (src && !this.resources.find(r => r.url === src)) {
+          const isExternal = this.isExternalResource(src);
+          console.log(`[VIEWER] Image ${src} is ${isExternal ? 'external' : 'Arweave'}`);
+          this.addResource(src, 'image', isExternal ? 'skipped' : 'pending',
+            isExternal ? 'External resource' : null);
+        }
+      });
+
+    } catch (error) {
+      // Cross-origin access blocked - this is expected for external content
+      console.log('[VIEWER] Cannot scan iframe resources due to cross-origin restrictions:', error.message);
+      // Try alternative approach
+      this.scanFromHtmlSource();
+    }
+  }
+
+  // Alternative scanning method for cross-origin content
+  scanFromHtmlSource() {
+    console.log('[VIEWER] Attempting to scan from HTML source...');
+    
+    // Try to get the HTML that was loaded
+    const iframe = document.getElementById('verified-content');
+    if (!iframe) return;
+    
+    // For content loaded from gateway directly, we can't scan it
+    // But we can check if we have the HTML content from the verification process
+    if (this.lastHtmlContent) {
+      console.log('[VIEWER] Scanning stored HTML content for resources...');
+      this.scanHtmlString(this.lastHtmlContent);
+    } else {
+      console.log('[VIEWER] No stored HTML content available for scanning');
+    }
+  }
+
+  scanHtmlString(htmlContent) {
+    console.log('[VIEWER] Scanning HTML string for resources...');
+    
+    // Use regex to find script sources
+    const scriptRegex = /<script[^>]+src=["']([^"']+)["']/gi;
+    let match;
+    while ((match = scriptRegex.exec(htmlContent)) !== null) {
+      const src = match[1];
+      console.log('[VIEWER] Found script in HTML:', src);
+      if (!this.resources.find(r => r.url === src)) {
+        const fullUrl = this.resolveUrl(src);
+        const isExternal = this.isExternalResource(fullUrl);
+        console.log(`[VIEWER] Script ${fullUrl} is ${isExternal ? 'external' : 'Arweave'}`);
+        this.addResource(fullUrl, 'script', isExternal ? 'skipped' : 'pending',
+          isExternal ? 'External CDN resource' : null);
+      }
+    }
+
+    // Use regex to find stylesheet links
+    const linkRegex = /<link[^>]+rel=["']stylesheet["'][^>]+href=["']([^"']+)["']/gi;
+    while ((match = linkRegex.exec(htmlContent)) !== null) {
+      const href = match[1];
+      console.log('[VIEWER] Found stylesheet in HTML:', href);
+      if (!this.resources.find(r => r.url === href)) {
+        const fullUrl = this.resolveUrl(href);
+        const isExternal = this.isExternalResource(fullUrl);
+        console.log(`[VIEWER] Stylesheet ${fullUrl} is ${isExternal ? 'external' : 'Arweave'}`);
+        this.addResource(fullUrl, 'stylesheet', isExternal ? 'skipped' : 'pending',
+          isExternal ? 'External CDN resource' : null);
+      }
+    }
+
+    // Use regex to find images
+    const imgRegex = /<img[^>]+src=["']([^"']+)["']/gi;
+    while ((match = imgRegex.exec(htmlContent)) !== null) {
+      const src = match[1];
+      console.log('[VIEWER] Found image in HTML:', src);
+      if (!this.resources.find(r => r.url === src)) {
+        const fullUrl = this.resolveUrl(src);
+        const isExternal = this.isExternalResource(fullUrl);
+        console.log(`[VIEWER] Image ${fullUrl} is ${isExternal ? 'external' : 'Arweave'}`);
+        this.addResource(fullUrl, 'image', isExternal ? 'skipped' : 'pending',
+          isExternal ? 'External resource' : null);
+      }
+    }
+  }
+
+  resolveUrl(url) {
+    // If it's already a full URL, return as-is
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('chrome-extension://')) {
+      return url;
+    }
+    
+    // For relative URLs, resolve against the current AR URL
+    if (this.arUrl) {
+      const baseId = this.arUrl.replace('ar://', '').split('/')[0];
+      if (url.startsWith('/')) {
+        return `ar://${baseId}${url}`;
+      } else {
+        const currentPath = this.arUrl.replace('ar://', '').split('/');
+        currentPath.pop(); // Remove filename
+        return `ar://${baseId}/${currentPath.join('/')}/${url}`;
+      }
+    }
+    
+    return url;
+  }
+
+  isExternalResource(url) {
+    if (url.startsWith('data:') || url.startsWith('blob:')) return false;
+    if (url.startsWith('chrome-extension:')) return false;
+    if (url.startsWith('ar://')) return false; // Arweave URLs are not external
+    
+    // Check if it's an Arweave gateway URL
+    const gatewayPatterns = [
+      /^https?:\/\/[^\/]*arweave\.[^\/]+\//,
+      /^https?:\/\/[^\/]*ar\.io[^\/]*\//,
+      /^https?:\/\/[^\/]*ar-io[^\/]*\//,
+      /^https?:\/\/[^\/]*g8way[^\/]*\//,
+    ];
+    
+    const isGatewayUrl = gatewayPatterns.some(pattern => pattern.test(url));
+    
+    return !isGatewayUrl;
   }
 }
 
@@ -1098,8 +1499,10 @@ window.reverifyContent = async function () {
   iframe.contentWindow?.location.replace('about:blank');
 
   // Show loading overlay
-  document.getElementById('loadingOverlay').style.display = 'flex';
-  document.getElementById('errorOverlay').style.display = 'none';
+  const loadingOverlay = document.getElementById('loadingOverlay');
+  const errorOverlay = document.getElementById('errorOverlay');
+  if (loadingOverlay) loadingOverlay.style.display = 'flex';
+  if (errorOverlay) errorOverlay.style.display = 'none';
 
   // Reset progress display
   browser.progressShown = false;
@@ -1107,8 +1510,10 @@ window.reverifyContent = async function () {
   if (progressEl) {
     progressEl.style.display = 'none';
   }
-  document.getElementById('loadingPercent').textContent = '0%';
-  document.getElementById('loadingMB').textContent = '';
+  const loadingPercent = document.getElementById('loadingPercent');
+  const loadingMB = document.getElementById('loadingMB');
+  if (loadingPercent) loadingPercent.textContent = '0%';
+  if (loadingMB) loadingMB.textContent = '';
 
   // Reset skip button
   browser.clearSkipButton();
@@ -1121,7 +1526,10 @@ window.reverifyContent = async function () {
   browser.updateLoadingState('INITIALIZING');
 
   // Clear any existing toasts
-  document.getElementById('toastContainer').innerHTML = '';
+  const toastContainer = document.getElementById('toastContainer');
+  if (toastContainer) {
+    toastContainer.innerHTML = '';
+  }
 
   // Show reverification toast
   browser.showToast(
@@ -1148,33 +1556,48 @@ window.reverifyContent = async function () {
 // Global function for "Proceed Anyway" button
 window.proceedAnyway = async function () {
   // Hide error overlay
-  document.getElementById('errorOverlay').style.display = 'none';
+  const errorOverlay = document.getElementById('errorOverlay');
+  if (errorOverlay) {
+    errorOverlay.style.display = 'none';
+  }
 
   // Get the URL and load without verification
   const params = new URLSearchParams(window.location.search);
   const arUrl = params.get('url');
+  const gatewayParam = params.get('gateway');
 
   if (arUrl) {
-    // Convert to regular gateway URL
-    const gatewayUrl = arUrl.replace('ar://', 'https://arweave.net/');
-    document.getElementById('verified-content').src = gatewayUrl;
+    // Use the gateway URL from params if available, otherwise fallback to arweave.net
+    const gatewayUrl = gatewayParam || arUrl.replace('ar://', 'https://arweave.net/');
+    
+    const iframe = document.getElementById('verified-content');
+    if (iframe) {
+      iframe.src = gatewayUrl;
+    }
 
     // Update UI to show unverified state
     const browser = window.verifiedBrowser;
-    browser.gatewayUrl = gatewayUrl; // Store for sharing
+    if (browser) {
+      browser.gatewayUrl = gatewayUrl; // Store for sharing
 
-    // Update share button tooltip
-    const shareBtn = document.getElementById('shareBtn');
-    if (shareBtn) {
-      shareBtn.title = `Share: ${gatewayUrl}`;
+      // Update share button tooltip
+      const shareBtn = document.getElementById('shareBtn');
+      if (shareBtn) {
+        shareBtn.title = `Share: ${gatewayUrl}`;
+      }
+
+      browser.showToast(
+        'Loading unverified content',
+        'warning',
+        'Proceed with caution',
+      );
+      browser.updateLoadingState('COMPLETE');
+      
+      // Update trust indicator to show unverified state
+      browser.stats.main.verified = false;
+      browser.stats.main.status = 'complete';
+      browser.updateTrustIndicator();
     }
-
-    browser.showToast(
-      'Loading unverified content',
-      'warning',
-      'Proceed with caution',
-    );
-    browser.updateLoadingState('COMPLETE');
   }
 };
 

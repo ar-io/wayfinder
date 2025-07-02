@@ -200,6 +200,12 @@
           <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
         </svg>
       </button>
+      <button class="verification-details-btn" id="verificationDetailsBtn" title="Show verification details">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1"></path>
+        </svg>
+      </button>
       <button class="reverify-btn" id="reverifyBtn" title="Reverify content integrity">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="23 4 23 10 17 10"></polyline>
@@ -217,6 +223,33 @@
       </div>
     </div>
   </header>
+
+  <!-- Verification Details Panel -->
+  <div class="verification-panel" id="verificationPanel" style="display: none;">
+    <div class="panel-header">
+      <h3>Verification Details</h3>
+      <button class="close-btn" id="closeVerificationPanel">&times;</button>
+    </div>
+    <div class="panel-content">
+      <div class="verification-summary">
+        <div class="summary-stat">
+          <span class="stat-value verified" id="verifiedCount">0</span>
+          <span class="stat-label">Verified</span>
+        </div>
+        <div class="summary-stat">
+          <span class="stat-value skipped" id="skippedCount">0</span>
+          <span class="stat-label">Skipped (External)</span>
+        </div>
+        <div class="summary-stat">
+          <span class="stat-value failed" id="failedCount">0</span>
+          <span class="stat-label">Failed</span>
+        </div>
+      </div>
+      <div class="resource-list" id="resourceList">
+        <!-- Resources will be populated here -->
+      </div>
+    </div>
+  </div>
 
   <!-- Minimize Toggle -->
   <button class="minimize-toggle" id="minimizeToggle" title="Toggle full screen">

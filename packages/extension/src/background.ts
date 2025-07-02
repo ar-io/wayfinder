@@ -2028,22 +2028,27 @@ async function rewriteHtmlUrls(
 
   // Function to determine if URL should be rewritten
   const shouldRewriteUrl = (url: string): boolean => {
-    // Skip data: URLs, blob: URLs, and external URLs
+    // Skip data: URLs, blob: URLs, and external non-gateway URLs
     if (
       url.startsWith('data:') ||
-      url.startsWith('blob:') ||
-      url.startsWith('http://') ||
-      url.startsWith('https://')
+      url.startsWith('blob:')
     ) {
-      // Check if it's a gateway URL
+      return false;
+    }
+    
+    // For HTTP/HTTPS URLs, only rewrite if they're gateway URLs
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      // Check if it's a gateway URL that should be rewritten
       const gatewayPatterns = [
         /^https?:\/\/[^\/]*arweave\.[^\/]+\//,
         /^https?:\/\/[^\/]*ar\.io[^\/]*\//,
         /^https?:\/\/[^\/]*ar-io[^\/]*\//,
         /^https?:\/\/[^\/]*g8way[^\/]*\//,
       ];
+      // Only rewrite gateway URLs, let external CDNs load normally
       return gatewayPatterns.some((pattern) => pattern.test(url));
     }
+    
     // Rewrite relative URLs and ar:// URLs
     return true;
   };
