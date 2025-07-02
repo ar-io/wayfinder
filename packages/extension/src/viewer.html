@@ -159,61 +159,61 @@
   </style>
 </head>
 <body>
-  <!-- Minimizable Header -->
+  <!-- Consolidated Header -->
   <header class="verification-header" id="verificationHeader">
-    <div class="header-top">
-      <div class="brand">
-        <img src="assets/icon48.png" alt="Wayfinder">
-        <div class="brand-text">
-          <h1>Verified Browsing</h1>
+    <div class="header-content">
+      <!-- Left Section: Logo with Status -->
+      <div class="header-left">
+        <div class="brand-status" id="brandStatus">
+          <img src="assets/icon48.png" alt="Wayfinder" class="brand-logo">
+          <div class="status-indicator" id="statusIndicator">
+            <div class="status-dot"></div>
+            <span class="status-text" id="statusText">Verifying</span>
+          </div>
         </div>
       </div>
-      <div class="url-navigation" id="urlNavigation">
-        <span class="url-prefix">ar://</span>
-        <input type="text" id="urlInput" class="url-input" placeholder="Enter URL" spellcheck="false">
-        <button class="url-go" id="urlGoBtn" title="Navigate">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="9 18 15 12 9 6"></polyline>
-          </svg>
-        </button>
-      </div>
-    </div>
 
-    <!-- Trust Indicator -->
-    <div class="trust-indicator" id="trustIndicator">
-      <div class="trust-icon" id="trustIcon">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-          <path d="M9 12l2 2 4-4" class="checkmark" style="display: none;"/>
-        </svg>
+      <!-- Center Section: URL Navigation -->
+      <div class="header-center">
+        <div class="url-navigation" id="urlNavigation">
+          <span class="url-prefix">ar://</span>
+          <input type="text" id="urlInput" class="url-input" placeholder="Enter URL" spellcheck="false">
+          <button class="url-go" id="urlGoBtn" title="Navigate">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </button>
+        </div>
       </div>
-      <div class="trust-status">
-        <span class="trust-label" id="trustLabel">Verifying Content</span>
-        <span class="trust-details" id="trustDetails">Checking integrity...</span>
+
+      <!-- Right Section: Actions -->
+      <div class="header-right">
+        <div class="action-buttons">
+          <button class="header-btn share-btn" id="shareBtn" title="Share gateway URL" style="display: none;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="18" cy="5" r="3"></circle>
+              <circle cx="6" cy="12" r="3"></circle>
+              <circle cx="18" cy="19" r="3"></circle>
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+            </svg>
+          </button>
+          <button class="header-btn details-btn" id="verificationDetailsBtn" title="Verification details">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+          </button>
+          <button class="header-btn reverify-btn" id="reverifyBtn" title="Reverify" style="display: none;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <polyline points="1 20 1 14 7 14"></polyline>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+          </button>
+        </div>
       </div>
-      <button class="share-btn" id="shareBtn" title="Share gateway URL">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="18" cy="5" r="3"></circle>
-          <circle cx="6" cy="12" r="3"></circle>
-          <circle cx="18" cy="19" r="3"></circle>
-          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-        </svg>
-      </button>
-      <button class="verification-details-btn" id="verificationDetailsBtn" title="Show verification details">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="3"></circle>
-          <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1"></path>
-        </svg>
-      </button>
-      <button class="reverify-btn" id="reverifyBtn" title="Reverify content integrity">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="23 4 23 10 17 10"></polyline>
-          <polyline points="1 20 1 14 7 14"></polyline>
-          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-        </svg>
-        <span>Reverify</span>
-      </button>
     </div>
 
     <!-- Progress Bar -->

@@ -81,12 +81,14 @@ class VerifiedBrowser {
     // Set up message listener for resource verification updates from background
     chrome.runtime.onMessage.addListener((message, _sender, _sendResponse) => {
       if (message.type === 'RESOURCE_VERIFICATION_UPDATE') {
+        console.log('[VIEWER] Received resource verification update:', message);
         this.updateResourceStats(message.resourceType, message.verified);
         
         // Update individual resource status if we have the URL
         if (message.url) {
           const status = message.verified ? 'verified' : 'failed';
           const reason = message.verified ? 'Cryptographically verified' : (message.error || 'Verification failed');
+          console.log(`[VIEWER] Updating resource status: ${message.url} -> ${status}`);
           this.updateResourceStatus(message.url, status, reason);
         }
       } else if (message.type === 'MAIN_CONTENT_VERIFICATION_UPDATE') {
@@ -290,6 +292,22 @@ class VerifiedBrowser {
   }
 
   updateLoadingState(state, _details = '') {
+    // Update loading text
+    const loadingText = document.getElementById('loadingText');
+    if (loadingText) {
+      loadingText.textContent = this.loadingStates[state] || 'Loading...';
+    }
+
+    // Update status text in header
+    const statusText = document.getElementById('statusText');
+    if (statusText && state === 'INITIALIZING') {
+      statusText.textContent = 'Initializing';
+    } else if (statusText && state === 'FETCHING') {
+      statusText.textContent = 'Fetching';
+    } else if (statusText && state === 'VERIFYING') {
+      statusText.textContent = 'Verifying';
+    }
+
     // Update trust indicator based on state
     if (state === 'COMPLETE' || state === 'ERROR') {
       this.updateTrustIndicator();
@@ -1143,12 +1161,43 @@ class VerifiedBrowser {
   }
 
   updateResourceStatus(url, status, reason = null) {
-    const resource = this.resources.find(r => r.url === url);
+    console.log('[VIEWER] Looking for resource to update:', url);
+    
+    // Try to find resource by exact match first
+    let resource = this.resources.find(r => r.url === url);
+    
+    // If not found, try to match ar:// URLs with chrome-extension proxy URLs
+    if (!resource) {
+      // Extract ar:// URL from chrome-extension proxy URL if present
+      const proxyMatch = url.match(/wayfinder-proxy\.html\?url=([^&]+)/);
+      if (proxyMatch) {
+        const arUrl = decodeURIComponent(proxyMatch[1]);
+        console.log('[VIEWER] Extracted ar:// URL from proxy:', arUrl);
+        resource = this.resources.find(r => r.url === arUrl);
+      }
+      
+      // Or check if the incoming URL is an ar:// URL and find matching proxy URL
+      if (!resource && url.startsWith('ar://')) {
+        resource = this.resources.find(r => {
+          if (r.url.includes('wayfinder-proxy.html')) {
+            const match = r.url.match(/wayfinder-proxy\.html\?url=([^&]+)/);
+            if (match) {
+              const decodedUrl = decodeURIComponent(match[1]);
+              return decodedUrl === url;
+            }
+          }
+          return false;
+        });
+      }
+    }
+    
     if (resource) {
       resource.status = status;
       resource.reason = reason;
       this.updateVerificationPanel();
-      console.log('[VIEWER] Updated resource status:', { url, status, reason });
+      console.log('[VIEWER] Updated resource status:', { url: resource.url, status, reason });
+    } else {
+      console.log('[VIEWER] Could not find resource to update:', url);
     }
   }
 
@@ -1255,8 +1304,65 @@ class VerifiedBrowser {
     if (iframe) {
       iframe.addEventListener('load', () => {
         this.scanIframeResources();
+        
+        // Also listen for performance entries to track actual network requests
+        this.trackPerformanceEntries();
       });
     }
+  }
+  
+  trackPerformanceEntries() {
+    console.log('[VIEWER] Setting up performance entry tracking...');
+    
+    // Try to get performance entries from the iframe
+    const iframe = document.getElementById('verified-content');
+    if (!iframe) return;
+    
+    // For content loaded from gateway, we might be able to track some requests
+    try {
+      // Monitor main window performance entries for proxy requests
+      const observer = new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) {
+          if (entry.name.includes('wayfinder-proxy.html')) {
+            console.log('[VIEWER] Detected proxy request:', entry.name);
+            
+            // Extract the ar:// URL from the proxy URL
+            const match = entry.name.match(/wayfinder-proxy\.html\?url=([^&]+)/);
+            if (match) {
+              const arUrl = decodeURIComponent(match[1]);
+              console.log('[VIEWER] Proxy request for ar:// URL:', arUrl);
+              
+              // Check if we already have this resource tracked
+              if (!this.resources.find(r => r.url === arUrl)) {
+                const type = this.guessResourceType(arUrl);
+                this.addResource(arUrl, type, 'pending', null);
+              }
+            }
+          }
+        }
+      });
+      
+      observer.observe({ entryTypes: ['resource'] });
+      
+      // Also check existing entries
+      const existingEntries = performance.getEntriesByType('resource');
+      for (const entry of existingEntries) {
+        if (entry.name.includes('wayfinder-proxy.html')) {
+          console.log('[VIEWER] Found existing proxy request:', entry.name);
+        }
+      }
+    } catch (error) {
+      console.log('[VIEWER] Could not set up performance monitoring:', error.message);
+    }
+  }
+  
+  guessResourceType(url) {
+    const ext = url.split('.').pop()?.toLowerCase();
+    if (['js', 'mjs'].includes(ext)) return 'script';
+    if (['css'].includes(ext)) return 'stylesheet';
+    if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'].includes(ext)) return 'image';
+    if (['woff', 'woff2', 'ttf', 'otf'].includes(ext)) return 'font';
+    return 'other';
   }
 
   scanIframeResources() {
@@ -1356,8 +1462,16 @@ class VerifiedBrowser {
     while ((match = scriptRegex.exec(htmlContent)) !== null) {
       const src = match[1];
       console.log('[VIEWER] Found script in HTML:', src);
-      if (!this.resources.find(r => r.url === src)) {
-        const fullUrl = this.resolveUrl(src);
+      
+      const fullUrl = this.resolveUrl(src);
+      
+      // Skip chrome-extension URLs (our proxy system)
+      if (fullUrl.startsWith('chrome-extension:')) {
+        console.log('[VIEWER] Skipping chrome-extension URL:', fullUrl);
+        continue;
+      }
+      
+      if (!this.resources.find(r => r.url === fullUrl)) {
         const isExternal = this.isExternalResource(fullUrl);
         console.log(`[VIEWER] Script ${fullUrl} is ${isExternal ? 'external' : 'Arweave'}`);
         this.addResource(fullUrl, 'script', isExternal ? 'skipped' : 'pending',
@@ -1370,8 +1484,16 @@ class VerifiedBrowser {
     while ((match = linkRegex.exec(htmlContent)) !== null) {
       const href = match[1];
       console.log('[VIEWER] Found stylesheet in HTML:', href);
-      if (!this.resources.find(r => r.url === href)) {
-        const fullUrl = this.resolveUrl(href);
+      
+      const fullUrl = this.resolveUrl(href);
+      
+      // Skip chrome-extension URLs (our proxy system)
+      if (fullUrl.startsWith('chrome-extension:')) {
+        console.log('[VIEWER] Skipping chrome-extension URL:', fullUrl);
+        continue;
+      }
+      
+      if (!this.resources.find(r => r.url === fullUrl)) {
         const isExternal = this.isExternalResource(fullUrl);
         console.log(`[VIEWER] Stylesheet ${fullUrl} is ${isExternal ? 'external' : 'Arweave'}`);
         this.addResource(fullUrl, 'stylesheet', isExternal ? 'skipped' : 'pending',
@@ -1384,8 +1506,16 @@ class VerifiedBrowser {
     while ((match = imgRegex.exec(htmlContent)) !== null) {
       const src = match[1];
       console.log('[VIEWER] Found image in HTML:', src);
-      if (!this.resources.find(r => r.url === src)) {
-        const fullUrl = this.resolveUrl(src);
+      
+      const fullUrl = this.resolveUrl(src);
+      
+      // Skip chrome-extension URLs (our proxy system)
+      if (fullUrl.startsWith('chrome-extension:')) {
+        console.log('[VIEWER] Skipping chrome-extension URL:', fullUrl);
+        continue;
+      }
+      
+      if (!this.resources.find(r => r.url === fullUrl)) {
         const isExternal = this.isExternalResource(fullUrl);
         console.log(`[VIEWER] Image ${fullUrl} is ${isExternal ? 'external' : 'Arweave'}`);
         this.addResource(fullUrl, 'image', isExternal ? 'skipped' : 'pending',
@@ -1396,7 +1526,7 @@ class VerifiedBrowser {
 
   resolveUrl(url) {
     // If it's already a full URL, return as-is
-    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('chrome-extension://')) {
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('chrome-extension://') || url.startsWith('ar://')) {
       return url;
     }
     
@@ -1404,11 +1534,18 @@ class VerifiedBrowser {
     if (this.arUrl) {
       const baseId = this.arUrl.replace('ar://', '').split('/')[0];
       if (url.startsWith('/')) {
+        // Root-relative URL
         return `ar://${baseId}${url}`;
       } else {
+        // Document-relative URL
         const currentPath = this.arUrl.replace('ar://', '').split('/');
         currentPath.pop(); // Remove filename
-        return `ar://${baseId}/${currentPath.join('/')}/${url}`;
+        const basePath = currentPath.join('/');
+        if (basePath) {
+          return `ar://${baseId}/${basePath}/${url}`;
+        } else {
+          return `ar://${baseId}/${url}`;
+        }
       }
     }
     

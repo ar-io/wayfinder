@@ -35,7 +35,7 @@
   --transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 
   /* Header Height */
-  --header-height: 140px;
+  --header-height: 70px;
   --header-height-minimized: 0px;
 
   /* Shadows */
@@ -86,87 +86,176 @@ body.minimized .minimize-toggle svg {
   transform: rotate(180deg);
 }
 
-/* Header Section */
+/* Consolidated Header Section */
 .verification-header {
   background: var(--ario-black);
   border-bottom: 1px solid var(--ario-light-grey);
-  padding: 16px 24px 0;
-  transition: transform var(--transition-medium), opacity
-    var(--transition-medium);
+  padding: 0;
+  transition: all var(--transition-medium);
   position: relative;
   z-index: 100;
+  height: var(--header-height);
 }
 
-.header-top {
+.header-content {
   display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  margin-bottom: 16px;
-  gap: 20px;
-  position: relative;
+  align-items: center;
+  height: calc(var(--header-height) - 4px); /* Minus progress bar height */
+  padding: 0 24px;
+  gap: 24px;
 }
 
-.brand {
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
+/* Left Section: Logo with Status */
+.header-left {
+  display: flex;
+  align-items: center;
+}
+
+.brand-status {
   display: flex;
   align-items: center;
   gap: 12px;
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  border: 2px solid transparent;
+  transition: all var(--transition-fast);
 }
 
-.brand img {
-  width: 32px;
-  height: 32px;
+.brand-logo {
+  width: 28px;
+  height: 28px;
 }
 
-.brand-text h1 {
-  font-family: var(--font-heading);
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--ario-white);
+.status-indicator {
   display: flex;
   align-items: center;
-  gap: 10px;
-  letter-spacing: -0.5px;
+  gap: 8px;
 }
 
-.shield-badge {
-  display: inline-flex;
-  align-items: center;
-  background: linear-gradient(
-    135deg,
-    var(--ario-teal) 0%,
-    var(--ario-teal-dark) 100%
-  );
-  color: var(--ario-black);
-  padding: 3px 10px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  box-shadow: 0 2px 4px rgba(45, 211, 190, 0.3);
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ario-teal);
+  box-shadow: 0 0 8px rgba(45, 211, 190, 0.6);
   animation: pulse 2s ease-in-out infinite;
 }
 
+.status-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ario-white);
+  opacity: 0.9;
+}
+
+/* Status variations */
+.brand-status.verified {
+  border-color: rgba(45, 211, 190, 0.3);
+  background: rgba(45, 211, 190, 0.05);
+}
+
+.brand-status.verified .status-dot {
+  background: var(--ario-teal);
+}
+
+.brand-status.warning {
+  border-color: rgba(252, 184, 35, 0.3);
+  background: rgba(252, 184, 35, 0.05);
+}
+
+.brand-status.warning .status-dot {
+  background: var(--color-warning);
+  box-shadow: 0 0 8px rgba(252, 184, 35, 0.6);
+}
+
+.brand-status.error {
+  border-color: rgba(242, 63, 93, 0.3);
+  background: rgba(242, 63, 93, 0.05);
+}
+
+.brand-status.error .status-dot {
+  background: var(--color-error);
+  box-shadow: 0 0 8px rgba(242, 63, 93, 0.6);
+}
+
 @keyframes pulse {
-  0%,
-  100% {
+  0%, 100% {
     opacity: 1;
+    transform: scale(1);
   }
   50% {
     opacity: 0.8;
+    transform: scale(1.2);
   }
 }
 
-.status {
-  font-size: 14px;
-  color: var(--ario-teal);
-  margin-top: 6px;
-  opacity: 0.9;
-  transition: color var(--transition-fast);
+/* Center Section: URL Navigation */
+.header-center {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+/* Right Section: Action Buttons */
+.header-right {
+  display: flex;
+  align-items: center;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.header-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--ario-light-grey);
+  border-radius: 8px;
+  color: var(--ario-white);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  position: relative;
+}
+
+.header-btn:hover {
+  background: var(--ario-grey);
+  border-color: var(--ario-teal);
+  transform: translateY(-1px);
+}
+
+.header-btn:active {
+  transform: translateY(0);
+}
+
+.header-btn svg {
+  width: 18px;
+  height: 18px;
+  stroke: var(--ario-white);
+  transition: stroke var(--transition-fast);
+}
+
+.header-btn:hover svg {
+  stroke: var(--ario-teal);
+}
+
+/* Specific button styles */
+.header-btn.share-btn {
+  display: flex !important; /* Override inline style when ready */
+}
+
+.header-btn.reverify-btn {
+  display: flex !important; /* Override inline style when ready */
+}
+
+.header-btn.reverify-btn.loading svg {
+  animation: spin 1s linear infinite;
 }
 
 /* URL Navigation */
@@ -178,8 +267,8 @@ body.minimized .minimize-toggle svg {
   border: 1px solid var(--ario-light-grey);
   border-radius: 8px;
   padding: 4px;
-  width: 600px;
-  max-width: 60%;
+  width: 500px;
+  max-width: 100%;
 }
 
 .url-prefix {
@@ -246,9 +335,9 @@ body.minimized .minimize-toggle svg {
 
 /* Minimize Toggle Button */
 .minimize-toggle {
-  position: absolute;
-  top: 20px;
-  right: 20px;
+  position: fixed;
+  top: 17px;
+  right: 24px;
   width: 36px;
   height: 36px;
   background: var(--ario-grey);
@@ -318,214 +407,18 @@ body.minimized .minimize-toggle svg {
   font-weight: 500;
 }
 
-/* Trust Indicator - Simpler UI */
-.trust-indicator {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 16px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  margin-bottom: 16px;
-  transition: all var(--transition-medium);
-}
+/* Remove old trust indicator styles - now integrated into header */
 
-.trust-icon {
-  width: 48px;
-  height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: rgba(45, 211, 190, 0.1);
-  border: 2px solid var(--ario-teal);
-  transition: all var(--transition-medium);
-}
+/* Button animations moved to header-btn styles above */
 
-.trust-icon svg {
-  width: 24px;
-  height: 24px;
-  color: var(--ario-teal);
-}
-
-.trust-icon.verified {
-  background: rgba(45, 211, 190, 0.2);
-  border-color: var(--ario-teal);
-}
-
-.trust-icon.verified svg {
-  color: var(--ario-teal);
-}
-
-.trust-icon.warning {
-  background: rgba(252, 184, 35, 0.2);
-  border-color: var(--color-warning);
-}
-
-.trust-icon.warning svg {
-  color: var(--color-warning);
-}
-
-.trust-icon.error {
-  background: rgba(242, 63, 93, 0.2);
-  border-color: var(--color-error);
-}
-
-.trust-icon.error svg {
-  color: var(--color-error);
-}
-
-.trust-status {
-  flex: 1;
-}
-
-.trust-label {
-  display: block;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--ario-white);
-  margin-bottom: 4px;
-}
-
-.trust-details {
-  display: block;
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.6);
-}
-
-.trust-score {
-  text-align: center;
-  padding: 8px 16px;
-  background: rgba(45, 211, 190, 0.1);
-  border-radius: 8px;
-}
-
-.score-value {
-  display: block;
-  font-size: 20px;
-  font-weight: 600;
-  font-family: var(--font-mono);
-  color: var(--ario-teal);
-}
-
-.score-label {
-  display: block;
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.6);
-  text-transform: uppercase;
-}
-
-/* Reverify Button */
-.reverify-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  background: transparent;
-  border: 1px solid var(--ario-light-grey);
-  border-radius: 6px;
-  color: var(--ario-white);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  opacity: 0;
-  visibility: hidden;
-}
-
-.reverify-btn svg {
-  width: 16px;
-  height: 16px;
-  stroke: var(--ario-white);
-  transition: transform var(--transition-fast);
-}
-
-.reverify-btn:hover {
-  background: var(--ario-grey);
-  border-color: var(--ario-teal);
-  color: var(--ario-teal);
-}
-
-.reverify-btn:hover svg {
-  stroke: var(--ario-teal);
-  transform: rotate(180deg);
-}
-
-.reverify-btn:active {
-  transform: scale(0.98);
-}
-
-/* Show reverify button when verification is complete */
-.trust-indicator.complete .reverify-btn,
-.trust-indicator.warning .reverify-btn,
-.trust-indicator.error .reverify-btn {
-  opacity: 1;
-  visibility: visible;
-}
-
-/* Show share button when content is loaded */
-.trust-indicator.complete .share-btn,
-.trust-indicator.warning .share-btn,
-.trust-indicator.error .share-btn {
-  opacity: 1;
-  visibility: visible;
-}
-
-/* Animate button during reverification */
-.reverify-btn.loading svg {
-  animation: spin 1s linear infinite;
-}
-
-.reverify-btn.loading {
-  pointer-events: none;
-  opacity: 0.7;
-}
-
-/* Share Button */
-.share-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  background: transparent;
-  border: 1px solid var(--ario-light-grey);
-  border-radius: 6px;
-  color: var(--ario-white);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  opacity: 0;
-  visibility: hidden;
-  margin-left: auto;
-  margin-right: 12px;
-}
-
-.share-btn svg {
-  width: 16px;
-  height: 16px;
-  stroke: var(--ario-white);
-  transition: transform var(--transition-fast);
-}
-
-.share-btn:hover {
-  background: var(--ario-grey);
-  border-color: var(--ario-teal);
-  color: var(--ario-teal);
-}
-
-.share-btn:hover svg {
-  stroke: var(--ario-teal);
-}
-
-.share-btn:active {
-  transform: scale(0.98);
-}
+/* Share button styles moved to header-btn above */
 
 /* Progress Bar */
 .progress-container {
-  position: relative;
-  margin: 0 -24px;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
 }
 
 .progress-bar {
@@ -1132,55 +1025,44 @@ body.minimized .floating-badge {
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-  .stats-grid {
-    grid-template-columns: repeat(3, 1fr);
+  .header-content {
     gap: 12px;
+    padding: 0 16px;
   }
 
-  .stat-item:nth-child(4),
-  .stat-item:nth-child(5) {
-    grid-column: span 1;
+  .brand-status {
+    padding: 6px 10px;
   }
 
-  .verification-header {
-    padding: 16px 16px 0;
+  .brand-logo {
+    width: 24px;
+    height: 24px;
   }
 
-  .header-top {
-    flex-direction: column;
-    align-items: stretch;
+  .status-text {
+    display: none;
   }
 
-  .brand {
-    position: static;
-    transform: none;
-    margin-bottom: 12px;
+  .header-center {
+    flex: 1;
   }
 
   .url-navigation {
     width: 100%;
-    max-width: 100%;
   }
 
-  .brand-text h1 {
-    font-size: 18px;
+  .header-btn {
+    width: 32px;
+    height: 32px;
   }
 
-  .shield-badge {
-    font-size: 10px;
-    padding: 2px 8px;
+  .header-btn svg {
+    width: 16px;
+    height: 16px;
   }
 
-  .trust-indicator {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-
-  .reverify-btn {
-    margin-left: 0;
-    width: 100%;
-    justify-content: center;
+  .action-buttons {
+    gap: 4px;
   }
 }
 
@@ -1340,23 +1222,7 @@ body.minimized .floating-badge {
   font-style: italic;
 }
 
-.verification-details-btn {
-  background: none;
-  border: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-  padding: 8px;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-}
-
-.verification-details-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--text-primary);
-}
+/* Verification details button styles now handled by header-btn */
 
 @keyframes pulse {
   0%, 100% { opacity: 1; }
