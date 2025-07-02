@@ -75,8 +75,8 @@ export class LocalStorageGatewaysProvider implements GatewaysProvider {
     const now = Date.now();
     const cacheAge = now - cached.timestamp;
     const ttlMs = (cached.ttlSeconds || this.defaultTtlSeconds) * 1000;
-
-    return cacheAge < ttlMs;
+    const gatewaysCount = cached.gateways.length;
+    return cacheAge < ttlMs && gatewaysCount > 0;
   }
 
   private cacheGateways(gateways: URL[]): void {

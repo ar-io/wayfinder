@@ -151,6 +151,7 @@ Wayfinder supports multiple routing strategies to select target gateways for you
 | `StaticRoutingStrategy`      | Always uses a single gateway                   | When you need to use a specific gateway |
 | `RoundRobinRoutingStrategy`  | Selects gateways in round-robin order          | Good for load balancing and resilience  |
 | `FastestPingRoutingStrategy` | Selects the fastest gateway based on ping time | Good for performance and latency        |
+| `PreferredWithFallbackRoutingStrategy` | Uses a preferred gateway, with a fallback strategy if the preferred gateway is not available | Good for performance and resilience. Ideal for builders who run their own gateways. |
 
 ### RandomRoutingStrategy
 
@@ -214,6 +215,21 @@ const routingStrategy = new FastestPingRoutingStrategy({
 // will select the fastest gateway from the list based on the ping time of the /ar-io/info route
 const gateway = await routingStrategy.selectGateway({
   gateways: ['https://slow.net', 'https://medium.net', 'https://fast.net'],
+});
+```
+
+### PreferredWithFallbackRoutingStrategy
+
+Uses a preferred gateway, with a fallback strategy if the preferred gateway is not available. This is useful for builders who run their own gateways and want to use their own gateway as the preferred gateway, but also want to have a fallback strategy in case their gateway is not available.
+
+```javascript
+import { Wayfinder, PreferredWithFallbackRoutingStrategy } from '@ar.io/wayfinder-core';
+
+const routingStrategy = new PreferredWithFallbackRoutingStrategy({
+  preferredGateway: 'https://permagate.io',
+  fallbackStrategy: new FastestPingRoutingStrategy({
+    timeoutMs: 500,
+  }),
 });
 ```
 
