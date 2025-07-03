@@ -11,152 +11,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&family=Rubik:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/variables.css">
   <link rel="stylesheet" href="viewer.css">
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #f5f5f5;
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      overflow: hidden;
-    }
-
-    #verification-bar {
-      background: #2c3e50;
-      color: white;
-      padding: 12px 20px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      z-index: 1000;
-      position: relative;
-    }
-
-    #verification-bar img {
-      width: 20px;
-      height: 20px;
-    }
-
-    #verification-bar.verified {
-      background: #27ae60;
-    }
-
-    #verification-bar.failed {
-      background: #e74c3c;
-    }
-
-    #verification-bar.loading {
-      background: #3498db;
-    }
-
-    #status {
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .spinner {
-      width: 16px;
-      height: 16px;
-      border: 2px solid transparent;
-      border-top-color: white;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    #url {
-      margin-left: auto;
-      opacity: 0.8;
-      font-size: 14px;
-      max-width: 50%;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    #content-container {
-      flex: 1;
-      position: relative;
-      background: white;
-    }
-
-    #content-frame {
-      width: 100%;
-      height: 100%;
-      border: none;
-      display: none;
-    }
-
-    #error-container {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      text-align: center;
-      padding: 40px;
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      max-width: 500px;
-      display: none;
-    }
-
-    #error-container h2 {
-      color: #e74c3c;
-      margin-bottom: 16px;
-    }
-
-    #error-container p {
-      color: #666;
-      line-height: 1.5;
-      margin-bottom: 24px;
-    }
-
-    #error-container button {
-      background: #3498db;
-      color: white;
-      border: none;
-      padding: 12px 24px;
-      border-radius: 4px;
-      font-size: 16px;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-
-    #error-container button:hover {
-      background: #2980b9;
-    }
-
-    /* Progress indicator */
-    #progress {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 3px;
-      background: rgba(52, 152, 219, 0.2);
-      display: none;
-    }
-
-    #progress-bar {
-      height: 100%;
-      background: #3498db;
-      width: 0;
-      transition: width 0.3s ease;
-    }
-  </style>
 </head>
 <body>
   <!-- Consolidated Header -->
@@ -210,6 +64,11 @@
               <polyline points="23 4 23 10 17 10"></polyline>
               <polyline points="1 20 1 14 7 14"></polyline>
               <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+          </button>
+          <button class="header-btn minimize-btn" id="minimizeToggle" title="Toggle full screen">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="18 15 12 9 6 15"></polyline>
             </svg>
           </button>
         </div>
@@ -297,13 +156,6 @@
     </div>
   </div>
 
-  <!-- Minimize Toggle -->
-  <button class="minimize-toggle" id="minimizeToggle" title="Toggle full screen">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <polyline points="18 15 12 9 6 15"></polyline>
-    </svg>
-  </button>
-  
   <!-- Content Area -->
   <main class="content-area" id="contentArea">
     <iframe id="verified-content" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads allow-modals"></iframe>
@@ -348,8 +200,9 @@
     <span>Verified Browsing</span>
   </div>
   
+  <!-- Phase 1 Refactored Scripts - Now using ES6 modules -->
   <script src="manifest-renderer.js"></script>
   <script src="prefetch-verifier.js"></script>
-  <script src="viewer.js"></script>
+  <script type="module" src="viewer.js"></script>
 </body>
 </html>

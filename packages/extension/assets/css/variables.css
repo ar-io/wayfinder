@@ -204,3 +204,25 @@ pre,
 .icon-spin {
   animation: spin 1s linear infinite;
 }
+
+/* Toast styling respects theme */
+.toast .toast-title,
+.toast .toast-message {
+  color: var(--colors-solid-neutrals-100) !important;
+}
+
+.toast .toast-icon,
+.toast .toast-close {
+  color: var(--colors-icons-iconHigh) !important;
+}
+
+/* Light theme overrides for toasts */
+[data-theme="light"] .toast .toast-title,
+[data-theme="light"] .toast .toast-message {
+  color: var(--colors-solid-neutrals-100) !important;
+}
+
+[data-theme="light"] .toast .toast-icon,
+[data-theme="light"] .toast .toast-close {
+  color: var(--colors-icons-iconHigh) !important;
+}

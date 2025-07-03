@@ -1539,27 +1539,31 @@ html, body {
 }
 
 .toast {
-  background: linear-gradient(135deg, #F7C3A1, #DF9BE8);
-  border: none;
-  border-radius: 100px;
-  padding: 10px 12px 10px 16px;
-  box-shadow: 
-    0px 111px 31px 0px rgba(0,0,0,0.01),
-    0px 71px 28px 0px rgba(0,0,0,0.06),
-    0px 40px 24px 0px rgba(0,0,0,0.2),
-    0px 18px 18px 0px rgba(0,0,0,0.34),
-    0px 4px 10px 0px rgba(0,0,0,0.39);
-  backdrop-filter: blur(3px);
+  background: var(--colors-container-containerL1);
+  border: 1px solid var(--colors-stroke-strokeHigh);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(10px);
   width: 100%;
   animation: slideIn 0.3s ease;
   display: flex;
   align-items: center;
-  gap: 32px;
+  gap: 12px;
   position: relative;
+  transition: all var(--transition-fast);
+}
+
+.toast.success {
+  border-color: var(--success);
+}
+
+.toast.warning {
+  border-color: var(--warning);
 }
 
 .toast.error {
-  background: linear-gradient(135deg, #ef4444, #dc2626);
+  border-color: var(--error);
 }
 
 .toast-content {
@@ -1570,45 +1574,65 @@ html, body {
 }
 
 .toast-icon {
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
   flex-shrink: 0;
 }
 
-.toast-icon svg {
-  width: 100%;
-  height: 100%;
-  color: #ffffff;
+.toast.success .toast-icon {
+  background: var(--success);
+  color: var(--colors-container-containerL0);
+}
+
+.toast.warning .toast-icon {
+  background: var(--warning);
+  color: var(--colors-container-containerL0);
+}
+
+.toast.error .toast-icon {
+  background: var(--error);
+  color: var(--colors-container-containerL0);
 }
 
 .toast-text {
   font-family: 'Rubik', sans-serif;
   font-weight: 400;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.4;
-  color: #ffffff;
+  color: var(--colors-text-textHigh);
   flex: 1;
 }
 
 .toast-close {
   width: 20px;
   height: 20px;
-  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  color: var(--colors-icons-iconMid);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: opacity 0.2s ease;
+  border-radius: 4px;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
 }
 
 .toast-close:hover {
-  opacity: 0.7;
+  background: var(--colors-container-containerL2);
+  color: var(--colors-icons-iconHigh);
 }
 
 .toast-close svg {
-  width: 100%;
-  height: 100%;
-  color: #ffffff;
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
 }
 
 @keyframes slideIn {

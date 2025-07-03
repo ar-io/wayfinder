@@ -252,11 +252,17 @@ class PreFetchVerifier {
               }
             } catch (error) {
               console.error('[PREFETCH] Failed to decode response data:', error);
-              // CRITICAL FIX: Don't override verification status based on data processing errors
-              // The verification status comes from cryptographic verification, not data handling
-              // If decoding fails but verification succeeded, we should still report success
-              console.log('[PREFETCH] Data decoding failed, but preserving verification status:', response.verified);
-              response.error = 'Failed to decode response data';
+              // CRITICAL FIX: Only preserve verification status if it was actually true
+              // If data decoding fails AND verification failed, report failure
+              // Only preserve verification success if cryptographic verification actually succeeded
+              if (response.verified) {
+                console.log('[PREFETCH] Data decoding failed, but verification succeeded, preserving success status');
+                response.error = 'Failed to decode response data';
+              } else {
+                console.log('[PREFETCH] Data decoding failed and verification failed, reporting failure');
+                response.verified = false;
+                response.error = 'Verification failed: ' + (response.error || 'Failed to decode response data');
+              }
             }
           }
           console.log('[PREFETCH] Resolving with verification status:', response.verified);

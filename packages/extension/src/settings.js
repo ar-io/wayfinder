@@ -63,16 +63,7 @@ function handleHashNavigation() {
   if (hash) {
     const targetElement = document.querySelector(hash);
     if (targetElement) {
-      // If the target is within advanced settings, expand it first
-      const advancedContent = document.getElementById('advancedContent');
-      const advancedToggle = document.getElementById('advancedToggle');
-      if (advancedContent && advancedContent.contains(targetElement)) {
-        // Expand advanced settings
-        if (advancedToggle) {
-          advancedToggle.classList.add('expanded');
-        }
-        chrome.storage.local.set({ advancedSettingsExpanded: true });
-      }
+      // Advanced settings expansion logic removed - no longer needed
 
       // Scroll to the element with a small offset for better visibility
       targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -112,26 +103,7 @@ function setupEventHandlers() {
     ?.addEventListener('click', resetSettings);
 
   // Advanced settings toggle
-  const advancedToggle = document.getElementById('advancedToggle');
-  if (advancedToggle) {
-    console.log('[DEBUG] Attaching click handler to advancedToggle');
-    advancedToggle.addEventListener('click', (e) => {
-      console.log('[DEBUG] Click event triggered on advancedToggle', e);
-      toggleAdvancedSettings();
-    });
-
-    // Also check if the element is actually clickable
-    const computedStyle = window.getComputedStyle(advancedToggle);
-    console.log('[DEBUG] advancedToggle computed styles:', {
-      display: computedStyle.display,
-      visibility: computedStyle.visibility,
-      pointerEvents: computedStyle.pointerEvents,
-      cursor: computedStyle.cursor,
-      zIndex: computedStyle.zIndex,
-    });
-  } else {
-    console.error('[ERROR] advancedToggle element not found');
-  }
+  // Advanced toggle functionality removed - no longer needed
 
   // Routing strategy selection
   document
@@ -147,6 +119,9 @@ function setupEventHandlers() {
   document
     .getElementById('testStaticGateway')
     ?.addEventListener('click', testStaticGateway);
+  document
+    .getElementById('applyStaticGateway')
+    ?.addEventListener('click', applyStaticGateway);
   document
     .getElementById('gatewayDropdown')
     ?.addEventListener('change', handleGatewayDropdownChange);
@@ -258,41 +233,7 @@ function setupExpandableSections() {
   });
 }
 
-function toggleAdvancedSettings() {
-  console.log('[DEBUG] toggleAdvancedSettings called');
-  const advancedSection = document.getElementById('advanced');
-  const advancedContent = document.getElementById('advancedContent');
-  const advancedToggle = document.getElementById('advancedToggle');
-  const expandIcon = advancedToggle?.querySelector('.expand-icon');
-
-  console.log('[DEBUG] Elements found:', {
-    advancedSection: !!advancedSection,
-    advancedContent: !!advancedContent,
-    advancedToggle: !!advancedToggle,
-    expandIcon: !!expandIcon,
-  });
-
-  if (!advancedContent || !advancedToggle) {
-    console.error('[ERROR] Required elements not found');
-    return;
-  }
-
-  // Check if section is currently expanded by checking the toggle's class
-  const isExpanded = advancedToggle.classList.contains('expanded');
-
-  if (isExpanded) {
-    // Collapse
-    advancedToggle.classList.remove('expanded');
-    // Let CSS handle the animation
-  } else {
-    // Expand
-    advancedToggle.classList.add('expanded');
-    // Let CSS handle the animation
-  }
-
-  // Save preference
-  chrome.storage.local.set({ advancedSettingsExpanded: !isExpanded });
-}
+// toggleAdvancedSettings function removed - no longer needed
 
 function setupRoutingStrategyDetails() {
   // Only select strategy options within the routing section
@@ -303,9 +244,11 @@ function setupRoutingStrategyDetails() {
       const header = option.querySelector('.strategy-header');
 
       header.addEventListener('click', () => {
-        radio.checked = true;
-        // Create a synthetic event that will trigger saving
-        handleRoutingStrategyChange({ target: radio, isTrusted: true });
+        if (!radio.checked) {  // Only trigger if not already selected
+          radio.checked = true;
+          // Create a synthetic event that will trigger saving
+          handleRoutingStrategyChange({ target: radio, isTrusted: true });
+        }
       });
     });
 
@@ -450,13 +393,7 @@ async function loadCurrentSettings() {
       updateVerifiedBrowsingUI(verifiedBrowsing);
     }
 
-    // Restore advanced settings expanded state
-    if (settings.advancedSettingsExpanded) {
-      const advancedToggle = document.getElementById('advancedToggle');
-      if (advancedToggle) {
-        advancedToggle.classList.add('expanded');
-      }
-    }
+    // Advanced settings restoration removed - no longer needed
 
     // Load exceptions
     const verifiedBrowsingExceptions =
@@ -513,71 +450,20 @@ async function loadCurrentSettings() {
 }
 
 async function updateConnectionStatus() {
-  try {
-    // Check if we can connect to a gateway
-    const isConnected = await testConnection();
-    const statusIndicator = document.getElementById('connectionStatus');
+  // Show static "Connected" status (connection testing removed)
+  const statusIndicator = document.getElementById('connectionStatus');
 
-    if (!statusIndicator) return;
+  if (!statusIndicator) return;
 
-    const statusDot = statusIndicator.querySelector('.status-dot');
-    const statusText = statusIndicator.querySelector('span');
+  const statusDot = statusIndicator.querySelector('.status-dot');
+  const statusText = statusIndicator.querySelector('span');
 
-    if (statusDot && statusText) {
-      if (isConnected) {
-        statusDot.style.background = 'var(--success)';
-        statusText.textContent = 'Connected';
-      } else {
-        statusDot.style.background = 'var(--warning)';
-        statusText.textContent = 'Limited';
-      }
-    }
-  } catch (_error) {
-    const statusIndicator = document.getElementById('connectionStatus');
-
-    if (!statusIndicator) return;
-
-    const statusDot = statusIndicator.querySelector('.status-dot');
-    const statusText = statusIndicator.querySelector('span');
-
-    if (statusDot && statusText) {
-      statusDot.style.background = 'var(--error)';
-      statusText.textContent = 'Offline';
-    }
+  if (statusDot && statusText) {
+    statusDot.style.background = 'var(--success)';
+    statusText.textContent = 'Connected';
   }
 }
 
-async function testConnection() {
-  try {
-    // Try to get a gateway from local registry first
-    const { localGatewayAddressRegistry = {} } = await chrome.storage.local.get(
-      ['localGatewayAddressRegistry'],
-    );
-    const gateways = Object.values(localGatewayAddressRegistry)
-      .filter((g) => g.status === 'joined' && g.settings?.fqdn)
-      .sort((a, b) => (b.operatorStake || 0) - (a.operatorStake || 0));
-
-    if (gateways.length > 0) {
-      // Use the top gateway from registry
-      const gateway = gateways[0];
-      const url = `${gateway.settings.protocol || 'https'}://${gateway.settings.fqdn}/info`;
-      const response = await fetch(url, {
-        method: 'GET',
-        signal: AbortSignal.timeout(5000),
-      });
-      return response.ok;
-    } else {
-      // Fallback to arweave.net as last resort
-      const response = await fetch('https://arweave.net/info', {
-        method: 'GET',
-        signal: AbortSignal.timeout(5000),
-      });
-      return response.ok;
-    }
-  } catch {
-    return false;
-  }
-}
 
 // Performance functions moved to performance.js
 
@@ -589,18 +475,30 @@ async function handleRoutingStrategyChange(event) {
 
   // Show/hide static gateway configuration
   const staticConfig = document.querySelector('.static-gateway-config');
+  const applyContainer = document.getElementById('applyStaticGatewayContainer');
+  
   if (staticConfig) {
     if (strategy === 'static') {
       staticConfig.style.display = 'block';
       // Populate the gateway dropdown when static is selected
       await populateGatewayDropdown();
+      
+      // Don't save yet for static - user needs to configure and apply
+      if (event.isTrusted) {
+        showToast('Please configure and test a gateway, then click Apply', 'info');
+      }
+      return; // Exit early for static
     } else {
       staticConfig.style.display = 'none';
+      // Hide apply button when switching away
+      if (applyContainer) {
+        applyContainer.style.display = 'none';
+      }
     }
   }
 
-  // Only save if this is a real user change (not initialization)
-  if (event.isTrusted) {
+  // Only save if this is a real user change (not initialization) and not static
+  if (event.isTrusted && strategy !== 'static') {
     console.log(`[SETTINGS] Saving routing strategy: ${strategy}`);
 
     // Save the routing strategy
@@ -647,25 +545,29 @@ async function handleRoutingStrategyChange(event) {
   }
 }
 
+// Store the tested gateway configuration temporarily
+let pendingStaticGateway = null;
+
 async function testStaticGateway() {
   const url = document.getElementById('staticGatewayUrl').value;
   const testButton = document.getElementById('testStaticGateway');
+  const applyContainer = document.getElementById('applyStaticGatewayContainer');
 
   testButton.disabled = true;
   testButton.textContent = 'Testing...';
 
   try {
-    const response = await fetch(`${url}/info`, {
+    const response = await fetch(`${url}/ar-io/info`, {
       method: 'GET',
       signal: AbortSignal.timeout(5000),
     });
 
     if (response.ok) {
-      showToast('Gateway is reachable and configured!', 'success');
+      showToast('Gateway is reachable! Click Apply to use this gateway.', 'success');
 
-      // Save the static gateway
+      // Store the gateway configuration for applying later
       const urlObj = new URL(url);
-      const staticGateway = {
+      pendingStaticGateway = {
         settings: {
           protocol: urlObj.protocol.replace(':', ''),
           fqdn: urlObj.hostname,
@@ -675,18 +577,77 @@ async function testStaticGateway() {
         },
       };
 
-      await chrome.storage.local.set({ staticGateway });
+      // Show the apply button
+      if (applyContainer) {
+        applyContainer.style.display = 'block';
+      }
     } else {
       showToast(
         `Gateway responded with status ${response.status}. Please verify this is a valid Arweave gateway.`,
         'warning',
       );
+      // Hide apply button on failed test
+      if (applyContainer) {
+        applyContainer.style.display = 'none';
+      }
+      pendingStaticGateway = null;
     }
   } catch (_error) {
     showToast('Gateway is not reachable', 'error');
+    // Hide apply button on failed test
+    if (applyContainer) {
+      applyContainer.style.display = 'none';
+    }
+    pendingStaticGateway = null;
   } finally {
     testButton.disabled = false;
     testButton.textContent = 'Test';
+  }
+}
+
+// Apply the tested static gateway configuration
+async function applyStaticGateway() {
+  if (!pendingStaticGateway) {
+    showToast('No gateway configuration to apply', 'error');
+    return;
+  }
+
+  try {
+    // Save the static gateway configuration
+    await chrome.storage.local.set({ 
+      staticGateway: pendingStaticGateway,
+      routingMethod: 'static'
+    });
+
+    // Send message to background script to update routing
+    const response = await chrome.runtime.sendMessage({
+      message: 'updateRoutingStrategy',
+      strategy: 'static',
+    });
+
+    if (response && response.success) {
+      showToast('Static gateway applied successfully!', 'success');
+      
+      // Update the current value display
+      const currentValueEl = document.getElementById('currentRoutingStrategy');
+      if (currentValueEl) {
+        currentValueEl.textContent = 'Static Gateway';
+      }
+      
+      // Hide the apply button after successful application
+      const applyContainer = document.getElementById('applyStaticGatewayContainer');
+      if (applyContainer) {
+        applyContainer.style.display = 'none';
+      }
+      
+      // Clear the pending configuration
+      pendingStaticGateway = null;
+    } else {
+      throw new Error(response?.error || 'Failed to apply static gateway');
+    }
+  } catch (error) {
+    console.error('Error applying static gateway:', error);
+    showToast('Failed to apply static gateway', 'error');
   }
 }
 
@@ -773,7 +734,7 @@ async function populateGatewayDropdown() {
     dropdown.appendChild(defaultOption);
 
     // Add gateway options with stake information
-    gateways.forEach((gateway) => {
+    gateways.forEach((gateway, index) => {
       const option = document.createElement('option');
       const url = `${gateway.protocol}://${gateway.fqdn}${gateway.port && gateway.port !== (gateway.protocol === 'https' ? 443 : 80) ? `:${gateway.port}` : ''}`;
       option.value = url;
@@ -783,8 +744,8 @@ async function populateGatewayDropdown() {
       const stakeDisplay =
         totalStake > 0 ? formatStake(totalStake) : 'No stake';
 
-      // Display format: "gateway.com • 1.2M ARIO"
-      option.textContent = `${gateway.fqdn} • ${stakeDisplay}`;
+      // Display format: "gateway.com (4.7M)"
+      option.textContent = `${gateway.fqdn} (${stakeDisplay})`;
       dropdown.appendChild(option);
     });
 
@@ -811,12 +772,17 @@ async function populateGatewayDropdown() {
 
 // Helper function to format stake amounts
 function formatStake(stake) {
-  if (stake >= 1000000) {
-    return (stake / 1000000).toFixed(1) + 'M ARIO';
-  } else if (stake >= 1000) {
-    return (stake / 1000).toFixed(1) + 'K ARIO';
+  // Assuming stake is in milli-units, convert to actual units first
+  const actualStake = stake / 1000000; // Convert from milli to regular units
+  
+  if (actualStake >= 1000000) {
+    return (actualStake / 1000000).toFixed(1) + 'M';
+  } else if (actualStake >= 1000) {
+    return (actualStake / 1000).toFixed(1) + 'K';
+  } else if (actualStake >= 1) {
+    return actualStake.toFixed(1);
   } else {
-    return stake.toFixed(0) + ' ARIO';
+    return '0';
   }
 }
 
@@ -1244,15 +1210,18 @@ async function handleVerificationGatewayModeChange(event) {
 }
 
 function updateGatewayModeUI(mode) {
-  const automaticSettings = document.getElementById('automaticGatewaySettings');
-  const manualSettings = document.getElementById('manualGatewaySettings');
+  const gatewaySelectionSection = document.getElementById('gatewaySelectionSection');
+  
+  if (!gatewaySelectionSection) {
+    console.error('Gateway selection section not found');
+    return;
+  }
 
-  if (mode === 'automatic') {
-    automaticSettings.style.display = 'block';
-    manualSettings.style.display = 'none';
+  // Show/hide gateway selection based on mode
+  if (mode === 'manual') {
+    gatewaySelectionSection.style.display = 'block';
   } else {
-    automaticSettings.style.display = 'none';
-    manualSettings.style.display = 'block';
+    gatewaySelectionSection.style.display = 'none';
   }
 
   // Update active state on mode options

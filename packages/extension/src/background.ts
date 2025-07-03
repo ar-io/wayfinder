@@ -681,10 +681,33 @@ chrome.webRequest.onHeadersReceived.addListener(
           `[MANIFEST-DETECT] Manifest detected! Resolved ID: ${arnsResolvedId}, Data ID: ${dataId}`,
         );
         
-        // Extract gateway from current URL to fetch raw manifest
+        // Get the routed gateway URL from tab state for manifest fetching
         try {
-          const currentUrl = new URL(details.url);
-          const gatewayUrl = `${currentUrl.protocol}//${currentUrl.host}`;
+          const tabInfo = tabStateManager.get(details.tabId);
+          let gatewayUrl = tabInfo?.gatewayUrl;
+          
+          // Fallback: if no routed gateway available, extract from wayfinder routing
+          if (!gatewayUrl) {
+            // Try to get gateway from wayfinder routing system
+            try {
+              const wayfinder = getWayfinderInstance();
+              const routedUrl = await getRoutableGatewayUrl(`ar://${arnsResolvedId}`, wayfinder);
+              if (routedUrl) {
+                const urlMatch = routedUrl.match(/^(https?:\/\/[^\/]+)/);
+                gatewayUrl = urlMatch ? urlMatch[1] : null;
+              }
+            } catch (routingError) {
+              logger.warn('[MANIFEST-FETCH] Could not get routed gateway URL:', routingError);
+            }
+          }
+          
+          // Final fallback: use resolved domain (but log the issue)
+          if (!gatewayUrl) {
+            const currentUrl = new URL(details.url);
+            gatewayUrl = `${currentUrl.protocol}//${currentUrl.host}`;
+            logger.warn('[MANIFEST-FETCH] Using resolved ArNS domain as fallback - this may cause issues');
+          }
+          
           const manifestUrl = `${gatewayUrl}/raw/${arnsResolvedId}`;
           
           logger.info(`[MANIFEST-FETCH] Fetching raw manifest from: ${manifestUrl}`);
@@ -722,6 +745,64 @@ chrome.webRequest.onHeadersReceived.addListener(
           }
         } catch (error) {
           logger.error('[MANIFEST-FETCH] Error fetching manifest:', error);
+        }
+      } else if (arnsResolvedId && !dataId) {
+        // Fallback: Check if resolved ID points to a manifest when data ID is null
+        logger.info(
+          `[MANIFEST-DETECT-FALLBACK] Checking if resolved ID is manifest: ${arnsResolvedId} (data ID is null)`,
+        );
+        
+        try {
+          const currentUrl = new URL(details.url);
+          const gatewayUrl = `${currentUrl.protocol}//${currentUrl.host}`;
+          const headUrl = `${gatewayUrl}/${arnsResolvedId}`;
+          
+          logger.info(`[MANIFEST-DETECT-FALLBACK] HEAD request to: ${headUrl}`);
+          
+          const headResponse = await fetch(headUrl, {
+            method: 'HEAD',
+            signal: AbortSignal.timeout(5000) // 5 second timeout for HEAD request
+          });
+          
+          if (headResponse.ok) {
+            const contentType = headResponse.headers.get('content-type') || '';
+            logger.info(`[MANIFEST-DETECT-FALLBACK] Content-Type: ${contentType}`);
+            
+            if (contentType.includes('application/x.arweave-manifest+json') || 
+                contentType.includes('application/json')) {
+              // Looks like a manifest, fetch it
+              logger.info(`[MANIFEST-DETECT-FALLBACK] Manifest content-type detected, fetching full manifest`);
+              
+              const manifestUrl = `${gatewayUrl}/raw/${arnsResolvedId}`;
+              const manifestResponse = await fetch(manifestUrl, {
+                signal: AbortSignal.timeout(10000)
+              });
+              
+              if (manifestResponse.ok) {
+                const manifestText = await manifestResponse.text();
+                
+                try {
+                  const manifest = JSON.parse(manifestText);
+                  
+                  if (manifest.manifest === 'arweave/paths' && 
+                      (manifest.version === '0.1.0' || manifest.version === '0.2.0')) {
+                    manifestData = manifest;
+                    logger.info(`[MANIFEST-DETECT-FALLBACK] Successfully detected and fetched manifest with ${Object.keys(manifest.paths || {}).length} paths`);
+                  } else {
+                    logger.info('[MANIFEST-DETECT-FALLBACK] JSON found but not a valid Arweave manifest');
+                  }
+                } catch (parseError) {
+                  logger.info('[MANIFEST-DETECT-FALLBACK] JSON parse failed, not a manifest');
+                }
+              }
+            } else {
+              logger.info(`[MANIFEST-DETECT-FALLBACK] Not a manifest content-type: ${contentType}`);
+            }
+          } else {
+            logger.warn(`[MANIFEST-DETECT-FALLBACK] HEAD request failed: ${headResponse.status}`);
+          }
+        } catch (error) {
+          logger.error('[MANIFEST-DETECT-FALLBACK] Error in fallback manifest detection:', error);
         }
       }
 
@@ -924,7 +1005,6 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     'resetAdvancedSettings',
     'getCacheStats',
     'clearVerificationCache',
-    'testConnection',
   ];
   const validTypes = [
     'convertArUrlToHttpUrl',
@@ -1205,58 +1285,6 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
           verified: false,
           error: error?.message || 'Verification failed',
         });
-      }
-    })();
-    return true;
-  }
-
-  // Handle connection test
-  if (request.message === 'testConnection') {
-    (async () => {
-      try {
-        // Try to get a gateway from local registry first
-        const { localGatewayAddressRegistry = {} } =
-          await chrome.storage.local.get(['localGatewayAddressRegistry']);
-        const gateways = Object.values(localGatewayAddressRegistry)
-          .filter((g: any) => g.status === 'joined' && g.settings?.fqdn)
-          .sort(
-            (a: any, b: any) => (b.operatorStake || 0) - (a.operatorStake || 0),
-          );
-
-        let isConnected = false;
-
-        if (gateways.length > 0) {
-          // Use the top gateway from registry
-          const gateway = gateways[0] as any;
-          const url = `${gateway.settings.protocol || 'https'}://${
-            gateway.settings.fqdn
-          }/info`;
-          try {
-            const response = await fetch(url, {
-              method: 'GET',
-              signal: AbortSignal.timeout(5000),
-            });
-            isConnected = response.ok;
-          } catch {
-            isConnected = false;
-          }
-        } else {
-          // Fallback to arweave.net as last resort
-          try {
-            const response = await fetch('https://arweave.net/info', {
-              method: 'GET',
-              signal: AbortSignal.timeout(5000),
-            });
-            isConnected = response.ok;
-          } catch {
-            isConnected = false;
-          }
-        }
-
-        sendResponse({ success: true, isConnected });
-      } catch (error: any) {
-        logger.error('Error testing connection:', error);
-        sendResponse({ success: false, isConnected: false });
       }
     })();
     return true;
@@ -2199,20 +2227,27 @@ async function handleFetchAndVerifyResource(arUrl: string): Promise<{
 
     const wayfinder = await getWayfinderInstance();
 
-    // Track verification events
-    let verificationSucceeded = false;
+    // Track verification events with Promise-based approach to avoid race conditions
+    let verificationResult: { verified: boolean; txId?: string } | null = null;
 
-    const handleVerificationSuccess = (event: any) => {
-      logger.info(`[PREFETCH] Resource verification succeeded for ${event.txId}`);
-      verificationSucceeded = true;
-    };
+    const verificationPromise = new Promise<{ verified: boolean; txId?: string }>((resolve) => {
+      const handleVerificationSuccess = (event: any) => {
+        logger.info(`[PREFETCH] Resource verification succeeded for ${event.txId}`);
+        const result = { verified: true, txId: event.txId };
+        verificationResult = result;
+        resolve(result);
+      };
 
-    const handleVerificationFailed = (event: any) => {
-      logger.error(`[PREFETCH] Resource verification failed:`, event);
-    };
+      const handleVerificationFailed = (event: any) => {
+        logger.error(`[PREFETCH] Resource verification failed:`, event);
+        const result = { verified: false, txId: event.txId };
+        verificationResult = result;
+        resolve(result);
+      };
 
-    wayfinder.emitter.once('verification-succeeded', handleVerificationSuccess);
-    wayfinder.emitter.once('verification-failed', handleVerificationFailed);
+      wayfinder.emitter.once('verification-succeeded', handleVerificationSuccess);
+      wayfinder.emitter.once('verification-failed', handleVerificationFailed);
+    });
 
     try {
       // Fetch the resource using Wayfinder
@@ -2226,6 +2261,17 @@ async function handleFetchAndVerifyResource(arUrl: string): Promise<{
       const data = await response.arrayBuffer();
       const contentType = response.headers.get('content-type') || 'application/octet-stream';
       
+      // Wait for verification to complete (it should be done by now, but make sure)
+      if (!verificationResult) {
+        logger.info(`[PREFETCH] Waiting for verification to complete for ${targetUrl}`);
+        await Promise.race([
+          verificationPromise,
+          new Promise(resolve => setTimeout(() => resolve({ verified: false }), 5000)) // 5 second timeout
+        ]);
+      }
+
+      const verified = verificationResult?.verified || false;
+      
       // Convert ArrayBuffer to base64 string for Chrome extension messaging
       // Handle large files - convert to base64 properly
       const uint8Array = new Uint8Array(data);
@@ -2237,7 +2283,7 @@ async function handleFetchAndVerifyResource(arUrl: string): Promise<{
         return {
           data: base64String,
           contentType,
-          verified: verificationSucceeded,
+          verified: verified,
           isBase64: true,
         };
       }
@@ -2257,20 +2303,20 @@ async function handleFetchAndVerifyResource(arUrl: string): Promise<{
 
       logger.info(
         `[PREFETCH] Successfully fetched and ${
-          verificationSucceeded ? 'verified' : 'failed to verify'
+          verified ? 'verified' : 'failed to verify'
         } resource: ${targetUrl}`,
       );
 
       return {
         data: base64String,
         contentType,
-        verified: verificationSucceeded,
+        verified: verified,
         isBase64: true,
       };
     } finally {
       // Clean up event listeners
-      wayfinder.emitter.off('verification-succeeded', handleVerificationSuccess);
-      wayfinder.emitter.off('verification-failed', handleVerificationFailed);
+      wayfinder.emitter.removeAllListeners('verification-succeeded');
+      wayfinder.emitter.removeAllListeners('verification-failed');
     }
   } catch (error: any) {
     logger.error(`[PREFETCH] Error fetching resource ${arUrl}:`, error);

@@ -3,46 +3,16 @@
  * Following AR.IO brand guidelines with minimizable interface
  */
 
-/* AR.IO Brand Variables - Updated from variables.css */
+/* AR.IO Brand Variables - Using Design System */
 :root {
-  /* AR.IO Brand Colors */
-  --ario-black: rgb(5, 1, 5); /* Deep black */
-  --ario-grey: rgb(20, 20, 20); /* Dark gray */
-  --ario-light-grey: rgb(38, 38, 38); /* Medium gray */
-  --ario-white: #ffffff;
-
-  /* AR.IO Accent Colors */
-  --ario-teal: rgb(45, 211, 190); /* Primary teal */
-  --ario-teal-dark: rgb(13, 144, 133); /* Secondary teal */
-  --ario-red: rgb(188, 18, 60); /* Red accent */
-  --ario-blue: rgb(0, 85, 254); /* Blue accent */
-  --ario-blue-light: rgb(106, 130, 252);
-
-  /* Semantic Colors */
-  --color-verified: rgba(211, 255, 202, 0.8);
-  --color-warning: rgb(252, 184, 35);
-  --color-error: rgb(242, 63, 93);
-  --color-info: rgb(106, 130, 252);
-
-  /* Typography */
-  --font-primary: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-heading: "Albert Sans", "Inter", sans-serif;
-  --font-mono: "JetBrains Mono", "Fragment Mono", monospace;
-
-  /* Transitions */
+  /* Additional viewer-specific variables */
+  --header-height: 70px;
+  --header-height-minimized: 0px;
+  
+  /* Transition system */
   --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-medium: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-
-  /* Header Height */
-  --header-height: 70px;
-  --header-height-minimized: 0px;
-
-  /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.6);
 }
 
 * {
@@ -52,9 +22,9 @@
 }
 
 body {
-  font-family: var(--font-primary);
-  background: var(--ario-black);
-  color: var(--ario-white);
+  font-family: var(--font-family-rubik), 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--colors-container-containerL0);
+  color: var(--colors-solid-neutrals-100);
   height: 100vh;
   display: flex;
   flex-direction: column;
@@ -76,20 +46,14 @@ body.minimized .content-area {
   margin-top: 0;
 }
 
-body.minimized .minimize-toggle {
-  top: 20px;
-  background: var(--ario-black);
-  border: 1px solid var(--ario-light-grey);
-}
-
-body.minimized .minimize-toggle svg {
+body.minimized .header-btn.minimize-btn svg {
   transform: rotate(180deg);
 }
 
 /* Consolidated Header Section */
 .verification-header {
-  background: var(--ario-black);
-  border-bottom: 1px solid var(--ario-light-grey);
+  background: var(--colors-container-containerL1);
+  border-bottom: 1px solid var(--colors-stroke-strokeHigh);
   padding: 0;
   transition: all var(--transition-medium);
   position: relative;
@@ -114,11 +78,11 @@ body.minimized .minimize-toggle svg {
 .brand-status {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 8px 16px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  border: 2px solid transparent;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--colors-container-containerL2);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--colors-stroke-strokeLow);
   transition: all var(--transition-fast);
 }
 
@@ -137,45 +101,45 @@ body.minimized .minimize-toggle svg {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--ario-teal);
+  background: var(--accent-primary);
   box-shadow: 0 0 8px rgba(45, 211, 190, 0.6);
   animation: pulse 2s ease-in-out infinite;
 }
 
 .status-text {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--ario-white);
+  font-size: var(--caption-bold-size);
+  font-weight: var(--caption-bold-weight);
+  color: var(--colors-text-textHigh);
   opacity: 0.9;
 }
 
 /* Status variations */
 .brand-status.verified {
-  border-color: rgba(45, 211, 190, 0.3);
-  background: rgba(45, 211, 190, 0.05);
+  border-color: var(--colors-stroke-strokeHigh);
+  background: var(--colors-container-containerL3);
 }
 
 .brand-status.verified .status-dot {
-  background: var(--ario-teal);
+  background: var(--accent-primary);
 }
 
 .brand-status.warning {
-  border-color: rgba(252, 184, 35, 0.3);
-  background: rgba(252, 184, 35, 0.05);
+  border-color: var(--colors-stroke-strokeHigh);
+  background: var(--colors-container-containerL3);
 }
 
 .brand-status.warning .status-dot {
-  background: var(--color-warning);
+  background: var(--warning);
   box-shadow: 0 0 8px rgba(252, 184, 35, 0.6);
 }
 
 .brand-status.error {
-  border-color: rgba(242, 63, 93, 0.3);
-  background: rgba(242, 63, 93, 0.05);
+  border-color: var(--colors-stroke-strokeHigh);
+  background: var(--colors-container-containerL3);
 }
 
 .brand-status.error .status-dot {
-  background: var(--color-error);
+  background: var(--error);
   box-shadow: 0 0 8px rgba(242, 63, 93, 0.6);
 }
 
@@ -216,17 +180,17 @@ body.minimized .minimize-toggle svg {
   align-items: center;
   justify-content: center;
   background: transparent;
-  border: 1px solid var(--ario-light-grey);
-  border-radius: 8px;
-  color: var(--ario-white);
+  border: 1px solid var(--colors-stroke-strokeHigh);
+  border-radius: var(--radius-md);
+  color: var(--colors-icons-iconHigh);
   cursor: pointer;
   transition: all var(--transition-fast);
   position: relative;
 }
 
 .header-btn:hover {
-  background: var(--ario-grey);
-  border-color: var(--ario-teal);
+  background: var(--colors-container-containerL2);
+  border-color: var(--accent-primary);
   transform: translateY(-1px);
 }
 
@@ -237,12 +201,12 @@ body.minimized .minimize-toggle svg {
 .header-btn svg {
   width: 18px;
   height: 18px;
-  stroke: var(--ario-white);
+  stroke: var(--colors-icons-iconHigh);
   transition: stroke var(--transition-fast);
 }
 
 .header-btn:hover svg {
-  stroke: var(--ario-teal);
+  stroke: var(--accent-primary);
 }
 
 /* Specific button styles */
@@ -263,19 +227,19 @@ body.minimized .minimize-toggle svg {
   display: flex;
   align-items: center;
   gap: 0;
-  background: var(--ario-grey);
-  border: 1px solid var(--ario-light-grey);
-  border-radius: 8px;
-  padding: 4px;
+  background: var(--colors-container-containerL2);
+  border: 1px solid var(--colors-stroke-strokeHigh);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-xs);
   width: 500px;
   max-width: 100%;
 }
 
 .url-prefix {
-  padding: 8px 4px 8px 12px;
-  color: var(--ario-teal);
-  font-family: var(--font-mono);
-  font-size: 14px;
+  padding: var(--spacing-sm) var(--spacing-xs) var(--spacing-sm) var(--spacing-sm);
+  color: var(--accent-primary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--paragraph-normal-regular-size);
   font-weight: 500;
   user-select: none;
 }
@@ -284,10 +248,10 @@ body.minimized .minimize-toggle svg {
   flex: 1;
   background: transparent;
   border: none;
-  color: var(--ario-white);
-  font-family: var(--font-mono);
-  font-size: 14px;
-  padding: 8px 8px 8px 0;
+  color: var(--colors-solid-neutrals-100);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--paragraph-normal-regular-size);
+  padding: var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) 0;
   outline: none;
 }
 
@@ -296,20 +260,20 @@ body.minimized .minimize-toggle svg {
 }
 
 .url-input:focus {
-  color: var(--ario-teal);
+  color: var(--accent-primary);
 }
 
 .url-navigation:focus-within {
-  border-color: var(--ario-teal);
+  border-color: var(--accent-primary);
   box-shadow: 0 0 0 2px rgba(45, 211, 190, 0.2);
 }
 
 .url-go {
   width: 32px;
   height: 32px;
-  background: var(--ario-teal);
+  background: var(--accent-primary);
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -318,50 +282,41 @@ body.minimized .minimize-toggle svg {
 }
 
 .url-go:hover {
-  background: var(--ario-teal-dark);
+  background: var(--accent-secondary);
   transform: translateX(1px);
 }
 
 .url-go:active {
   transform: translateX(0);
-  background: var(--ario-teal);
+  background: var(--accent-primary);
 }
 
 .url-go svg {
   width: 16px;
   height: 16px;
-  color: var(--ario-black);
+  color: var(--colors-container-containerL0);
 }
 
-/* Minimize Toggle Button */
-.minimize-toggle {
-  position: fixed;
-  top: 17px;
-  right: 24px;
-  width: 36px;
-  height: 36px;
-  background: var(--ario-grey);
-  border: 1px solid var(--ario-light-grey);
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  z-index: 1000;
-  box-shadow: var(--shadow-sm);
+/* Minimize Button - now part of header buttons */
+.header-btn.minimize-btn {
+  display: flex !important;
+  margin-left: 12px;
+  position: relative;
 }
 
-.minimize-toggle:hover {
-  background: var(--ario-light-grey);
-  transform: translateY(-1px);
+.header-btn.minimize-btn::before {
+  content: '';
+  position: absolute;
+  left: -8px;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 20px;
+  width: 1px;
+  background: var(--colors-stroke-strokeLow);
 }
 
-.minimize-toggle svg {
-  width: 16px;
-  height: 16px;
+.header-btn.minimize-btn svg {
   transition: transform var(--transition-fast);
-  stroke: var(--ario-white);
 }
 
 /* Stats Grid */
@@ -377,24 +332,24 @@ body.minimized .minimize-toggle svg {
 }
 
 .stat-value {
-  font-family: var(--font-mono);
+  font-family: 'JetBrains Mono', monospace;
   font-size: 22px;
   font-weight: 700;
-  color: var(--ario-white);
+  color: var(--colors-solid-neutrals-100);
   display: block;
   transition: all var(--transition-fast);
 }
 
 .stat-value.verified {
-  color: var(--color-verified);
+  color: var(--success);
 }
 
 .stat-value.pending {
-  color: var(--ario-orange);
+  color: var(--warning);
 }
 
 .stat-value.failed {
-  color: var(--color-error);
+  color: var(--error);
 }
 
 .stat-label {
@@ -423,7 +378,7 @@ body.minimized .minimize-toggle svg {
 
 .progress-bar {
   height: 4px;
-  background: var(--ario-grey);
+  background: var(--colors-container-containerL2);
   overflow: hidden;
 }
 
@@ -431,8 +386,8 @@ body.minimized .minimize-toggle svg {
   height: 100%;
   background: linear-gradient(
     90deg,
-    var(--ario-teal) 0%,
-    var(--ario-teal-dark) 100%
+    var(--accent-primary) 0%,
+    var(--accent-secondary) 100%
   );
   width: 0%;
   transition: width var(--transition-medium);
@@ -493,15 +448,15 @@ body.minimized .minimize-toggle svg {
 }
 
 .toast {
-  background: var(--ario-black);
-  border: 1px solid var(--ario-light-grey);
-  border-radius: 8px;
-  padding: 12px 16px;
-  margin-bottom: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  background: var(--colors-container-containerL1);
+  border: 1px solid var(--colors-stroke-strokeHigh);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
+  box-shadow: var(--shadow-card);
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--spacing-sm);
   min-width: 300px;
   pointer-events: auto;
   animation: slideIn var(--transition-fast);
@@ -519,16 +474,33 @@ body.minimized .minimize-toggle svg {
   }
 }
 
+/* Enhanced toast animations for new toast manager */
+.toast {
+  transform: translateY(100%);
+  opacity: 0;
+  transition: all var(--transition-fast);
+}
+
+.toast.toast-show {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.toast.toast-hide {
+  transform: translateX(100%);
+  opacity: 0;
+}
+
 .toast.success {
-  border-color: var(--color-verified);
+  border-color: var(--success);
 }
 
 .toast.warning {
-  border-color: var(--color-warning);
+  border-color: var(--warning);
 }
 
 .toast.error {
-  border-color: var(--color-error);
+  border-color: var(--error);
 }
 
 .toast-icon {
@@ -544,15 +516,15 @@ body.minimized .minimize-toggle svg {
 }
 
 .toast.success .toast-icon {
-  background: var(--color-verified);
+  background: var(--success);
 }
 
 .toast.warning .toast-icon {
-  background: var(--color-warning);
+  background: var(--warning);
 }
 
 .toast.error .toast-icon {
-  background: var(--color-error);
+  background: var(--error);
 }
 
 .toast-content {
@@ -560,9 +532,9 @@ body.minimized .minimize-toggle svg {
 }
 
 .toast-title {
-  font-size: 14px;
+  font-size: var(--paragraph-normal-regular-size);
   font-weight: 600;
-  color: var(--ario-white);
+  color: var(--colors-solid-neutrals-100);
   margin-bottom: 2px;
 }
 
@@ -586,8 +558,8 @@ body.minimized .minimize-toggle svg {
 }
 
 .toast-close:hover {
-  background: var(--ario-grey);
-  color: var(--ario-white);
+  background: var(--colors-container-containerL2);
+  color: var(--colors-solid-neutrals-100);
 }
 
 /* Loading State */
@@ -597,7 +569,7 @@ body.minimized .minimize-toggle svg {
   left: 0;
   right: 0;
   bottom: 0;
-  background: var(--ario-black);
+  background: var(--colors-container-containerL0);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -623,9 +595,9 @@ body.minimized .minimize-toggle svg {
   position: absolute;
   width: 100%;
   height: 100%;
-  border: 3px solid var(--ario-grey);
-  border-top-color: var(--ario-teal);
-  border-right-color: var(--ario-teal);
+  border: 3px solid var(--colors-container-containerL2);
+  border-top-color: var(--accent-primary);
+  border-right-color: var(--accent-primary);
   border-radius: 50%;
   animation: spin 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
   box-shadow: 0 0 20px rgba(45, 211, 190, 0.3);
@@ -636,7 +608,7 @@ body.minimized .minimize-toggle svg {
   text-align: center;
   font-size: 20px;
   font-weight: 600;
-  color: var(--ario-teal);
+  color: var(--accent-primary);
 }
 
 .loading-progress-mb {
@@ -654,7 +626,7 @@ body.minimized .minimize-toggle svg {
 
 .loading-text {
   font-size: 16px;
-  color: var(--ario-teal);
+  color: var(--accent-primary);
   font-weight: 500;
   letter-spacing: 0.5px;
 }
@@ -679,19 +651,19 @@ body.minimized .minimize-toggle svg {
 
 .skip-verification button {
   background: transparent;
-  border: 1px solid var(--ario-grey);
-  color: #999;
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 13px;
+  border: 1px solid var(--colors-stroke-strokeHigh);
+  color: var(--colors-text-textLow);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-sm);
+  font-size: var(--caption-bold-size);
   cursor: pointer;
   transition: all var(--transition-fast);
   font-weight: 500;
 }
 
 .skip-verification button:hover {
-  border-color: var(--ario-teal);
-  color: var(--ario-teal);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
   background: rgba(45, 211, 190, 0.1);
 }
 
@@ -708,7 +680,7 @@ body.minimized .minimize-toggle svg {
   left: 0;
   right: 0;
   bottom: 0;
-  background: var(--ario-black);
+  background: var(--colors-container-containerL0);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -716,10 +688,10 @@ body.minimized .minimize-toggle svg {
 }
 
 .error-card {
-  background: var(--ario-grey);
-  border: 1px solid var(--ario-light-grey);
-  border-radius: 12px;
-  padding: 32px;
+  background: var(--colors-container-containerL2);
+  border: 1px solid var(--colors-stroke-strokeHigh);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-xl);
   text-align: center;
   max-width: 400px;
 }
@@ -759,10 +731,10 @@ body.minimized .minimize-toggle svg {
 .btn-primary {
   background: linear-gradient(
     135deg,
-    var(--ario-teal) 0%,
-    var(--ario-teal-dark) 100%
+    var(--accent-primary) 0%,
+    var(--accent-secondary) 100%
   );
-  color: var(--ario-black);
+  color: var(--colors-container-containerL0);
   font-weight: 600;
   box-shadow: 0 2px 8px rgba(45, 211, 190, 0.3);
 }
@@ -770,8 +742,8 @@ body.minimized .minimize-toggle svg {
 .btn-primary:hover {
   background: linear-gradient(
     135deg,
-    var(--ario-teal-dark) 0%,
-    var(--ario-teal) 100%
+    var(--accent-secondary) 0%,
+    var(--accent-primary) 100%
   );
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(45, 211, 190, 0.4);
@@ -779,13 +751,13 @@ body.minimized .minimize-toggle svg {
 
 .btn-secondary {
   background: transparent;
-  color: var(--ario-white);
-  border: 1px solid var(--ario-light-grey);
+  color: var(--colors-solid-neutrals-100);
+  border: 1px solid var(--colors-stroke-strokeHigh);
 }
 
 .btn-secondary:hover {
-  background: var(--ario-grey);
-  border-color: var(--ario-grey);
+  background: var(--colors-container-containerL2);
+  border-color: var(--colors-stroke-strokeHigh);
 }
 
 /* Floating Status Badge (shown in minimized mode) */
@@ -793,16 +765,16 @@ body.minimized .minimize-toggle svg {
   position: fixed;
   bottom: 20px;
   right: 20px;
-  background: var(--ario-black);
-  border: 1px solid var(--ario-light-grey);
+  background: var(--colors-container-containerL0);
+  border: 1px solid var(--colors-stroke-strokeHigh);
   border-radius: 20px;
-  padding: 8px 16px;
+  padding: var(--spacing-sm) var(--spacing-md);
   display: none;
   align-items: center;
-  gap: 8px;
-  font-size: 14px;
+  gap: var(--spacing-sm);
+  font-size: var(--paragraph-normal-regular-size);
   font-weight: 500;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-card);
   cursor: pointer;
   transition: all var(--transition-fast);
 }
@@ -819,7 +791,7 @@ body.minimized .floating-badge {
 .badge-icon {
   width: 16px;
   height: 16px;
-  background: var(--color-verified);
+  background: var(--success);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -966,11 +938,11 @@ body.minimized .floating-badge {
 .url-display {
   display: flex;
   align-items: center;
-  gap: 12px;
-  background: var(--ario-grey);
-  border: 1px solid var(--ario-light-grey);
-  border-radius: 8px;
-  padding: 8px 12px;
+  gap: var(--spacing-sm);
+  background: var(--colors-container-containerL2);
+  border: 1px solid var(--colors-stroke-strokeHigh);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-sm) var(--spacing-sm);
   max-width: 400px;
 }
 
@@ -983,9 +955,9 @@ body.minimized .floating-badge {
 }
 
 .url-value {
-  font-family: var(--font-mono);
-  font-size: 13px;
-  color: var(--ario-teal);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--caption-bold-size);
+  color: var(--accent-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -996,8 +968,8 @@ body.minimized .floating-badge {
   width: 28px;
   height: 28px;
   background: transparent;
-  border: 1px solid var(--ario-light-grey);
-  border-radius: 6px;
+  border: 1px solid var(--colors-stroke-strokeHigh);
+  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1007,20 +979,20 @@ body.minimized .floating-badge {
 }
 
 .url-copy:hover {
-  background: var(--ario-light-grey);
-  border-color: var(--ario-teal);
+  background: var(--colors-container-containerL3);
+  border-color: var(--accent-primary);
 }
 
 .url-copy svg {
   width: 14px;
   height: 14px;
-  stroke: var(--ario-white);
+  stroke: var(--colors-icons-iconHigh);
   opacity: 0.8;
 }
 
 .url-copy:hover svg {
   opacity: 1;
-  stroke: var(--ario-teal);
+  stroke: var(--accent-primary);
 }
 
 /* Responsive adjustments */
@@ -1149,7 +1121,7 @@ body.minimized .floating-badge {
 }
 
 .stat-value.failed {
-  color: var(--color-error);
+  color: var(--error);
 }
 
 .stat-label {

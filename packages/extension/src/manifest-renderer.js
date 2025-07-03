@@ -17,6 +17,98 @@ class ManifestRenderer {
       failed: 0
     };
     this.resourceCache = new Map(); // transaction ID -> verified blob
+    this.loadingStrategy = null; // Will be determined based on manifest size
+  }
+
+  /**
+   * Analyze manifest and determine optimal loading strategy
+   * @param {Object} manifest - Parsed manifest object
+   * @returns {Object} Strategy configuration
+   */
+  analyzeManifest(manifest) {
+    const resourceCount = Object.keys(manifest.paths).length;
+    const criticalResources = this.identifyCriticalResources(manifest);
+    
+    let strategy;
+    let showWarning = false;
+    let estimatedSize = resourceCount * 50; // rough estimate in KB
+    
+    if (resourceCount <= 5) {
+      strategy = 'instant';
+    } else if (resourceCount <= 25) {
+      strategy = 'full-prefetch';
+    } else if (resourceCount <= 100) {
+      strategy = 'critical-first';
+    } else {
+      strategy = 'progressive';
+      showWarning = true;
+    }
+    
+    console.log(`[MANIFEST-STRATEGY] Manifest has ${resourceCount} resources, using '${strategy}' strategy`);
+    
+    return {
+      strategy,
+      resourceCount,
+      criticalResources,
+      estimatedSize,
+      showWarning,
+      batchSize: strategy === 'progressive' ? 3 : strategy === 'critical-first' ? 5 : 10
+    };
+  }
+
+  /**
+   * Identify critical resources that should be loaded first
+   * @param {Object} manifest - Parsed manifest object  
+   * @returns {Set<string>} Set of critical resource transaction IDs
+   */
+  identifyCriticalResources(manifest) {
+    const critical = new Set();
+    const criticalPaths = [];
+    
+    // 1. Index file is always critical
+    if (manifest.index?.path) {
+      criticalPaths.push(manifest.index.path);
+    } else if (manifest.index?.id) {
+      critical.add(manifest.index.id);
+    } else {
+      // Look for common index files
+      const commonIndex = ['index.html', 'index.htm', '/index.html', '/index.htm'];
+      for (const path of commonIndex) {
+        if (manifest.paths[path]) {
+          criticalPaths.push(path);
+          break;
+        }
+      }
+    }
+    
+    // 2. Main CSS files (first 3 found)
+    const cssFiles = Object.keys(manifest.paths).filter(path => 
+      path.endsWith('.css') || path.includes('style') || path.includes('main')
+    ).slice(0, 3);
+    criticalPaths.push(...cssFiles);
+    
+    // 3. Main JavaScript files (first 3 found)  
+    const jsFiles = Object.keys(manifest.paths).filter(path =>
+      (path.endsWith('.js') || path.endsWith('.mjs')) && 
+      (path.includes('main') || path.includes('app') || path.includes('bundle') || path.includes('index'))
+    ).slice(0, 3);
+    criticalPaths.push(...jsFiles);
+    
+    // 4. Favicon and essential images
+    const essentialImages = Object.keys(manifest.paths).filter(path =>
+      path.includes('favicon') || path.includes('icon') || path.includes('logo')
+    ).slice(0, 2);
+    criticalPaths.push(...essentialImages);
+    
+    // Convert paths to transaction IDs
+    criticalPaths.forEach(path => {
+      if (manifest.paths[path] && manifest.paths[path].id) {
+        critical.add(manifest.paths[path].id);
+      }
+    });
+    
+    console.log(`[MANIFEST-CRITICAL] Identified ${critical.size} critical resources (by txId)`);
+    return critical;
   }
 
   /**
@@ -219,28 +311,30 @@ class ManifestRenderer {
   }
 
   /**
-   * Verify all resources referenced in the manifest
-   * @param {Object} manifest - Parsed manifest object
+   * Verify a batch of resources by transaction IDs
+   * @param {Array<string>} txIds - Array of transaction IDs to verify
+   * @param {Object} manifest - Parsed manifest object (for context)
    * @param {Function} progressCallback - Called with progress updates
    * @returns {Promise<Map>} Map of txId -> {verified, blob, contentType}
    */
-  async verifyAllResources(manifest, progressCallback) {
-    const txIds = this.extractTransactionIds(manifest);
+  async verifyResourceBatch(txIds, manifest, progressCallback) {
     const results = new Map();
     
-    this.verificationProgress.total = txIds.size;
-    this.verificationProgress.completed = 0;
-    this.verificationProgress.verified = 0;
-    this.verificationProgress.failed = 0;
+    // Initialize progress for this batch
+    const batchProgress = {
+      total: txIds.length,
+      completed: 0,
+      verified: 0,
+      failed: 0
+    };
 
-    console.log(`[MANIFEST] Starting verification of ${txIds.size} resources`);
+    console.log(`[MANIFEST] Starting batch verification of ${txIds.length} resources`);
 
     // Verify resources in parallel with concurrency limit
     const CONCURRENCY_LIMIT = 3;
-    const txIdArray = Array.from(txIds);
     
-    for (let i = 0; i < txIdArray.length; i += CONCURRENCY_LIMIT) {
-      const batch = txIdArray.slice(i, i + CONCURRENCY_LIMIT);
+    for (let i = 0; i < txIds.length; i += CONCURRENCY_LIMIT) {
+      const batch = txIds.slice(i, i + CONCURRENCY_LIMIT);
       
       await Promise.all(batch.map(async (txId) => {
         const result = await this.verifyTransaction(txId);
@@ -256,7 +350,7 @@ class ManifestRenderer {
             contentType: contentType
           });
           
-          this.verificationProgress.verified++;
+          batchProgress.verified++;
         } else {
           results.set(txId, {
             verified: false,
@@ -265,19 +359,35 @@ class ManifestRenderer {
             error: result.error
           });
           
-          this.verificationProgress.failed++;
+          batchProgress.failed++;
         }
         
-        this.verificationProgress.completed++;
+        batchProgress.completed++;
         
         if (progressCallback) {
-          progressCallback(this.verificationProgress);
+          progressCallback(batchProgress);
         }
       }));
     }
 
-    console.log(`[MANIFEST] Verification complete: ${this.verificationProgress.verified} verified, ${this.verificationProgress.failed} failed`);
+    console.log(`[MANIFEST] Batch verification complete: ${batchProgress.verified} verified, ${batchProgress.failed} failed`);
     return results;
+  }
+
+  /**
+   * Verify all resources referenced in the manifest
+   * @param {Object} manifest - Parsed manifest object
+   * @param {Function} progressCallback - Called with progress updates
+   * @returns {Promise<Map>} Map of txId -> {verified, blob, contentType}
+   */
+  async verifyAllResources(manifest, progressCallback) {
+    const txIds = this.extractTransactionIds(manifest);
+    const txIdArray = Array.from(txIds);
+    
+    console.log(`[MANIFEST] Starting verification of ${txIds.size} resources`);
+
+    // Use batch verification for all resources
+    return await this.verifyResourceBatch(txIdArray, manifest, progressCallback);
   }
 
   /**
@@ -332,15 +442,19 @@ class ManifestRenderer {
    */
   createBlobUrls(verifiedResources) {
     const blobUrls = new Map();
+    let failedCount = 0;
     
     for (const [txId, resource] of verifiedResources) {
       if (resource.verified && resource.blob) {
         const blobUrl = URL.createObjectURL(resource.blob);
         blobUrls.set(txId, blobUrl);
-        console.log(`[MANIFEST] Created blob URL for ${txId}: ${blobUrl}`);
+      } else {
+        failedCount++;
+        console.warn(`[MANIFEST] Resource ${txId} not verified or missing blob:`, resource.error || 'Unknown error');
       }
     }
     
+    console.log(`[MANIFEST] Created ${blobUrls.size} blob URLs (${failedCount} resources failed verification)`);
     return blobUrls;
   }
 

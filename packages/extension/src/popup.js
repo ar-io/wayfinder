@@ -253,38 +253,16 @@ async function loadCurrentStrategy() {
 // Verification section removed from popup
 
 async function updateConnectionStatus() {
-  try {
-    // Test connection via background script (avoids CORS issues)
-    const response = await chrome.runtime.sendMessage({
-      message: 'testConnection',
-    });
+  // Show static "Connected" status (connection testing removed)
+  const statusElement = document.getElementById('connectionStatus');
+  if (!statusElement) return;
 
-    const statusElement = document.getElementById('connectionStatus');
-    if (!statusElement) return;
+  const statusText = statusElement.querySelector('.status-text');
+  if (!statusText) return;
 
-    const statusText = statusElement.querySelector('.status-text');
-    if (!statusText) return;
-
-    if (response && response.success && response.isConnected) {
-      statusText.textContent = 'Connected';
-      statusElement.classList.remove('limited', 'offline');
-      statusElement.classList.add('connected');
-    } else {
-      statusText.textContent = 'Limited';
-      statusElement.classList.remove('connected', 'offline');
-      statusElement.classList.add('limited');
-    }
-  } catch (error) {
-    console.error('Connection test error:', error);
-    const statusElement = document.getElementById('connectionStatus');
-    const statusText = statusElement?.querySelector('.status-text');
-
-    if (statusText) {
-      statusText.textContent = 'Offline';
-      statusElement.classList.remove('connected', 'limited');
-      statusElement.classList.add('offline');
-    }
-  }
+  statusText.textContent = 'Connected';
+  statusElement.classList.remove('limited', 'offline');
+  statusElement.classList.add('connected');
 }
 
 async function applyTheme() {
