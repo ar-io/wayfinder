@@ -68,6 +68,14 @@ export default defineConfig({
           src: 'src/wayfinder-proxy.js',
           dest: '.',
         },
+        {
+          src: 'src/prefetch-verifier.js',
+          dest: '.',
+        },
+        {
+          src: 'src/manifest-renderer.js',
+          dest: '.',
+        },
 
         {
           src: 'manifest.json',

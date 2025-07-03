@@ -3,15 +3,57 @@
    ========================================================================== */
 
 :root {
-  /* Dark theme (default) - AR.IO Brand Colors */
-  --bg-primary: rgb(5, 1, 5); /* Deep black */
-  --bg-secondary: rgb(20, 20, 20); /* Dark gray */
-  --bg-tertiary: rgb(38, 38, 38); /* Medium gray */
-  --bg-elevated: rgb(38, 38, 38); /* Medium gray */
+  /* New Design System - Figma Design Tokens */
+  --colors-solid-neutrals-100: #ffffff;
+  --colors-text-textHigh: #cacad6;
+  --colors-text-textLow: #7f7f87;
+  --colors-container-containerL0: #050505;
+  --colors-container-containerL1: #0e0e0f;
+  --colors-container-containerL2: #1c1c1f;
+  --colors-container-containerL3: #2a2a2e;
+  --colors-icons-iconHigh: #cacad6;
+  --colors-icons-iconMid: #a3a3ad;
+  --colors-icons-iconLow: #7f7f87;
+  --colors-stroke-strokeLow: rgba(202, 202, 214, 0.08);
+  --colors-stroke-strokeHigh: rgba(202, 202, 214, 0.32);
 
-  --text-primary: #ffffff;
-  --text-secondary: rgba(255, 255, 255, 0.8);
-  --text-muted: rgba(255, 255, 255, 0.6);
+  /* Typography - From Figma Design System */
+  --font-family-rubik: 'Rubik', sans-serif;
+  --font-family-inter: 'Inter', sans-serif;
+  
+  /* Paragraph styles */
+  --paragraph-large-bold-size: 17px;
+  --paragraph-large-bold-weight: 700;
+  --paragraph-large-bold-line-height: 1.5;
+  
+  --paragraph-normal-regular-size: 14px;
+  --paragraph-normal-regular-weight: 400;
+  --paragraph-normal-regular-line-height: 1.4;
+  
+  /* Heading styles */
+  --heading-h6-bold-size: 17px;
+  --heading-h6-bold-weight: 700;
+  --heading-h6-bold-line-height: 1.4;
+  
+  /* Caption styles */
+  --caption-bold-size: 11px;
+  --caption-bold-weight: 700;
+  --caption-bold-line-height: 1.4;
+  
+  /* Typography shortcuts */
+  --font-size-h1: var(--paragraph-large-bold-size);
+  --font-size-caption: var(--caption-bold-size);
+  --font-size-body: var(--paragraph-normal-regular-size);
+
+  /* Legacy variables - maintained for backward compatibility */
+  --bg-primary: var(--colors-container-containerL1); /* Deep black */
+  --bg-secondary: var(--colors-container-containerL2); /* Dark gray */
+  --bg-tertiary: var(--colors-container-containerL3); /* Medium gray */
+  --bg-elevated: var(--colors-container-containerL3); /* Medium gray */
+
+  --text-primary: var(--colors-solid-neutrals-100);
+  --text-secondary: var(--colors-text-textHigh);
+  --text-muted: var(--colors-text-textLow);
 
   /* AR.IO Brand Accent Colors */
   --accent-primary: rgb(45, 211, 190); /* Teal primary */
@@ -22,9 +64,9 @@
   --accent-blue: rgb(0, 85, 254);
   --accent-blue-light: rgb(106, 130, 252);
 
-  --border-subtle: rgba(255, 255, 255, 0.1);
+  --border-subtle: var(--colors-stroke-strokeLow);
   --border-default: rgba(255, 255, 255, 0.2);
-  --border-emphasis: rgba(255, 255, 255, 0.3);
+  --border-emphasis: var(--colors-stroke-strokeHigh);
 
   /* Semantic colors aligned with AR.IO */
   --success: rgba(211, 255, 202, 0.8);
@@ -32,9 +74,15 @@
   --error: rgb(242, 63, 93);
   --info: rgb(106, 130, 252);
 
+  /* Enhanced shadow system from Figma */
+  --shadow-card: 0px 1726px 483px 0px rgba(0,0,0,0.01), 0px 1105px 442px 0px rgba(0,0,0,0.04), 0px 621px 373px 0px rgba(0,0,0,0.15), 0px 276px 276px 0px rgba(0,0,0,0.26), 0px 69px 152px 0px rgba(0,0,0,0.29);
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+
+  /* Gradient system */
+  --gradient-primary: linear-gradient(135deg, #F7C3A1, #DF9BE8);
+  --border-accent: #f7c3a1;
 
   --radius-sm: 4px;
   --radius-md: 8px;
@@ -48,41 +96,73 @@
   --font-size-xl: 1.25rem;
   --font-size-2xl: 1.5rem;
 
-  --spacing-xs: 0.25rem;
-  --spacing-sm: 0.5rem;
-  --spacing-md: 1rem;
-  --spacing-lg: 1.5rem;
-  --spacing-xl: 2rem;
-  --spacing-2xl: 3rem;
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
 
   /* Extension dimensions */
   --extension-width: 420px;
   --extension-height: 600px;
 }
 
-/* Light theme overrides */
+/* Light theme overrides - WCAG AAA compliant */
 [data-theme="light"] {
+  /* Container/Background Colors - High contrast for accessibility */
+  --colors-container-containerL0: #ffffff;
+  --colors-container-containerL1: #f8fafc;
+  --colors-container-containerL2: #f1f5f9;
+  --colors-container-containerL3: #e2e8f0;
+
+  /* Text Colors - WCAG AAA compliant contrast ratios */
+  --colors-solid-neutrals-100: #0f172a;
+  --colors-text-textHigh: #1e293b;
+  --colors-text-textLow: #475569;
+  
+  /* Icon Colors */
+  --colors-icons-iconHigh: #1e293b;
+  --colors-icons-iconMid: #475569;
+  --colors-icons-iconLow: #64748b;
+
+  /* Stroke/Border Colors */
+  --colors-stroke-strokeLow: rgba(15, 23, 42, 0.08);
+  --colors-stroke-strokeHigh: rgba(15, 23, 42, 0.24);
+
+  /* Legacy variable overrides */
   --bg-primary: #ffffff;
   --bg-secondary: #f8fafc;
-  --bg-tertiary: #f1f5f4;
+  --bg-tertiary: #f1f5f9;
   --bg-elevated: #ffffff;
 
-  --text-primary: rgb(5, 1, 5);
-  --text-secondary: rgba(5, 1, 5, 0.8);
-  --text-muted: rgba(5, 1, 5, 0.6);
+  --text-primary: #0f172a;
+  --text-secondary: #1e293b;
+  --text-muted: #475569;
 
-  --border-subtle: rgba(5, 1, 5, 0.1);
-  --border-default: rgba(5, 1, 5, 0.2);
-  --border-emphasis: rgba(5, 1, 5, 0.3);
+  --border-subtle: rgba(15, 23, 42, 0.08);
+  --border-default: rgba(15, 23, 42, 0.16);
+  --border-emphasis: rgba(15, 23, 42, 0.24);
 
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  /* Enhanced shadows for light mode */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.12);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.16);
+  --shadow-card: 0px 4px 16px rgba(0, 0, 0, 0.08), 0px 2px 8px rgba(0, 0, 0, 0.04);
+
+  /* Light mode specific accent colors */
+  --gradient-primary: linear-gradient(135deg, #0ea5e9, #0284c7);
+
+  /* Enhanced semantic colors for light mode */
+  --success: #16a34a;
+  --warning: #d97706;
+  --error: #dc2626;
+  --info: #2563eb;
 }
 
 /* Typography - AR.IO Brand Fonts */
 body {
-  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+  font-family: var(--font-family-rubik), "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
 }
 
@@ -93,7 +173,7 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: "Albert Sans", "Inter", sans-serif;
+  font-family: var(--font-family-rubik), "Albert Sans", "Inter", sans-serif;
   font-weight: 600;
 }
 

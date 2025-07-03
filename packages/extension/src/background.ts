@@ -301,7 +301,9 @@ chrome.webNavigation.onBeforeNavigate.addListener(
                 possibleArns &&
                 !['www', 'api', 'gateway'].includes(possibleArns)
               ) {
+                logger.info(`[DEBUG] ArNS URL construction: possibleArns="${possibleArns}", pathname="${url.pathname}"`);
                 arUrl = `ar://${possibleArns}${url.pathname}`;
+                logger.info(`[DEBUG] Constructed arUrl: "${arUrl}"`);
               }
             }
           }
@@ -672,6 +674,57 @@ chrome.webRequest.onHeadersReceived.addListener(
         }
       }
 
+      // Detect manifest using your insight: different resolved vs data IDs indicates manifest
+      let manifestData = null;
+      if (arnsResolvedId && dataId && arnsResolvedId !== dataId) {
+        logger.info(
+          `[MANIFEST-DETECT] Manifest detected! Resolved ID: ${arnsResolvedId}, Data ID: ${dataId}`,
+        );
+        
+        // Extract gateway from current URL to fetch raw manifest
+        try {
+          const currentUrl = new URL(details.url);
+          const gatewayUrl = `${currentUrl.protocol}//${currentUrl.host}`;
+          const manifestUrl = `${gatewayUrl}/raw/${arnsResolvedId}`;
+          
+          logger.info(`[MANIFEST-FETCH] Fetching raw manifest from: ${manifestUrl}`);
+          
+          const manifestResponse = await fetch(manifestUrl, {
+            signal: AbortSignal.timeout(10000) // 10 second timeout
+          });
+          
+          if (manifestResponse.ok) {
+            const contentType = manifestResponse.headers.get('content-type') || '';
+            const manifestText = await manifestResponse.text();
+            
+            // Check if response is JSON before parsing
+            if (!contentType.includes('application/json') && !manifestText.trim().startsWith('{')) {
+              logger.warn(`[MANIFEST-FETCH] Unexpected content type: ${contentType}, got HTML or non-JSON response`);
+              logger.debug('[MANIFEST-FETCH] Response preview:', manifestText.substring(0, 200));
+            } else {
+              try {
+                const manifest = JSON.parse(manifestText);
+                
+                if (manifest.manifest === 'arweave/paths' && 
+                    (manifest.version === '0.1.0' || manifest.version === '0.2.0')) {
+                  manifestData = manifest;
+                  logger.info(`[MANIFEST-FETCH] Successfully fetched manifest with ${Object.keys(manifest.paths || {}).length} paths`);
+                } else {
+                  logger.warn('[MANIFEST-FETCH] Invalid manifest format');
+                }
+              } catch (parseError) {
+                logger.error('[MANIFEST-FETCH] Failed to parse manifest JSON:', parseError);
+                logger.debug('[MANIFEST-FETCH] Response preview:', manifestText.substring(0, 200));
+              }
+            }
+          } else {
+            logger.warn(`[MANIFEST-FETCH] Failed to fetch manifest: ${manifestResponse.status}`);
+          }
+        } catch (error) {
+          logger.error('[MANIFEST-FETCH] Error fetching manifest:', error);
+        }
+      }
+
       // Only cache ArNS resolution data if it exists and verified browsing is enabled
       const { verifiedBrowsing = false } = await chrome.storage.local.get([
         'verifiedBrowsing',
@@ -687,6 +740,8 @@ chrome.webRequest.onHeadersReceived.addListener(
           status: 'completed',
           strategy: 'none',
           dataId: dataId || arnsResolvedId || undefined,
+          arnsResolvedId: arnsResolvedId || undefined,
+          manifest: manifestData, // Store the fetched manifest
           timestamp: Date.now(),
         });
       }
@@ -879,6 +934,8 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     'VERIFY_GATEWAY_RESOURCE',
     'FETCH_VERIFIED_CONTENT',
     'FETCH_VERIFIED_RESOURCE',
+    'FETCH_AND_VERIFY_RESOURCE',
+    'PREFETCH_PROGRESS',
   ];
 
   if (
@@ -1220,6 +1277,23 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     })();
     return true;
   }
+
+  // Handle fetch and verify resource (from pre-fetch verifier)
+  if (request.type === 'FETCH_AND_VERIFY_RESOURCE') {
+    (async () => {
+      try {
+        const result = await handleFetchAndVerifyResource(request.url);
+        sendResponse(result);
+      } catch (error: any) {
+        logger.error('Error fetching and verifying resource:', error);
+        sendResponse({
+          error: error?.message || 'Failed to fetch and verify resource',
+          verified: false,
+        });
+      }
+    })();
+    return true;
+  }
 });
 
 /**
@@ -1440,11 +1514,15 @@ async function handleVerifiedContentFetch(arUrl: string): Promise<{
   gatewayUrl?: string;
   error?: string;
   verificationInfo?: any;
+  manifest?: any;
 }> {
   try {
     logger.info(`[VERIFY] Using Wayfinder to fetch and verify ${arUrl}`);
 
     const wayfinder = await getWayfinderInstance();
+    
+    // Initialize manifestData at function scope
+    let manifestData = null;
 
     // Track verification events
     let _verificationSucceeded = false;
@@ -1596,6 +1674,97 @@ async function handleVerifiedContentFetch(arUrl: string): Promise<{
       const contentType =
         blob.type || response.headers.get('content-type') || 'text/html';
 
+      // Check response headers for manifest detection (using your insight!)
+      const arnsResolvedId = response.headers.get('x-arns-resolved-id');
+      const dataId = response.headers.get('x-ar-io-data-id');
+      
+      logger.info(`[MANIFEST-CHECK] Headers - x-arns-resolved-id: ${arnsResolvedId}, x-ar-io-data-id: ${dataId}`);
+      
+      // Detect manifest using header comparison: different resolved vs data IDs indicates manifest
+      if (arnsResolvedId && dataId && arnsResolvedId !== dataId) {
+        logger.info(
+          `[MANIFEST-DETECT] Manifest detected in response headers! Resolved ID: ${arnsResolvedId}, Data ID: ${dataId}`,
+        );
+        
+        try {
+          // Use routedGatewayUrl if available, otherwise construct from response URL
+          let manifestGatewayUrl = routedGatewayUrl;
+          if (!manifestGatewayUrl) {
+            // Extract gateway URL from response URL
+            const responseUrl = response.url;
+            const gatewayMatch = responseUrl.match(/^(https?:\/\/[^\/]+)/);
+            manifestGatewayUrl = gatewayMatch ? gatewayMatch[1] : 'https://arweave.net';
+          }
+          
+          // Ensure no double slashes when constructing URL
+          const manifestUrl = `${manifestGatewayUrl.replace(/\/$/, '')}/raw/${arnsResolvedId}`;
+          logger.info(`[MANIFEST-FETCH] Fetching raw manifest from: ${manifestUrl}`);
+          
+          const manifestResponse = await fetch(manifestUrl, {
+            signal: AbortSignal.timeout(10000) // 10 second timeout
+          });
+          
+          if (manifestResponse.ok) {
+            const contentType = manifestResponse.headers.get('content-type') || '';
+            const manifestText = await manifestResponse.text();
+            
+            // Check if response is JSON before parsing
+            if (!contentType.includes('application/json') && !manifestText.trim().startsWith('{')) {
+              logger.warn(`[MANIFEST-FETCH] Unexpected content type: ${contentType}, got HTML or non-JSON response`);
+              logger.debug('[MANIFEST-FETCH] Response preview:', manifestText.substring(0, 200));
+            } else {
+              try {
+                const manifest = JSON.parse(manifestText);
+                
+                if (manifest.manifest === 'arweave/paths' && 
+                    (manifest.version === '0.1.0' || manifest.version === '0.2.0')) {
+                  manifestData = manifest;
+                  logger.info(`[MANIFEST-FETCH] Successfully fetched manifest with ${Object.keys(manifest.paths || {}).length} paths for URL rewriting`);
+                } else {
+                  logger.warn('[MANIFEST-FETCH] Invalid manifest format');
+                }
+              } catch (parseError) {
+                logger.error('[MANIFEST-FETCH] Failed to parse manifest JSON:', parseError);
+                logger.debug('[MANIFEST-FETCH] Response preview:', manifestText.substring(0, 200));
+              }
+            }
+          } else {
+            logger.warn(`[MANIFEST-FETCH] Failed to fetch manifest: ${manifestResponse.status}`);
+          }
+        } catch (error) {
+          logger.error('[MANIFEST-FETCH] Error fetching manifest for URL rewriting:', error);
+        }
+      }
+
+      // Check for cached manifest data (fallback)
+      if (!manifestData) {
+        try {
+          const { verificationCache } = await import('./utils/verification-cache');
+          const cachedData = await verificationCache.get(arUrl);
+          if (cachedData?.manifest) {
+            logger.info('[VERIFY] Using cached manifest data from previous detection');
+            manifestData = cachedData.manifest;
+          }
+        } catch (error) {
+          logger.warn('[VERIFY] Could not check cached manifest data:', error);
+        }
+      }
+
+      // Fallback: Check if this content is an Arweave manifest (for JSON content)
+      if (!manifestData && contentType.includes('application/json')) {
+        try {
+          const text = await blob.text();
+          const jsonContent = JSON.parse(text);
+          if (jsonContent.manifest === 'arweave/paths' && 
+              (jsonContent.version === '0.1.0' || jsonContent.version === '0.2.0')) {
+            logger.info('[VERIFY] Detected Arweave manifest (JSON fallback)');
+            manifestData = jsonContent;
+          }
+        } catch {
+          // Not valid JSON or not a manifest, continue normally
+        }
+      }
+
       // Use the gateway URL captured from routing event
       const gatewayUrl = routedGatewayUrl;
       logger.info(
@@ -1674,7 +1843,20 @@ async function handleVerifiedContentFetch(arUrl: string): Promise<{
 
         // Rewrite URLs first
         const htmlContent = await blob.text();
-        const rewrittenHtml = await rewriteHtmlUrls(htmlContent, arUrl);
+        
+        // Check if this content is an Arweave manifest
+        try {
+          const jsonContent = JSON.parse(htmlContent);
+          if (jsonContent.manifest === 'arweave/paths' && 
+              (jsonContent.version === '0.1.0' || jsonContent.version === '0.2.0')) {
+            logger.info('[VERIFY] Detected Arweave manifest content');
+            manifestData = jsonContent;
+          }
+        } catch {
+          // Not valid JSON or not a manifest, treat as HTML
+        }
+        
+        const rewrittenHtml = await rewriteHtmlUrls(htmlContent, arUrl, manifestData);
 
         // Create new response with rewritten HTML
         const rewrittenBlob = new Blob([rewrittenHtml], { type: contentType });
@@ -1709,6 +1891,7 @@ async function handleVerifiedContentFetch(arUrl: string): Promise<{
           verified: finalVerificationStatus,
           cacheKey,
           gatewayUrl,
+          manifest: manifestData,
           verificationInfo: {
             size: contentLength,
             type: contentType,
@@ -1736,6 +1919,7 @@ async function handleVerifiedContentFetch(arUrl: string): Promise<{
           verified: finalVerificationStatus,
           dataUrl,
           gatewayUrl,
+          manifest: manifestData,
           verificationInfo: {
             size: contentLength,
             type: contentType,
@@ -1783,6 +1967,7 @@ async function handleVerifiedContentFetch(arUrl: string): Promise<{
           verified: finalVerificationStatus,
           cacheKey,
           gatewayUrl,
+          manifest: manifestData,
           verificationInfo: {
             size: contentLength,
             type: contentType,
@@ -1989,6 +2174,116 @@ async function handleVerifiedResourceFetch(arUrl: string): Promise<{
 }
 
 /**
+ * Handle fetch and verify resource for pre-fetch verification
+ */
+async function handleFetchAndVerifyResource(arUrl: string): Promise<{
+  data?: string;
+  contentType?: string;
+  verified: boolean;
+  error?: string;
+  isBase64?: boolean;
+}> {
+  try {
+    logger.info(`[PREFETCH] Fetching and verifying resource: ${arUrl}`);
+
+    // Convert gateway URLs to ar:// URLs if needed
+    let targetUrl = arUrl;
+    if (arUrl.includes('arweave.net/') || arUrl.includes('.ar.io/')) {
+      // Extract transaction ID from gateway URL
+      const txMatch = arUrl.match(/\/([a-zA-Z0-9_-]{43})(?:\/|$)/);
+      if (txMatch) {
+        targetUrl = `ar://${txMatch[1]}`;
+        logger.info(`[PREFETCH] Converted gateway URL to ar:// URL: ${targetUrl}`);
+      }
+    }
+
+    const wayfinder = await getWayfinderInstance();
+
+    // Track verification events
+    let verificationSucceeded = false;
+
+    const handleVerificationSuccess = (event: any) => {
+      logger.info(`[PREFETCH] Resource verification succeeded for ${event.txId}`);
+      verificationSucceeded = true;
+    };
+
+    const handleVerificationFailed = (event: any) => {
+      logger.error(`[PREFETCH] Resource verification failed:`, event);
+    };
+
+    wayfinder.emitter.once('verification-succeeded', handleVerificationSuccess);
+    wayfinder.emitter.once('verification-failed', handleVerificationFailed);
+
+    try {
+      // Fetch the resource using Wayfinder
+      const response = await wayfinder.request(targetUrl);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      // Get content as array buffer and convert to base64 for transfer
+      const data = await response.arrayBuffer();
+      const contentType = response.headers.get('content-type') || 'application/octet-stream';
+      
+      // Convert ArrayBuffer to base64 string for Chrome extension messaging
+      // Handle large files - convert to base64 properly
+      const uint8Array = new Uint8Array(data);
+      
+      // For large files, we need to handle the conversion carefully
+      // Convert the entire array to base64 in one go if small enough
+      if (uint8Array.length < 1024 * 1024) { // Less than 1MB
+        const base64String = btoa(String.fromCharCode(...uint8Array));
+        return {
+          data: base64String,
+          contentType,
+          verified: verificationSucceeded,
+          isBase64: true,
+        };
+      }
+      
+      // For larger files, use a different approach
+      // Convert to binary string in chunks, then encode the whole thing
+      let binaryString = '';
+      const chunkSize = 8192; // Process in 8KB chunks
+      
+      for (let i = 0; i < uint8Array.length; i += chunkSize) {
+        const chunk = uint8Array.slice(i, i + chunkSize);
+        binaryString += String.fromCharCode(...chunk);
+      }
+      
+      // Now encode the entire binary string to base64
+      const base64String = btoa(binaryString);
+
+      logger.info(
+        `[PREFETCH] Successfully fetched and ${
+          verificationSucceeded ? 'verified' : 'failed to verify'
+        } resource: ${targetUrl}`,
+      );
+
+      return {
+        data: base64String,
+        contentType,
+        verified: verificationSucceeded,
+        isBase64: true,
+      };
+    } finally {
+      // Clean up event listeners
+      wayfinder.emitter.off('verification-succeeded', handleVerificationSuccess);
+      wayfinder.emitter.off('verification-failed', handleVerificationFailed);
+    }
+  } catch (error: any) {
+    logger.error(`[PREFETCH] Error fetching resource ${arUrl}:`, error);
+
+    return {
+      error: error?.message || 'Failed to fetch resource',
+      verified: false,
+      isBase64: false,
+    };
+  }
+}
+
+/**
  * Get resource type from URL
  */
 function getResourceTypeFromUrl(url: string): string {
@@ -2013,8 +2308,9 @@ function getResourceTypeFromUrl(url: string): string {
 async function rewriteHtmlUrls(
   html: string,
   baseArUrl: string,
+  manifest?: any,
 ): Promise<string> {
-  logger.info(`[REWRITE] Rewriting URLs in HTML for ${baseArUrl}`);
+  logger.info(`[REWRITE] Rewriting URLs in HTML for ${baseArUrl}${manifest ? ' (with manifest)' : ''}`);
 
   // Parse the base URL to understand the context
   const baseParts = baseArUrl.match(/^ar:\/\/([^\/]+)(\/.*)?$/);
@@ -2022,6 +2318,25 @@ async function rewriteHtmlUrls(
 
   const baseId = baseParts[1];
   const basePath = baseParts[2] || '';
+  
+  logger.info(`[REWRITE-DEBUG] baseId="${baseId}", basePath="${basePath}"`);
+  
+  // Function to resolve path using manifest
+  const resolveManifestPath = (path: string): string | null => {
+    if (!manifest || !manifest.paths) return null;
+    
+    // Normalize path (remove leading slash if present)
+    const normalizedPath = path.startsWith('/') ? path.substring(1) : path;
+    
+    if (manifest.paths[normalizedPath]) {
+      const txId = manifest.paths[normalizedPath].id;
+      logger.info(`[MANIFEST-RESOLVE] ${normalizedPath} → ${txId}`);
+      return txId;
+    }
+    
+    logger.warn(`[MANIFEST-RESOLVE] Path not found in manifest: ${normalizedPath}`);
+    return null;
+  };
 
   // Get extension ID for building proxy URLs
   const extensionId = chrome.runtime.id;
@@ -2055,15 +2370,23 @@ async function rewriteHtmlUrls(
 
   // Function to convert URL to ar:// format
   const toArUrl = (url: string): string => {
+    logger.info(`[REWRITE-DEBUG] toArUrl input: "${url}"`);
+    
     // Already ar:// URL
-    if (url.startsWith('ar://')) return url;
+    if (url.startsWith('ar://')) {
+      logger.info(`[REWRITE-DEBUG] toArUrl output (already ar://): "${url}"`);
+      return url;
+    }
 
     // Absolute gateway URL
     if (url.startsWith('http://') || url.startsWith('https://')) {
       const match = url.match(/^https?:\/\/[^\/]+\/([a-zA-Z0-9_-]{43})(.*)$/);
       if (match) {
-        return `ar://${match[1]}${match[2]}`;
+        const result = `ar://${match[1]}${match[2]}`;
+        logger.info(`[REWRITE-DEBUG] toArUrl output (gateway): "${result}"`);
+        return result;
       }
+      logger.info(`[REWRITE-DEBUG] toArUrl output (non-gateway http): "${url}"`);
       return url; // Can't convert, return as-is
     }
 
@@ -2072,15 +2395,39 @@ async function rewriteHtmlUrls(
       // Root-relative URL
       if (url.match(/^\/[a-zA-Z0-9_-]{43}/)) {
         // TX ID at root
-        return `ar:/${url}`;
+        const result = `ar:/${url}`;
+        logger.info(`[REWRITE-DEBUG] toArUrl output (root TX): "${result}"`);
+        return result;
       } else {
-        // Path under current base
-        return `ar://${baseId}${url}`;
+        // Try manifest resolution first
+        const txId = resolveManifestPath(url);
+        if (txId) {
+          const result = `ar://${txId}`;
+          logger.info(`[REWRITE-DEBUG] toArUrl output (manifest root-relative): "${result}"`);
+          return result;
+        }
+        
+        // Fallback to traditional path construction
+        const result = `ar://${baseId}${url}`;
+        logger.info(`[REWRITE-DEBUG] toArUrl output (root-relative): "${result}"`);
+        return result;
       }
     } else {
       // Document-relative URL
+      // Try manifest resolution first
+      const fullPath = basePath ? `${basePath.substring(1)}/${url}` : url;
+      const txId = resolveManifestPath(fullPath);
+      if (txId) {
+        const result = `ar://${txId}`;
+        logger.info(`[REWRITE-DEBUG] toArUrl output (manifest doc-relative): "${result}"`);
+        return result;
+      }
+      
+      // Fallback to traditional path construction
       const baseDir = basePath.substring(0, basePath.lastIndexOf('/') + 1);
-      return `ar://${baseId}${baseDir}${url}`;
+      const result = `ar://${baseId}${baseDir || '/'}${url}`;
+      logger.info(`[REWRITE-DEBUG] toArUrl output (doc-relative): "${result}" (baseDir="${baseDir}")`);
+      return result;
     }
   };
 

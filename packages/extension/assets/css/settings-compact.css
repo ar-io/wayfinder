@@ -50,6 +50,7 @@
   .option-card,
   .config-card {
     padding: 16px; /* lg to md */
+    margin-bottom: 10px;
   }
 
   .option-info h3,

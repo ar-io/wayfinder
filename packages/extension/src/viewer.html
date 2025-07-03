@@ -8,7 +8,7 @@
   <!-- AR.IO Brand Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&family=Rubik:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/variables.css">
   <link rel="stylesheet" href="viewer.css">
   <style>
@@ -251,6 +251,52 @@
     </div>
   </div>
 
+  <!-- Pre-fetch Verification Modal -->
+  <div class="prefetch-modal" id="prefetchModal" style="display: none;">
+    <div class="prefetch-content">
+      <div class="prefetch-header">
+        <h2>Verifying Application Resources</h2>
+        <p>Ensuring all resources are cryptographically verified before display</p>
+      </div>
+      
+      <div class="prefetch-progress">
+        <div class="progress-info">
+          <span class="progress-label">Progress</span>
+          <span class="progress-percentage" id="prefetchPercentage">0%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="prefetchProgress" style="width: 0%"></div>
+        </div>
+      </div>
+      
+      <div class="prefetch-stats">
+        <div class="stat-item">
+          <span class="stat-icon verified">✓</span>
+          <span class="stat-count" id="prefetchVerified">0</span>
+          <span class="stat-label">Verified</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-icon skipped">⟳</span>
+          <span class="stat-count" id="prefetchSkipped">0</span>
+          <span class="stat-label">External</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-icon failed">✗</span>
+          <span class="stat-count" id="prefetchFailed">0</span>
+          <span class="stat-label">Failed</span>
+        </div>
+      </div>
+      
+      <div class="prefetch-current" id="prefetchCurrent">
+        <!-- Current resource being verified -->
+      </div>
+      
+      <div class="prefetch-actions">
+        <button class="btn-secondary" id="skipPrefetch" style="display: none;">Skip Verification</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Minimize Toggle -->
   <button class="minimize-toggle" id="minimizeToggle" title="Toggle full screen">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -302,6 +348,8 @@
     <span>Verified Browsing</span>
   </div>
   
+  <script src="manifest-renderer.js"></script>
+  <script src="prefetch-verifier.js"></script>
   <script src="viewer.js"></script>
 </body>
 </html>

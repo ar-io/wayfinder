@@ -24,6 +24,7 @@ import {
   RoundRobinRoutingStrategy,
   SignatureVerificationStrategy,
   SimpleCacheGatewaysProvider,
+  SimpleCacheRoutingStrategy,
   StaticRoutingStrategy,
   Wayfinder,
 } from "@ar.io/wayfinder-core";
@@ -141,6 +142,22 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
 
   let routingStrategy;
 
+  // Helper function to create a cached FastestPing strategy
+  const createCachedFastestPingStrategy = () => {
+    const fastestPing = new FastestPingRoutingStrategy({
+      timeoutMs: ROUTING_STRATEGY_DEFAULTS.fastestPing.timeoutMs,
+      maxConcurrency: ROUTING_STRATEGY_DEFAULTS.fastestPing.maxConcurrency,
+      logger,
+    });
+    
+    // Wrap with cache strategy (15 minutes TTL)
+    return new SimpleCacheRoutingStrategy({
+      routingStrategy: fastestPing,
+      ttlSeconds: 15 * 60, // 15 minutes
+      logger,
+    });
+  };
+
   // Select routing strategy based on configuration
   if (routingMethod === "static" && staticGateway) {
     // Use static routing only if explicitly selected AND a static gateway is configured
@@ -157,11 +174,7 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
     // Use dynamic routing based on method
     switch (routingMethod) {
       case "fastestPing":
-        routingStrategy = new FastestPingRoutingStrategy({
-          timeoutMs: ROUTING_STRATEGY_DEFAULTS.fastestPing.timeoutMs,
-          maxConcurrency: ROUTING_STRATEGY_DEFAULTS.fastestPing.maxConcurrency,
-          logger,
-        });
+        routingStrategy = createCachedFastestPingStrategy();
         break;
 
       case "random":
@@ -206,19 +219,11 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
         // If we get here, either no static gateway is configured or method mismatch
         // Static routing fallback to fastest ping
         // Intentionally fall through to default
-        routingStrategy = new FastestPingRoutingStrategy({
-          timeoutMs: ROUTING_STRATEGY_DEFAULTS.fastestPing.timeoutMs,
-          maxConcurrency: ROUTING_STRATEGY_DEFAULTS.fastestPing.maxConcurrency,
-          logger,
-        });
+        routingStrategy = createCachedFastestPingStrategy();
         break;
       default:
         // Default to fastest ping for unknown methods
-        routingStrategy = new FastestPingRoutingStrategy({
-          timeoutMs: ROUTING_STRATEGY_DEFAULTS.fastestPing.timeoutMs,
-          maxConcurrency: ROUTING_STRATEGY_DEFAULTS.fastestPing.maxConcurrency,
-          logger,
-        });
+        routingStrategy = createCachedFastestPingStrategy();
         break;
     }
 

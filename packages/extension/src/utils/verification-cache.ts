@@ -34,8 +34,11 @@ interface CachedVerification {
   expectedDigest?: string; // Expected digest from pre-flight HEAD request
   actualDigest?: string; // Actual digest from browser response
   status?: 'pending' | 'completed' | 'failed'; // Verification status
-  strategy?: 'preflight' | 'full' | 'background'; // Verification strategy used
+  strategy?: 'preflight' | 'full' | 'background' | 'wayfinder-request' | 'none'; // Verification strategy used
   error?: string; // Error message if verification failed
+  // ArNS manifest detection fields
+  arnsResolvedId?: string; // x-arns-resolved-id (what the ArNS name resolves to)
+  manifest?: any; // Fetched manifest data when arnsResolvedId !== dataId
 }
 
 interface ArNSChange {

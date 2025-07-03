@@ -298,14 +298,44 @@ class VerifiedBrowser {
       loadingText.textContent = this.loadingStates[state] || 'Loading...';
     }
 
-    // Update status text in header
+    // Update status text and brand status in header
     const statusText = document.getElementById('statusText');
-    if (statusText && state === 'INITIALIZING') {
-      statusText.textContent = 'Initializing';
-    } else if (statusText && state === 'FETCHING') {
-      statusText.textContent = 'Fetching';
-    } else if (statusText && state === 'VERIFYING') {
-      statusText.textContent = 'Verifying';
+    const brandStatus = document.getElementById('brandStatus');
+    const statusDot = document.querySelector('.status-dot');
+    
+    if (statusText && brandStatus) {
+      // Reset all status classes
+      brandStatus.classList.remove('verified', 'warning', 'error');
+      
+      if (state === 'INITIALIZING') {
+        statusText.textContent = 'Initializing';
+      } else if (state === 'FETCHING') {
+        statusText.textContent = 'Fetching';
+      } else if (state === 'VERIFYING') {
+        statusText.textContent = 'Verifying';
+      } else if (state === 'COMPLETE') {
+        // Determine verification status and update accordingly
+        if (this.stats.main.verified) {
+          statusText.textContent = '✓ Verified';
+          brandStatus.classList.add('verified');
+          // Remove pulsing animation for verified state
+          if (statusDot) {
+            statusDot.style.animation = 'none';
+          }
+        } else {
+          statusText.textContent = '⚠ Unverified';
+          brandStatus.classList.add('warning');
+          if (statusDot) {
+            statusDot.style.animation = 'none';
+          }
+        }
+      } else if (state === 'ERROR') {
+        statusText.textContent = '✗ Failed';
+        brandStatus.classList.add('error');
+        if (statusDot) {
+          statusDot.style.animation = 'none';
+        }
+      }
     }
 
     // Update trust indicator based on state
@@ -560,29 +590,11 @@ class VerifiedBrowser {
             json.manifest === 'arweave/paths' &&
             (json.version === '0.2.0' || json.version === '0.1.0')
           ) {
-            contentType = 'application/x.arweave-manifest+json';
-            // Detected Arweave manifest
+            // Use manifest renderer for complete verification
+            console.log('[VIEWER] Detected Arweave manifest, using manifest renderer');
+            await this.renderManifest(text, response);
+            return;
           }
-          // Create new blob since we consumed the original
-          const newBlob = new Blob([text], { type: contentType });
-          const objectUrl = URL.createObjectURL(newBlob);
-
-          // For manifests, create special viewer
-          const viewerContent = this.createContentViewer(
-            objectUrl,
-            contentType,
-          );
-          if (viewerContent === null) {
-            iframe.src = objectUrl;
-          } else {
-            iframe.srcdoc = viewerContent;
-          }
-
-          // Clean up blob URL when done
-          iframe.addEventListener('unload', () => {
-            URL.revokeObjectURL(objectUrl);
-          });
-          return;
         } catch (_e) {
           // Not a manifest, continue with regular JSON handling
         }
@@ -600,19 +612,33 @@ class VerifiedBrowser {
         this.lastHtmlContent = htmlContent;
         console.log('[VIEWER] Stored HTML content for resource scanning');
         
-        // Scan for resources immediately
+        // Check if we should use pre-fetch verification
+        const hasScripts = /<script[^>]+src=["'][^"']+["']/i.test(htmlContent);
+        const hasImages = /<img[^>]+src=["'][^"']+["']/i.test(htmlContent);
+        const hasStylesheets = /<link[^>]+rel=["']stylesheet["'][^>]+href=["'][^"']+["']/i.test(htmlContent);
+        const hasArweaveResources = this.containsArweaveResources(htmlContent);
+        console.log('[VIEWER] Debug - hasArweaveResources:', hasArweaveResources);
+        
+        // Use pre-fetch verification if we have any Arweave resources to verify
+        if (hasArweaveResources && (hasScripts || hasImages || hasStylesheets)) {
+          console.log('[VIEWER] Initiating pre-fetch verification for HTML with Arweave resources');
+          console.log('[VIEWER] Debug - hasScripts:', hasScripts, 'hasImages:', hasImages, 'hasStylesheets:', hasStylesheets);
+          console.log('[VIEWER] Debug - gatewayUrl:', this.gatewayUrl);
+          console.log('[VIEWER] Debug - response.manifest:', response.manifest);
+          await this.performPreFetchVerification(htmlContent, response);
+          return;
+        }
+        
+        // Original resource scanning for non-pre-fetch mode
         setTimeout(() => {
           this.scanHtmlString(htmlContent);
         }, 100);
-        
-        const hasExternalScripts = /<script[^>]+src=["']https?:\/\/(?!.*ar\.io|.*arweave|.*g8way)[^"']+["']/i.test(htmlContent);
-        const hasInlineScripts = /<script(?![^>]*src=)[^>]*>[\s\S]*?<\/script>/i.test(htmlContent);
         
         if (hasExternalScripts || hasInlineScripts) {
           // Content has scripts that would be blocked by extension CSP
           // Load from gateway directly to bypass CSP restrictions
           iframe.removeAttribute('sandbox');
-          iframe.sandbox = 'allow-scripts allow-same-origin allow-forms allow-popups allow-downloads allow-modals';
+          iframe.sandbox = 'allow-scripts allow-forms allow-popups allow-downloads allow-modals';
           
           // Use the gateway URL directly - this should be set from the background response
           let gatewayUrl = this.gatewayUrl;
@@ -656,7 +682,7 @@ class VerifiedBrowser {
         } else {
           // No problematic scripts - safe to use blob URL
           iframe.removeAttribute('sandbox');
-          iframe.sandbox = 'allow-scripts allow-same-origin allow-forms allow-popups allow-downloads allow-modals';
+          iframe.sandbox = 'allow-scripts allow-forms allow-popups allow-downloads allow-modals';
           iframe.src = objectUrl;
         }
       } else {
@@ -1532,19 +1558,33 @@ class VerifiedBrowser {
     
     // For relative URLs, resolve against the current AR URL
     if (this.arUrl) {
-      const baseId = this.arUrl.replace('ar://', '').split('/')[0];
+      const urlParts = this.arUrl.replace('ar://', '').split('/');
+      const baseIdentifier = urlParts[0];
+      
+      // Check if base identifier is a transaction ID (43 chars, base64url) or ArNS name
+      const isTransactionId = /^[a-zA-Z0-9_-]{43}$/.test(baseIdentifier);
+      
       if (url.startsWith('/')) {
         // Root-relative URL
-        return `ar://${baseId}${url}`;
+        return `ar://${baseIdentifier}${url}`;
       } else {
         // Document-relative URL
-        const currentPath = this.arUrl.replace('ar://', '').split('/');
-        currentPath.pop(); // Remove filename
-        const basePath = currentPath.join('/');
-        if (basePath) {
-          return `ar://${baseId}/${basePath}/${url}`;
+        if (isTransactionId) {
+          // For transaction IDs, relative paths don't make sense in most cases
+          // Just append to the base
+          return `ar://${baseIdentifier}/${url}`;
         } else {
-          return `ar://${baseId}/${url}`;
+          // For ArNS names, resolve relative to current directory
+          // If we're at ar://mysite/path/to/file.html and have "./script.js"
+          // Result should be ar://mysite/path/to/script.js
+          if (urlParts.length > 1) {
+            // Remove the current filename to get the directory path
+            const directoryParts = urlParts.slice(0, -1);
+            return `ar://${directoryParts.join('/')}/${url}`;
+          } else {
+            // At root level
+            return `ar://${baseIdentifier}/${url}`;
+          }
         }
       }
     }
@@ -1568,6 +1608,575 @@ class VerifiedBrowser {
     const isGatewayUrl = gatewayPatterns.some(pattern => pattern.test(url));
     
     return !isGatewayUrl;
+  }
+
+  containsArweaveResources(htmlContent) {
+    console.log('[VIEWER] Checking for Arweave resources in HTML content');
+    // Extract URLs from common HTML attributes and check if any are Arweave resources
+    const urlPatterns = [
+      /src=["']([^"']+)["']/gi,
+      /href=["']([^"']+)["']/gi,
+      /url\(["']?([^"')]+)["']?\)/gi
+    ];
+    
+    let foundUrls = [];
+    for (const pattern of urlPatterns) {
+      let match;
+      while ((match = pattern.exec(htmlContent)) !== null) {
+        const url = match[1];
+        foundUrls.push(url);
+        
+        // Skip data: and blob: URLs
+        if (url.startsWith('data:') || url.startsWith('blob:')) {
+          continue;
+        }
+        
+        // Relative URLs are considered Arweave resources (they'll be resolved later)
+        if (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('chrome-extension://')) {
+          console.log('[VIEWER] Found relative URL (Arweave resource):', url);
+          return true;
+        }
+        
+        // Use our existing isExternalResource logic (inverted) for absolute URLs
+        if (!this.isExternalResource(url)) {
+          console.log('[VIEWER] Found absolute Arweave resource:', url);
+          return true;
+        }
+      }
+    }
+    
+    console.log('[VIEWER] Found URLs:', foundUrls);
+    console.log('[VIEWER] No Arweave resources found');
+    return false;
+  }
+
+  // Pre-fetch verification methods
+  /**
+   * Render an Arweave manifest using the manifest renderer approach
+   * @param {string} manifestText - Raw manifest JSON content
+   * @param {Object} response - Background script response
+   */
+  async renderManifest(manifestText, response) {
+    try {
+      console.log('[VIEWER] Starting manifest rendering verification');
+      
+      // Show manifest verification UI
+      this.showManifestVerificationUI();
+      
+      // Create manifest renderer
+      const renderer = new window.ManifestRenderer();
+      
+      // Parse and validate the manifest
+      const manifest = renderer.parseManifest(manifestText);
+      console.log('[VIEWER] Manifest parsed successfully');
+      
+      // Set up progress callback
+      const progressCallback = (progress) => {
+        this.updateManifestProgress(progress);
+      };
+      
+      // Verify all resources in the manifest
+      const verifiedResources = await renderer.verifyAllResources(manifest, progressCallback);
+      console.log('[VIEWER] All manifest resources verified');
+      
+      // Create blob URLs for verified resources
+      const blobUrls = renderer.createBlobUrls(verifiedResources);
+      
+      // Determine what to render based on the manifest
+      let contentToRender = null;
+      let renderType = 'manifest';
+      
+      // Check if we should render the index content
+      const indexTxId = renderer.resolveIndex(manifest);
+      if (indexTxId && verifiedResources.has(indexTxId) && verifiedResources.get(indexTxId).verified) {
+        const indexResource = verifiedResources.get(indexTxId);
+        
+        // If index is HTML, render it with rewritten URLs
+        if (indexResource.contentType.includes('text/html')) {
+          const htmlContent = await indexResource.blob.text();
+          contentToRender = renderer.rewriteHtmlContent(htmlContent, manifest, blobUrls);
+          renderType = 'html';
+          console.log('[VIEWER] Rendering manifest index as HTML with verified resources');
+        } else {
+          // For non-HTML index, create a viewer
+          const indexBlobUrl = blobUrls.get(indexTxId);
+          contentToRender = this.createContentViewer(indexBlobUrl, indexResource.contentType);
+          renderType = 'content';
+          console.log('[VIEWER] Rendering manifest index as content viewer');
+        }
+      }
+      
+      // Hide verification UI
+      this.hideManifestVerificationUI();
+      
+      // Update verification stats
+      const totalResources = verifiedResources.size;
+      const verifiedCount = Array.from(verifiedResources.values()).filter(r => r.verified).length;
+      const failedCount = totalResources - verifiedCount;
+      
+      console.log(`[VIEWER] Manifest verification complete: ${verifiedCount}/${totalResources} verified`);
+      
+      // Display content in iframe
+      const iframe = document.getElementById('verified-content');
+      if (renderType === 'html' && contentToRender) {
+        iframe.srcdoc = contentToRender;
+        this.stats.main.verified = true;
+      } else if (renderType === 'content' && contentToRender) {
+        iframe.srcdoc = contentToRender;
+        this.stats.main.verified = true;
+      } else {
+        // No index specified or index not verified - show manifest explorer
+        const manifestViewer = this.createManifestExplorer(manifest, verifiedResources, blobUrls);
+        iframe.srcdoc = manifestViewer;
+        this.stats.main.verified = verifiedCount > 0;
+      }
+      
+      // Update trust indicator
+      this.updateTrustIndicator();
+      
+      // Show success/warning toast
+      if (failedCount === 0) {
+        this.showToast(
+          'Manifest fully verified',
+          'success',
+          `All ${totalResources} resources verified and loaded`
+        );
+      } else {
+        this.showToast(
+          'Manifest partially verified',
+          'warning',
+          `${verifiedCount}/${totalResources} resources verified`
+        );
+      }
+      
+      // Update resource panel
+      for (const [txId, resource] of verifiedResources) {
+        const pathsForTxId = Object.entries(manifest.paths)
+          .filter(([path, pathData]) => pathData.id === txId)
+          .map(([path]) => path);
+        
+        const displayPath = pathsForTxId.length > 0 ? pathsForTxId[0] : txId;
+        
+        this.addResource(
+          displayPath,
+          this.guessResourceTypeFromContentType(resource.contentType),
+          resource.verified ? 'verified' : 'failed',
+          resource.verified ? 'Cryptographically verified' : resource.error || 'Verification failed'
+        );
+      }
+      
+      // Cleanup blob URLs when page unloads
+      window.addEventListener('beforeunload', () => {
+        renderer.cleanup(blobUrls);
+      });
+      
+    } catch (error) {
+      console.error('[VIEWER] Manifest rendering error:', error);
+      this.hideManifestVerificationUI();
+      this.showError('Manifest verification failed: ' + error.message);
+    }
+  }
+
+  async performPreFetchVerification(htmlContent, response) {
+    try {
+      console.log('[VIEWER] Starting pre-fetch verification');
+      
+      // Show pre-fetch UI
+      this.showPreFetchUI();
+      
+      // Create pre-fetch verifier
+      const verifier = new window.PreFetchVerifier(this.arUrl, response.manifest);
+      
+      // Set up progress listener
+      chrome.runtime.onMessage.addListener((message, _sender, _sendResponse) => {
+        if (message.type === 'PREFETCH_PROGRESS') {
+          this.updatePreFetchProgress(message.progress);
+        }
+      });
+      
+      // Perform verification
+      const result = await verifier.verifyAndPrepareContent(htmlContent, this.gatewayUrl);
+      
+      // Hide pre-fetch UI
+      this.hidePreFetchUI();
+      
+      if (result.success) {
+        console.log('[VIEWER] Pre-fetch verification successful');
+        
+        // Update verification stats
+        this.stats.main.verified = true;
+        this.updateTrustIndicator();
+        
+        // Display the rewritten content
+        const iframe = document.getElementById('verified-content');
+        iframe.srcdoc = result.html;
+        
+        // Show success toast with security score
+        this.showToast(
+          'All resources verified',
+          'success',
+          `Security score: ${result.report.securityScore}%`
+        );
+        
+        // Update resource panel with results
+        result.report.details.forEach(resource => {
+          this.addResource(
+            resource.url,
+            this.guessResourceType(resource.url),
+            resource.status,
+            resource.reason || (resource.status === 'verified' ? 'Cryptographically verified' : null)
+          );
+        });
+        
+      } else {
+        console.log('[VIEWER] Pre-fetch verification failed');
+        
+        // Show error with option to proceed
+        this.showError('Some resources could not be verified. You can proceed with caution or go back.');
+      }
+      
+    } catch (error) {
+      console.error('[VIEWER] Pre-fetch verification error:', error);
+      this.hidePreFetchUI();
+      this.showError('Pre-fetch verification failed: ' + error.message);
+    }
+  }
+
+  showPreFetchUI() {
+    const modal = document.getElementById('prefetchModal');
+    if (modal) {
+      modal.style.display = 'flex';
+      
+      // Show skip button after 5 seconds
+      setTimeout(() => {
+        const skipBtn = document.getElementById('skipPrefetch');
+        if (skipBtn) {
+          skipBtn.style.display = 'inline-block';
+          skipBtn.onclick = () => this.skipPreFetch();
+        }
+      }, 5000);
+    }
+  }
+  
+  hidePreFetchUI() {
+    const modal = document.getElementById('prefetchModal');
+    if (modal) {
+      modal.style.display = 'none';
+    }
+  }
+  
+  showManifestVerificationUI() {
+    // Reuse the existing pre-fetch modal for manifest verification
+    const modal = document.getElementById('prefetchModal');
+    if (modal) {
+      modal.style.display = 'flex';
+      
+      // Update title and text for manifest verification
+      const title = modal.querySelector('h2');
+      if (title) {
+        title.textContent = 'Verifying Manifest Resources';
+      }
+      
+      const description = modal.querySelector('p');
+      if (description) {
+        description.textContent = 'Ensuring all manifest resources are cryptographically verified before display';
+      }
+    }
+  }
+  
+  hideManifestVerificationUI() {
+    const modal = document.getElementById('prefetchModal');
+    if (modal) {
+      modal.style.display = 'none';
+    }
+  }
+  
+  updateManifestProgress(progress) {
+    // Reuse the pre-fetch progress elements
+    const percentageEl = document.getElementById('prefetchPercentage');
+    if (percentageEl) {
+      const percentage = Math.round((progress.completed / progress.total) * 100);
+      percentageEl.textContent = `${percentage}%`;
+    }
+    
+    const progressBar = document.getElementById('prefetchProgress');
+    if (progressBar) {
+      const percentage = Math.round((progress.completed / progress.total) * 100);
+      progressBar.style.width = `${percentage}%`;
+    }
+    
+    const verifiedEl = document.getElementById('prefetchVerified');
+    if (verifiedEl) {
+      verifiedEl.textContent = progress.verified;
+    }
+    
+    const skippedEl = document.getElementById('prefetchSkipped');
+    if (skippedEl) {
+      skippedEl.textContent = '0'; // Manifests don't skip resources
+    }
+    
+    const failedEl = document.getElementById('prefetchFailed');
+    if (failedEl) {
+      failedEl.textContent = progress.failed;
+    }
+    
+    const currentEl = document.getElementById('prefetchCurrent');
+    if (currentEl) {
+      currentEl.textContent = `Verifying resource ${progress.completed + 1} of ${progress.total}`;
+    }
+  }
+
+  updatePreFetchProgress(progress) {
+    // Update percentage
+    const percentageEl = document.getElementById('prefetchPercentage');
+    if (percentageEl) {
+      percentageEl.textContent = `${progress.percentage}%`;
+    }
+    
+    // Update progress bar
+    const progressBar = document.getElementById('prefetchProgress');
+    if (progressBar) {
+      progressBar.style.width = `${progress.percentage}%`;
+    }
+    
+    // Update stats
+    const verifiedEl = document.getElementById('prefetchVerified');
+    const skippedEl = document.getElementById('prefetchSkipped');
+    const failedEl = document.getElementById('prefetchFailed');
+    
+    if (verifiedEl) verifiedEl.textContent = progress.verified;
+    if (skippedEl) skippedEl.textContent = progress.skipped;
+    if (failedEl) failedEl.textContent = progress.failed;
+    
+    // Update current resource
+    const currentEl = document.getElementById('prefetchCurrent');
+    if (currentEl && progress.currentResource) {
+      currentEl.textContent = `Verifying: ${progress.currentResource}`;
+    }
+  }
+  
+  skipPreFetch() {
+    console.log('[VIEWER] User skipped pre-fetch verification');
+    this.hidePreFetchUI();
+    
+    // Load content from gateway directly
+    const iframe = document.getElementById('verified-content');
+    iframe.src = this.gatewayUrl;
+    
+    // Update UI
+    this.showToast(
+      'Skipped pre-fetch verification', 
+      'warning',
+      'Loading content without full verification'
+    );
+    
+    // Update trust indicator
+    this.stats.main.verified = false;
+    this.updateTrustIndicator();
+  }
+
+  /**
+   * Create a manifest explorer interface for viewing manifest contents
+   * @param {Object} manifest - Parsed manifest object
+   * @param {Map} verifiedResources - Map of txId -> resource data
+   * @param {Map} blobUrls - Map of txId -> blob URL
+   * @returns {string} HTML content for manifest explorer
+   */
+  createManifestExplorer(manifest, verifiedResources, blobUrls) {
+    const totalResources = verifiedResources.size;
+    const verifiedCount = Array.from(verifiedResources.values()).filter(r => r.verified).length;
+    const failedCount = totalResources - verifiedCount;
+
+    let resourcesHtml = '';
+    for (const [path, pathData] of Object.entries(manifest.paths)) {
+      const resource = verifiedResources.get(pathData.id);
+      const verified = resource && resource.verified;
+      const statusIcon = verified ? '✅' : '❌';
+      const statusClass = verified ? 'verified' : 'failed';
+      const blobUrl = blobUrls.get(pathData.id);
+      
+      const displayUrl = blobUrl && verified ? blobUrl : '#';
+      const clickable = blobUrl && verified;
+      
+      resourcesHtml += `
+        <div class="manifest-item ${statusClass}">
+          <div class="manifest-status">${statusIcon}</div>
+          <div class="manifest-info">
+            <div class="manifest-path">
+              ${clickable ? `<a href="${displayUrl}" target="_blank">${path}</a>` : path}
+            </div>
+            <div class="manifest-type">${resource ? resource.contentType : 'Unknown'}</div>
+            <div class="manifest-id">${pathData.id}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { 
+            font-family: system-ui, -apple-system, sans-serif; 
+            margin: 0;
+            padding: 20px;
+            background: #f8f9fa;
+            color: #333;
+          }
+          .manifest-header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+          }
+          .manifest-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+          }
+          .manifest-stats {
+            display: flex;
+            gap: 20px;
+            margin-top: 15px;
+          }
+          .stat-item {
+            text-align: center;
+          }
+          .stat-number {
+            font-size: 20px;
+            font-weight: 600;
+          }
+          .stat-number.verified { color: #27ae60; }
+          .stat-number.failed { color: #e74c3c; }
+          .stat-number.total { color: #3498db; }
+          .stat-label {
+            font-size: 12px;
+            color: #7f8c8d;
+            text-transform: uppercase;
+          }
+          .manifest-resources {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          }
+          .resources-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid #e1e8ed;
+            font-weight: 600;
+            color: #2c3e50;
+          }
+          .manifest-item {
+            display: flex;
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e1e8ed;
+          }
+          .manifest-item:last-child {
+            border-bottom: none;
+          }
+          .manifest-item.verified {
+            background: #f8fff8;
+          }
+          .manifest-item.failed {
+            background: #fff8f8;
+          }
+          .manifest-status {
+            margin-right: 15px;
+            font-size: 16px;
+          }
+          .manifest-info {
+            flex: 1;
+          }
+          .manifest-path {
+            font-weight: 500;
+            margin-bottom: 4px;
+          }
+          .manifest-path a {
+            color: #3498db;
+            text-decoration: none;
+          }
+          .manifest-path a:hover {
+            text-decoration: underline;
+          }
+          .manifest-type {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-bottom: 2px;
+          }
+          .manifest-id {
+            font-size: 11px;
+            color: #95a5a6;
+            font-family: monospace;
+          }
+          .manifest-version {
+            font-size: 14px;
+            color: #7f8c8d;
+            margin-bottom: 10px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="manifest-header">
+          <div class="manifest-title">📂 Arweave Manifest</div>
+          <div class="manifest-version">Version: ${manifest.version}</div>
+          <div class="manifest-stats">
+            <div class="stat-item">
+              <div class="stat-number total">${totalResources}</div>
+              <div class="stat-label">Total</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number verified">${verifiedCount}</div>
+              <div class="stat-label">Verified</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number failed">${failedCount}</div>
+              <div class="stat-label">Failed</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="manifest-resources">
+          <div class="resources-header">Resources</div>
+          ${resourcesHtml}
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  /**
+   * Guess resource type from content type
+   * @param {string} contentType - MIME type
+   * @returns {string} Resource type for categorization
+   */
+  guessResourceTypeFromContentType(contentType) {
+    if (!contentType) return 'other';
+    
+    const type = contentType.toLowerCase();
+    
+    if (type.includes('javascript') || type.includes('js')) {
+      return 'script';
+    }
+    if (type.includes('css')) {
+      return 'stylesheet';
+    }
+    if (type.startsWith('image/')) {
+      return 'image';
+    }
+    if (type.startsWith('video/') || type.startsWith('audio/')) {
+      return 'media';
+    }
+    if (type.includes('font') || type.includes('woff')) {
+      return 'font';
+    }
+    if (type.includes('html')) {
+      return 'document';
+    }
+    
+    return 'other';
   }
 }
 
@@ -1735,6 +2344,20 @@ window.proceedAnyway = async function () {
       browser.stats.main.status = 'complete';
       browser.updateTrustIndicator();
     }
+  }
+}
+
+// Global function for navigation
+window.navigateToUrl = function () {
+  const urlInput = document.getElementById('urlInput');
+  const url = urlInput?.value?.trim();
+
+  if (url) {
+    // Add ar:// prefix if not present
+    const fullUrl = url.startsWith('ar://') ? url : `ar://${url}`;
+
+    // Reload the viewer with new URL
+    window.location.href = `viewer.html?url=${encodeURIComponent(fullUrl)}`;
   }
 };
 
