@@ -588,15 +588,31 @@ async function runPingTest(gateway) {
     if (response.ok) {
       try {
         const info = await response.json();
-        if (info.network === 'arweave.N.1' && info.blocks) {
+        
+        // Check for required fields based on actual ar-io/info response
+        const hasWallet = info.wallet && typeof info.wallet === 'string';
+        const hasProcessId = info.processId && typeof info.processId === 'string';
+        const hasRelease = info.release && typeof info.release === 'string';
+        
+        // Check for manifest support
+        const hasManifests = Array.isArray(info.supportedManifestVersions) && 
+                            info.supportedManifestVersions.length > 0;
+        
+        // Check for ANS-104 configuration
+        const hasANS104Config = 'ans104UnbundleFilter' in info && 'ans104IndexFilter' in info;
+        
+        if (hasWallet && hasProcessId && hasRelease && hasManifests) {
           healthStatus = 'Healthy';
           healthClass = 'ping-result-value good';
-        } else {
+        } else if (hasWallet && hasProcessId) {
           healthStatus = 'Partial';
+          healthClass = 'ping-result-value warning';
+        } else {
+          healthStatus = 'Degraded';
           healthClass = 'ping-result-value warning';
         }
       } catch {
-        healthStatus = 'Error';
+        healthStatus = 'Invalid Response';
         healthClass = 'ping-result-value bad';
       }
     } else {
