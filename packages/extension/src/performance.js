@@ -382,34 +382,7 @@ function updatePeriodLabel() {
   }
 }
 
-async function clearHistory() {
-  if (!confirm('Clear all gateway usage history? This cannot be undone.')) {
-    return;
-  }
-
-  try {
-    // Clear usage history but keep performance data
-    await chrome.storage.local.remove(['gatewayUsageHistory']);
-
-    // Reset gateway performance success counts
-    const { gatewayPerformance = {} } = await chrome.storage.local.get([
-      'gatewayPerformance',
-    ]);
-
-    for (const gateway of Object.values(gatewayPerformance)) {
-      gateway.successCount = 0;
-      gateway.failures = 0;
-    }
-
-    await chrome.storage.local.set({ gatewayPerformance });
-
-    showToast('History cleared', 'success');
-    await loadGatewayUsage();
-  } catch (error) {
-    console.error('Error clearing history:', error);
-    showToast('Failed to clear history', 'error');
-  }
-}
+// Removed: clearHistory function - functionality moved to Settings page
 
 function showLoadingState() {
   document.getElementById('loadingState').style.display = 'flex';
@@ -530,25 +503,6 @@ async function updatePerformanceStats() {
 }
 
 // Removed: updateCacheStats function - verification cache removed
-
-async function clearPerformanceData() {
-  if (
-    !confirm(
-      'Clear all performance data? This will reset gateway performance metrics and daily statistics.',
-    )
-  ) {
-    return;
-  }
-
-  try {
-    await chrome.storage.local.remove(['gatewayPerformance', 'dailyStats']);
-    showToast('Performance data cleared', 'success');
-    await updatePerformanceStats();
-  } catch (error) {
-    console.error('Error clearing performance data:', error);
-    showToast('Failed to clear performance data', 'error');
-  }
-}
-
+// Removed: clearPerformanceData function - functionality moved to Settings page
 // Removed: clearVerificationCache function - verification cache removed
 // Removed: openGatewayModal and closeModal functions - gateway cards now navigate to gateways page
