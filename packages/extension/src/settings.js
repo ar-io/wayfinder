@@ -30,7 +30,6 @@ function showToast(message, type = 'success') {
 
 // Initialize settings page
 document.addEventListener('DOMContentLoaded', async () => {
-  console.log('[DEBUG] DOMContentLoaded fired');
   await initializeSettings();
   setupEventHandlers();
   // Small delay to ensure DOM is fully ready
@@ -42,18 +41,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Handle hash navigation
     handleHashNavigation();
-
-    // Debug: Check if Advanced Settings section exists
-    const advancedSection = document.getElementById('advanced');
-    const advancedToggle = document.getElementById('advancedToggle');
-    const advancedContent = document.getElementById('advancedContent');
-    console.log('[DEBUG] Advanced Settings elements check:', {
-      advancedSection: !!advancedSection,
-      advancedToggle: !!advancedToggle,
-      advancedContent: !!advancedContent,
-      advancedToggleTagName: advancedToggle?.tagName,
-      advancedToggleClasses: advancedToggle?.className,
-    });
   }, 50);
 });
 
@@ -416,20 +403,15 @@ async function handleRoutingStrategyChange(event) {
 
   // Only save if this is a real user change (not initialization) and not static
   if (event.isTrusted && strategy !== 'static') {
-    console.log(`[SETTINGS] Saving routing strategy: ${strategy}`);
-
     // Save the routing strategy
     await chrome.storage.local.set({ routingMethod: strategy });
 
     // Send message to background script to update routing
     try {
-      console.log(`[SETTINGS] Sending routing strategy update: ${strategy}`);
       const response = await chrome.runtime.sendMessage({
         message: 'updateRoutingStrategy',
         strategy,
       });
-
-      console.log('[SETTINGS] Response from background:', response);
 
       if (response && response.success) {
         // Show success feedback

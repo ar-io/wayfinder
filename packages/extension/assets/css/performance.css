@@ -700,6 +700,7 @@ html, body {
   transition: all 0.2s ease;
   position: relative;
   overflow: hidden;
+  margin-bottom: 10px;
 }
 
 .gateway-usage-card:hover {

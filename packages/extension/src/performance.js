@@ -41,14 +41,7 @@ function setupEventHandlers() {
     renderGatewayUsage();
   });
 
-  // Modal close handlers
-  document.getElementById('closeModal').addEventListener('click', closeModal);
-  document.getElementById('gatewayModal').addEventListener('click', (e) => {
-    if (e.target === document.getElementById('gatewayModal')) {
-      closeModal();
-    }
-  });
-
+  // Modal handlers removed - gateway cards now navigate to gateways page
   // Performance action handlers removed - functionality moved to Settings page
 }
 
@@ -170,12 +163,14 @@ async function updateSummaryStats() {
 
   // Find the most used gateway
   let topGateway = '--';
+  let topGatewayFull = '--';
   let maxRequests = 0;
   
   for (const [fqdn, data] of gatewayUsageData) {
     if (data.usage.requestCount > maxRequests) {
       maxRequests = data.usage.requestCount;
       topGateway = fqdn;
+      topGatewayFull = fqdn;
     }
   }
 
@@ -184,7 +179,24 @@ async function updateSummaryStats() {
     topGateway = topGateway.substring(0, 17) + '...';
   }
 
-  document.getElementById('topGateway').textContent = topGateway;
+  const topGatewayEl = document.getElementById('topGateway');
+  topGatewayEl.textContent = topGateway;
+  
+  // Make it clickable if we have a gateway
+  if (topGatewayFull !== '--') {
+    topGatewayEl.style.cursor = 'pointer';
+    topGatewayEl.style.textDecoration = 'underline';
+    topGatewayEl.title = `Click to view ${topGatewayFull} details`;
+    
+    topGatewayEl.onclick = async () => {
+      // Store the gateway to highlight and open
+      await chrome.storage.local.set({ 
+        highlightGateway: topGatewayFull,
+        openGatewayModal: true 
+      });
+      window.location.href = 'gateways.html';
+    };
+  }
 }
 
 
@@ -228,19 +240,20 @@ function renderGatewayUsage() {
     }
   });
 
-  // Calculate max requests for usage bar
-  const maxRequests = Math.max(
-    ...Array.from(gatewayUsageData.values()).map((d) => d.usage.requestCount),
+  // Calculate total requests for usage share
+  const totalRequests = Array.from(gatewayUsageData.values()).reduce(
+    (sum, d) => sum + d.usage.requestCount,
+    0
   );
 
   // Render cards
   sortedData.forEach(([fqdn, data]) => {
-    const card = createGatewayUsageCard(fqdn, data, maxRequests);
+    const card = createGatewayUsageCard(fqdn, data, totalRequests);
     container.appendChild(card);
   });
 }
 
-function createGatewayUsageCard(fqdn, data, maxRequests) {
+function createGatewayUsageCard(fqdn, data, totalRequests) {
   const card = document.createElement('div');
   card.className = 'gateway-usage-card';
 
@@ -257,6 +270,11 @@ function createGatewayUsageCard(fqdn, data, maxRequests) {
     else if (avgTime < 1000) perfClass = 'warning';
     else perfClass = 'bad';
   }
+
+  // Calculate usage percentage - handle edge case where totalRequests is 0
+  const usagePercentage = totalRequests > 0 
+    ? Math.round((data.usage.requestCount / totalRequests) * 100)
+    : 0;
 
   card.innerHTML = `
     <div class="usage-header">
@@ -297,17 +315,21 @@ function createGatewayUsageCard(fqdn, data, maxRequests) {
     <div class="usage-bar-container">
       <div class="usage-bar-label">
         <span>Usage Share</span>
-        <span>${Math.round((data.usage.requestCount / maxRequests) * 100)}%</span>
+        <span>${usagePercentage}%</span>
       </div>
       <div class="usage-bar-background">
-        <div class="usage-bar-fill" style="width: ${(data.usage.requestCount / maxRequests) * 100}%"></div>
+        <div class="usage-bar-fill" style="width: ${usagePercentage}%"></div>
       </div>
     </div>
   `;
 
-  // Click to view gateway details modal
-  card.addEventListener('click', () => {
-    openGatewayModal(fqdn, data.details);
+  // Click to navigate to gateway details on gateways page
+  card.addEventListener('click', async () => {
+    await chrome.storage.local.set({ 
+      highlightGateway: fqdn,
+      openGatewayModal: true 
+    });
+    window.location.href = 'gateways.html';
   });
 
   return card;
@@ -529,123 +551,4 @@ async function clearPerformanceData() {
 }
 
 // Removed: clearVerificationCache function - verification cache removed
-
-// Modal functions
-async function openGatewayModal(fqdn, gatewayDetails) {
-  if (!gatewayDetails) {
-    showToast('Gateway details not available', 'error');
-    return;
-  }
-
-  const modal = document.getElementById('gatewayModal');
-
-  // Get additional data
-  const { gatewayPerformance = {}, gatewayUsageHistory = {} } =
-    await chrome.storage.local.get([
-      'gatewayPerformance',
-      'gatewayUsageHistory',
-    ]);
-
-  const performance = gatewayPerformance[fqdn] || {};
-  const usage = gatewayUsageHistory[fqdn] || {};
-  const settings = gatewayDetails.settings || {};
-
-  // Find gateway address from registry
-  const { localGatewayAddressRegistry = {} } = await chrome.storage.local.get([
-    'localGatewayAddressRegistry',
-  ]);
-  let gatewayAddress = '';
-  for (const [address, details] of Object.entries(
-    localGatewayAddressRegistry,
-  )) {
-    if (details.settings?.fqdn === fqdn) {
-      gatewayAddress = address;
-      break;
-    }
-  }
-
-  // Populate modal fields
-  document.getElementById('modal-gateway-url').href =
-    `${settings.protocol}://${settings.fqdn}:${settings.port}`;
-  document
-    .getElementById('modal-gateway-url')
-    .querySelector(
-      'span',
-    ).textContent = `${settings.protocol}://${settings.fqdn}`;
-
-  if (gatewayAddress) {
-    document.getElementById('modal-gateway-wallet').href =
-      `https://viewblock.io/arweave/address/${gatewayAddress}`;
-    document
-      .getElementById('modal-gateway-wallet')
-      .querySelector(
-        'span',
-      ).textContent = `${gatewayAddress.slice(0, 6)}...${gatewayAddress.slice(-4)}`;
-  } else {
-    document
-      .getElementById('modal-gateway-wallet')
-      .querySelector('span').textContent = 'Unknown';
-  }
-
-  // Calculate total stake
-  const totalStake = Math.floor(
-    ((gatewayDetails.operatorStake || 0) +
-      (gatewayDetails.totalDelegatedStake || 0)) /
-      1000000,
-  );
-  document.getElementById('modal-total-stake').textContent =
-    `${totalStake.toLocaleString()} ARIO`;
-
-  // Response time
-  document.getElementById('modal-gateway-avg-response-time').textContent =
-    performance.avgResponseTime
-      ? `${Math.round(performance.avgResponseTime)}ms`
-      : '--';
-
-  // Start date
-  document.getElementById('modal-start').textContent =
-    gatewayDetails.startTimestamp
-      ? new Date(gatewayDetails.startTimestamp).toLocaleDateString()
-      : '--';
-
-  // Usage count
-  document.getElementById('modal-usage-count').textContent = usage.requestCount
-    ? usage.requestCount.toString()
-    : '0';
-
-  // Success rate
-  const successRate = getSuccessRate(performance);
-  document.getElementById('modal-success-rate').textContent = `${successRate}%`;
-
-  // Failed requests
-  document.getElementById('modal-failed-requests').textContent =
-    performance.failures ? performance.failures.toString() : '0';
-
-  // Last used
-  document.getElementById('modal-last-used').textContent = usage.lastUsed
-    ? getRelativeTime(new Date(usage.lastUsed))
-    : 'Never';
-
-  // Status badge
-  const statusBadge = document.getElementById('modalStatusBadge');
-  let statusClass = 'unknown';
-  let statusText = 'Unknown';
-
-  if (gatewayDetails.status === 'joined') {
-    statusClass = 'good';
-    statusText = 'Active';
-  } else if (gatewayDetails.status === 'leaving') {
-    statusClass = 'warning';
-    statusText = 'Leaving';
-  }
-
-  statusBadge.className = `gateway-status-badge ${statusClass}`;
-  statusBadge.querySelector('span').textContent = statusText;
-
-  // Show modal
-  modal.style.display = 'block';
-}
-
-function closeModal() {
-  document.getElementById('gatewayModal').style.display = 'none';
-}
+// Removed: openGatewayModal and closeModal functions - gateway cards now navigate to gateways page

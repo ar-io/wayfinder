@@ -205,15 +205,16 @@ function createGatewayCard(gateway) {
 
   // Calculate current streak
   let streakBadge = '';
-  if (stats && stats.passedEpochCount !== undefined) {
-    const currentStreak = stats.passedEpochCount - stats.failedConsecutiveEpochs;
-    if (currentStreak > 0) {
-      const streakClass = currentStreak >= 10 ? 'hot' : currentStreak >= 5 ? 'warm' : 'cool';
-      streakBadge = `<div class="streak-badge ${streakClass}">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>
-        </svg>
-        <span>${currentStreak}</span>
+  if (stats) {
+    if (stats.failedConsecutiveEpochs > 0) {
+      // Show failure streak
+      streakBadge = `<div class="streak-badge failure">
+        <span>↓ ${stats.failedConsecutiveEpochs}</span>
+      </div>`;
+    } else if (stats.passedConsecutiveEpochs > 0) {
+      // Show success streak
+      streakBadge = `<div class="streak-badge success">
+        <span>↑ ${stats.passedConsecutiveEpochs}</span>
       </div>`;
     }
   }
@@ -349,27 +350,45 @@ async function showGatewayDetails(gateway) {
     : 'Blacklist Gateway';
   blacklistButton.onclick = () => toggleBlacklist(address);
 
+  // Get usage history for this gateway
+  const { gatewayUsageHistory = {} } = await chrome.storage.local.get(['gatewayUsageHistory']);
+  const usageData = gatewayUsageHistory[settings.fqdn] || {};
+  
+  // Update usage metrics
+  document.getElementById('modal-usage-count').textContent = 
+    usageData.requestCount ? usageData.requestCount.toString() : '0';
+  
+  document.getElementById('modal-last-used').textContent = 
+    usageData.lastUsed ? getRelativeTime(new Date(usageData.lastUsed)) : 'Never';
+  
+  // Calculate request success rate from performance data
+  const requestSuccessRate = performance.successCount + performance.failures > 0
+    ? Math.round((performance.successCount / (performance.successCount + performance.failures)) * 100)
+    : 0;
+  document.getElementById('modal-request-success-rate').textContent = `${requestSuccessRate}%`;
+  
+  document.getElementById('modal-failed-requests').textContent = 
+    performance.failures ? performance.failures.toString() : '0';
+
   // Update network performance stats
   if (data.stats) {
     const stats = data.stats;
     
-    // Calculate current streak
-    const currentStreak = stats.passedEpochCount - stats.failedConsecutiveEpochs;
+    // Display reliability streak
     const streakElement = document.getElementById('modal-current-streak');
     const streakSpan = streakElement.querySelector('span');
     
-    if (currentStreak > 0) {
-      streakSpan.textContent = `${currentStreak} epochs`;
-      const flameIcon = streakElement.querySelector('svg');
-      if (currentStreak >= 10) {
-        flameIcon.style.color = '#ef4444'; // red
-      } else if (currentStreak >= 5) {
-        flameIcon.style.color = '#f59e0b'; // amber
-      } else {
-        flameIcon.style.color = '#6b7280'; // gray
-      }
+    if (stats.failedConsecutiveEpochs > 0) {
+      // Show failure streak
+      streakSpan.innerHTML = `↓ ${stats.failedConsecutiveEpochs}`;
+      streakSpan.style.color = '#ef4444'; // red
+    } else if (stats.passedConsecutiveEpochs > 0) {
+      // Show success streak
+      streakSpan.innerHTML = `↑ ${stats.passedConsecutiveEpochs}`;
+      streakSpan.style.color = '#10b981'; // green
     } else {
       streakSpan.textContent = 'No streak';
+      streakSpan.style.color = '#6b7280'; // gray
     }
     
     // Success rate
@@ -569,6 +588,20 @@ async function setExtensionVersion() {
   }
 }
 
+// Helper function for relative time display
+function getRelativeTime(date) {
+  const diff = Date.now() - date;
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+
+  if (minutes < 1) return 'Just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  if (days < 30) return `${days}d ago`;
+  return date.toLocaleDateString();
+}
+
 // Initialize last sync time on load
 updateLastSyncTime();
 
@@ -734,32 +767,42 @@ async function loadGatewayInfo(gateway) {
 
 // Highlight gateway functionality
 async function checkForHighlightGateway() {
-  const { highlightGateway } = await chrome.storage.local.get([
+  const { highlightGateway, openGatewayModal } = await chrome.storage.local.get([
     'highlightGateway',
+    'openGatewayModal'
   ]);
 
   if (highlightGateway) {
-    // Clear the flag
-    await chrome.storage.local.remove(['highlightGateway']);
+    // Clear the flags
+    await chrome.storage.local.remove(['highlightGateway', 'openGatewayModal']);
 
     // Wait for gateways to load and then highlight
     setTimeout(() => {
-      const gatewayCards = document.querySelectorAll('.gateway-card');
-      for (const card of gatewayCards) {
-        const gatewayName = card.querySelector('.gateway-name');
-        if (gatewayName && gatewayName.textContent.includes(highlightGateway)) {
-          card.style.border = '2px solid var(--accent-primary)';
-          card.style.background = 'var(--bg-tertiary)';
-          card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Find the gateway in our loaded data
+      const targetGateway = allGateways.find(g => g.data.settings?.fqdn === highlightGateway);
+      
+      if (targetGateway && openGatewayModal) {
+        // Open the modal directly
+        showGatewayDetails(targetGateway);
+      } else {
+        // Just highlight the card
+        const gatewayCards = document.querySelectorAll('.gateway-card');
+        for (const card of gatewayCards) {
+          const gatewayUrl = card.querySelector('.gateway-url');
+          if (gatewayUrl && gatewayUrl.textContent === highlightGateway) {
+            card.style.border = '2px solid var(--accent-primary)';
+            card.style.background = 'var(--bg-tertiary)';
+            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
-          // Remove highlight after 3 seconds
-          setTimeout(() => {
-            card.style.border = '';
-            card.style.background = '';
-          }, 3000);
-          break;
+            // Remove highlight after 3 seconds
+            setTimeout(() => {
+              card.style.border = '';
+              card.style.background = '';
+            }, 3000);
+            break;
+          }
         }
       }
-    }, 1000);
+    }, 1500); // Give more time for gateways to load
   }
 }
