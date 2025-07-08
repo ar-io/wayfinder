@@ -4,42 +4,32 @@ This document describes how the Wayfinder browser extension integrates with the 
 
 ## Overview
 
-The Wayfinder extension uses the core library to intelligently route `ar://` URLs to the best available AR.IO gateway based on various strategies and configurations.
+The Wayfinder extension uses the core library to intelligently route `ar://` URLs to the best available AR.IO gateway based on various strategies and configurations. The extension focuses solely on routing without any data verification features.
 
 ## Core Components
 
-### 1. Wayfinder Instance Creation (`src/background.ts`)
+### 1. Wayfinder Instance Management (`src/routing.ts`)
 
-The extension creates a singleton Wayfinder instance that persists throughout the extension's lifecycle:
+The extension creates a singleton Wayfinder instance with thread-safe initialization:
 
 ```typescript
-async function getOrCreateWayfinder(): Promise<Wayfinder> {
-  const config = await chrome.storage.local.get([
-    'routingMethod',
-    'staticGateway',
-    'verificationStrategy',
-    'gatewayCacheTTL',
-    'gatewaySortBy',
-    'gatewaySortOrder',
-    'telemetryEnabled'
-  ]);
-
-  const wayfinder = new Wayfinder({
-    logger: customLogger,
-    gatewaysProvider: gatewayProvider,
-    routingSettings: {
-      strategy: routingStrategy,
-      events: {
-        onRoutingSucceeded: (event) => {
-          // Track performance metrics
-        }
-      }
-    },
-    telemetrySettings: telemetryEnabled ? {
-      enabled: true,
-      sampleRate: 0.1  // 10% sampling
-    } : undefined
-  });
+async function getWayfinderInstance(): Promise<Wayfinder> {
+  // Return existing instance immediately
+  if (wayfinderInstance) return wayfinderInstance;
+  
+  // Return existing initialization promise to prevent race conditions
+  if (wayfinderPromise) return wayfinderPromise;
+  
+  // Create new initialization promise
+  wayfinderPromise = createWayfinderInstance();
+  
+  try {
+    wayfinderInstance = await wayfinderPromise;
+    return wayfinderInstance;
+  } catch (error) {
+    wayfinderPromise = null;
+    throw error;
+  }
 }
 ```
 
@@ -69,21 +59,21 @@ The extension supports multiple routing strategies from wayfinder-core:
 
 #### Fastest Ping (Default)
 ```typescript
-const pingStrategy = new FastestPingRoutingStrategy({
+const fastestPing = new FastestPingRoutingStrategy({
   timeoutMs: 2000,
   maxConcurrency: 5,
-  logger: customLogger
+  logger
+});
+
+// Wrapped with cache for 15 minutes TTL
+const cachedStrategy = new SimpleCacheRoutingStrategy({
+  routingStrategy: fastestPing,
+  ttlSeconds: 15 * 60,
+  logger
 });
 ```
 
-#### Round Robin
-```typescript
-const roundRobin = new RoundRobinRoutingStrategy({
-  gateways: availableGateways
-});
-```
-
-#### Random
+#### Random (Balanced)
 ```typescript
 const random = new RandomRoutingStrategy();
 ```
@@ -95,6 +85,8 @@ const static = new StaticRoutingStrategy({
 });
 ```
 
+Note: Round Robin strategy has been deprecated and now falls back to Random (Balanced) strategy.
+
 ## Configuration Management
 
 ### Storage Keys
@@ -102,7 +94,7 @@ const static = new StaticRoutingStrategy({
 ```typescript
 // Core routing configuration
 {
-  routingMethod: 'fastestPing' | 'roundRobin' | 'random' | 'static',
+  routingMethod: 'fastestPing' | 'random' | 'static',
   staticGateway: {
     settings: {
       protocol: 'https',
@@ -114,7 +106,9 @@ const static = new StaticRoutingStrategy({
   gatewaySortBy: 'operatorStake' | 'totalDelegatedStake',
   gatewaySortOrder: 'asc' | 'desc',
   blacklistedGateways: string[],
-  localGatewayAddressRegistry: Record<string, GatewayData>
+  localGatewayAddressRegistry: Record<string, GatewayData>,
+  telemetryEnabled: boolean,
+  ensResolutionEnabled: boolean
 }
 ```
 
@@ -126,7 +120,7 @@ The extension tracks gateway performance using exponential moving average:
 async function updateGatewayPerformance(
   fqdn: string,
   responseTime: number,
-  success: boolean
+  success: boolean = true
 ) {
   const alpha = 0.2; // EMA smoothing factor
   const prevAvg = gatewayPerformance[fqdn]?.avgResponseTime || responseTime;
@@ -141,7 +135,7 @@ async function updateGatewayPerformance(
 
 ## URL Resolution Flow
 
-### 1. AR:// URL Interception
+### 1. AR:// URL Interception (`src/background.ts`)
 
 ```typescript
 chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
@@ -149,46 +143,52 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
   const arUrl = url.searchParams.get('q');
   
   if (arUrl?.startsWith('ar://')) {
-    const resolved = await resolveArUrl(arUrl);
-    chrome.tabs.update(details.tabId, { url: resolved.url });
+    const result = await getRoutableGatewayUrl(arUrl);
+    if (result?.url) {
+      chrome.tabs.update(details.tabId, { url: result.url });
+    }
   }
 });
 ```
 
-### 2. Resolution Process
+### 2. Resolution Process (`src/routing.ts`)
 
 ```typescript
-async function resolveArUrl(arUrl: string) {
-  const wayfinder = await getOrCreateWayfinder();
+async function getRoutableGatewayUrl(arUrl: string) {
+  const wayfinder = await getWayfinderInstance();
   
   // Handle ENS resolution if enabled
-  if (identifier.endsWith('.eth') && ensResolutionEnabled) {
-    const txId = await resolveENS(identifier);
-    arUrl = `ar://${txId}${path}`;
+  if (baseName.endsWith('.eth') && ensResolutionEnabled) {
+    const txId = await fetchEnsArweaveTxId(baseName);
+    if (txId) processedUrl = `ar://${txId}${path}`;
   }
   
-  // Handle ArNS resolution
-  if (identifier.includes('.')) {
-    const txId = await resolveDNSTxt(identifier);
-    if (txId) arUrl = `ar://${txId}${path}`;
+  // Handle ArNS resolution via DNS TXT
+  if (baseName.includes('.')) {
+    const txId = await lookupArweaveTxIdForDomain(baseName);
+    if (txId) processedUrl = `ar://${txId}${path}`;
   }
   
   // Use Wayfinder to resolve to gateway URL
-  const resolvedUrl = await wayfinder.resolveUrl({ originalUrl: arUrl });
+  const resolvedUrl = await wayfinder.resolveUrl({
+    originalUrl: processedUrl
+  });
   
   return {
     url: resolvedUrl.toString(),
     gatewayFQDN: resolvedUrl.hostname,
-    gatewayProtocol: resolvedUrl.protocol,
-    gatewayPort: resolvedUrl.port
+    gatewayProtocol: resolvedUrl.protocol.slice(0, -1),
+    gatewayPort: resolvedUrl.port ? parseInt(resolvedUrl.port) : null,
+    gatewayAddress: 'CORE_LIBRARY',
+    selectedGateway: { settings: { ... } }
   };
 }
 ```
 
-### 3. ENS Resolution
+### 3. ENS Resolution (`src/ens.ts`)
 
 ```typescript
-async function resolveENS(ensName: string): Promise<string | null> {
+async function fetchEnsArweaveTxId(ensName: string): Promise<string | null> {
   const response = await fetch(`https://api.ensdata.net/${ensName}`);
   const data = await response.json();
   return data['ar://'] || data.contentHash || null;
@@ -198,35 +198,33 @@ async function resolveENS(ensName: string): Promise<string | null> {
 ### 4. ArNS Resolution (DNS TXT)
 
 ```typescript
-async function resolveDNSTxt(hostname: string): Promise<string | null> {
-  const cacheKey = `dnsCache_${hostname}`;
+async function lookupArweaveTxIdForDomain(domain: string): Promise<string | null> {
+  const cacheKey = `dnsCache_${domain}`;
   
   // Check cache first
-  const cached = await chrome.storage.local.get(cacheKey);
-  if (cached && Date.now() - cached.timestamp < DNS_CACHE_TTL) {
+  const cached = await chrome.storage.local.get([cacheKey]);
+  if (cached && Date.now() - cached.timestamp < GASLESS_ARNS_DNS_EXPIRATION_TIME) {
     return cached.txId;
   }
   
   // Query DNS TXT records
   const response = await fetch(
-    `https://dns.google/resolve?name=${hostname}&type=TXT`
+    `https://dns.google/resolve?name=${domain}&type=TXT`
   );
   const data = await response.json();
   
   // Look for ARTX record
-  const artxRecord = data.Answer?.find(record => 
-    record.data.includes('ARTX')
-  );
+  const match = data.Answer?.map((record: any) => {
+    const result = record.data.match(/ARTX ([a-zA-Z0-9_-]{43})/);
+    return result ? result[1] : null;
+  }).find((txId: string) => txId !== null);
   
-  if (artxRecord) {
-    const match = artxRecord.data.match(/ARTX ([a-zA-Z0-9_-]{43})/);
-    if (match) {
-      // Cache the result
-      await chrome.storage.local.set({
-        [cacheKey]: { txId: match[1], timestamp: Date.now() }
-      });
-      return match[1];
-    }
+  if (match) {
+    // Cache the result
+    await chrome.storage.local.set({
+      [cacheKey]: { txId: match, timestamp: Date.now() }
+    });
+    return match;
   }
   
   return null;
@@ -239,10 +237,14 @@ The extension periodically syncs with the AR.IO gateway registry:
 
 ```typescript
 async function syncGatewayAddressRegistry() {
+  const { processId, aoCuUrl } = await chrome.storage.local.get([
+    'processId', 'aoCuUrl'
+  ]);
+  
   const arIO = ARIO.init({
-    process: new AoIORead({
-      processId: ARIO_PROCESS_ID,
-      ao: connect({ CU_URL: aoConfig.cuUrl })
+    process: new AOProcess({
+      processId: processId || ARIO_MAINNET_PROCESS_ID,
+      ao: connect({ CU_URL: aoCuUrl || DEFAULT_AO_CU_URL })
     })
   });
   
@@ -293,9 +295,10 @@ class CircuitBreaker {
   }
   
   onFailure(gatewayUrl: string) {
-    const state = this.states.get(gatewayUrl) || { 
-      failureCount: 0 
-    };
+    let state = this.states.get(gatewayUrl);
+    if (!state) {
+      state = { failureCount: 0, isOpen: false, nextRetryTime: 0 };
+    }
     
     state.failureCount++;
     
@@ -303,6 +306,8 @@ class CircuitBreaker {
       state.isOpen = true;
       state.nextRetryTime = Date.now() + this.resetTimeoutMs;
     }
+    
+    this.states.set(gatewayUrl, state);
   }
 }
 ```
@@ -312,12 +317,14 @@ class CircuitBreaker {
 ### Request Tracking
 
 ```typescript
+// Track request start times
 chrome.webRequest.onBeforeRequest.addListener((details) => {
-  requestTimings.set(details.requestId, performance.now());
+  requestTimings.set(details.requestId.toString(), performance.now());
 });
 
+// Calculate response times on completion
 chrome.webRequest.onCompleted.addListener(async (details) => {
-  const startTime = requestTimings.get(details.requestId);
+  const startTime = requestTimings.get(details.requestId.toString());
   if (startTime) {
     const responseTime = performance.now() - startTime;
     await updateGatewayPerformance(
@@ -325,6 +332,7 @@ chrome.webRequest.onCompleted.addListener(async (details) => {
       responseTime,
       true
     );
+    requestTimings.delete(details.requestId.toString());
   }
 });
 ```
@@ -333,23 +341,23 @@ chrome.webRequest.onCompleted.addListener(async (details) => {
 
 ```typescript
 async function updateGatewayUsageHistory(fqdn: string) {
-  const history = await chrome.storage.local.get(['gatewayUsageHistory']);
-  const gatewayHistory = history.gatewayUsageHistory || {};
+  const timestamp = new Date().toISOString();
+  const { gatewayUsageHistory = {} } = await chrome.storage.local.get([
+    'gatewayUsageHistory'
+  ]);
   
-  if (!gatewayHistory[fqdn]) {
-    gatewayHistory[fqdn] = {
-      requestCount: 0,
-      firstUsed: new Date().toISOString(),
-      lastUsed: new Date().toISOString()
+  if (gatewayUsageHistory[fqdn]) {
+    gatewayUsageHistory[fqdn].requestCount += 1;
+    gatewayUsageHistory[fqdn].lastUsed = timestamp;
+  } else {
+    gatewayUsageHistory[fqdn] = {
+      requestCount: 1,
+      firstUsed: timestamp,
+      lastUsed: timestamp
     };
   }
   
-  gatewayHistory[fqdn].requestCount++;
-  gatewayHistory[fqdn].lastUsed = new Date().toISOString();
-  
-  await chrome.storage.local.set({ 
-    gatewayUsageHistory: gatewayHistory 
-  });
+  await chrome.storage.local.set({ gatewayUsageHistory });
 }
 ```
 
@@ -357,12 +365,14 @@ async function updateGatewayUsageHistory(fqdn: string) {
 
 The settings page (`src/settings.js`) allows users to configure:
 
-1. **Routing Strategy**: Select between fastestPing, roundRobin, random, or static
-2. **Static Gateway**: Configure a specific gateway URL
+1. **Routing Strategy**: Select between fastestPing, random (Balanced), or static
+2. **Static Gateway**: Configure and test a specific gateway URL
 3. **Gateway Sorting**: Choose sort by operatorStake or totalDelegatedStake
 4. **Cache TTL**: Set gateway cache time-to-live (seconds)
-5. **Blacklist Management**: Add/remove gateways from blacklist
-6. **Registry Sync**: Manually trigger gateway registry sync
+5. **Registry Sync**: Manually trigger gateway registry sync
+6. **ENS Resolution**: Enable/disable ENS name resolution
+7. **Telemetry**: Enable/disable anonymous usage tracking (10% sample rate)
+8. **Data Management**: Clear cache and reset extension
 
 ## Error Handling
 
@@ -378,52 +388,71 @@ const FALLBACK_GATEWAY = {
     label: 'Arweave.net (Fallback)',
     protocol: 'https',
     port: 443,
-    note: 'Last resort fallback gateway'
+    note: 'Last resort fallback gateway when AR.IO network is unreachable.'
   },
-  status: 'joined'
+  status: 'joined',
+  gatewayAddress: 'FALLBACK'
 };
 ```
 
 ### Error Page
 
-For unrecoverable errors, the extension displays a user-friendly error page:
+For unrecoverable errors, the extension displays a user-friendly error page with options to go back or open settings.
+
+## Content Script Integration (`src/content.ts`)
+
+The content script converts ar:// links in web pages:
 
 ```typescript
-chrome.tabs.update(tabId, {
-  url: `data:text/html,<!DOCTYPE html>
-    <html>
-      <body>
-        <h1>Error Processing AR.IO URL</h1>
-        <p>${errorMessage}</p>
-        <button onclick="history.back()">Go Back</button>
-      </body>
-    </html>`
-});
+async function processArUrl(
+  element: Element,
+  arUrl: string,
+  attribute: string
+): Promise<void> {
+  const convertResponse = await chrome.runtime.sendMessage({
+    type: 'convertArUrlToHttpUrl',
+    arUrl
+  });
+  
+  if (convertResponse && !convertResponse.error) {
+    element[attribute] = convertResponse.url;
+  }
+}
 ```
 
 ## Telemetry Integration
 
-When enabled, the extension sends anonymous usage data:
+When enabled, the extension configures telemetry settings:
 
 ```typescript
 const telemetrySettings = telemetryEnabled ? {
   enabled: true,
-  sampleRate: 0.1, // 10% of requests
-  events: {
-    onRoutingSucceeded: (event) => {
-      // Telemetry data sent to AR.IO network
-    }
-  }
+  sampleRate: 0.1 // 10% of requests
 } : undefined;
+```
+
+Note: Telemetry may fail to initialize in some browser environments due to AsyncLocalStorage compatibility issues. The extension handles this gracefully by retrying without telemetry.
+
+## Daily Statistics
+
+The extension tracks daily usage statistics:
+
+```typescript
+{
+  date: string,           // Today's date
+  requestCount: number,   // ar:// requests today
+  totalRequestCount: number // All HTTP requests today
+}
 ```
 
 ## Best Practices
 
-1. **Gateway Caching**: Use TTL-based caching to reduce network requests
-2. **Performance Tracking**: Monitor gateway response times with EMA
-3. **Circuit Breaking**: Temporarily disable failing gateways
-4. **Graceful Degradation**: Always have a fallback gateway
-5. **User Control**: Allow users to override automatic selection
+1. **Thread-Safe Initialization**: Use singleton pattern with promise tracking
+2. **Gateway Caching**: Use TTL-based caching to reduce network requests
+3. **Performance Tracking**: Monitor gateway response times with EMA
+4. **Circuit Breaking**: Temporarily disable failing gateways
+5. **Graceful Degradation**: Always have a fallback gateway
+6. **User Control**: Allow users to override automatic selection
 
 ## Testing
 
@@ -432,6 +461,7 @@ To test the integration:
 1. Install the extension in Chrome
 2. Navigate to Settings > Network Configuration
 3. Sync the gateway registry
-4. Visit any `ar://` URL or use the search bar
-5. Monitor gateway selection in browser console
-6. Check performance stats in Settings > Performance
+4. Visit any `ar://` URL or type `ar://` in the search bar
+5. Monitor gateway selection in browser DevTools console
+6. Check performance stats on the Performance page
+7. View gateway list and health on the Gateways page
