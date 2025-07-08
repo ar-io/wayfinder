@@ -198,40 +198,44 @@ function renderGateways() {
 
 function createGatewayCard(gateway) {
   const { address, data, performance, isBlacklisted } = gateway;
-  const { settings } = data;
+  const { settings, stats } = data;
   const totalStake = Math.floor(
     ((data.operatorStake || 0) + (data.totalDelegatedStake || 0)) / 1000000,
   );
 
+  // Calculate current streak
+  let streakBadge = '';
+  if (stats && stats.passedEpochCount !== undefined) {
+    const currentStreak = stats.passedEpochCount - stats.failedConsecutiveEpochs;
+    if (currentStreak > 0) {
+      const streakClass = currentStreak >= 10 ? 'hot' : currentStreak >= 5 ? 'warm' : 'cool';
+      streakBadge = `<div class="streak-badge ${streakClass}">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>
+        </svg>
+        <span>${currentStreak}</span>
+      </div>`;
+    }
+  }
+
   // Determine status
-  let statusClass = 'unknown';
-  let statusText = 'Unknown';
-  let performanceBadge = '';
+  let statusBadge = '';
 
   if (performance.avgResponseTime !== undefined) {
     const avgTime = performance.avgResponseTime;
     if (performance.failures > 10) {
-      statusClass = 'offline';
-      statusText = 'Offline';
+      statusBadge = '<div class="performance-badge offline"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-right: 4px;"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg> Offline</div>';
     } else if (avgTime <= 150) {
-      statusClass = 'online';
-      statusText = 'Fastest';
-      performanceBadge =
-        '<div class="performance-badge fastest"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-right: 4px;"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> Fastest</div>';
+      statusBadge = '<div class="performance-badge fastest"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-right: 4px;"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> Fastest</div>';
     } else if (avgTime <= 500) {
-      statusClass = 'online';
-      statusText = 'Fast';
-      performanceBadge =
-        '<div class="performance-badge fast"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-right: 4px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Fast</div>';
+      statusBadge = '<div class="performance-badge fast"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-right: 4px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Fast</div>';
     } else if (avgTime <= 2000) {
-      statusClass = 'online';
-      statusText = 'Good';
+      statusBadge = '<div class="performance-badge good"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-right: 4px;"><polyline points="20 6 9 17 4 12"/></svg> Good</div>';
     } else {
-      statusClass = 'slow';
-      statusText = 'Slow';
-      performanceBadge =
-        '<div class="performance-badge slow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-right: 4px;"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg> Slow</div>';
+      statusBadge = '<div class="performance-badge slow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-right: 4px;"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg> Slow</div>';
     }
+  } else {
+    statusBadge = '<div class="performance-badge unknown"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-right: 4px;"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Unknown</div>';
   }
 
   const card = document.createElement('div');
@@ -241,10 +245,7 @@ function createGatewayCard(gateway) {
   card.innerHTML = `
     <div class="gateway-header">
       <div class="gateway-url">${settings?.fqdn || 'Unknown'}</div>
-      <div class="gateway-status">
-        <div class="status-indicator ${statusClass}"></div>
-        <span class="status-text">${statusText}</span>
-      </div>
+      ${statusBadge}
     </div>
     
     <div class="gateway-info">
@@ -259,8 +260,7 @@ function createGatewayCard(gateway) {
         </div>
       </div>
     </div>
-    
-    ${performanceBadge}
+    ${streakBadge}
   `;
 
   card.addEventListener('click', () => showGatewayDetails(gateway));
@@ -346,6 +346,50 @@ async function showGatewayDetails(gateway) {
     ? 'Unblacklist Gateway'
     : 'Blacklist Gateway';
   blacklistButton.onclick = () => toggleBlacklist(address);
+
+  // Update network performance stats
+  if (data.stats) {
+    const stats = data.stats;
+    
+    // Calculate current streak
+    const currentStreak = stats.passedEpochCount - stats.failedConsecutiveEpochs;
+    const streakElement = document.getElementById('modal-current-streak');
+    const streakSpan = streakElement.querySelector('span');
+    
+    if (currentStreak > 0) {
+      streakSpan.textContent = `${currentStreak} epochs`;
+      const flameIcon = streakElement.querySelector('svg');
+      if (currentStreak >= 10) {
+        flameIcon.style.color = '#ef4444'; // red
+      } else if (currentStreak >= 5) {
+        flameIcon.style.color = '#f59e0b'; // amber
+      } else {
+        flameIcon.style.color = '#6b7280'; // gray
+      }
+    } else {
+      streakSpan.textContent = 'No streak';
+    }
+    
+    // Success rate
+    const successRate = stats.totalEpochCount > 0 
+      ? Math.round((stats.passedEpochCount / stats.totalEpochCount) * 100)
+      : 0;
+    document.getElementById('modal-epoch-success-rate').textContent = `${successRate}%`;
+    
+    // Total epochs
+    document.getElementById('modal-total-epochs').textContent = 
+      `${stats.submittedEpochCount}/${stats.totalEpochCount}`;
+    
+    // Failed epochs  
+    const failedEpochs = stats.totalEpochCount - stats.passedEpochCount;
+    document.getElementById('modal-failed-epochs').textContent = failedEpochs;
+  } else {
+    // No stats available
+    document.getElementById('modal-current-streak').querySelector('span').textContent = 'No data';
+    document.getElementById('modal-epoch-success-rate').textContent = '--';
+    document.getElementById('modal-total-epochs').textContent = '--';
+    document.getElementById('modal-failed-epochs').textContent = '--';
+  }
 
   // Setup ping test
   setupPingTest(gateway);
@@ -647,32 +691,20 @@ async function runPingTest(gateway) {
 // Gateway information functionality
 async function loadGatewayInfo(gateway) {
   const { settings } = gateway.data;
-  const _gatewayUrl = `${settings.protocol}://${settings.fqdn}`;
-
-  // Reset values
-  document.getElementById('gatewayLocation').textContent = 'Detecting...';
-  document.getElementById('gatewayIP').textContent = 'Resolving...';
-  document.getElementById('gatewayUptime').textContent = 'Calculating...';
 
   try {
-    // Try to get IP and location info
-    // Note: In a real implementation, you might want to use a proper IP geolocation service
-    // For now, we'll show the FQDN and estimate location based on domain
-    const fqdn = settings.fqdn;
+    // Show gateway FQDN instead of "Resolving..."
+    document.getElementById('gatewayIP').textContent = settings.fqdn;
 
-    // Simple IP resolution simulation (in real app, would need backend API)
-    document.getElementById('gatewayIP').textContent = fqdn;
-
-    // Location estimation based on common patterns
-    let location = 'Global';
-    if (fqdn.includes('.us.') || fqdn.includes('-us-')) {
-      location = 'United States';
-    } else if (fqdn.includes('.eu.') || fqdn.includes('-eu-')) {
-      location = 'Europe';
-    } else if (fqdn.includes('.asia.') || fqdn.includes('-asia-')) {
-      location = 'Asia';
-    } else if (fqdn.includes('arweave.net')) {
-      location = 'Global (Fallback)';
+    // Show protocol and port information
+    let location = `${settings.protocol.toUpperCase()} Port ${settings.port}`;
+    
+    // Add any additional properties if available
+    if (gateway.data.settings.properties) {
+      const props = gateway.data.settings.properties;
+      if (props.provider) {
+        location += ` (${props.provider})`;
+      }
     }
     document.getElementById('gatewayLocation').textContent = location;
 
@@ -695,8 +727,8 @@ async function loadGatewayInfo(gateway) {
     document.getElementById('gatewayUptime').textContent = uptimeText;
   } catch (error) {
     console.error('Error loading gateway info:', error);
-    document.getElementById('gatewayLocation').textContent = 'Unknown';
-    document.getElementById('gatewayIP').textContent = 'Unknown';
+    document.getElementById('gatewayLocation').textContent = 'Not available';
+    document.getElementById('gatewayIP').textContent = settings.fqdn || 'Unknown';
     document.getElementById('gatewayUptime').textContent = 'Unknown';
   }
 }
