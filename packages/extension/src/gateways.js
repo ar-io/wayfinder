@@ -501,22 +501,30 @@ function updateStats() {
     (g) => g.data.status === 'joined',
   ).length;
 
-  // Find fastest gateway
-  let fastestGateway = '--';
-  const fastGateways = allGateways
-    .filter((g) => g.performance.avgResponseTime !== undefined)
-    .sort(
-      (a, b) => a.performance.avgResponseTime - b.performance.avgResponseTime,
-    );
+  // Calculate total network stake
+  let totalNetworkStake = 0;
+  allGateways.forEach((gateway) => {
+    const operatorStake = gateway.data.operatorStake || 0;
+    const delegatedStake = gateway.data.totalDelegatedStake || 0;
+    totalNetworkStake += operatorStake + delegatedStake;
+  });
 
-  if (fastGateways.length > 0) {
-    const fastest = fastGateways[0];
-    fastestGateway = `${fastest.data.settings?.fqdn || 'Unknown'} (${Math.round(fastest.performance.avgResponseTime)}ms)`;
+  // Convert from smallest unit to ARIO (divide by 1 million)
+  const stakeInARIO = totalNetworkStake / 1000000;
+
+  // Format the display
+  let displayValue;
+  if (stakeInARIO >= 1000000) {
+    displayValue = `${(stakeInARIO / 1000000).toFixed(1)}M`;
+  } else if (stakeInARIO >= 1000) {
+    displayValue = `${(stakeInARIO / 1000).toFixed(1)}K`;
+  } else {
+    displayValue = Math.floor(stakeInARIO).toLocaleString();
   }
 
   document.getElementById('totalGateways').textContent = totalCount;
   document.getElementById('activeGateways').textContent = activeCount;
-  document.getElementById('fastestGateway').textContent = fastestGateway;
+  document.getElementById('networkStake').textContent = displayValue;
 }
 
 async function updateLastSyncTime() {

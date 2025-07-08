@@ -13,6 +13,7 @@
     />
     <link rel="stylesheet" href="assets/css/variables.css" />
     <link rel="stylesheet" href="assets/css/performance.css" />
+    <link rel="stylesheet" href="assets/css/gateways-enhanced.css" />
     <script type="module" src="performance.js"></script>
   </head>
   <body>
@@ -67,35 +68,40 @@
             <div class="stat-card">
               <div class="stat-content">
                 <div class="stat-value" id="totalRequests">0</div>
-                <div class="stat-label">AR.IO Requests</div>
+                <div class="stat-label">Total Requests</div>
+                <div class="stat-sublabel">All resources</div>
               </div>
             </div>
             
             <div class="stat-card">
               <div class="stat-content">
                 <div class="stat-value" id="uniqueGateways">0</div>
-                <div class="stat-label">AR.IO Gateways</div>
+                <div class="stat-label">Gateways Used</div>
+                <div class="stat-sublabel">Unique</div>
               </div>
             </div>
             
             <div class="stat-card">
               <div class="stat-content">
                 <div class="stat-value" id="avgResponseTime">--</div>
-                <div class="stat-label">Avg Response Time</div>
+                <div class="stat-label">Avg Response</div>
+                <div class="stat-sublabel">Time (ms)</div>
               </div>
             </div>
 
             <div class="stat-card">
               <div class="stat-content">
-                <div class="stat-value" id="permawebRatio">--</div>
-                <div class="stat-label">Permaweb Usage</div>
+                <div class="stat-value" id="topGateway">--</div>
+                <div class="stat-label">Top Gateway</div>
+                <div class="stat-sublabel">Most used</div>
               </div>
             </div>
 
             <div class="stat-card">
               <div class="stat-content">
                 <div class="stat-value" id="requestsToday">0</div>
-                <div class="stat-label">Requests Today</div>
+                <div class="stat-label">Pages Today</div>
+                <div class="stat-sublabel">ar:// navigations</div>
               </div>
             </div>
 
@@ -103,6 +109,7 @@
               <div class="stat-content">
                 <div class="stat-value" id="successRate">--</div>
                 <div class="stat-label">Success Rate</div>
+                <div class="stat-sublabel">All requests</div>
               </div>
             </div>
           </div>

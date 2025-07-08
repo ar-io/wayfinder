@@ -155,34 +155,6 @@ async function updateSummaryStats() {
   // Get daily stats for permaweb ratio calculation
   const { dailyStats = null } = await chrome.storage.local.get(['dailyStats']);
 
-  // Calculate permaweb usage ratio
-  let permawebRatio = '';
-  if (dailyStats && currentPeriod === 'today') {
-    // For today, use actual tracked data
-    const totalWebRequests = dailyStats.totalRequestCount || 0;
-    const arIORequests = totalRequests;
-
-    if (totalWebRequests === 0) {
-      permawebRatio = '0%';
-    } else {
-      const ratio = ((arIORequests / totalWebRequests) * 100).toFixed(3);
-      permawebRatio = `${ratio}%`;
-    }
-  } else {
-    // For other periods, show activity level since we don't have historical total request data
-    if (totalRequests === 0) {
-      permawebRatio = 'None';
-    } else if (totalRequests < 5) {
-      permawebRatio = 'Low';
-    } else if (totalRequests < 20) {
-      permawebRatio = 'Medium';
-    } else if (totalRequests < 50) {
-      permawebRatio = 'High';
-    } else {
-      permawebRatio = 'Very High';
-    }
-  }
-
   // Update UI with shortened labels for mobile
   document.getElementById('totalRequests').textContent =
     totalRequests >= 1000
@@ -196,8 +168,25 @@ async function updateSummaryStats() {
   document.getElementById('avgResponseTime').textContent =
     avgTime > 0 ? `${Math.round(avgTime)}ms` : '--';
 
-  document.getElementById('permawebRatio').textContent = permawebRatio;
+  // Find the most used gateway
+  let topGateway = '--';
+  let maxRequests = 0;
+  
+  for (const [fqdn, data] of gatewayUsageData) {
+    if (data.usage.requestCount > maxRequests) {
+      maxRequests = data.usage.requestCount;
+      topGateway = fqdn;
+    }
+  }
+
+  // Truncate long gateway names for display
+  if (topGateway !== '--' && topGateway.length > 20) {
+    topGateway = topGateway.substring(0, 17) + '...';
+  }
+
+  document.getElementById('topGateway').textContent = topGateway;
 }
+
 
 function renderGatewayUsage() {
   const container = document.getElementById('gatewayUsageList');

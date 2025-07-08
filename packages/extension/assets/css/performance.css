@@ -801,6 +801,16 @@ html, body {
   letter-spacing: 0.5px;
 }
 
+.stat-sublabel {
+  font-family: 'Rubik', sans-serif;
+  font-weight: 400;
+  font-size: 9px;
+  line-height: 1.2;
+  color: var(--colors-text-textLow, #7f7f87);
+  margin-top: 2px;
+  opacity: 0.8;
+}
+
 .stat-value {
   font-family: 'Rubik', sans-serif;
   font-weight: 600;
