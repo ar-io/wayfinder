@@ -33,7 +33,7 @@
     "format:check": "biome format"
   },
   "dependencies": {
-    "@ar.io/sdk": "^3.5.0",
+    "@ar.io/sdk": "^3.13.0",
     "@ar.io/wayfinder-core": "^1.0.0",
     "@permaweb/aoconnect": "0.0.69"
   }

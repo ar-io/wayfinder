@@ -71,10 +71,10 @@ export default defineConfig({
       input: {
         background: './src/background.ts',
         content: './src/content.ts',
-        popup: './src/popup.js',
-        settings: './src/settings.js',
-        gateways: './src/gateways.js',
-        performance: './src/performance.js',
+        popup: './src/popup.ts',
+        settings: './src/settings.ts',
+        gateways: './src/gateways.ts',
+        performance: './src/performance.ts',
       },
       output: {
         entryFileNames: '[name].js',

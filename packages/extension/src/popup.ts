@@ -1,11 +1,23 @@
 /**
- * WayFinder Popup
- * Modern homepage interface
+ * WayFinder
+ * Copyright (C) 2022-2025 Permanent Data Solutions, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 // Toast notification system
 // Exported for potential future use
-export function showToast(message, type = 'success') {
+export function showToast(message: string, type: 'success' | 'error' = 'success') {
   const container = document.getElementById('toastContainer');
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
@@ -16,7 +28,7 @@ export function showToast(message, type = 'success') {
     </div>
   `;
 
-  container.appendChild(toast);
+  container?.appendChild(toast);
 
   // Auto-remove after 3 seconds
   setTimeout(() => {
@@ -124,48 +136,52 @@ async function loadStats() {
 
     // Calculate healthy gateways - joined gateways with 0 consecutive failed epochs
     const healthyCount = Object.values(localGatewayAddressRegistry).filter(
-      (gateway) => gateway.status === 'joined' && 
+      (gateway: any) => gateway.status === 'joined' && 
                    (!gateway.stats || gateway.stats.failedConsecutiveEpochs === 0)
     ).length;
 
     // Update gateway count with loading state
     const countElement = document.getElementById('healthyGatewayCount');
     const gatewayCard = document.getElementById('showGateways');
+    const avgResponseTimeElement = document.getElementById('avgResponseTime');
+    const requestsTodayElement = document.getElementById('requestsToday');
+
+    if (!countElement || !gatewayCard) return;
 
     if (syncStatus === 'syncing') {
       // Show loading state
       if (lastKnownGatewayCount > 0) {
         countElement.innerHTML = `<svg class="loading-indicator" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg> ${lastKnownGatewayCount}`;
         // Add subtle loading animation to the card
-        gatewayCard?.classList.add('syncing');
+        gatewayCard.classList.add('syncing');
       } else {
         countElement.innerHTML =
           '<svg class="loading-indicator spinning" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg> Syncing...';
-        gatewayCard?.classList.add('syncing');
+        gatewayCard.classList.add('syncing');
       }
     } else if (syncStatus === 'error' && lastKnownGatewayCount > 0) {
       // Show last known count with error indicator
       countElement.innerHTML = `<svg class="error-indicator" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> ${lastKnownGatewayCount}`;
-      gatewayCard?.classList.add('sync-error');
-      gatewayCard?.classList.remove('syncing');
+      gatewayCard.classList.add('sync-error');
+      gatewayCard.classList.remove('syncing');
     } else if (healthyCount === 0 && syncStatus === 'idle') {
       // Initial state - trigger sync
       countElement.innerHTML =
         '<svg class="loading-indicator spinning" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg> Loading...';
-      gatewayCard?.classList.add('syncing');
+      gatewayCard.classList.add('syncing');
       // Trigger initial sync
       chrome.runtime.sendMessage({ message: 'syncGatewayAddressRegistry' });
     } else {
       // Normal display
-      countElement.textContent = healthyCount;
-      gatewayCard?.classList.remove('syncing', 'sync-error');
+      countElement.textContent = healthyCount.toString();
+      gatewayCard.classList.remove('syncing', 'sync-error');
     }
 
     // Calculate average response time
     const performances = Object.values(gatewayPerformance);
     if (performances.length > 0) {
       const avgResponseTimes = performances
-        .map((p) => p.avgResponseTime)
+        .map((p: any) => p.avgResponseTime)
         .filter((time) => time !== undefined);
 
       const overallAvg =
@@ -174,17 +190,25 @@ async function loadStats() {
             avgResponseTimes.length
           : 0;
 
-      document.getElementById('avgResponseTime').textContent =
+      if (!avgResponseTimeElement) return;
+
+      avgResponseTimeElement.textContent =
         overallAvg > 0 ? `${Math.round(overallAvg)}ms` : '--';
     } else {
-      document.getElementById('avgResponseTime').textContent = '--';
+      const avgResponseTimeElement = document.getElementById('avgResponseTime');
+      if (!avgResponseTimeElement) return;
+
+      avgResponseTimeElement.textContent = '--';
     }
 
     // Display actual requests today
     const today = new Date().toDateString();
     const requestsToday =
       dailyStats && dailyStats.date === today ? dailyStats.requestCount : 0;
-    document.getElementById('requestsToday').textContent = requestsToday;
+
+    if (!requestsTodayElement) return;
+
+    requestsTodayElement.textContent = requestsToday.toString();
   } catch (error) {
     console.error('Error loading stats:', error);
   }
@@ -210,8 +234,11 @@ async function loadCurrentStrategy() {
       roundRobin: 'Balanced', // Fallback for old configs
     };
 
-    const strategyName = strategyNames[routingMethod] || 'Fastest Ping';
-    document.getElementById('currentStrategy').textContent = strategyName;
+    const strategyName = strategyNames[routingMethod as keyof typeof strategyNames] || 'Fastest Ping';
+    const currentStrategyElement = document.getElementById('currentStrategy');
+    if (currentStrategyElement) {
+      currentStrategyElement.textContent = strategyName;
+    }
   } catch (error) {
     console.error('Error loading current strategy:', error);
   }
@@ -256,7 +283,7 @@ async function applyTheme() {
 // Listen for system theme changes when auto theme is selected
 window
   .matchMedia('(prefers-color-scheme: dark)')
-  .addEventListener('change', async (_e) => {
+  .addEventListener('change', async () => {
     const { theme } = await chrome.storage.local.get(['theme']);
     if (theme === 'auto') {
       applyTheme();

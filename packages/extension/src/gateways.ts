@@ -1,15 +1,27 @@
 /**
- * WayFinder Gateways
- * Modern gateway management interface
+ * WayFinder
+ * Copyright (C) 2022-2025 Permanent Data Solutions, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
-let allGateways = [];
-let filteredGateways = [];
+let allGateways: any[] = [];
+let filteredGateways: any[] = [];
 let currentFilter = 'all';
 let searchQuery = '';
 
 // Toast notification system (same as settings)
-function showToast(message, type = 'success') {
+function showToast(message: string, type = 'success') {
   const container = document.getElementById('toastContainer');
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
@@ -20,7 +32,7 @@ function showToast(message, type = 'success') {
     </div>
   `;
 
-  container.appendChild(toast);
+  container?.appendChild(toast);
 
   // Auto-remove after 3 seconds
   setTimeout(() => {
@@ -66,7 +78,7 @@ function setupEventHandlers() {
   document.getElementById('closeModal')?.addEventListener('click', closeModal);
 
   // Close modal when clicking outside
-  document.getElementById('gatewayModal')?.addEventListener('click', (e) => {
+  document.getElementById('gatewayModal')?.addEventListener('click', (e: any) => {
     if (e.target.id === 'gatewayModal') {
       closeModal();
     }
@@ -94,7 +106,7 @@ async function loadGateways() {
 
     // Convert to array format with additional data
     allGateways = Object.entries(localGatewayAddressRegistry).map(
-      ([address, gateway]) => ({
+      ([address, gateway]: [string, any]) => ({
         address,
         data: gateway,
         performance: gatewayPerformance[gateway.settings?.fqdn] || {},
@@ -158,7 +170,11 @@ function applyFiltersAndSearch() {
 }
 
 function renderGateways() {
-  const container = document.getElementById('gatewaysList');
+  const container = document.getElementById('gatewaysList')
+
+  if (!container) {
+    return;
+  }
   
   if (allGateways.length === 0) {
     // No gateways at all - show sync message
@@ -179,15 +195,32 @@ function renderGateways() {
       </div>
     `;
     container.style.display = 'grid';
-    document.getElementById('emptyState').style.display = 'none';
-    document.getElementById('loadingState').style.display = 'none';
+
+    const emptyState = document.getElementById('emptyState');
+    const loadingState = document.getElementById('loadingState');
+
+    if (emptyState) {
+      emptyState.style.display = 'none';
+    }
+
+    if (loadingState) {
+      loadingState.style.display = 'none';
+    }
     return;
   }
   
   // Show the gateway list
   container.style.display = 'grid';
-  document.getElementById('emptyState').style.display = 'none';
-  document.getElementById('loadingState').style.display = 'none';
+  const emptyState = document.getElementById('emptyState');
+  const loadingState = document.getElementById('loadingState');
+
+  if (emptyState) {
+    emptyState.style.display = 'none';
+  }
+
+  if (loadingState) {
+    loadingState.style.display = 'none';
+  }
   container.innerHTML = '';
   
   filteredGateways.forEach((gateway) => {
@@ -196,7 +229,7 @@ function renderGateways() {
   });
 }
 
-function createGatewayCard(gateway) {
+function createGatewayCard(gateway: any) {
   const { address, data, performance, isBlacklisted } = gateway;
   const { settings, stats } = data;
   const totalStake = Math.floor(
@@ -271,8 +304,13 @@ function createGatewayCard(gateway) {
   return card;
 }
 
-async function showGatewayDetails(gateway) {
+async function showGatewayDetails(gateway: any) {
   const modal = document.getElementById('gatewayModal');
+
+  if (!modal) {
+    return;
+  }
+
   const { address, data, performance, isBlacklisted } = gateway;
   const { settings } = data;
 
@@ -301,73 +339,82 @@ async function showGatewayDetails(gateway) {
   }
 
   // Update status badge
-  const statusBadge = document.getElementById('modalStatusBadge');
+  const statusBadge = document.getElementById('modalStatusBadge') as HTMLDivElement;
   statusBadge.className = `gateway-status-badge ${statusClass}`;
-  statusBadge.querySelector('span').textContent = statusText;
+  statusBadge.querySelector('span')!.textContent = statusText;
 
   // Populate URL link
-  const urlElement = document.getElementById('modal-gateway-url');
-  const urlSpan = urlElement.querySelector('span');
-  urlSpan.textContent = `${settings.protocol}://${settings.fqdn}`;
+  const urlElement = document.getElementById('modal-gateway-url') as HTMLAnchorElement;
+  const urlSpan = urlElement.querySelector<HTMLSpanElement>('span');
+  urlSpan!.textContent = `${settings.protocol}://${settings.fqdn}`;
   urlElement.href = `${settings.protocol}://${settings.fqdn}:${settings.port}`;
 
   // Populate address link
-  const addressElement = document.getElementById('modal-gateway-wallet');
-  const addressSpan = addressElement.querySelector('span');
-  addressSpan.textContent = `${address.slice(0, 6)}...${address.slice(-4)}`;
+  const addressElement = document.getElementById('modal-gateway-wallet') as HTMLAnchorElement;
+  const addressSpan = addressElement.querySelector<HTMLSpanElement>('span');
+  addressSpan!.textContent = `${address.slice(0, 6)}...${address.slice(-4)}`;
   addressElement.href = `https://viewblock.io/arweave/address/${address}`;
 
   // Populate stake value
   const totalStake = Math.floor(
     ((data.operatorStake || 0) + (data.totalDelegatedStake || 0)) / 1000000,
   );
-  document.getElementById('modal-total-stake').textContent =
+
+  const totalStakeElement = document.getElementById('modal-total-stake') as HTMLSpanElement;
+  totalStakeElement.textContent =
     `${totalStake.toLocaleString()} ARIO`;
 
   // Populate response time
   const avgResponseTime = performance.avgResponseTime;
-  document.getElementById('modal-gateway-avg-response-time').textContent =
+  const avgResponseTimeElement = document.getElementById('modal-gateway-avg-response-time') as HTMLSpanElement;
+  avgResponseTimeElement.textContent =
     avgResponseTime !== undefined ? `${Math.round(avgResponseTime)}ms` : 'N/A';
 
   // Populate join date
-  document.getElementById('modal-start').textContent = new Date(
+  const startElement = document.getElementById('modal-start') as HTMLSpanElement;
+  startElement.textContent = new Date(
     data.startTimestamp,
   ).toLocaleDateString();
 
   // Populate operator note
-  document.getElementById('modal-note').textContent =
+  const noteElement = document.getElementById('modal-note') as HTMLSpanElement;
+  noteElement.textContent =
     settings.note || 'No note provided';
 
   // Update more info link
-  const moreInfoElement = document.getElementById('modal-gateway-more-info');
+  const moreInfoElement = document.getElementById('modal-gateway-more-info') as HTMLAnchorElement;
   moreInfoElement.href = `${settings.protocol}://gateways.${settings.fqdn}:${settings.port}/#/gateways/${address}`;
 
   // Update blacklist button
-  const blacklistButton = document.getElementById('blacklistButton');
-  const blacklistSpan = blacklistButton.querySelector('span');
-  blacklistSpan.textContent = isBlacklisted
+  const blacklistButton = document.getElementById('blacklistButton') as HTMLButtonElement;
+  const blacklistSpan = blacklistButton.querySelector<HTMLSpanElement>('span');
+  blacklistSpan!.textContent = isBlacklisted
     ? 'Unblacklist Gateway'
     : 'Blacklist Gateway';
-  blacklistButton.onclick = () => toggleBlacklist(address);
+  blacklistButton.addEventListener('click', () => toggleBlacklist(address));
 
   // Get usage history for this gateway
   const { gatewayUsageHistory = {} } = await chrome.storage.local.get(['gatewayUsageHistory']);
   const usageData = gatewayUsageHistory[settings.fqdn] || {};
   
   // Update usage metrics
-  document.getElementById('modal-usage-count').textContent = 
+  const usageCountElement = document.getElementById('modal-usage-count') as HTMLSpanElement;
+  usageCountElement.textContent = 
     usageData.requestCount ? usageData.requestCount.toString() : '0';
   
-  document.getElementById('modal-last-used').textContent = 
+  const lastUsedElement = document.getElementById('modal-last-used') as HTMLSpanElement;
+  lastUsedElement.textContent = 
     usageData.lastUsed ? getRelativeTime(new Date(usageData.lastUsed)) : 'Never';
   
   // Calculate request success rate from performance data
   const requestSuccessRate = performance.successCount + performance.failures > 0
     ? Math.round((performance.successCount / (performance.successCount + performance.failures)) * 100)
     : 0;
-  document.getElementById('modal-request-success-rate').textContent = `${requestSuccessRate}%`;
+  const requestSuccessRateElement = document.getElementById('modal-request-success-rate') as HTMLSpanElement;
+  requestSuccessRateElement.textContent = `${requestSuccessRate}%`;
   
-  document.getElementById('modal-failed-requests').textContent = 
+  const failedRequestsElement = document.getElementById('modal-failed-requests') as HTMLSpanElement;
+  failedRequestsElement.textContent = 
     performance.failures ? performance.failures.toString() : '0';
 
   // Update network performance stats
@@ -376,8 +423,16 @@ async function showGatewayDetails(gateway) {
     
     // Display reliability streak
     const streakElement = document.getElementById('modal-current-streak');
-    const streakSpan = streakElement.querySelector('span');
-    
+
+    if (!streakElement) {
+      return;
+    }
+
+    const streakSpan = streakElement.querySelector<HTMLSpanElement>('span');
+
+    if (!streakSpan) {
+      return;
+    }
     if (stats.failedConsecutiveEpochs > 0) {
       // Show failure streak
       streakSpan.innerHTML = `↓ ${stats.failedConsecutiveEpochs}`;
@@ -395,21 +450,28 @@ async function showGatewayDetails(gateway) {
     const successRate = stats.totalEpochCount > 0 
       ? Math.round((stats.passedEpochCount / stats.totalEpochCount) * 100)
       : 0;
-    document.getElementById('modal-epoch-success-rate').textContent = `${successRate}%`;
+    const successRateElement = document.getElementById('modal-epoch-success-rate') as HTMLSpanElement;
+    successRateElement.textContent = `${successRate}%`;
     
     // Total epochs (passed/total)
-    document.getElementById('modal-total-epochs').textContent = 
+    const totalEpochsElement = document.getElementById('modal-total-epochs') as HTMLSpanElement;
+    totalEpochsElement.textContent = 
       `${stats.passedEpochCount}/${stats.totalEpochCount}`;
     
     // Failed epochs  
     const failedEpochs = stats.totalEpochCount - stats.passedEpochCount;
-    document.getElementById('modal-failed-epochs').textContent = failedEpochs;
+    const failedEpochsElement = document.getElementById('modal-failed-epochs') as HTMLSpanElement;
+    failedEpochsElement.textContent = failedEpochs.toString();
   } else {
     // No stats available
-    document.getElementById('modal-current-streak').querySelector('span').textContent = 'No data';
-    document.getElementById('modal-epoch-success-rate').textContent = '--';
-    document.getElementById('modal-total-epochs').textContent = '--';
-    document.getElementById('modal-failed-epochs').textContent = '--';
+    const streakElement = document.getElementById('modal-current-streak') as HTMLSpanElement;
+    streakElement.textContent = 'No data';
+    const successRateElement = document.getElementById('modal-epoch-success-rate') as HTMLSpanElement;
+    successRateElement.textContent = '--';
+    const totalEpochsElement = document.getElementById('modal-total-epochs') as HTMLSpanElement;
+    totalEpochsElement.textContent = '--';
+    const failedEpochsElement = document.getElementById('modal-failed-epochs') as HTMLSpanElement;
+    failedEpochsElement.textContent = '--';
   }
 
   // Setup ping test
@@ -422,10 +484,14 @@ async function showGatewayDetails(gateway) {
 }
 
 function closeModal() {
-  document.getElementById('gatewayModal').style.display = 'none';
+  const modal = document.getElementById('gatewayModal');
+
+  if (modal) {
+    modal.style.display = 'none';
+  }
 }
 
-async function toggleBlacklist(address) {
+async function toggleBlacklist(address: string) {
   try {
     let { blacklistedGateways = [] } = await chrome.storage.local.get([
       'blacklistedGateways',
@@ -433,7 +499,7 @@ async function toggleBlacklist(address) {
 
     if (blacklistedGateways.includes(address)) {
       blacklistedGateways = blacklistedGateways.filter(
-        (addr) => addr !== address,
+        (addr: string) => addr !== address,
       );
       showToast('Gateway removed from blacklist', 'success');
     } else {
@@ -458,12 +524,12 @@ async function toggleBlacklist(address) {
   }
 }
 
-function handleSearch(event) {
+function handleSearch(event: any) {
   searchQuery = event.target.value.trim();
   applyFiltersAndSearch();
 }
 
-function handleFilter(event) {
+function handleFilter(event: any) {
   // Update active filter button
   document
     .querySelectorAll('.filter-btn')
@@ -476,6 +542,11 @@ function handleFilter(event) {
 
 async function syncGateways() {
   const syncBtn = document.getElementById('syncGateways');
+
+  if (!syncBtn) {
+    return;
+  }
+
   const originalContent = syncBtn.innerHTML;
 
   try {
@@ -547,17 +618,25 @@ function updateStats() {
     displayValue = Math.floor(stakeInARIO).toLocaleString();
   }
 
-  document.getElementById('totalGateways').textContent = totalCount;
-  document.getElementById('activeGateways').textContent = activeCount;
-  document.getElementById('healthyGateways').textContent = healthyCount;
-  document.getElementById('networkStake').textContent = displayValue;
+  const totalGatewaysElement = document.getElementById('totalGateways') as HTMLSpanElement;
+  totalGatewaysElement.textContent = totalCount.toString();
+
+  const activeGatewaysElement = document.getElementById('activeGateways') as HTMLSpanElement;
+  activeGatewaysElement.textContent = activeCount.toString();
+
+  const healthyGatewaysElement = document.getElementById('healthyGateways') as HTMLSpanElement;
+  healthyGatewaysElement.textContent = healthyCount.toString();
+
+  const networkStakeElement = document.getElementById('networkStake') as HTMLSpanElement;
+  networkStakeElement.textContent = displayValue;
 }
 
 async function updateLastSyncTime() {
   try {
     const { lastSyncTime } = await chrome.storage.local.get(['lastSyncTime']);
     if (lastSyncTime) {
-      document.getElementById('lastSyncTime').textContent = new Date(
+      const lastSyncTimeElement = document.getElementById('lastSyncTime') as HTMLSpanElement;
+      lastSyncTimeElement.textContent = new Date(
         lastSyncTime,
       ).toLocaleString();
     }
@@ -567,20 +646,47 @@ async function updateLastSyncTime() {
 }
 
 function showLoadingState() {
-  document.getElementById('loadingState').style.display = 'flex';
-  document.getElementById('gatewaysList').style.display = 'none';
-  document.getElementById('emptyState').style.display = 'none';
+  const loadingState = document.getElementById('loadingState');
+  const gatewaysList = document.getElementById('gatewaysList');
+  const emptyState = document.getElementById('emptyState');
+
+  if (loadingState) {
+    loadingState.style.display = 'flex';
+  }
+  if (gatewaysList) {
+    gatewaysList.style.display = 'none';
+  }
+  if (emptyState) {
+    emptyState.style.display = 'none';
+  }
 }
 
 function hideLoadingState() {
-  document.getElementById('loadingState').style.display = 'none';
-  document.getElementById('gatewaysList').style.display = 'block';
+  const loadingState = document.getElementById('loadingState');
+  const gatewaysList = document.getElementById('gatewaysList');
+
+  if (loadingState) {
+    loadingState.style.display = 'none';
+  }
+  if (gatewaysList) {
+    gatewaysList.style.display = 'block';
+  }
 }
 
 function showEmptyState() {
-  document.getElementById('emptyState').style.display = 'flex';
-  document.getElementById('gatewaysList').style.display = 'none';
-  document.getElementById('loadingState').style.display = 'none';
+  const emptyState = document.getElementById('emptyState');
+  const gatewaysList = document.getElementById('gatewaysList');
+  const loadingState = document.getElementById('loadingState');
+
+  if (emptyState) {
+    emptyState.style.display = 'flex';
+  }
+  if (gatewaysList) {
+    gatewaysList.style.display = 'none';
+  }
+  if (loadingState) {
+    loadingState.style.display = 'none';
+  }
 }
 
 async function setExtensionVersion() {
@@ -596,7 +702,7 @@ async function setExtensionVersion() {
 }
 
 // Helper function for relative time display
-function getRelativeTime(date) {
+function getRelativeTime(date: number) {
   const diff = Date.now() - date;
   const minutes = Math.floor(diff / 60000);
   const hours = Math.floor(diff / 3600000);
@@ -606,7 +712,7 @@ function getRelativeTime(date) {
   if (minutes < 60) return `${minutes}m ago`;
   if (hours < 24) return `${hours}h ago`;
   if (days < 30) return `${days}d ago`;
-  return date.toLocaleDateString();
+  return new Date(date).toLocaleDateString();
 }
 
 // Initialize last sync time on load
@@ -616,33 +722,42 @@ updateLastSyncTime();
 checkForHighlightGateway();
 
 // Ping test functionality
-function setupPingTest(gateway) {
-  const pingButton = document.getElementById('pingTestButton');
-  const pingResults = document.getElementById('pingResults');
-  const pingLoading = document.getElementById('pingLoading');
+function setupPingTest(gateway: any) {
+  const pingButton = document.getElementById('pingTestButton') as HTMLButtonElement;
+  const pingResults = document.getElementById('pingResults') as HTMLDivElement;
+  const pingLoading = document.getElementById('pingLoading') as HTMLDivElement;
+
+  if (!pingButton || !pingResults || !pingLoading) {
+    return;
+  }
 
   // Reset display
   pingResults.style.display = 'none';
   pingLoading.style.display = 'none';
   pingButton.disabled = false;
   pingButton.classList.remove('testing');
-  pingButton.querySelector('span').textContent = 'Run Test';
+  pingButton.querySelector<HTMLSpanElement>('span')!.textContent = 'Run Test';
 
-  pingButton.onclick = async () => {
+  pingButton.addEventListener('click', async () => {
     await runPingTest(gateway);
-  };
+  });
 }
 
-async function runPingTest(gateway) {
-  const pingButton = document.getElementById('pingTestButton');
-  const pingResults = document.getElementById('pingResults');
-  const pingLoading = document.getElementById('pingLoading');
+async function runPingTest(gateway: any) {
+  const pingButton = document.getElementById('pingTestButton') as HTMLButtonElement;
+  const pingResults = document.getElementById('pingResults') as HTMLDivElement;
+  const pingLoading = document.getElementById('pingLoading') as HTMLDivElement;
+
+  if (!pingButton || !pingResults || !pingLoading) {
+    return;
+  }
+
   const { settings } = gateway.data;
 
   // Update UI state
   pingButton.disabled = true;
   pingButton.classList.add('testing');
-  pingButton.querySelector('span').textContent = 'Testing...';
+  pingButton.querySelector<HTMLSpanElement>('span')!.textContent = 'Testing...';
   pingResults.style.display = 'none';
   pingLoading.style.display = 'flex';
 
@@ -658,8 +773,13 @@ async function runPingTest(gateway) {
     const responseTime = endTime - startTime;
 
     // Update response time
-    const responseTimeEl = document.getElementById('pingResponseTime');
+    const responseTimeEl = document.getElementById('pingResponseTime') as HTMLSpanElement;
     responseTimeEl.textContent = `${Math.round(responseTime)}ms`;
+
+    if (!responseTimeEl) {
+      return;
+    }
+
     if (responseTime < 200) {
       responseTimeEl.className = 'ping-result-value good';
     } else if (responseTime < 1000) {
@@ -669,8 +789,8 @@ async function runPingTest(gateway) {
     }
 
     // Update status code
-    const statusCodeEl = document.getElementById('pingStatusCode');
-    statusCodeEl.textContent = response.status;
+    const statusCodeEl = document.getElementById('pingStatusCode') as HTMLSpanElement;
+    statusCodeEl.textContent = response.status.toString();
     statusCodeEl.className = response.ok
       ? 'ping-result-value good'
       : 'ping-result-value bad';
@@ -693,7 +813,7 @@ async function runPingTest(gateway) {
                             info.supportedManifestVersions.length > 0;
         
         // Check for ANS-104 configuration
-        const hasANS104Config = 'ans104UnbundleFilter' in info && 'ans104IndexFilter' in info;
+        // const hasANS104Config = 'ans104UnbundleFilter' in info && 'ans104IndexFilter' in info;
         
         if (hasWallet && hasProcessId && hasRelease && hasManifests) {
           healthStatus = 'Healthy';
@@ -715,37 +835,46 @@ async function runPingTest(gateway) {
     }
 
     const healthCheckEl = document.getElementById('pingHealthCheck');
+
+    if (!healthCheckEl) {
+      return;
+    }
+
     healthCheckEl.textContent = healthStatus;
     healthCheckEl.className = healthClass;
-  } catch (_error) {
+  } catch {
     // Handle errors
-    document.getElementById('pingResponseTime').textContent = 'Timeout';
-    document.getElementById('pingResponseTime').className =
-      'ping-result-value bad';
-    document.getElementById('pingStatusCode').textContent = 'Failed';
-    document.getElementById('pingStatusCode').className =
-      'ping-result-value bad';
-    document.getElementById('pingHealthCheck').textContent = 'Offline';
-    document.getElementById('pingHealthCheck').className =
-      'ping-result-value bad';
+    const responseTimeEl = document.getElementById('pingResponseTime') as HTMLSpanElement;
+    responseTimeEl.textContent = 'Timeout';
+    responseTimeEl.className = 'ping-result-value bad';
+    const statusCodeEl = document.getElementById('pingStatusCode') as HTMLSpanElement;
+    statusCodeEl.textContent = 'Failed';
+    statusCodeEl.className = 'ping-result-value bad';
+    const healthCheckEl = document.getElementById('pingHealthCheck') as HTMLSpanElement;
+    healthCheckEl.textContent = 'Offline';
+    healthCheckEl.className = 'ping-result-value bad';
   } finally {
     // Show results
     pingLoading.style.display = 'none';
     pingResults.style.display = 'block';
     pingButton.disabled = false;
     pingButton.classList.remove('testing');
-    pingButton.querySelector('span').textContent = 'Run Again';
+    pingButton.querySelector<HTMLSpanElement>('span')!.textContent = 'Run Again';
   }
 }
 
 // Gateway information functionality
-async function loadGatewayInfo(gateway) {
+async function loadGatewayInfo(gateway: any) {
   const { settings } = gateway.data;
+
+  if (!settings) {
+    return;
+  }
 
   try {
     // Calculate uptime (time since join)
-    const startDate = new Date(gateway.data.startTimestamp);
-    const now = new Date();
+    const startDate = new Date(gateway.data.startTimestamp).getTime();
+    const now = Date.now();
     const uptimeDays = Math.floor((now - startDate) / (1000 * 60 * 60 * 24));
 
     let uptimeText;
@@ -793,9 +922,14 @@ async function checkForHighlightGateway() {
         showGatewayDetails(targetGateway);
       } else {
         // Just highlight the card
-        const gatewayCards = document.querySelectorAll('.gateway-card');
-        for (const card of gatewayCards) {
-          const gatewayUrl = card.querySelector('.gateway-url');
+        const gatewayCards = document.querySelectorAll<HTMLDivElement>('.gateway-card');
+        for (const card of Array.from(gatewayCards)) {
+          const gatewayUrl = card.querySelector<HTMLSpanElement>('.gateway-url');
+
+          if (!gatewayUrl) {
+            continue;
+          }
+
           if (gatewayUrl && gatewayUrl.textContent === highlightGateway) {
             card.style.border = '2px solid var(--accent-primary)';
             card.style.background = 'var(--bg-tertiary)';

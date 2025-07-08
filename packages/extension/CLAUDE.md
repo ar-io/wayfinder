@@ -25,11 +25,11 @@ WayFinder Extension is a Chrome extension that intercepts ar:// URLs and routes 
    - Handles ENS and ArNS name resolution
    - Thread-safe initialization with promise tracking
 
-4. **UI Pages (Vanilla JavaScript)**
-   - `popup.js` - Extension popup with stats
-   - `settings.js` - Configuration management
-   - `gateways.js` - Gateway list and blacklist management
-   - `performance.js` - Usage analytics and metrics
+4. **UI Pages**
+   - `popup.ts` - Extension popup with stats
+   - `settings.ts` - Configuration management
+   - `gateways.ts` - Gateway list and blacklist management
+   - `performance.ts` - Usage analytics and metrics
 
 ### Data Flow
 
