@@ -142,10 +142,10 @@ function setupEventHandlers() {
   // Verification mode handlers removed - no longer used
 
   // Switches
+  // Verification toasts for remote verification status
   document
-    .getElementById('showVerificationIndicators')
-    ?.addEventListener('change', saveVerificationIndicators);
-  // Removed showVerificationToasts - digest verification has been removed
+    .getElementById('showVerificationToasts')
+    ?.addEventListener('change', saveVerificationToasts);
   document
     .getElementById('ensResolution')
     ?.addEventListener('change', saveEnsResolution);
@@ -245,6 +245,7 @@ async function loadCurrentSettings() {
       'gatewayCacheTTL',
       'advancedSettingsExpanded',
       'telemetryEnabled',
+      'showVerificationToasts',
     ]);
 
     // Load static gateway URL if set
@@ -288,6 +289,13 @@ async function loadCurrentSettings() {
     const ensEl = document.getElementById('ensResolution');
     if (ensEl) {
       ensEl.checked = ensEnabled;
+    }
+
+    // Load verification toast setting
+    const showToasts = settings.showVerificationToasts !== false; // Default to true
+    const toastsEl = document.getElementById('showVerificationToasts');
+    if (toastsEl) {
+      toastsEl.checked = showToasts;
     }
 
     // Load theme
@@ -756,7 +764,12 @@ async function validateStaticGateway() {
 
 // Removed: saveVerificationIndicators - verification features removed
 
-// Removed saveVerificationToasts - digest verification has been removed
+// Save verification toasts preference
+async function saveVerificationToasts(event) {
+  const enabled = event.target.checked;
+  await chrome.storage.local.set({ showVerificationToasts: enabled });
+  showToast(`Verification notifications ${enabled ? 'enabled' : 'disabled'}`, 'success');
+}
 
 async function saveEnsResolution(event) {
   const enabled = event.target.checked;

@@ -194,8 +194,6 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
     // Log handled at end of function
   }
 
-  // Creating Wayfinder instance
-
   // Create Wayfinder instance
   const wayfinderConfig = {
     logger,
@@ -203,7 +201,7 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
     routingSettings: {
       strategy: routingStrategy,
       events: {
-        onRoutingSucceeded: (_event: any) => {
+        onRoutingSucceeded: () => {
           // Gateway selected
         },
       },
@@ -428,7 +426,7 @@ export async function getRoutableGatewayUrl(arUrl: string): Promise<{
         // error: userFriendlyMessage, // Include error message for UI display
       };
     } catch (_fallbackError) {
-      logger.error("[CRITICAL] Fallback failed");
+      logger.error("[CRITICAL] Fallback failed: ", _fallbackError);
       throw new Error(userFriendlyMessage);
     }
   }

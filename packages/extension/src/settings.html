@@ -217,8 +217,6 @@
         </section>
 
 
-
-
         <!-- Network Configuration -->
         <section class="settings-section network-config" id="networkConfig">
           <div class="section-header">
@@ -252,6 +250,70 @@
               <div class="option-input">
                 <input type="url" id="aoCuUrl" placeholder="Enter AO Compute Unit URL..." />
                 <button class="test-button" id="testAoCuUrl" disabled>Test</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Advanced Settings -->
+        <section class="settings-section advanced-config" id="advancedSettings">
+          <div class="section-header">
+            <h2>Advanced Settings</h2>
+            <p>Additional configuration options</p>
+          </div>
+          
+          <div class="advanced-options">
+            <!-- Verification Toasts -->
+            <div class="advanced-option">
+              <div class="option-header">
+                <div class="option-info">
+                  <h3>Verification Toasts</h3>
+                  <p>Show toast notifications when content is remotely verified</p>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="showVerificationToasts" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="option-description">
+                <p>When enabled, displays brief notifications when content has been remotely verified by AR.IO gateways. Helps you identify verified content while browsing.</p>
+              </div>
+            </div>
+
+            <!-- Telemetry -->
+            <div class="advanced-option">
+              <div class="option-header">
+                <div class="option-info">
+                  <h3>Anonymous Telemetry</h3>
+                  <p>Help improve Wayfinder by sharing anonymous usage data</p>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="telemetryToggle">
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="option-description" id="telemetryDetails">
+                <p>When enabled, 10% of routing requests will include anonymous performance metrics to help improve gateway selection algorithms. No personal data or browsing history is collected.</p>
+                <div class="telemetry-info">
+                  <div class="info-item">
+                    <svg width="14" height="14" viewBox="0 0 36 36" fill="none">
+                      <path d="M27 13.5L15 25.5L9 19.5" stroke="var(--colors-success-successHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>Completely anonymous</span>
+                  </div>
+                  <div class="info-item">
+                    <svg width="14" height="14" viewBox="0 0 36 36" fill="none">
+                      <path d="M27 13.5L15 25.5L9 19.5" stroke="var(--colors-success-successHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>10% sample rate only</span>
+                  </div>
+                  <div class="info-item">
+                    <svg width="14" height="14" viewBox="0 0 36 36" fill="none">
+                      <path d="M27 13.5L15 25.5L9 19.5" stroke="var(--colors-success-successHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>Improves routing performance</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

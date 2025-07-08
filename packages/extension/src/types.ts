@@ -31,3 +31,16 @@ export type RedirectedTabInfo = {
 };
 
 export type GatewayRegistry = Record<string, AoGatewayWithAddress>;
+
+export type VerificationCacheEntry = {
+  verified: boolean;
+  timestamp: number;
+  gatewayFQDN: string;
+};
+
+export type VerificationMessage = {
+  type: 'showVerificationToast';
+  verified: boolean;
+  gatewayFQDN: string;
+  resolvedId?: string;
+};

@@ -14,36 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { logger } from "./utils/logger";
-// Legacy imports removed - using ChromeStorageGatewayProvider instead
-
-export async function backgroundGatewayBenchmarking() {
-  logger.debug(
-    "Running Gateway benchmark (deprecated - handled by core library)"
-  );
-
-  // This function is being phased out in favor of the Wayfinder core library's
-  // built-in performance tracking and gateway selection algorithms.
-  // Keeping for compatibility but functionality moved to ChromeStorageGatewayProvider
-
-  logger.debug("Gateway benchmark completed (using core library)");
-}
-
-/**
- * Runs a **background validation** for **top performing gateways** instead of a single cached one.
- * - If they are too slow, marks them as stale.
- */
-export async function backgroundValidateCachedGateway() {
-  logger.debug(
-    "Running background gateway validation (deprecated - handled by core library)"
-  );
-
-  // This function is being phased out in favor of the Wayfinder core library's
-  // built-in performance validation and gateway health monitoring.
-
-  logger.debug("Background validation completed (using core library)");
-}
-
 /**
  * Checks if a hostname belongs to a known AR.IO gateway.
  */
@@ -157,10 +127,4 @@ export async function normalizeGatewayFQDN(fqdn: string): Promise<string> {
   // Unknown gateway fallback
   // logger.warn(`Unknown gateway encountered: ${fqdn}`);
   return fqdn;
-}
-
-export function isBase64URL(address: string): boolean {
-  const trimmedBase64URL = address.toString().trim();
-  const BASE_64_REXEX = new RegExp("^[a-zA-Z0-9-_s+]{43}$");
-  return BASE_64_REXEX.test(trimmedBase64URL);
 }

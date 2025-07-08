@@ -44,6 +44,132 @@ function withTimeout<T>(
 }
 
 
+// Toast container for verification messages
+let toastContainer: HTMLDivElement | null = null;
+
+/**
+ * Create or get the toast container
+ */
+function getToastContainer(): HTMLDivElement {
+  if (!toastContainer || !document.body.contains(toastContainer)) {
+    toastContainer = document.createElement('div');
+    toastContainer.id = 'wayfinder-toast-container';
+    toastContainer.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 2147483647;
+      pointer-events: none;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    `;
+    document.body.appendChild(toastContainer);
+  }
+  return toastContainer;
+}
+
+/**
+ * Show verification toast
+ */
+function showVerificationToast(verified: boolean, gatewayFQDN: string, resolvedId?: string) {
+  const container = getToastContainer();
+  
+  // Create toast element
+  const toast = document.createElement('div');
+  toast.className = 'wayfinder-verification-toast';
+  
+  // Since we only show verified toasts, use green styling
+  const bgColor = '#10b981';
+  const textColor = '#ffffff';
+  const icon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
+  
+  const message = `Remotely verified by ${gatewayFQDN}`;
+  
+  toast.style.cssText = `
+    background-color: ${bgColor};
+    color: ${textColor};
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    max-width: 350px;
+    font-size: 14px;
+    line-height: 1.5;
+    pointer-events: auto;
+    animation: wayfinder-slide-in 0.3s ease-out;
+    cursor: pointer;
+  `;
+  
+  toast.innerHTML = `
+    <div style="flex-shrink: 0;">${icon}</div>
+    <div style="flex: 1;">
+      <div style="font-weight: 500;">${message}</div>
+      ${resolvedId ? `<div style="font-size: 12px; opacity: 0.9; margin-top: 2px;">ID: ${resolvedId.substring(0, 8)}...</div>` : ''}
+    </div>
+    <a href="https://docs.ar.io/guides/wayfinder" target="_blank" rel="noopener" style="color: ${textColor}; opacity: 0.8; text-decoration: none; flex-shrink: 0;" title="Learn more about AR.IO verification">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    </a>
+  `;
+  
+  // Add click to dismiss
+  toast.addEventListener('click', (e) => {
+    if ((e.target as HTMLElement).tagName !== 'A') {
+      toast.style.animation = 'wayfinder-slide-out 0.3s ease-in forwards';
+      setTimeout(() => toast.remove(), 300);
+    }
+  });
+  
+  container.appendChild(toast);
+  
+  // Auto-dismiss after 4 seconds
+  setTimeout(() => {
+    if (toast.parentNode) {
+      toast.style.animation = 'wayfinder-slide-out 0.3s ease-in forwards';
+      setTimeout(() => toast.remove(), 300);
+    }
+  }, 4000);
+}
+
+// Add CSS animations
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes wayfinder-slide-in {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+  
+  @keyframes wayfinder-slide-out {
+    from {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    to {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+  }
+  
+  .wayfinder-verification-toast a:hover {
+    opacity: 1 !important;
+  }
+`;
+document.head.appendChild(style);
+
+// Listen for verification messages from background script
+chrome.runtime.onMessage.addListener((message) => {
+  if (message.type === 'showVerificationToast') {
+    showVerificationToast(message.verified, message.gatewayFQDN, message.resolvedId);
+  }
+});
+
 // Content script initialization
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', afterContentDOMLoaded);
@@ -80,7 +206,7 @@ async function processArUrl(
 
     // Set the converted URL
     (element as any)[attribute] = convertResponse.url;
-  } catch (error) {
+  } catch (error: any) {
     logger.error(
       `[CONTENT] Failed to process ${arUrl}:`,
       error.message || error,

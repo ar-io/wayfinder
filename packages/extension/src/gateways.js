@@ -245,7 +245,10 @@ function createGatewayCard(gateway) {
   card.innerHTML = `
     <div class="gateway-header">
       <div class="gateway-url">${settings?.fqdn || 'Unknown'}</div>
-      ${statusBadge}
+      <div class="gateway-badges">
+        ${statusBadge}
+        ${streakBadge}
+      </div>
     </div>
     
     <div class="gateway-info">
@@ -260,7 +263,6 @@ function createGatewayCard(gateway) {
         </div>
       </div>
     </div>
-    ${streakBadge}
   `;
 
   card.addEventListener('click', () => showGatewayDetails(gateway));
@@ -376,9 +378,9 @@ async function showGatewayDetails(gateway) {
       : 0;
     document.getElementById('modal-epoch-success-rate').textContent = `${successRate}%`;
     
-    // Total epochs
+    // Total epochs (passed/total)
     document.getElementById('modal-total-epochs').textContent = 
-      `${stats.submittedEpochCount}/${stats.totalEpochCount}`;
+      `${stats.passedEpochCount}/${stats.totalEpochCount}`;
     
     // Failed epochs  
     const failedEpochs = stats.totalEpochCount - stats.passedEpochCount;
@@ -693,21 +695,6 @@ async function loadGatewayInfo(gateway) {
   const { settings } = gateway.data;
 
   try {
-    // Show gateway FQDN instead of "Resolving..."
-    document.getElementById('gatewayIP').textContent = settings.fqdn;
-
-    // Show protocol and port information
-    let location = `${settings.protocol.toUpperCase()} Port ${settings.port}`;
-    
-    // Add any additional properties if available
-    if (gateway.data.settings.properties) {
-      const props = gateway.data.settings.properties;
-      if (props.provider) {
-        location += ` (${props.provider})`;
-      }
-    }
-    document.getElementById('gatewayLocation').textContent = location;
-
     // Calculate uptime (time since join)
     const startDate = new Date(gateway.data.startTimestamp);
     const now = new Date();
@@ -724,12 +711,16 @@ async function loadGatewayInfo(gateway) {
       uptimeText = `${uptimeDays} day${uptimeDays !== 1 ? 's' : ''}`;
     }
 
-    document.getElementById('gatewayUptime').textContent = uptimeText;
+    const uptimeElement = document.getElementById('gatewayUptime');
+    if (uptimeElement) {
+      uptimeElement.textContent = uptimeText;
+    }
   } catch (error) {
     console.error('Error loading gateway info:', error);
-    document.getElementById('gatewayLocation').textContent = 'Not available';
-    document.getElementById('gatewayIP').textContent = settings.fqdn || 'Unknown';
-    document.getElementById('gatewayUptime').textContent = 'Unknown';
+    const uptimeElement = document.getElementById('gatewayUptime');
+    if (uptimeElement) {
+      uptimeElement.textContent = 'Unknown';
+    }
   }
 }
 

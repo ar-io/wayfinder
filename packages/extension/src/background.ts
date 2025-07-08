@@ -18,7 +18,7 @@
 import { AOProcess, ARIO, AoGateway, WalletAddress } from '@ar.io/sdk/web';
 import { connect } from '@permaweb/aoconnect';
 import { ChromeStorageGatewayProvider } from './adapters/chrome-storage-gateway-provider';
-import { EXTENSION_DEFAULTS, WAYFINDER_DEFAULTS } from './config/defaults';
+import { EXTENSION_DEFAULTS } from './config/defaults';
 import { ARIO_MAINNET_PROCESS_ID, DEFAULT_AO_CU_URL } from './constants';
 import {
   isKnownGateway,
@@ -27,10 +27,9 @@ import {
 } from './helpers';
 import {
   getRoutableGatewayUrl,
-  getWayfinderInstance,
   resetWayfinderInstance,
 } from './routing';
-import { RedirectedTabInfo } from './types';
+import { RedirectedTabInfo, VerificationCacheEntry } from './types';
 import { circuitBreaker } from './utils/circuit-breaker';
 import {
   createErrorResponse,
@@ -85,6 +84,78 @@ class TabStateManager {
 // Global variables
 const tabStateManager = new TabStateManager();
 const requestTimings = new Map<string, number>();
+
+// Verification toast cache
+const verificationCache = new Map<string, VerificationCacheEntry>();
+const VERIFICATION_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+const MAX_VERIFICATION_CACHE_SIZE = 1000;
+
+// Clean up old verification cache entries periodically
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of verificationCache.entries()) {
+    if (now - entry.timestamp > VERIFICATION_CACHE_TTL) {
+      verificationCache.delete(key);
+    }
+  }
+}, 5 * 60 * 1000); // Clean every 5 minutes
+
+// Helper function to generate cache key
+function getVerificationCacheKey(hostname: string, resolvedId?: string): string {
+  return `${hostname}:${resolvedId || 'direct'}`;
+}
+
+// Helper function to check if we should show verification toast
+async function shouldShowVerificationToast(
+  hostname: string,
+  resolvedId: string | undefined,
+  verified: boolean,
+  gatewayFQDN: string,
+): Promise<boolean> {
+  // Check if user has disabled verification toasts
+  const { showVerificationToasts = true } = await chrome.storage.local.get([
+    'showVerificationToasts',
+  ]);
+  
+  if (!showVerificationToasts) {
+    return false;
+  }
+
+  const cacheKey = getVerificationCacheKey(hostname, resolvedId);
+  const cachedEntry = verificationCache.get(cacheKey);
+  
+  // If no cache entry, always show
+  if (!cachedEntry) {
+    // Add to cache
+    verificationCache.set(cacheKey, {
+      verified,
+      timestamp: Date.now(),
+      gatewayFQDN,
+    });
+    
+    // Enforce cache size limit
+    if (verificationCache.size > MAX_VERIFICATION_CACHE_SIZE) {
+      const firstKey = verificationCache.keys().next().value;
+      if (firstKey !== undefined) {
+        verificationCache.delete(firstKey);
+      }
+    }
+    
+    return true;
+  }
+  
+  // Check if verification status changed
+  if (cachedEntry.verified !== verified) {
+    // Update cache
+    cachedEntry.verified = verified;
+    cachedEntry.timestamp = Date.now();
+    cachedEntry.gatewayFQDN = gatewayFQDN;
+    return true;
+  }
+  
+  // Same verification status - don't show
+  return false;
+}
 
 // Initializing Wayfinder Extension
 
@@ -176,11 +247,12 @@ let arIO = ARIO.init({
       EXTENSION_DEFAULTS.localGatewayAddressRegistry;
 
   // Only set these if they don't exist in storage
-  const { routingMethod, blacklistedGateways, ensResolutionEnabled } =
+  const { routingMethod, blacklistedGateways, ensResolutionEnabled, showVerificationToasts } =
     await chrome.storage.local.get([
       'routingMethod',
       'blacklistedGateways',
       'ensResolutionEnabled',
+      'showVerificationToasts',
     ]);
 
   if (routingMethod === undefined)
@@ -189,6 +261,8 @@ let arIO = ARIO.init({
     updates.blacklistedGateways = EXTENSION_DEFAULTS.blacklistedGateways;
   if (ensResolutionEnabled === undefined)
     updates.ensResolutionEnabled = EXTENSION_DEFAULTS.ensResolutionEnabled;
+  if (showVerificationToasts === undefined)
+    updates.showVerificationToasts = EXTENSION_DEFAULTS.showVerificationToasts;
   // Removed verificationStrict - no longer used
 
   await chrome.storage.local.set(updates);
@@ -284,7 +358,6 @@ chrome.webNavigation.onBeforeNavigate.addListener(
           expectedSandboxRedirect: /^[a-z0-9_-]{43}$/i.test(arUrl.slice(5)),
           startTime,
           arUrl,
-          verification: result.verification, // Add verification info
         });
 
         // Navigate to the gateway URL directly
@@ -458,9 +531,27 @@ chrome.webNavigation.onBeforeNavigate.addListener(
 /**
  * Clean up tab state when tabs are closed
  */
-chrome.tabs.onRemoved.addListener((tabId) => {
+chrome.tabs.onRemoved.addListener(async (tabId) => {
   if (tabStateManager.delete(tabId)) {
     // Cleaned up tab state
+  }
+  
+  // Also clean up verification cache entries for this tab
+  try {
+    const tab = await chrome.tabs.get(tabId);
+    if (tab?.url) {
+      const url = new URL(tab.url);
+      const hostname = url.hostname;
+      
+      // Remove all cache entries for this hostname
+      for (const key of verificationCache.keys()) {
+        if (key.startsWith(`${hostname}:`)) {
+          verificationCache.delete(key);
+        }
+      }
+    }
+  } catch {
+    // Tab already closed, ignore
   }
 });
 
@@ -505,197 +596,75 @@ chrome.webRequest.onCompleted.addListener(
   { urls: ['<all_urls>'] },
 );
 
-// Removed getHeaderValue function - unused
 
-/**
- * Capture verification status from gateway response headers
- * Note: Cannot use blocking mode without enterprise deployment
- */
 chrome.webRequest.onHeadersReceived.addListener(
-  async (details) => {
-    // Check if this request is from the viewer iframe
-    if (
-      details.initiator?.startsWith('chrome-extension://') &&
-      details.url.includes('viewer.html')
-    ) {
-      // This is a request from within the viewer page itself, skip
-      return;
-    }
-
-    // Check if request is initiated from viewer.html iframe
-    if (details.tabId !== -1) {
+  (details) => {
+    
+    // Check for verification header on ALL gateway requests - handle async without blocking
+    (async () => {
       try {
-        const tab = await chrome.tabs.get(details.tabId);
-        if (tab.url?.includes('viewer.html')) {
-          // This is a resource request from viewer iframe
-          await handleViewerResourceRequest(details);
-        }
-      } catch (_error) {
-        // Tab might not exist anymore
-      }
-    }
-    const tabInfo = tabStateManager.get(details.tabId);
-
-    if (tabInfo && tabInfo.arUrl) {
-      // Parse response headers
-      let arnsResolvedId: string | null = null;
-      let dataId: string | null = null;
-      let digest: string | null = null;
-
-      for (const header of details.responseHeaders || []) {
-        const headerName = header.name.toLowerCase();
-        const headerValue = header.value || '';
-
-        switch (headerName) {
-          case 'x-ar-io-digest':
-            digest = headerValue;
-            break;
-          case 'x-arns-resolved-id':
-            arnsResolvedId = headerValue;
-            // ArNS resolved
-            break;
-          case 'x-ar-io-data-id':
-            dataId = headerValue;
-            break;
-        }
-      }
-
-      // Detect manifest using your insight: different resolved vs data IDs indicates manifest
-      let manifestData = null;
-      if (arnsResolvedId && dataId && arnsResolvedId !== dataId) {
-        logger.info(
-          `[MANIFEST-DETECT] Manifest detected! Resolved ID: ${arnsResolvedId}, Data ID: ${dataId}`,
-        );
+        const url = new URL(details.url);
+        const hostname = url.hostname;
         
-        // Get the routed gateway URL from tab state for manifest fetching
-        try {
-          const tabInfo = tabStateManager.get(details.tabId);
-          let gatewayUrl = tabInfo?.gatewayUrl;
+        // Check if this is a known gateway
+        const isGateway = await isKnownGateway(hostname);
+        
+        if (isGateway && details.tabId !== -1) {
+        // Parse headers for verification
+        let verified = false;
+        let arnsResolvedId: string | null = null;
+        let dataId: string | null = null;
+        
+        for (const header of details.responseHeaders || []) {
+          const headerName = header.name.toLowerCase();
+          const headerValue = header.value || '';
           
-          // Fallback: if no routed gateway available, extract from wayfinder routing
-          if (!gatewayUrl) {
-            // Try to get gateway from wayfinder routing system
+          switch (headerName) {
+            case 'x-ar-io-verified':
+              verified = headerValue.toLowerCase() === 'true';
+              break;
+            case 'x-arns-resolved-id':
+              arnsResolvedId = headerValue;
+              break;
+            case 'x-ar-io-data-id':
+              dataId = headerValue;
+              break;
+          }
+        }
+        
+        // Use resolved ID if available, otherwise data ID
+        const resolvedId = arnsResolvedId || dataId || undefined;
+        
+        // Only show toast if content is verified
+        if (verified) {
+          // Check if we should show verification toast
+          const shouldShow = await shouldShowVerificationToast(
+            hostname,
+            resolvedId,
+            verified,
+            hostname
+          );
+          
+          if (shouldShow) {
+            // Send message to content script
             try {
-              const wayfinder = getWayfinderInstance();
-              const routedUrl = await getRoutableGatewayUrl(`ar://${arnsResolvedId}`, wayfinder);
-              if (routedUrl) {
-                const urlMatch = routedUrl.match(/^(https?:\/\/[^\/]+)/);
-                gatewayUrl = urlMatch ? urlMatch[1] : null;
-              }
-            } catch (routingError) {
-              logger.warn('[MANIFEST-FETCH] Could not get routed gateway URL:', routingError);
-            }
-          }
-          
-          // Final fallback: use resolved domain (but log the issue)
-          if (!gatewayUrl) {
-            const currentUrl = new URL(details.url);
-            gatewayUrl = `${currentUrl.protocol}//${currentUrl.host}`;
-            logger.warn('[MANIFEST-FETCH] Using resolved ArNS domain as fallback - this may cause issues');
-          }
-          
-          const manifestUrl = `${gatewayUrl}/raw/${arnsResolvedId}`;
-          
-          logger.info(`[MANIFEST-FETCH] Fetching raw manifest from: ${manifestUrl}`);
-          
-          const manifestResponse = await fetch(manifestUrl, {
-            signal: AbortSignal.timeout(10000) // 10 second timeout
-          });
-          
-          if (manifestResponse.ok) {
-            const contentType = manifestResponse.headers.get('content-type') || '';
-            const manifestText = await manifestResponse.text();
-            
-            // Check if response is JSON before parsing
-            if (!contentType.includes('application/json') && !manifestText.trim().startsWith('{')) {
-              logger.warn(`[MANIFEST-FETCH] Unexpected content type: ${contentType}, got HTML or non-JSON response`);
-              logger.debug('[MANIFEST-FETCH] Response preview:', manifestText.substring(0, 200));
-            } else {
-              try {
-                const manifest = JSON.parse(manifestText);
-                
-                if (manifest.manifest === 'arweave/paths' && 
-                    (manifest.version === '0.1.0' || manifest.version === '0.2.0')) {
-                  manifestData = manifest;
-                  logger.info(`[MANIFEST-FETCH] Successfully fetched manifest with ${Object.keys(manifest.paths || {}).length} paths`);
-                } else {
-                  logger.warn('[MANIFEST-FETCH] Invalid manifest format');
-                }
-              } catch (parseError) {
-                logger.error('[MANIFEST-FETCH] Failed to parse manifest JSON:', parseError);
-                logger.debug('[MANIFEST-FETCH] Response preview:', manifestText.substring(0, 200));
-              }
-            }
-          } else {
-            logger.warn(`[MANIFEST-FETCH] Failed to fetch manifest: ${manifestResponse.status}`);
-          }
-        } catch (error) {
-          logger.error('[MANIFEST-FETCH] Error fetching manifest:', error);
-        }
-      } else if (arnsResolvedId && !dataId) {
-        // Fallback: Check if resolved ID points to a manifest when data ID is null
-        logger.info(
-          `[MANIFEST-DETECT-FALLBACK] Checking if resolved ID is manifest: ${arnsResolvedId} (data ID is null)`,
-        );
-        
-        try {
-          const currentUrl = new URL(details.url);
-          const gatewayUrl = `${currentUrl.protocol}//${currentUrl.host}`;
-          const headUrl = `${gatewayUrl}/${arnsResolvedId}`;
-          
-          logger.info(`[MANIFEST-DETECT-FALLBACK] HEAD request to: ${headUrl}`);
-          
-          const headResponse = await fetch(headUrl, {
-            method: 'HEAD',
-            signal: AbortSignal.timeout(5000) // 5 second timeout for HEAD request
-          });
-          
-          if (headResponse.ok) {
-            const contentType = headResponse.headers.get('content-type') || '';
-            logger.info(`[MANIFEST-DETECT-FALLBACK] Content-Type: ${contentType}`);
-            
-            if (contentType.includes('application/x.arweave-manifest+json') || 
-                contentType.includes('application/json')) {
-              // Looks like a manifest, fetch it
-              logger.info(`[MANIFEST-DETECT-FALLBACK] Manifest content-type detected, fetching full manifest`);
-              
-              const manifestUrl = `${gatewayUrl}/raw/${arnsResolvedId}`;
-              const manifestResponse = await fetch(manifestUrl, {
-                signal: AbortSignal.timeout(10000)
+              await chrome.tabs.sendMessage(details.tabId, {
+                type: 'showVerificationToast',
+                verified,
+                gatewayFQDN: hostname,
+                resolvedId,
               });
-              
-              if (manifestResponse.ok) {
-                const manifestText = await manifestResponse.text();
-                
-                try {
-                  const manifest = JSON.parse(manifestText);
-                  
-                  if (manifest.manifest === 'arweave/paths' && 
-                      (manifest.version === '0.1.0' || manifest.version === '0.2.0')) {
-                    manifestData = manifest;
-                    logger.info(`[MANIFEST-DETECT-FALLBACK] Successfully detected and fetched manifest with ${Object.keys(manifest.paths || {}).length} paths`);
-                  } else {
-                    logger.info('[MANIFEST-DETECT-FALLBACK] JSON found but not a valid Arweave manifest');
-                  }
-                } catch (parseError) {
-                  logger.info('[MANIFEST-DETECT-FALLBACK] JSON parse failed, not a manifest');
-                }
-              }
-            } else {
-              logger.info(`[MANIFEST-DETECT-FALLBACK] Not a manifest content-type: ${contentType}`);
+            } catch (error) {
+              // Content script might not be injected yet or tab might be closing
+              logger.debug('Could not send verification toast message:', error);
             }
-          } else {
-            logger.warn(`[MANIFEST-DETECT-FALLBACK] HEAD request failed: ${headResponse.status}`);
           }
-        } catch (error) {
-          logger.error('[MANIFEST-DETECT-FALLBACK] Error in fallback manifest detection:', error);
         }
       }
-
-
-      // Clean up
-      tabStateManager.delete(details.tabId);
+    } catch (error) {
+      logger.error('Error checking verification header:', error);
     }
+    })(); // Execute the async IIFE
   },
   { urls: ['<all_urls>'] },
   ['responseHeaders'],

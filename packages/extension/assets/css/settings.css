@@ -855,6 +855,40 @@ html, body {
   margin-bottom: 0;
 }
 
+.advanced-option .option-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.advanced-option .option-info h3 {
+  font-family: 'Rubik', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--colors-solid-neutrals-100, #ffffff);
+  margin: 0 0 4px 0;
+}
+
+.advanced-option .option-info p {
+  font-family: 'Rubik', sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--colors-text-textHigh, #cacad6);
+  margin: 0;
+}
+
+.advanced-option .option-description {
+  margin-top: 12px;
+  font-family: 'Rubik', sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--colors-text-textMid, #8a8a9e);
+}
+
 .advanced-header {
   padding: 0;
 }
@@ -919,6 +953,31 @@ html, body {
   display: none;
   padding: 0 16px 16px 16px;
   border-top: 1px solid rgba(202, 202, 214, 0.1);
+}
+
+/* Telemetry Info */
+.telemetry-info {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.telemetry-info .info-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Rubik', sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--colors-text-textMid, #8a8a9e);
+}
+
+.telemetry-info .info-item svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
 }
 
 /* Verification Strategy Section */
@@ -2295,5 +2354,67 @@ html, body {
 
 .action-item button {
   flex-shrink: 0;
+}
+
+/* Notification Configuration */
+.notification-config {
+  background: var(--colors-container-containerL0);
+  border: 1px solid var(--colors-stroke-strokeMid);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+}
+
+.notification-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.notification-option {
+  background: var(--colors-container-containerL1);
+  border: 1px solid var(--colors-stroke-strokeLow);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+}
+
+.notification-option .option-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-sm);
+}
+
+.notification-option .option-info {
+  flex: 1;
+}
+
+.notification-option .option-info h3 {
+  font-family: "Rubik", sans-serif;
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--colors-text-textHigh);
+  margin: 0 0 4px 0;
+}
+
+.notification-option .option-info p {
+  font-family: "Rubik", sans-serif;
+  font-weight: 400;
+  font-size: 13px;
+  color: var(--colors-text-textMid);
+  margin: 0;
+}
+
+.notification-option .option-description {
+  margin-top: var(--spacing-sm);
+}
+
+.notification-option .option-description p {
+  font-family: "Rubik", sans-serif;
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--colors-text-textMid);
+  margin: 0;
 }
 

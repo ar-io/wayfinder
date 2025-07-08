@@ -33,6 +33,7 @@ export const EXTENSION_DEFAULTS = {
   routingMethod: 'random',
   blacklistedGateways: [],
   ensResolutionEnabled: true,
+  showVerificationToasts: true,
 
   // Storage & Registry
   localGatewayAddressRegistry: {},
@@ -155,16 +156,6 @@ export const ALL_DEFAULTS = {
   routing: ROUTING_STRATEGY_DEFAULTS,
   performance: PERFORMANCE_DEFAULTS,
 } as const;
-
-/**
- * Helper function to get default values with fallbacks
- */
-export function getDefaultValue<T>(
-  key: keyof typeof ALL_DEFAULTS,
-  fallback?: T,
-): T {
-  return (ALL_DEFAULTS[key] as T) ?? fallback;
-}
 
 /**
  * Helper function to get storage defaults for initialization
