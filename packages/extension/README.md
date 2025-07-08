@@ -13,6 +13,7 @@ The WayFinder Chrome extension intelligently routes users to optimal AR.IO gatew
   - Fastest Ping: Routes to the gateway with the lowest latency
   - Balanced (Random): Distributes load across all available gateways
   - Static: Use a specific gateway of your choice
+- **Healthy Gateway Routing**: Automatically filters out gateways with consecutive failed network epochs
 - **Real-time Performance Tracking**: Monitors gateway response times and success rates
 - **Circuit Breaker Protection**: Temporarily disables failing gateways to ensure reliability
 - **Gateway Registry Sync**: Stays up-to-date with the AR.IO network's gateway registry
@@ -116,9 +117,10 @@ Monitor your usage with:
 
 1. **URL Interception**: When you navigate to an ar:// URL, WayFinder intercepts the request
 2. **Name Resolution**: If needed, resolves ArNS or ENS names to Arweave transaction IDs
-3. **Gateway Selection**: Based on your routing strategy, selects the optimal gateway
-4. **Performance Tracking**: Records response time and success/failure for future routing decisions
-5. **Circuit Breaking**: If a gateway fails multiple times, temporarily removes it from rotation
+3. **Gateway Selection**: Based on your routing strategy, selects the optimal gateway from healthy gateways only
+4. **Healthy Gateway Filtering**: Excludes gateways with consecutive failed network epochs from the routing pool
+5. **Performance Tracking**: Records response time and success/failure for future routing decisions
+6. **Circuit Breaking**: If a gateway fails multiple times, temporarily removes it from rotation
 
 ## Development
 

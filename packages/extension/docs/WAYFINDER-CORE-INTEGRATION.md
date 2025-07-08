@@ -35,7 +35,7 @@ async function getWayfinderInstance(): Promise<Wayfinder> {
 
 ### 2. Gateway Provider Configuration
 
-The extension uses a custom Chrome storage-based gateway provider:
+The extension uses a custom Chrome storage-based gateway provider with healthy gateway filtering:
 
 ```typescript
 class ChromeStorageGatewayProvider implements GatewaysProvider {
@@ -47,9 +47,30 @@ class ChromeStorageGatewayProvider implements GatewaysProvider {
   async getGateways(): Promise<URL[]> {
     // Fetches from localGatewayAddressRegistry
     // Filters out blacklisted gateways
+    // Filters out gateways with consecutive failed epochs
     // Sorts based on configuration
-    // Returns array of gateway URLs
+    // Returns array of healthy gateway URLs
   }
+}
+```
+
+#### Healthy Gateway Filtering
+
+The provider automatically excludes gateways that are experiencing network-level issues:
+
+```typescript
+// Filter out gateways with consecutive failed epochs
+const healthyGateways = gateways.filter(
+  (gateway) => !gateway.stats || gateway.stats.failedConsecutiveEpochs === 0
+);
+
+// If all gateways have failed epochs, use the ones with least failures
+if (healthyGateways.length === 0 && allGateways.length > 0) {
+  const sorted = allGateways.sort((a, b) => 
+    (a.stats?.failedConsecutiveEpochs || 0) - (b.stats?.failedConsecutiveEpochs || 0)
+  );
+  // Take top 5 or 30% of gateways, whichever is larger
+  healthyGateways = sorted.slice(0, Math.max(5, Math.floor(allGateways.length * 0.3)));
 }
 ```
 
@@ -110,6 +131,25 @@ Note: Round Robin strategy has been deprecated and now falls back to Random (Bal
   telemetryEnabled: boolean,
   ensResolutionEnabled: boolean
 }
+```
+
+### Gateway Health Status
+
+The extension tracks gateway health based on AR.IO network epochs:
+
+```typescript
+interface GatewayStats {
+  failedConsecutiveEpochs: number;  // Consecutive failed network epochs
+  passedConsecutiveEpochs: number;  // Consecutive passed network epochs
+  totalEpochCount: number;          // Total epochs participated
+  failedEpochCount: number;         // Total failed epochs
+  // ... other stats
+}
+
+// Gateway health categories:
+// - Healthy: failedConsecutiveEpochs === 0
+// - Unhealthy: failedConsecutiveEpochs > 0
+// - Offline: Circuit breaker triggered or excessive failures
 ```
 
 ### Gateway Performance Tracking
@@ -449,10 +489,11 @@ The extension tracks daily usage statistics:
 
 1. **Thread-Safe Initialization**: Use singleton pattern with promise tracking
 2. **Gateway Caching**: Use TTL-based caching to reduce network requests
-3. **Performance Tracking**: Monitor gateway response times with EMA
-4. **Circuit Breaking**: Temporarily disable failing gateways
-5. **Graceful Degradation**: Always have a fallback gateway
-6. **User Control**: Allow users to override automatic selection
+3. **Healthy Gateway Filtering**: Exclude gateways with consecutive failed epochs
+4. **Performance Tracking**: Monitor gateway response times with EMA
+5. **Circuit Breaking**: Temporarily disable failing gateways
+6. **Graceful Degradation**: Always have a fallback gateway
+7. **User Control**: Allow users to override automatic selection
 
 ## Testing
 
