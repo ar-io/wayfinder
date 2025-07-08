@@ -861,6 +861,21 @@ html, body {
   backdrop-filter: blur(8px);
 }
 
+.modal-header h2 {
+  font-family: 'Rubik', sans-serif;
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 1.4;
+  color: var(--colors-text-textHigh);
+  margin: 0;
+}
+
+.modal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
 .modal-title-section {
   flex: 1;
   display: flex;
@@ -892,11 +907,11 @@ html, body {
 .gateway-status-badge {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 16px;
+  gap: 8px;
+  padding: 6px 12px;
   background: var(--colors-container-containerL2, #1c1c1f);
   border: 1px solid var(--colors-stroke-strokeLow);
-  border-radius: 12px;
+  border-radius: 8px;
   font-family: 'Rubik', sans-serif;
   font-size: 13px;
   font-weight: 600;
