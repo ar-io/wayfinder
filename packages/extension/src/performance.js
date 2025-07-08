@@ -21,10 +21,7 @@ function setupEventHandlers() {
     window.location.href = 'popup.html';
   });
 
-  // Clear history
-  document
-    .getElementById('clearHistory')
-    .addEventListener('click', clearHistory);
+  // Clear history - removed as functionality moved to Settings page
 
   // Time filter buttons
   document.querySelectorAll('.filter-btn').forEach((btn) => {
@@ -515,21 +512,7 @@ async function updatePerformanceStats() {
         ? Math.round((verifiedCount / totalVerificationAttempts) * 100)
         : 0;
 
-    const verifiedTransactionsEl = document.getElementById(
-      'verifiedTransactions',
-    );
-    if (verifiedTransactionsEl) {
-      verifiedTransactionsEl.textContent =
-        verifiedCount > 0 ? verifiedCount : '--';
-    }
-
-    const verificationSuccessRateEl = document.getElementById(
-      'verificationSuccessRate',
-    );
-    if (verificationSuccessRateEl) {
-      verificationSuccessRateEl.textContent =
-        verificationSuccessRate > 0 ? `${verificationSuccessRate}%` : '--';
-    }
+    // Verification stats elements removed - functionality moved elsewhere
   } catch (error) {
     console.error('Error updating performance stats:', error);
   }
