@@ -520,6 +520,12 @@ function updateStats() {
     (g) => g.data.status === 'joined',
   ).length;
 
+  // Calculate healthy gateways - joined gateways with 0 consecutive failed epochs
+  const healthyCount = allGateways.filter((g) => {
+    return g.data.status === 'joined' && 
+           (!g.data.stats || g.data.stats.failedConsecutiveEpochs === 0);
+  }).length;
+
   // Calculate total network stake
   let totalNetworkStake = 0;
   allGateways.forEach((gateway) => {
@@ -543,6 +549,7 @@ function updateStats() {
 
   document.getElementById('totalGateways').textContent = totalCount;
   document.getElementById('activeGateways').textContent = activeCount;
+  document.getElementById('healthyGateways').textContent = healthyCount;
   document.getElementById('networkStake').textContent = displayValue;
 }
 

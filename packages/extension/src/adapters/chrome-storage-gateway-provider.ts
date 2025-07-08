@@ -67,14 +67,40 @@ export class ChromeStorageGatewayProvider {
         blacklistedGateways: string[];
       };
 
-    // Filter out blacklisted and unjoined gateways
-    const filteredGateways = Object.entries(localGatewayAddressRegistry)
+    // Get all joined, non-blacklisted gateways
+    const joinedGateways = Object.entries(localGatewayAddressRegistry)
       .filter(
         ([gatewayAddress, gateway]) =>
           !blacklistedGateways.includes(gatewayAddress) &&
           gateway.status === 'joined',
       )
       .map(([, gateway]) => gateway);
+
+    // First try to filter out gateways with consecutive failed epochs
+    let filteredGateways = joinedGateways.filter(
+      (gateway) => !gateway.stats || gateway.stats.failedConsecutiveEpochs === 0
+    );
+
+    // Log if any gateways were filtered out due to failed epochs
+    const failingGatewaysCount = joinedGateways.length - filteredGateways.length;
+    if (failingGatewaysCount > 0) {
+      console.info(
+        `[ChromeStorageGatewayProvider] Filtered out ${failingGatewaysCount} gateways with consecutive failed epochs`
+      );
+    }
+
+    // If all gateways have failed epochs, use the ones with the least failures
+    if (filteredGateways.length === 0 && joinedGateways.length > 0) {
+      console.warn(
+        '[ChromeStorageGatewayProvider] All gateways have failed epochs, using gateways with least failures'
+      );
+      // Sort by failed epochs and take the best ones
+      filteredGateways = joinedGateways
+        .sort((a, b) => 
+          (a.stats?.failedConsecutiveEpochs || 0) - (b.stats?.failedConsecutiveEpochs || 0)
+        )
+        .slice(0, Math.max(5, Math.floor(joinedGateways.length * 0.3))); // Take top 5 or 30% of gateways
+    }
 
     // Sort gateways based on configuration
     const sortedGateways = filteredGateways.sort((a, b) => {
@@ -152,13 +178,31 @@ export class ChromeStorageGatewayProvider {
       >;
     };
 
-    // Filter and enrich gateways with performance data
-    return Object.entries(localGatewayAddressRegistry)
+    // Get all joined, non-blacklisted gateways
+    const joinedGateways = Object.entries(localGatewayAddressRegistry)
       .filter(
         ([gatewayAddress, gateway]) =>
           !blacklistedGateways.includes(gatewayAddress) &&
           gateway.status === 'joined',
-      )
+      );
+
+    // First try to filter out gateways with consecutive failed epochs
+    let filteredGateways = joinedGateways.filter(
+      ([, gateway]) => !gateway.stats || gateway.stats.failedConsecutiveEpochs === 0
+    );
+
+    // If all gateways have failed epochs, use the ones with the least failures
+    if (filteredGateways.length === 0 && joinedGateways.length > 0) {
+      // Sort by failed epochs and take the best ones
+      filteredGateways = joinedGateways
+        .sort(([, a], [, b]) => 
+          (a.stats?.failedConsecutiveEpochs || 0) - (b.stats?.failedConsecutiveEpochs || 0)
+        )
+        .slice(0, Math.max(5, Math.floor(joinedGateways.length * 0.3)));
+    }
+
+    // Filter and enrich gateways with performance data
+    return filteredGateways
       .map(([, gateway]) => {
         const { protocol, fqdn, port } = gateway.settings;
         const portSuffix =

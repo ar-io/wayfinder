@@ -31,7 +31,7 @@
               </svg>
             </button>
             <div class="header-title">
-              <h1>Gateway Registry</h1>
+              <h1>Gateways</h1>
               <p>View networked gateway details.</p>
             </div>
           </div>
@@ -55,19 +55,25 @@
         <!-- Stats Section -->
         <section class="stats-section">
           <div class="stats-grid">
-            <div class="stat-card">
+            <div class="stat-card" title="All gateways registered in the AR.IO network">
               <div class="stat-content">
                 <div class="stat-value" id="totalGateways">0</div>
                 <div class="stat-label">Total Gateways</div>
               </div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card" title="Gateways currently joined and operational">
               <div class="stat-content">
                 <div class="stat-value" id="activeGateways">0</div>
                 <div class="stat-label">Active Gateways</div>
               </div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card" title="Active gateways with zero consecutive failed network epochs">
+              <div class="stat-content">
+                <div class="stat-value" id="healthyGateways">0</div>
+                <div class="stat-label">Healthy Gateways</div>
+              </div>
+            </div>
+            <div class="stat-card" title="Total ARIO tokens staked across the network">
               <div class="stat-content">
                 <div class="stat-value" id="networkStake">--</div>
                 <div class="stat-label">Network Stake</div>

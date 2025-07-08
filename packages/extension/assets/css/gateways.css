@@ -213,13 +213,14 @@ html, body {
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 18px;
-  width: 384px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  width: 100%;
+  max-width: 600px; /* Increased to accommodate 4 cards */
 }
 
 .stat-card {
-  width: 116px; /* Three cards sharing the width: (384px - 36px gaps) / 3 */
+  min-width: 0; /* Allow cards to shrink to fit */
   height: 89.7px;
   background: var(--bg-secondary);
   border-radius: var(--radius-lg);
