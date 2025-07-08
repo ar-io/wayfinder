@@ -14,21 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { AoGatewayWithAddress } from '@ar.io/sdk';
-import { TOP_ONCHAIN_GATEWAY_LIMIT } from './constants';
-import { logger } from './utils/logger';
+import { logger } from "./utils/logger";
 // Legacy imports removed - using ChromeStorageGatewayProvider instead
 
 export async function backgroundGatewayBenchmarking() {
   logger.debug(
-    'Running Gateway benchmark (deprecated - handled by core library)',
+    "Running Gateway benchmark (deprecated - handled by core library)"
   );
 
   // This function is being phased out in favor of the Wayfinder core library's
   // built-in performance tracking and gateway selection algorithms.
   // Keeping for compatibility but functionality moved to ChromeStorageGatewayProvider
 
-  logger.debug('Gateway benchmark completed (using core library)');
+  logger.debug("Gateway benchmark completed (using core library)");
 }
 
 /**
@@ -37,13 +35,13 @@ export async function backgroundGatewayBenchmarking() {
  */
 export async function backgroundValidateCachedGateway() {
   logger.debug(
-    'Running background gateway validation (deprecated - handled by core library)',
+    "Running background gateway validation (deprecated - handled by core library)"
   );
 
   // This function is being phased out in favor of the Wayfinder core library's
   // built-in performance validation and gateway health monitoring.
 
-  logger.debug('Background validation completed (using core library)');
+  logger.debug("Background validation completed (using core library)");
 }
 
 /**
@@ -53,11 +51,11 @@ export async function isKnownGateway(fqdn: string): Promise<boolean> {
   const normalizedFQDN = await normalizeGatewayFQDN(fqdn);
 
   const { localGatewayAddressRegistry = {} } = await chrome.storage.local.get([
-    'localGatewayAddressRegistry',
+    "localGatewayAddressRegistry",
   ]);
 
   return Object.values(localGatewayAddressRegistry).some(
-    (gw: any) => gw.settings.fqdn === normalizedFQDN,
+    (gw: any) => gw.settings.fqdn === normalizedFQDN
   );
 }
 
@@ -66,13 +64,13 @@ export async function isKnownGateway(fqdn: string): Promise<boolean> {
  */
 export async function updateGatewayPerformance(
   rawFQDN: string, // The full hostname from the request
-  startTime: number,
+  startTime: number
 ) {
   const gatewayFQDN = await normalizeGatewayFQDN(rawFQDN); // ✅ Normalize before storage
   const responseTime = Math.max(0, performance.now() - startTime); // Prevent negatives
 
   // Ensure performance storage is initialized
-  const storage = await chrome.storage.local.get(['gatewayPerformance']);
+  const storage = await chrome.storage.local.get(["gatewayPerformance"]);
   const gatewayPerformance = storage.gatewayPerformance || {};
 
   // Ensure the gateway entry exists
@@ -111,7 +109,7 @@ export async function updateGatewayUsageHistory(gatewayFQDN: string) {
   const now = new Date().toISOString();
 
   const { gatewayUsageHistory = {} } = await chrome.storage.local.get([
-    'gatewayUsageHistory',
+    "gatewayUsageHistory",
   ]);
 
   if (!gatewayUsageHistory[gatewayFQDN]) {
@@ -137,11 +135,11 @@ export async function updateGatewayUsageHistory(gatewayFQDN: string) {
  */
 export async function normalizeGatewayFQDN(fqdn: string): Promise<string> {
   const { localGatewayAddressRegistry = {} } = await chrome.storage.local.get([
-    'localGatewayAddressRegistry',
+    "localGatewayAddressRegistry",
   ]);
 
   const knownGateways = Object.values(localGatewayAddressRegistry).map(
-    (gw: any) => gw.settings.fqdn,
+    (gw: any) => gw.settings.fqdn
   );
 
   // ✅ Direct match (e.g., `arweave.net`)
@@ -163,6 +161,6 @@ export async function normalizeGatewayFQDN(fqdn: string): Promise<string> {
 
 export function isBase64URL(address: string): boolean {
   const trimmedBase64URL = address.toString().trim();
-  const BASE_64_REXEX = new RegExp('^[a-zA-Z0-9-_s+]{43}$');
+  const BASE_64_REXEX = new RegExp("^[a-zA-Z0-9-_s+]{43}$");
   return BASE_64_REXEX.test(trimmedBase64URL);
 }

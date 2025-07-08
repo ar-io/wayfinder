@@ -2246,3 +2246,54 @@ html, body {
     border-color: var(--border-default);
   }
 }
+
+/* Data Management Section */
+.data-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.action-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-lg);
+  background: var(--colors-container-containerL0);
+  border: 1px solid var(--colors-stroke-strokeLow);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-fast);
+}
+
+.action-item:hover {
+  border-color: var(--colors-stroke-strokeMid);
+}
+
+.action-item.danger:hover {
+  border-color: var(--error);
+}
+
+.action-info {
+  flex: 1;
+}
+
+.action-info h3 {
+  font-family: "Rubik", sans-serif;
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--colors-text-textHigh);
+  margin: 0 0 4px 0;
+}
+
+.action-info p {
+  font-family: "Rubik", sans-serif;
+  font-weight: 400;
+  font-size: 13px;
+  color: var(--colors-text-textMid);
+  margin: 0;
+}
+
+.action-item button {
+  flex-shrink: 0;
+}
+

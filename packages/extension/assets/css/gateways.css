@@ -618,6 +618,17 @@ html, body {
   text-align: center;
 }
 
+/* No results state */
+.no-results-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 48px 24px;
+  text-align: center;
+  grid-column: 1 / -1;
+}
+
 .empty-icon {
   width: 48px;
   height: 48px;
@@ -634,6 +645,24 @@ html, body {
 }
 
 .empty-state p {
+  font-family: 'Rubik', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--colors-text-textHigh, #cacad6);
+  margin: 0;
+}
+
+.no-results-state h3 {
+  font-family: 'Rubik', sans-serif;
+  font-weight: 700;
+  font-size: 17px;
+  line-height: 1.4;
+  color: var(--colors-solid-neutrals-100, #ffffff);
+  margin: 0;
+}
+
+.no-results-state p {
   font-family: 'Rubik', sans-serif;
   font-weight: 400;
   font-size: 14px;

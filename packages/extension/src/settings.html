@@ -60,7 +60,6 @@
                     <h3>Fastest Ping</h3>
                     <p>Select gateway based on lowest latency response</p>
                   </div>
-                  <div class="strategy-badge recommended">Recommended</div>
                 </label>
               </div>
               <div class="strategy-details">
@@ -83,37 +82,22 @@
                     </svg>
                   </div>
                   <div class="strategy-info">
-                    <h3>Random Selection</h3>
-                    <p>Randomly select from available gateways</p>
+                    <h3>Balanced</h3>
+                    <p>Distribute load evenly across gateways</p>
                   </div>
+                  <div class="strategy-badge recommended">Recommended</div>
                 </label>
               </div>
               <div class="strategy-details">
                 <div class="feature-list">
-                  <div class="feature">Good for load balancing</div>
-                  <div class="feature">Simple and reliable</div>
+                  <div class="feature">Optimized load distribution</div>
+                  <div class="feature">Network resilience</div>
+                  <div class="feature">Prevents gateway overload</div>
+                  <div class="feature">Supports decentralization</div>
                 </div>
               </div>
             </div>
 
-            <div class="strategy-option" data-strategy="roundRobin">
-              <div class="strategy-header">
-                <input type="radio" name="routingStrategy" value="roundRobin" id="roundRobin">
-                <label for="roundRobin">
-                  <div class="strategy-icon"><svg width="36" height="36" viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></div>
-                  <div class="strategy-info">
-                    <h3>Round Robin</h3>
-                    <p>Cycle through gateways in sequence</p>
-                  </div>
-                </label>
-              </div>
-              <div class="strategy-details">
-                <div class="feature-list">
-                  <div class="feature">Even load distribution</div>
-                  <div class="feature">Predictable routing</div>
-                </div>
-              </div>
-            </div>
 
             <div class="strategy-option" data-strategy="static">
               <div class="strategy-header">
@@ -166,153 +150,7 @@
           </div>
         </section>
 
-        <!-- Verified Browsing Settings -->
-        <section class="settings-section verified-browsing-config" id="verifiedBrowsing">
-          <div class="section-header">
-            <h2>Verified Browsing</h2>
-            <p>Enhanced security mode with comprehensive verification</p>
-          </div>
-          
-          <div class="verified-browsing-options">
-            <div class="option-card">
-              <div class="option-header">
-                <div class="feature-content">
-                  <svg class="feature-icon" width="32" height="32" viewBox="0 0 36 36" fill="none">
-                    <path d="M30 19.5C30 27 24.75 30.75 18.51 32.925C18.1832 33.0357 17.8283 33.0304 17.505 32.91C11.25 30.75 6 27 6 19.5V9C6 8.60218 6.15804 8.22064 6.43934 7.93934C6.72064 7.65804 7.10218 7.5 7.5 7.5C10.5 7.5 14.25 5.7 16.86 3.42C17.1778 3.1485 17.582 2.99933 18 2.99933C18.418 2.99933 18.8222 3.1485 19.14 3.42C21.765 5.715 25.5 7.5 28.5 7.5C28.8978 7.5 29.2794 7.65804 29.5607 7.93934C29.842 8.22064 30 8.60218 30 9V19.5Z" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M13.5 18L16.5 21L22.5 15" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                  <div class="feature-info">
-                    <div class="feature-label">Verified Browsing</div>
-                    <div class="feature-description">Enable cryptographic verification.</div>
-                  </div>
-                </div>
-                <div class="toggle-switch">
-                  <input type="checkbox" id="verifiedBrowsingToggle">
-                  <span class="toggle-slider"></span>
-                </div>
-              </div>
-              <div class="option-details" id="verifiedBrowsingDetails" style="display: none;">
-                <div class="feature-list">
-                  <div class="feature">Cryptographic verification of all content</div>
-                  <div class="feature">Intercepts direct gateway navigation</div>
-                  <div class="feature">Clean, minimizable interface</div>
-                </div>
-              </div>
-            </div>
-
-
-            <div class="option-card" id="verifiedBrowsingExceptions" style="display: none;">
-              <div class="option-header">
-                <div class="option-icon"><svg width="36" height="36" viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg></div>
-                <div class="option-info">
-                  <h3>Exceptions</h3>
-                  <p>Domains or apps that skip verification</p>
-                </div>
-                <button class="text-button" id="manageExceptions">Manage</button>
-              </div>
-              <div class="exceptions-list" id="exceptionsList" style="display: none;">
-                <div class="exceptions-input">
-                  <input type="text" id="newException" placeholder="ar://app-name or domain">
-                  <button class="primary-button" id="addException">Add</button>
-                </div>
-                <div id="exceptionsItems" class="exceptions-items">
-                  <!-- Dynamically populated -->
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- Verification Strategy -->
-        <section class="settings-section verification-strategy-config" id="verificationStrategy">
-          <div class="section-header">
-            <h2>Verification Strategy</h2>
-            <p>Choose your cryptographic verification method</p>
-          </div>
-          
-          <div class="verification-strategy-selector">
-            <div class="strategy-option" data-strategy="hash">
-              <div class="strategy-header">
-                <input type="radio" name="verificationStrategy" value="hash" id="hashVerificationStrategy" checked>
-                <label for="hashVerificationStrategy">
-                  <div class="strategy-icon">
-                    <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-                      <path d="M15 6v24M21 6v24M6 15h24M6 21h24" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                  </div>
-                  <div class="strategy-info">
-                    <h3>Hash Verification</h3>
-                    <p>Fast SHA-256 hash-based verification</p>
-                  </div>
-                </label>
-                <div class="strategy-badge recommended">Recommended</div>
-              </div>
-              <div class="strategy-details">
-                <div class="feature-list">
-                  <div class="feature">Fast verification using SHA-256 hashes</div>
-                  <div class="feature">Works with all content types</div>
-                  <div class="feature">Minimal network overhead</div>
-                  <div class="feature">Industry standard cryptographic verification</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="strategy-option disabled" data-strategy="dataRoot">
-              <div class="strategy-header">
-                <input type="radio" name="verificationStrategy" value="dataRoot" id="dataRootVerificationStrategy" disabled>
-                <label for="dataRootVerificationStrategy">
-                  <div class="strategy-icon">
-                    <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-                      <path d="M18 3L30 9v18l-12 6L6 27V9l12-6z" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      <path d="M6 9l12 6 12-6M18 15v18" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                  </div>
-                  <div class="strategy-info">
-                    <h3>Data Root Verification</h3>
-                    <p>Verify content using Arweave data roots</p>
-                    <span class="coming-soon-badge">Coming Soon</span>
-                  </div>
-                </label>
-              </div>
-              <div class="strategy-details">
-                <div class="feature-list">
-                  <div class="feature">Uses Arweave's native verification</div>
-                  <div class="feature">Merkle tree-based verification</div>
-                  <div class="feature">Requires additional network requests</div>
-                  <div class="feature">More comprehensive but slower</div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Signature Verification Strategy -->
-            <div class="strategy-option disabled" data-strategy="signature">
-              <div class="strategy-header">
-                <input type="radio" name="verificationStrategy" value="signature" id="signatureVerificationStrategy" disabled>
-                <label for="signatureVerificationStrategy">
-                  <div class="strategy-icon">
-                    <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-                      <path d="M9 13.5L13.5 18L27 4.5" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      <path d="M27 18v9a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3V12a3 3 0 0 1 3-3h10.5" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                  </div>
-                  <div class="strategy-info">
-                    <h3>Signature Verification</h3>
-                    <p>Verify content using cryptographic signatures</p>
-                    <span class="coming-soon-badge">Coming Soon</span>
-                  </div>
-                </label>
-              </div>
-              <div class="strategy-details">
-                <div class="feature-list">
-                  <div class="feature">Cryptographic signature validation</div>
-                  <div class="feature">Ensures content authenticity</div>
-                  <div class="feature">Verifies publisher identity</div>
-                  <div class="feature">Highest security assurance</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
+        <!-- Removed: Verified Browsing Settings and Verification Strategy - verification features removed -->
 
         <!-- Theme Settings -->
         <section class="settings-section theme-config" id="theme">
@@ -380,143 +218,6 @@
 
 
 
-        <!-- Gateway Provider Settings -->
-        <section class="settings-section gateway-provider-config" id="gatewayProvider">
-          <div class="section-header">
-            <h2>Gateway Provider Settings</h2>
-            <p>Configure gateway discovery and management</p>
-          </div>
-          
-          <div class="gateway-provider-options">
-            <!-- Gateway Sorting -->
-            <div class="provider-option">
-              <div class="option-header">
-                <div class="option-info">
-                  <h3>Gateway Sorting</h3>
-                  <p>Method for ordering available gateways</p>
-                </div>
-                <div class="select-wrapper">
-                  <select id="gatewaySortBy" class="provider-dropdown">
-                    <option value="operatorStake">Operator Stake</option>
-                    <option value="totalStake">Total Stake</option>
-                    <option value="random">Random</option>
-                  </select>
-                  <svg class="select-arrow" width="18" height="18" viewBox="0 0 36 36" fill="none">
-                    <path d="M9 13.5L18 22.5L27 13.5" stroke="var(--colors-icons-iconMid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                </div>
-              </div>
-            </div>
-
-            <!-- Sort Order -->
-            <div class="provider-option">
-              <div class="option-header">
-                <div class="option-info">
-                  <h3>Sort Order</h3>
-                  <p>Direction for gateway ordering</p>
-                </div>
-                <div class="select-wrapper">
-                  <select id="gatewaySortOrder" class="provider-dropdown">
-                    <option value="desc">Descending (High to Low)</option>
-                    <option value="asc">Ascending (Low to High)</option>
-                  </select>
-                  <svg class="select-arrow" width="18" height="18" viewBox="0 0 36 36" fill="none">
-                    <path d="M9 13.5L18 22.5L27 13.5" stroke="var(--colors-icons-iconMid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                </div>
-              </div>
-            </div>
-
-            <!-- Gateway Cache TTL -->
-            <div class="provider-option">
-              <div class="option-header">
-                <div class="option-info">
-                  <h3>Gateway Cache TTL</h3>
-                  <p>How long to cache gateway information</p>
-                </div>
-                <div class="ttl-config">
-                  <div class="slider-container">
-                    <input type="range" id="gatewayCacheTTL" min="300" max="7200" value="3600" step="300">
-                    <span class="slider-value" id="ttlValue">1 hour</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- Trusted Gateways for Verification -->
-        <section class="settings-section trusted-gateways-config" id="trustedGateways">
-          <div class="section-header">
-            <h2>Trusted Gateways for Verification</h2>
-            <p>Configure which gateways to use for content verification</p>
-          </div>
-          
-          <div class="trusted-gateways-options">
-            <!-- Gateway Mode Selection -->
-            <div class="gateway-mode-selector">
-              <div class="mode-option">
-                <input type="radio" name="verificationGatewayMode" value="automatic" id="automaticMode" checked>
-                <label for="automaticMode">
-                  <div class="mode-icon">
-                    <svg width="24" height="24" viewBox="0 0 36 36" fill="none">
-                      <circle cx="18" cy="18" r="3" stroke="var(--colors-icons-iconHigh)" stroke-width="2"/>
-                      <circle cx="9" cy="9" r="3" stroke="var(--colors-icons-iconHigh)" stroke-width="2"/>
-                      <circle cx="27" cy="9" r="3" stroke="var(--colors-icons-iconHigh)" stroke-width="2"/>
-                      <circle cx="9" cy="27" r="3" stroke="var(--colors-icons-iconHigh)" stroke-width="2"/>
-                      <circle cx="27" cy="27" r="3" stroke="var(--colors-icons-iconHigh)" stroke-width="2"/>
-                      <path d="M12 9h12M12 27h12M9 12v12M27 12v12" stroke="var(--colors-icons-iconHigh)" stroke-width="2"/>
-                    </svg>
-                  </div>
-                  <div class="mode-info">
-                    <h3>Automatic Selection</h3>
-                    <p>Use top gateways by stake automatically</p>
-                  </div>
-                </label>
-              </div>
-              <div class="mode-option">
-                <input type="radio" name="verificationGatewayMode" value="manual" id="manualMode">
-                <label for="manualMode">
-                  <div class="mode-icon">
-                    <svg width="24" height="24" viewBox="0 0 36 36" fill="none">
-                      <path d="M13.5 18L16.5 21L22.5 15" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      <circle cx="18" cy="18" r="13.5" stroke="var(--colors-icons-iconHigh)" stroke-width="2"/>
-                    </svg>
-                  </div>
-                  <div class="mode-info">
-                    <h3>Manual Selection</h3>
-                    <p>Choose specific trusted gateways</p>
-                  </div>
-                </label>
-              </div>
-            </div>
-            
-            <!-- Gateway Count Configuration -->
-            <div class="gateway-count-config">
-              <label for="verificationGatewayCount">Number of verification gateways:</label>
-              <div class="slider-container">
-                <input type="range" id="verificationGatewayCount" min="1" max="10" value="3" step="1">
-                <span class="slider-value" id="gatewayCountValue">3</span>
-              </div>
-            </div>
-
-            <!-- Gateway Selection List (for manual mode) -->
-            <div id="gatewaySelectionSection" class="gateway-selection-section" style="display: none;">
-              <h4>Select Trusted Gateways:</h4>
-              <div id="gatewaySelectionList" class="gateway-selection-list">
-                <!-- Populated dynamically -->
-              </div>
-            </div>
-
-            <!-- Current Trusted Gateways Preview -->
-            <div class="trusted-gateways-preview">
-              <h4>Current Trusted Gateways:</h4>
-              <div id="trustedGatewaysList" class="trusted-gateways-list">
-                <!-- Populated dynamically -->
-              </div>
-            </div>
-          </div>
-        </section>
 
         <!-- Network Configuration -->
         <section class="settings-section network-config" id="networkConfig">
@@ -564,13 +265,20 @@
           </div>
           
           <div class="data-actions">
-            <div class="action-info">
-              <h3>Clear Extension Data</h3>
-              <p>Clear all cached data, settings, and performance metrics</p>
-            </div>
-            <div class="button-group">
+            <div class="action-item">
+              <div class="action-info">
+                <h3>Clear Cache</h3>
+                <p>Remove gateway performance data and usage history</p>
+              </div>
               <button class="secondary-button" id="clearCache">Clear Cache</button>
-              <button class="danger-button" id="resetExtension">Reset All</button>
+            </div>
+            
+            <div class="action-item danger">
+              <div class="action-info">
+                <h3>Factory Reset</h3>
+                <p>Reset entire extension to original state (deletes all data)</p>
+              </div>
+              <button class="danger-button" id="resetExtension">Factory Reset</button>
             </div>
           </div>
         </section>

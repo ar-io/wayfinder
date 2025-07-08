@@ -86,21 +86,27 @@ async function initializeSettings() {
 
   // Initialize routing strategy explanations
   setupRoutingStrategyDetails();
-
-  // Initialize verification mode explanations
-  setupVerificationModeExplanations();
 }
 
 function setupEventHandlers() {
   // Back button
   document.getElementById('backToMain')?.addEventListener('click', () => {
-    window.location.href = 'popup.html';
+    // Use relative path for Chrome extension navigation
+    window.location.href = './popup.html';
   });
 
   // Quick actions
   document
     .getElementById('resetSettings')
     ?.addEventListener('click', resetSettings);
+  
+  // Data management
+  document
+    .getElementById('clearCache')
+    ?.addEventListener('click', clearAllCache);
+  document
+    .getElementById('resetExtension')
+    ?.addEventListener('click', resetAllData);
 
   // Advanced settings toggle
   // Advanced toggle functionality removed - no longer needed
@@ -154,10 +160,6 @@ function setupEventHandlers() {
 
   // Performance actions moved to performance.js
 
-  // Cache toggle
-  document
-    .getElementById('enableVerificationCache')
-    ?.addEventListener('change', saveVerificationCacheToggle);
 
   // Gateway registry sync
   document
@@ -172,19 +174,6 @@ function setupEventHandlers() {
   // View logs
   document.getElementById('viewLogs')?.addEventListener('click', viewLogs);
 
-  // Trusted gateway settings
-  document
-    .querySelectorAll('input[name="verificationGatewayMode"]')
-    .forEach((radio) => {
-      radio.addEventListener('change', handleVerificationGatewayModeChange);
-    });
-
-  document
-    .getElementById('verificationGatewayCount')
-    ?.addEventListener('input', handleGatewayCountChange);
-
-  // Setup trusted gateway settings on load
-  setupTrustedGatewaySettings();
 
   // Gateway provider settings
   document
@@ -197,21 +186,6 @@ function setupEventHandlers() {
     .getElementById('gatewayCacheTTL')
     ?.addEventListener('input', handleGatewayCacheTTLChange);
 
-  // Verified Browsing settings
-  document
-    .getElementById('verifiedBrowsingToggle')
-    ?.addEventListener('change', handleVerifiedBrowsingToggle);
-
-  document
-    .getElementById('manageExceptions')
-    ?.addEventListener('click', toggleExceptionsList);
-
-  document
-    .getElementById('addException')
-    ?.addEventListener('click', addException);
-
-  // Initialize Verified Browsing UI
-  setupVerifiedBrowsingUI();
 
   // Telemetry toggle
   document
@@ -252,41 +226,20 @@ function setupRoutingStrategyDetails() {
       });
     });
 
-  // Setup click handlers for verification strategy options separately
-  document
-    .querySelectorAll('.verification-strategy-selector .strategy-option')
-    .forEach((option) => {
-      const radio = option.querySelector('input[type="radio"]');
-      const header = option.querySelector('.strategy-header');
-
-      header.addEventListener('click', () => {
-        radio.checked = true;
-        // Create a synthetic event that will trigger saving
-        handleVerificationStrategyChange({ target: radio, isTrusted: true });
-      });
-    });
+  // Removed: verification strategy click handlers - verification features removed
 }
 
-function setupVerificationModeExplanations() {
-  // Verification modes removed - no longer used
-}
+// Removed: setupVerificationModeExplanations - verification features removed
 
 async function loadCurrentSettings() {
   try {
     const settings = await chrome.storage.local.get([
       'routingMethod',
       'staticGateway',
-      'verificationStrategy',
-      // 'verificationStrict', // Removed - no longer used
-      'verifiedBrowsing',
-      'verifiedBrowsingExceptions',
-      'showVerificationIndicators',
-      // 'showVerificationToasts', // Removed - digest verification removed
       'ensResolutionEnabled',
       'theme',
       'processId',
       'aoCuUrl',
-      'enableVerificationCache',
       'gatewaySortBy',
       'gatewaySortOrder',
       'gatewayCacheTTL',
@@ -329,29 +282,7 @@ async function loadCurrentSettings() {
       }
     }
 
-    // Load verification settings
-    const verificationStrategy = settings.verificationStrategy || 'hash';
-    const verificationStrategyRadio = document.querySelector(
-      `input[name="verificationStrategy"][value="${verificationStrategy}"]`,
-    );
-    if (verificationStrategyRadio) {
-      verificationStrategyRadio.checked = true;
-      // No need to trigger change event during initialization
-    }
-
-    // Verification mode is now controlled by Verified Browsing toggle
-    // verificationStrict is controlled by the strictness selector in Verified Browsing section
-
-    // Load switches
-    const showIndicators = settings.showVerificationIndicators !== false;
-    const showIndicatorsEl = document.getElementById(
-      'showVerificationIndicators',
-    );
-    if (showIndicatorsEl) {
-      showIndicatorsEl.checked = showIndicators;
-    }
-
-    // Removed showVerificationToasts - digest verification has been removed
+    // Removed: Verification settings loading - verification features removed
 
     const ensEnabled = settings.ensResolutionEnabled !== false;
     const ensEl = document.getElementById('ensResolution');
@@ -383,29 +314,7 @@ async function loadCurrentSettings() {
       }
     }
 
-    // Load Verified Browsing settings
-    const verifiedBrowsing = settings.verifiedBrowsing || false;
-    const verifiedBrowsingToggle = document.getElementById(
-      'verifiedBrowsingToggle',
-    );
-    if (verifiedBrowsingToggle) {
-      verifiedBrowsingToggle.checked = verifiedBrowsing;
-      updateVerifiedBrowsingUI(verifiedBrowsing);
-    }
-
-    // Advanced settings restoration removed - no longer needed
-
-    // Load exceptions
-    const verifiedBrowsingExceptions =
-      settings.verifiedBrowsingExceptions || [];
-    loadExceptions(verifiedBrowsingExceptions);
-
-    // Load cache settings
-    const cacheEnabled = settings.enableVerificationCache !== false; // Default true
-    const cacheEnabledEl = document.getElementById('enableVerificationCache');
-    if (cacheEnabledEl) {
-      cacheEnabledEl.checked = cacheEnabled;
-    }
+    // Removed: Verified Browsing and cache settings loading - verification features removed
 
     // Load gateway provider settings
     const gatewaySortBy = settings.gatewaySortBy || 'operatorStake';
@@ -525,8 +434,7 @@ async function handleRoutingStrategyChange(event) {
         if (currentValueEl) {
           const strategyNames = {
             fastestPing: 'Fastest Ping',
-            random: 'Random',
-            roundRobin: 'Round Robin',
+            random: 'Balanced',
             static: 'Static Gateway',
           };
           currentValueEl.textContent = strategyNames[strategy] || strategy;
@@ -840,41 +748,13 @@ async function validateStaticGateway() {
   }
 }
 
-async function handleVerificationStrategyChange(event) {
-  const strategy = event.target.value;
-  await chrome.storage.local.set({ verificationStrategy: strategy });
-
-  try {
-    await chrome.runtime.sendMessage({ message: 'resetWayfinder' });
-
-    // Only show toast for user-initiated changes
-    if (event.isTrusted) {
-      // Show success feedback
-      const strategyNames = {
-        hash: 'Hash (SHA-256)',
-        dataRoot: 'Data Root',
-      };
-      showToast(
-        `Verification strategy changed to ${strategyNames[strategy] || strategy}`,
-        'success',
-      );
-    }
-  } catch (error) {
-    console.error('Error updating verification strategy:', error);
-    if (event.isTrusted) {
-      showToast('Failed to update verification strategy', 'error');
-    }
-  }
-}
+// Removed: handleVerificationStrategyChange - verification features removed
 
 // Removed: handleVerificationModeChange function
 // Verification modes are no longer used - verification is controlled by the
 // 'verifiedBrowsing' toggle which enables/disables the verification viewer
 
-async function saveVerificationIndicators(event) {
-  const enabled = event.target.checked;
-  await chrome.storage.local.set({ showVerificationIndicators: enabled });
-}
+// Removed: saveVerificationIndicators - verification features removed
 
 // Removed saveVerificationToasts - digest verification has been removed
 
@@ -993,41 +873,7 @@ async function handleAoCuUrlChange(event) {
 
 // Clear functions moved to performance.js
 
-async function saveVerificationCacheToggle(event) {
-  const enabled = event.target.checked;
-
-  try {
-    await chrome.storage.local.set({ enableVerificationCache: enabled });
-    showToast(
-      enabled ? 'Verification cache enabled' : 'Verification cache disabled',
-      'success',
-    );
-
-    // If disabling, optionally clear the cache
-    if (!enabled) {
-      const shouldClear = confirm(
-        'Would you like to clear the existing cache data?',
-      );
-      if (shouldClear) {
-        // Send message to background script to clear cache
-        try {
-          const response = await chrome.runtime.sendMessage({
-            message: 'clearVerificationCache',
-          });
-          if (response && response.success) {
-            showToast('Verification cache cleared', 'success');
-          }
-        } catch (error) {
-          console.error('Error clearing verification cache:', error);
-          showToast('Failed to clear verification cache', 'error');
-        }
-      }
-    }
-  } catch (error) {
-    console.error('Error saving cache toggle:', error);
-    showToast('Failed to update cache setting', 'error');
-  }
-}
+// Removed: saveVerificationCacheToggle - verification cache removed
 
 function viewLogs() {
   // Open browser console for now - in future could open dedicated logs page
@@ -1156,250 +1002,7 @@ window
     }
   });
 
-// Trusted Gateway Settings Functions
-async function setupTrustedGatewaySettings() {
-  // Load current settings
-  const {
-    verificationGatewayMode = 'automatic',
-    verificationGatewayCount = 3,
-    verificationTrustedGateways = [],
-  } = await chrome.storage.local.get([
-    'verificationGatewayMode',
-    'verificationGatewayCount',
-    'verificationTrustedGateways',
-  ]);
-
-  // Set mode
-  const modeRadio = document.querySelector(
-    `input[name="verificationGatewayMode"][value="${verificationGatewayMode}"]`,
-  );
-  if (modeRadio) {
-    modeRadio.checked = true;
-  }
-
-  // Set gateway count
-  const countSlider = document.getElementById('verificationGatewayCount');
-  const countValue = document.getElementById('gatewayCountValue');
-  if (countSlider && countValue) {
-    countSlider.value = verificationGatewayCount;
-    countValue.textContent = verificationGatewayCount;
-  }
-
-  // Update UI based on mode
-  updateGatewayModeUI(verificationGatewayMode);
-
-  // Populate gateway list for manual selection
-  await populateGatewaySelectionList(verificationTrustedGateways);
-
-  // Update preview
-  await updateTrustedGatewaysPreview();
-}
-
-async function handleVerificationGatewayModeChange(event) {
-  const mode = event.target.value;
-
-  await chrome.storage.local.set({ verificationGatewayMode: mode });
-
-  updateGatewayModeUI(mode);
-  await updateTrustedGatewaysPreview();
-
-  // Reset wayfinder to apply changes
-  await chrome.runtime.sendMessage({ message: 'resetWayfinder' });
-
-  showToast(`Verification gateway mode changed to ${mode}`, 'success');
-}
-
-function updateGatewayModeUI(mode) {
-  const gatewaySelectionSection = document.getElementById('gatewaySelectionSection');
-  
-  if (!gatewaySelectionSection) {
-    console.error('Gateway selection section not found');
-    return;
-  }
-
-  // Show/hide gateway selection based on mode
-  if (mode === 'manual') {
-    gatewaySelectionSection.style.display = 'block';
-  } else {
-    gatewaySelectionSection.style.display = 'none';
-  }
-
-  // Update active state on mode options
-  document
-    .querySelectorAll('.gateway-mode-selector .mode-option')
-    .forEach((option) => {
-      if (option.dataset.mode === mode) {
-        option.classList.add('active');
-      } else {
-        option.classList.remove('active');
-      }
-    });
-}
-
-async function handleGatewayCountChange(event) {
-  const count = parseInt(event.target.value);
-  document.getElementById('gatewayCountValue').textContent = count;
-
-  await chrome.storage.local.set({ verificationGatewayCount: count });
-  await updateTrustedGatewaysPreview();
-
-  // Reset wayfinder to apply changes
-  await chrome.runtime.sendMessage({ message: 'resetWayfinder' });
-}
-
-async function populateGatewaySelectionList(selectedGateways) {
-  const listEl = document.getElementById('gatewaySelectionList');
-  if (!listEl) return;
-
-  // Get gateways from registry
-  const { localGatewayAddressRegistry = {} } = await chrome.storage.local.get([
-    'localGatewayAddressRegistry',
-  ]);
-
-  const gateways = Object.entries(localGatewayAddressRegistry)
-    .map(([address, gateway]) => ({
-      address,
-      fqdn: gateway.settings?.fqdn,
-      protocol: gateway.settings?.protocol || 'https',
-      port: gateway.settings?.port,
-      operatorStake: gateway.operatorStake || 0,
-      totalDelegatedStake: gateway.totalDelegatedStake || 0,
-      status: gateway.status,
-    }))
-    .filter((gateway) => gateway.status === 'joined' && gateway.fqdn)
-    .sort((a, b) => {
-      const stakeA = a.operatorStake + a.totalDelegatedStake;
-      const stakeB = b.operatorStake + b.totalDelegatedStake;
-      return stakeB - stakeA;
-    })
-    .slice(0, 50); // Show top 50
-
-  listEl.innerHTML = '';
-
-  gateways.forEach((gateway) => {
-    const port =
-      gateway.port && gateway.port !== (gateway.protocol === 'https' ? 443 : 80)
-        ? `:${gateway.port}`
-        : '';
-    const url = `${gateway.protocol}://${gateway.fqdn}${port}`;
-    const totalStake = gateway.operatorStake + gateway.totalDelegatedStake;
-
-    const checkboxDiv = document.createElement('div');
-    checkboxDiv.className = 'gateway-checkbox';
-
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.id = `gateway-${gateway.address}`;
-    checkbox.value = url;
-    checkbox.checked = selectedGateways.includes(url);
-    checkbox.addEventListener('change', handleGatewaySelectionChange);
-
-    const label = document.createElement('label');
-    label.htmlFor = `gateway-${gateway.address}`;
-    label.innerHTML = `
-      <span class="gateway-name">${gateway.fqdn}</span>
-      <span class="gateway-stake">${formatStake(totalStake)}</span>
-    `;
-
-    checkboxDiv.appendChild(checkbox);
-    checkboxDiv.appendChild(label);
-    listEl.appendChild(checkboxDiv);
-  });
-}
-
-async function handleGatewaySelectionChange() {
-  const checkboxes = document.querySelectorAll(
-    '#gatewaySelectionList input[type="checkbox"]:checked',
-  );
-  const selectedGateways = Array.from(checkboxes).map((cb) => cb.value);
-
-  await chrome.storage.local.set({
-    verificationTrustedGateways: selectedGateways,
-  });
-  await updateTrustedGatewaysPreview();
-
-  // Reset wayfinder to apply changes
-  await chrome.runtime.sendMessage({ message: 'resetWayfinder' });
-}
-
-async function updateTrustedGatewaysPreview() {
-  const previewEl = document.getElementById('trustedGatewaysList');
-  if (!previewEl) return;
-
-  const {
-    verificationGatewayMode = 'automatic',
-    verificationGatewayCount = 3,
-    verificationTrustedGateways = [],
-    localGatewayAddressRegistry = {},
-  } = await chrome.storage.local.get([
-    'verificationGatewayMode',
-    'verificationGatewayCount',
-    'verificationTrustedGateways',
-    'localGatewayAddressRegistry',
-  ]);
-
-  let trustedGateways = [];
-
-  if (verificationGatewayMode === 'automatic') {
-    // Get top N gateways by stake
-    trustedGateways = Object.entries(localGatewayAddressRegistry)
-      .map(([_address, gateway]) => ({
-        fqdn: gateway.settings?.fqdn,
-        protocol: gateway.settings?.protocol || 'https',
-        port: gateway.settings?.port,
-        operatorStake: gateway.operatorStake || 0,
-        totalDelegatedStake: gateway.totalDelegatedStake || 0,
-        status: gateway.status,
-      }))
-      .filter((gateway) => gateway.status === 'joined' && gateway.fqdn)
-      .sort((a, b) => {
-        const stakeA = a.operatorStake + a.totalDelegatedStake;
-        const stakeB = b.operatorStake + b.totalDelegatedStake;
-        return stakeB - stakeA;
-      })
-      .slice(0, verificationGatewayCount);
-  } else {
-    // Use manually selected gateways
-    trustedGateways = verificationTrustedGateways
-      .map((url) => {
-        try {
-          const urlObj = new URL(url);
-          // Find the gateway info from registry
-          const gatewayInfo = Object.values(localGatewayAddressRegistry).find(
-            (g) => g.settings?.fqdn === urlObj.hostname,
-          );
-          return {
-            fqdn: urlObj.hostname,
-            operatorStake: gatewayInfo?.operatorStake || 0,
-            totalDelegatedStake: gatewayInfo?.totalDelegatedStake || 0,
-          };
-        } catch {
-          return null;
-        }
-      })
-      .filter(Boolean);
-  }
-
-  // Update preview
-  previewEl.innerHTML = '';
-
-  if (trustedGateways.length === 0) {
-    previewEl.innerHTML =
-      '<div class="gateway-preview-item"><span class="gateway-name">No gateways selected</span></div>';
-    return;
-  }
-
-  trustedGateways.forEach((gateway) => {
-    const totalStake = gateway.operatorStake + gateway.totalDelegatedStake;
-    const item = document.createElement('div');
-    item.className = 'gateway-preview-item';
-    item.innerHTML = `
-      <span class="gateway-name">${gateway.fqdn}</span>
-      <span class="gateway-stake">${formatStake(totalStake)}</span>
-    `;
-    previewEl.appendChild(item);
-  });
-}
+// Removed: Trusted Gateway Settings Functions - verification features removed
 
 // Gateway provider settings handlers
 async function handleGatewaySortByChange(event) {
@@ -1447,140 +1050,7 @@ async function handleGatewayCacheTTLChange(event) {
   }
 }
 
-// Verified Browsing handlers
-function setupVerifiedBrowsingUI() {
-  // Set up strictness selector UI
-  document
-    .querySelectorAll('.strictness-selector .mode-option')
-    .forEach((option) => {
-      option.addEventListener('click', (e) => {
-        if (e.target.tagName !== 'INPUT') {
-          const radio = option.querySelector('input[type="radio"]');
-          radio.checked = true;
-          radio.dispatchEvent(new Event('change'));
-        }
-      });
-    });
-}
-
-async function handleVerifiedBrowsingToggle(event) {
-  const enabled = event.target.checked;
-
-  // Update verified browsing setting
-  await chrome.storage.local.set({
-    verifiedBrowsing: enabled,
-  });
-
-  // Reset wayfinder to apply new verification setting
-  try {
-    await chrome.runtime.sendMessage({ message: 'resetWayfinder' });
-  } catch (error) {
-    console.error('Error resetting wayfinder:', error);
-  }
-
-  updateVerifiedBrowsingUI(enabled);
-
-  showToast(
-    enabled
-      ? 'Verified Browsing enabled - all content will be cryptographically verified'
-      : 'Verified Browsing disabled',
-    'success',
-  );
-}
-
-function updateVerifiedBrowsingUI(enabled) {
-  const details = document.getElementById('verifiedBrowsingDetails');
-  const options = document.getElementById('verifiedBrowsingOptions');
-  const exceptions = document.getElementById('verifiedBrowsingExceptions');
-
-  if (details) details.style.display = enabled ? 'block' : 'none';
-  if (options) options.style.display = enabled ? 'block' : 'none';
-  if (exceptions) exceptions.style.display = enabled ? 'block' : 'none';
-
-  // The verification section is now always within advanced settings,
-  // so we don't need to hide/show it based on verified browsing toggle
-}
-
-function toggleExceptionsList() {
-  const list = document.getElementById('exceptionsList');
-  if (list) {
-    list.style.display = list.style.display === 'none' ? 'block' : 'none';
-  }
-}
-
-async function addException() {
-  const input = document.getElementById('newException');
-  if (!input || !input.value.trim()) return;
-
-  const exception = input.value.trim();
-
-  // Validate format
-  if (!exception.startsWith('ar://') && !exception.includes('.')) {
-    showToast('Invalid format. Use ar://app-name or domain.com', 'error');
-    return;
-  }
-
-  // Get current exceptions
-  const { verifiedBrowsingExceptions = [] } = await chrome.storage.local.get([
-    'verifiedBrowsingExceptions',
-  ]);
-
-  // Check if already exists
-  if (verifiedBrowsingExceptions.includes(exception)) {
-    showToast('Exception already exists', 'warning');
-    return;
-  }
-
-  // Add new exception
-  verifiedBrowsingExceptions.push(exception);
-  await chrome.storage.local.set({ verifiedBrowsingExceptions });
-
-  // Update UI
-  loadExceptions(verifiedBrowsingExceptions);
-  input.value = '';
-
-  showToast('Exception added', 'success');
-}
-
-function loadExceptions(exceptions) {
-  const container = document.getElementById('exceptionsItems');
-  if (!container) return;
-
-  container.innerHTML = '';
-
-  if (exceptions.length === 0) {
-    container.innerHTML =
-      '<p class="no-exceptions">No exceptions configured</p>';
-    return;
-  }
-
-  exceptions.forEach((exception, index) => {
-    const item = document.createElement('div');
-    item.className = 'exception-item';
-    item.innerHTML = `
-      <span class="exception-value">${exception}</span>
-      <button class="remove-exception" data-index="${index}">✕</button>
-    `;
-
-    item.querySelector('.remove-exception').addEventListener('click', () => {
-      removeException(index);
-    });
-
-    container.appendChild(item);
-  });
-}
-
-async function removeException(index) {
-  const { verifiedBrowsingExceptions = [] } = await chrome.storage.local.get([
-    'verifiedBrowsingExceptions',
-  ]);
-
-  verifiedBrowsingExceptions.splice(index, 1);
-  await chrome.storage.local.set({ verifiedBrowsingExceptions });
-
-  loadExceptions(verifiedBrowsingExceptions);
-  showToast('Exception removed', 'success');
-}
+// Removed: Verified Browsing handlers - verification features removed
 
 // Telemetry handler
 async function handleTelemetryToggle(event) {
@@ -1603,4 +1073,68 @@ async function handleTelemetryToggle(event) {
       : 'Telemetry disabled - Reload extension to apply changes',
     'info',
   );
+}
+
+// Data Management Functions
+async function clearAllCache() {
+  if (!confirm('Clear all cached gateway performance data and usage history?')) {
+    return;
+  }
+  
+  try {
+    // Get all storage keys
+    const allData = await chrome.storage.local.get();
+    const keysToRemove = [];
+    
+    // Add specific cache-related keys
+    keysToRemove.push(
+      'gatewayPerformance',
+      'gatewayUsageHistory', 
+      'dailyStats'
+    );
+    
+    // Add all DNS cache entries (they start with 'dnsCache_')
+    Object.keys(allData).forEach(key => {
+      if (key.startsWith('dnsCache_') || key.startsWith('arns:')) {
+        keysToRemove.push(key);
+      }
+    });
+    
+    await chrome.storage.local.remove(keysToRemove);
+    
+    showToast('Cache cleared successfully', 'success');
+  } catch (error) {
+    console.error('Error clearing cache:', error);
+    showToast('Failed to clear cache', 'error');
+  }
+}
+
+async function resetAllData() {
+  if (!confirm('Reset ALL extension data including settings, gateways, and cache? This cannot be undone.')) {
+    return;
+  }
+  
+  try {
+    // Get all keys
+    const allData = await chrome.storage.local.get();
+    const allKeys = Object.keys(allData);
+    
+    // Define protected keys that should never be removed
+    const protectedKeys = ['extension_id', 'install_date']; 
+    
+    // Remove all non-protected keys
+    const keysToRemove = allKeys.filter(key => !protectedKeys.includes(key));
+    
+    await chrome.storage.local.remove(keysToRemove);
+    
+    showToast('Extension reset to factory defaults', 'success');
+    
+    // Reload extension after a delay
+    setTimeout(() => {
+      chrome.runtime.reload();
+    }, 1500);
+  } catch (error) {
+    console.error('Error resetting extension:', error);
+    showToast('Failed to reset extension', 'error');
+  }
 }

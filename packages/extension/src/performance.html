@@ -108,60 +108,7 @@
           </div>
         </section>
 
-        <!-- Verification Performance Section -->
-        <section class="verification-section">
-          <div class="verification-cards">
-            <div class="perf-card">
-              <div class="perf-header">
-                <div class="perf-icon">
-                  <svg width="32" height="32" viewBox="0 0 36 36" fill="none">
-                    <rect x="4.5" y="16.5" width="27" height="16.5" rx="3" ry="3" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M10.5 16.5V10.5a7.5 7.5 0 0 1 15 0v6" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                </div>
-                <h3>Verification</h3>
-              </div>
-              <div class="perf-stats">
-                <div class="stat">
-                  <span class="stat-label">Verified Transactions</span>
-                  <span class="stat-value" id="verifiedTransactions">--</span>
-                </div>
-                <div class="stat">
-                  <span class="stat-label">Success Rate</span>
-                  <span class="stat-value" id="verificationSuccessRate">--</span>
-                </div>
-              </div>
-            </div>
-            
-            <div class="perf-card">
-              <div class="perf-header">
-                <div class="perf-icon">
-                  <svg width="32" height="32" viewBox="0 0 36 36" fill="none">
-                    <path d="M18 7.5L22.5 12L18 16.5L13.5 12L18 7.5Z" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M18 19.5L22.5 24L18 28.5L13.5 24L18 19.5Z" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M6 13.5L10.5 18L6 22.5L1.5 18L6 13.5Z" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M30 13.5L34.5 18L30 22.5L25.5 18L30 13.5Z" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                </div>
-                <h3>Cache Performance</h3>
-              </div>
-              <div class="perf-stats">
-                <div class="stat">
-                  <span class="stat-label">Cache Size</span>
-                  <span class="stat-value" id="cacheSize">--</span>
-                </div>
-                <div class="stat">
-                  <span class="stat-label">Cache Size (KB)</span>
-                  <span class="stat-value" id="cacheSizeKB">--</span>
-                </div>
-                <div class="stat">
-                  <span class="stat-label">Hit Rate</span>
-                  <span class="stat-value" id="cacheHitRate">--</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
+        <!-- Removed: Verification Performance Section - verification features removed -->
 
         <!-- Gateway Usage List -->
         <section class="usage-section">
@@ -169,7 +116,6 @@
             <h2>Gateway Usage</h2>
             <p id="periodLabel">Showing usage for today</p>
             <p id="dataRange" style="font-size: 12px; color: var(--colors-text-textLow); margin-top: 4px;"></p>
-            <button class="secondary-button" id="clearHistory" style="margin-top: 8px;">Clear History</button>
           </div>
           
           <div class="gateway-usage-list" id="gatewayUsageList">
@@ -191,21 +137,7 @@
           </div>
         </section>
 
-        <!-- Action Cards Section -->
-        <section class="verification-actions">
-          <div class="action-card">
-            <div class="action-header">
-              <div class="action-info">
-                <h3>Clear Performance Data</h3>
-                <p>Clear verification cache and performance metrics to start fresh</p>
-              </div>
-            </div>
-            <div class="button-group">
-              <button class="secondary-button" id="clearVerificationCache">Clear Cache</button>
-              <button class="danger-button" id="clearPerformanceData">Clear All Data</button>
-            </div>
-          </div>
-        </section>
+        <!-- Removed: Action Cards Section - data management moved to Settings page -->
 
       </main>
 

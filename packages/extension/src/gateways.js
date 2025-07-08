@@ -159,14 +159,37 @@ function applyFiltersAndSearch() {
 
 function renderGateways() {
   const container = document.getElementById('gatewaysList');
-
-  if (filteredGateways.length === 0) {
+  
+  if (allGateways.length === 0) {
+    // No gateways at all - show sync message
     showEmptyState();
     return;
   }
-
+  
+  if (filteredGateways.length === 0) {
+    // Have gateways but no matches - show different message
+    container.innerHTML = `
+      <div class="no-results-state">
+        <svg class="empty-icon" width="48" height="48" viewBox="0 0 36 36" fill="none" stroke="var(--colors-icons-iconMid)" stroke-width="2" opacity="0.5">
+          <circle cx="18" cy="18" r="8.25" stroke-dasharray="2 2"/>
+          <path d="M21.75 21.75L27.75 27.75" stroke-linecap="round"/>
+        </svg>
+        <h3>No gateways match current filters</h3>
+        <p>Try selecting "All" or adjusting your search criteria</p>
+      </div>
+    `;
+    container.style.display = 'grid';
+    document.getElementById('emptyState').style.display = 'none';
+    document.getElementById('loadingState').style.display = 'none';
+    return;
+  }
+  
+  // Show the gateway list
+  container.style.display = 'grid';
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('loadingState').style.display = 'none';
   container.innerHTML = '';
-
+  
   filteredGateways.forEach((gateway) => {
     const card = createGatewayCard(gateway);
     container.appendChild(card);
@@ -534,7 +557,7 @@ async function runPingTest(gateway) {
 
     // Test 1: Basic connectivity and response time
     const startTime = performance.now();
-    const response = await fetch(`${gatewayUrl}/info`, {
+    const response = await fetch(`${gatewayUrl}/ar-io/info`, {
       signal: AbortSignal.timeout(10000), // 10 second timeout
     });
     const endTime = performance.now();

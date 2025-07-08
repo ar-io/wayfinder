@@ -12,11 +12,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupEventHandlers();
   await loadGatewayUsage();
   await updatePerformanceStats();
-  await updateCacheStats();
   await setExtensionVersion();
-
-  // Set up periodic cache stats updates
-  setInterval(updateCacheStats, 5000); // Update every 5 seconds
 });
 
 function setupEventHandlers() {
@@ -56,13 +52,7 @@ function setupEventHandlers() {
     }
   });
 
-  // Performance action handlers
-  document
-    .getElementById('clearVerificationCache')
-    ?.addEventListener('click', clearVerificationCache);
-  document
-    .getElementById('clearPerformanceData')
-    ?.addEventListener('click', clearPerformanceData);
+  // Performance action handlers removed - functionality moved to Settings page
 }
 
 async function loadGatewayUsage() {
@@ -545,36 +535,7 @@ async function updatePerformanceStats() {
   }
 }
 
-async function updateCacheStats() {
-  try {
-    // Get cache stats from background script
-    const response = await chrome.runtime.sendMessage({
-      message: 'getCacheStats',
-    });
-
-    if (response && response.stats) {
-      const { size, sizeInKB, hitRate } = response.stats;
-
-      const cacheSizeEl = document.getElementById('cacheSize');
-      if (cacheSizeEl) {
-        cacheSizeEl.textContent = size > 0 ? size : '--';
-      }
-
-      const cacheSizeKBEl = document.getElementById('cacheSizeKB');
-      if (cacheSizeKBEl) {
-        cacheSizeKBEl.textContent = sizeInKB > 0 ? `${sizeInKB} KB` : '--';
-      }
-
-      const cacheHitRateEl = document.getElementById('cacheHitRate');
-      if (cacheHitRateEl) {
-        cacheHitRateEl.textContent =
-          hitRate > 0 ? `${Math.round(hitRate)}%` : '--';
-      }
-    }
-  } catch (error) {
-    console.error('Error updating cache stats:', error);
-  }
-}
+// Removed: updateCacheStats function - verification cache removed
 
 async function clearPerformanceData() {
   if (
@@ -589,38 +550,13 @@ async function clearPerformanceData() {
     await chrome.storage.local.remove(['gatewayPerformance', 'dailyStats']);
     showToast('Performance data cleared', 'success');
     await updatePerformanceStats();
-    await updateCacheStats();
   } catch (error) {
     console.error('Error clearing performance data:', error);
     showToast('Failed to clear performance data', 'error');
   }
 }
 
-async function clearVerificationCache() {
-  if (
-    !confirm(
-      'Clear verification cache? This will remove all cached verification results.',
-    )
-  ) {
-    return;
-  }
-
-  try {
-    const response = await chrome.runtime.sendMessage({
-      message: 'clearVerificationCache',
-    });
-
-    if (response && response.success) {
-      showToast('Verification cache cleared', 'success');
-      await updateCacheStats();
-    } else {
-      throw new Error(response?.error || 'Failed to clear cache');
-    }
-  } catch (error) {
-    console.error('Error clearing verification cache:', error);
-    showToast('Failed to clear verification cache', 'error');
-  }
-}
+// Removed: clearVerificationCache function - verification cache removed
 
 // Modal functions
 async function openGatewayModal(fqdn, gatewayDetails) {

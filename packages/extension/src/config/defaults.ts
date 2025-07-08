@@ -30,7 +30,7 @@ export const EXTENSION_DEFAULTS = {
   aoCuUrl: DEFAULT_AO_CU_URL,
 
   // Basic Extension Settings
-  routingMethod: 'fastestPing',
+  routingMethod: 'random',
   blacklistedGateways: [],
   ensResolutionEnabled: true,
 
@@ -43,8 +43,6 @@ export const EXTENSION_DEFAULTS = {
     date: new Date().toDateString(),
     requestCount: 0,
     totalRequestCount: 0,
-    verifiedCount: 0,
-    failedCount: 0,
   },
 } as const;
 
@@ -53,24 +51,15 @@ export const EXTENSION_DEFAULTS = {
  */
 export const WAYFINDER_DEFAULTS = {
   // Routing Configuration
-  routingMethod: 'fastestPing',
+  routingMethod: 'random',
   staticGateway: null,
 
-  // Verified Browsing
-  verifiedBrowsing: false,
-
-  // Verification Configuration (used when verified browsing is ON)
-  verificationStrategy: 'hash',
 
   // Gateway Management
   gatewayCacheTTL: 3600, // 1 hour in seconds
   gatewaySortBy: 'totalDelegatedStake',
   gatewaySortOrder: 'desc',
 
-  // Verification Gateway Selection
-  verificationGatewayMode: 'automatic',
-  verificationGatewayCount: 3,
-  verificationTrustedGateways: [],
 
   // Telemetry Configuration (opt-in, default disabled)
   telemetryEnabled: false,
@@ -86,12 +75,7 @@ export const ROUTING_STRATEGY_DEFAULTS = {
     maxConcurrency: 5,
   },
 
-  // Round Robin Strategy
-  roundRobin: {
-    // Uses gateways from provider
-  },
-
-  // Random Strategy
+  // Random Strategy (now called Balanced)
   random: {
     // No specific configuration
   },
@@ -102,40 +86,6 @@ export const ROUTING_STRATEGY_DEFAULTS = {
   },
 } as const;
 
-/**
- * Verification strategy specific defaults
- */
-export const VERIFICATION_STRATEGY_DEFAULTS = {
-  // Common verification settings
-  maxConcurrency: 2,
-  timeoutMs: 60000, // 60 seconds timeout for verification requests
-
-  // Hash Verification
-  hash: {
-    algorithm: 'sha256',
-  },
-
-  // Data Root Verification
-  dataRoot: {
-    // Uses same base settings
-  },
-
-  // Signature Verification
-  signature: {
-    // Uses same base settings
-  },
-} as const;
-
-/**
- * Background verification defaults
- */
-export const VERIFICATION_DEFAULTS = {
-  enableVerificationCache: true,
-
-  // Verification timing
-  verificationTimeout: 60000, // 60 seconds (increased for large files)
-  verificationRetryDelay: 2000, // 2 seconds
-} as const;
 
 /**
  * Cache management defaults
@@ -144,8 +94,6 @@ export const CACHE_DEFAULTS = {
   // ArNS Cache Settings
   arnsDefaultTTL: 60 * 60 * 1000, // 1 hour in milliseconds
 
-  // Verification Cache Settings
-  verificationCacheEnabled: true,
 
   // Gateway Cache Settings
   gatewayCacheTTL: 3600, // 1 hour in seconds
@@ -165,8 +113,6 @@ export const UI_DEFAULTS = {
   // Theme
   theme: 'dark',
 
-  // Verification indicators
-  showVerificationIndicators: true,
 
   // Error display
   showDetailedErrors: true,
@@ -188,7 +134,6 @@ export const PERFORMANCE_DEFAULTS = {
   cleanupIntervals: {
     tabState: 30000, // 30 seconds
     requestTimings: 30000, // 30 seconds
-    verificationCache: 60 * 60 * 1000, // 1 hour
   },
 
   // Data retention
@@ -205,11 +150,9 @@ export const PERFORMANCE_DEFAULTS = {
 export const ALL_DEFAULTS = {
   ...EXTENSION_DEFAULTS,
   ...WAYFINDER_DEFAULTS,
-  ...VERIFICATION_DEFAULTS,
   ...CACHE_DEFAULTS,
   ...UI_DEFAULTS,
   routing: ROUTING_STRATEGY_DEFAULTS,
-  verification: VERIFICATION_STRATEGY_DEFAULTS,
   performance: PERFORMANCE_DEFAULTS,
 } as const;
 
@@ -230,7 +173,6 @@ export function getStorageDefaults() {
   return {
     ...EXTENSION_DEFAULTS,
     ...WAYFINDER_DEFAULTS,
-    ...VERIFICATION_DEFAULTS,
     ...CACHE_DEFAULTS,
     ...UI_DEFAULTS,
   };
@@ -243,6 +185,5 @@ export function getWayfinderInstanceDefaults() {
   return {
     ...WAYFINDER_DEFAULTS,
     routing: ROUTING_STRATEGY_DEFAULTS,
-    verification: VERIFICATION_STRATEGY_DEFAULTS,
   };
 }

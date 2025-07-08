@@ -33,7 +33,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupStorageListener();
   await loadStats();
   await loadCurrentStrategy();
-  await loadVerifiedBrowsingState();
   updateConnectionStatus();
 });
 
@@ -57,10 +56,7 @@ function setupStorageListener() {
 
       // Verification section removed from popup
 
-      // Update Verified Browsing if changed
-      if (changes.verifiedBrowsing !== undefined) {
-        updateVerifiedBrowsingUI(changes.verifiedBrowsing.newValue);
-      }
+      // Removed: Verified Browsing update - verification features removed
     }
   });
 }
@@ -106,38 +102,7 @@ function setupEventHandlers() {
 
   // Verification change button removed
 
-  // Verified Browsing toggle
-  const verifiedBrowsingToggle = document.getElementById(
-    'verifiedBrowsingToggle',
-  );
-  verifiedBrowsingToggle?.addEventListener('change', async (e) => {
-    const enabled = e.target.checked;
-
-    // Save both settings to keep them in sync
-    await chrome.storage.local.set({
-      verifiedBrowsing: enabled,
-    });
-
-    // Reset wayfinder to apply new verification setting
-    try {
-      await chrome.runtime.sendMessage({ message: 'resetWayfinder' });
-    } catch (error) {
-      console.error('Error resetting wayfinder:', error);
-    }
-
-    // Update UI
-    updateVerifiedBrowsingUI(enabled);
-
-    // Show toast
-    if (enabled) {
-      showToast(
-        'Verified Browsing enabled - all content will be cryptographically verified',
-        'success',
-      );
-    } else {
-      showToast('Verified Browsing disabled', 'info');
-    }
-  });
+  // Removed: Verified Browsing toggle - verification features removed
 }
 
 async function loadStats() {
@@ -231,16 +196,16 @@ async function loadCurrentStrategy() {
 
     const strategyNames = {
       fastestPing: 'Fastest Ping',
-      random: 'Random Selection',
-      roundRobin: 'Round Robin',
+      random: 'Balanced',
       static: 'Static Gateway',
       // Legacy method fallbacks
       optimalGateway: 'Fastest Ping',
-      weightedStake: 'Random Selection',
-      topFiveStake: 'Random Selection',
+      weightedStake: 'Balanced',
+      topFiveStake: 'Balanced',
       weightedOnchainPerformance: 'Fastest Ping',
-      stakeRandom: 'Random Selection',
-      highestStake: 'Random Selection',
+      stakeRandom: 'Balanced',
+      highestStake: 'Balanced',
+      roundRobin: 'Balanced', // Fallback for old configs
     };
 
     const strategyName = strategyNames[routingMethod] || 'Fastest Ping';
@@ -296,45 +261,4 @@ window
     }
   });
 
-// Load Verified Browsing state on startup
-async function loadVerifiedBrowsingState() {
-  try {
-    const { verifiedBrowsing = false } = await chrome.storage.local.get([
-      'verifiedBrowsing',
-    ]);
-
-    // Update toggle state
-    const toggle = document.getElementById('verifiedBrowsingToggle');
-    if (toggle) {
-      toggle.checked = verifiedBrowsing;
-    }
-
-    // Update UI
-    updateVerifiedBrowsingUI(verifiedBrowsing);
-  } catch (error) {
-    console.error('Error loading verified browsing state:', error);
-  }
-}
-
-function updateVerifiedBrowsingUI(enabled) {
-  const statusEl = document.getElementById('verifiedBrowsingStatus');
-  const descEl = document.getElementById('verifiedBrowsingDesc');
-  const featureCard = document.querySelector(
-    '.verified-browsing-section .feature-card',
-  );
-
-  if (statusEl) {
-    statusEl.textContent = enabled ? 'ON' : 'OFF';
-    statusEl.className = `feature-status ${enabled ? 'enabled' : 'disabled'}`;
-  }
-
-  if (descEl) {
-    descEl.textContent = enabled
-      ? 'All content is cryptographically verified'
-      : 'Enable cryptographic verification of all content';
-  }
-
-  if (featureCard) {
-    featureCard.classList.toggle('active', enabled);
-  }
-}
+// Removed: Verified Browsing functions - verification features removed

@@ -49,35 +49,6 @@ export default defineConfig({
           dest: '.',
         },
         {
-          src: 'src/warning.html',
-          dest: '.',
-        },
-        {
-          src: 'src/viewer.html',
-          dest: '.',
-        },
-        {
-          src: 'src/viewer.css',
-          dest: '.',
-        },
-        {
-          src: 'src/wayfinder-proxy.html',
-          dest: '.',
-        },
-        {
-          src: 'src/wayfinder-proxy.js',
-          dest: '.',
-        },
-        {
-          src: 'src/prefetch-verifier.js',
-          dest: '.',
-        },
-        {
-          src: 'src/manifest-renderer.js',
-          dest: '.',
-        },
-
-        {
           src: 'manifest.json',
           dest: '.',
         },
@@ -104,9 +75,6 @@ export default defineConfig({
         settings: './src/settings.js',
         gateways: './src/gateways.js',
         performance: './src/performance.js',
-        warning: './src/warning.js',
-        viewer: './src/viewer.js',
-        'wayfinder-proxy': './src/wayfinder-proxy.js',
       },
       output: {
         entryFileNames: '[name].js',

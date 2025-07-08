@@ -43,154 +43,23 @@ function withTimeout<T>(
   ]);
 }
 
-/**
- * Show verification toast notification
- */
-function showVerificationToast(
-  message: string,
-  type: 'success' | 'error' | 'info' = 'info',
-) {
-  // Always show toasts when user clicks on verification indicators
-  // (removed showVerificationToasts check since digest verification is removed)
 
-  const toast = document.createElement('div');
-  toast.style.cssText = `
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
-    color: white;
-    padding: 12px 16px;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 500;
-    z-index: 10000;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    max-width: 300px;
-    word-break: break-word;
-  `;
-  toast.textContent = message;
-
-  document.body.appendChild(toast);
-
-  setTimeout(() => {
-    if (toast.parentNode) {
-      toast.parentNode.removeChild(toast);
-    }
-  }, 3000);
-}
-
-// Enhanced content script with verification status indicators
+// Content script initialization
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', afterContentDOMLoaded);
 } else {
   afterContentDOMLoaded();
 }
 
-/**
- * Add verification status indicator to elements
- */
-function addVerificationIndicator(
-  element: Element,
-  status: 'pending' | 'verified' | 'failed',
-): void {
-  // Remove existing indicators
-  const existingIndicator = element.parentElement?.querySelector(
-    '.wayfinder-verification',
-  );
-  if (existingIndicator) {
-    existingIndicator.remove();
-  }
-
-  // Create new indicator
-  const indicator = document.createElement('span');
-  indicator.className = 'wayfinder-verification';
-  indicator.style.cssText = `
-    display: inline-flex;
-    align-items: center;
-    margin-left: 4px;
-    font-size: 11px;
-    padding: 2px 6px;
-    border-radius: 12px;
-    font-weight: 600;
-    vertical-align: middle;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-    z-index: 1000;
-    line-height: 1;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    border: 1px solid rgba(255,255,255,0.2);
-  `;
-
-  switch (status) {
-    case 'pending':
-      indicator.innerHTML =
-        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; animation: wayfinder-spin 1s linear infinite;"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> <span style="margin-left: 2px;">Verifying</span>';
-      indicator.title = 'Wayfinder: Verifying data integrity...';
-      indicator.style.backgroundColor = '#f59e0b';
-      indicator.style.color = 'white';
-      break;
-    case 'verified':
-      indicator.innerHTML =
-        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> <span style="margin-left: 2px;">Verified</span>';
-      indicator.title = 'Wayfinder: Data integrity verified by AR.IO network';
-      indicator.style.backgroundColor = '#10b981';
-      indicator.style.color = 'white';
-      break;
-    case 'failed':
-      indicator.innerHTML =
-        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle;"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> <span style="margin-left: 2px;">Failed</span>';
-      indicator.title = 'Wayfinder: Data verification failed';
-      indicator.style.backgroundColor = '#ef4444';
-      indicator.style.color = 'white';
-      break;
-  }
-
-  // Add CSS animation for pending state
-  if (!document.getElementById('wayfinder-styles')) {
-    const style = document.createElement('style');
-    style.id = 'wayfinder-styles';
-    style.textContent = `
-      @keyframes wayfinder-pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.6; }
-      }
-      @keyframes wayfinder-spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-      }
-    `;
-    document.head.appendChild(style);
-  }
-
-  // Insert after the element
-  if (element.parentElement) {
-    element.parentElement.insertBefore(indicator, element.nextSibling);
-  }
-}
 
 /**
- * Process ar:// URLs with enhanced verification support
+ * Process ar:// URLs
  */
 async function processArUrl(
   element: Element,
   arUrl: string,
   attribute: string,
 ): Promise<void> {
-  // Check if verification indicators are enabled
-  const storage = await new Promise<{
-    showVerificationIndicators?: boolean;
-  }>((resolve) => {
-    chrome.storage.local.get(['showVerificationIndicators'], resolve);
-  });
-
-  const showVerificationIndicators =
-    storage.showVerificationIndicators !== false;
-
-  // Add pending indicator if enabled
-  if (showVerificationIndicators) {
-    addVerificationIndicator(element, 'pending');
-  }
 
   try {
     // First, convert the ar:// URL to HTTP with timeout
@@ -211,103 +80,7 @@ async function processArUrl(
 
     // Set the converted URL
     (element as any)[attribute] = convertResponse.url;
-
-    // For transaction IDs, optionally verify in content script for immediate UI feedback
-    // Note: This makes an additional request beyond the background verification
-    const txIdMatch = arUrl.match(/^ar:\/\/([a-zA-Z0-9_-]{43})/);
-    if (txIdMatch) {
-      const _txId = txIdMatch[1];
-
-      try {
-        // Wait a moment for the browser request to complete and cache to be populated
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-
-        // Check if we have a cached verification result from the browser request
-        const cacheCheckResponse = await withTimeout(
-          new Promise<any>((resolve) => {
-            chrome.runtime.sendMessage(
-              {
-                type: 'checkVerificationCache',
-                url: arUrl,
-              },
-              resolve,
-            );
-          }),
-          1000, // Quick timeout for cache check
-          'Cache check timed out',
-        );
-
-        let verifyResponse;
-
-        if (
-          cacheCheckResponse &&
-          cacheCheckResponse.cached &&
-          cacheCheckResponse.result
-        ) {
-          // Use cached result from the browser's navigation request
-          // Using cached verification result
-          verifyResponse = {
-            success: true,
-            response: {
-              verification: {
-                verified: cacheCheckResponse.result.verified,
-                strategy: cacheCheckResponse.result.strategy,
-                error: cacheCheckResponse.result.error,
-              },
-            },
-          };
-        } else {
-          // No verification data available (verification might be disabled)
-          // No verification data available
-          verifyResponse = null;
-        }
-
-        if (showVerificationIndicators && verifyResponse) {
-          if (verifyResponse.success && verifyResponse.response) {
-            const verification = verifyResponse.response.verification;
-
-            if (verification && verification.verified) {
-              addVerificationIndicator(element, 'verified');
-              showVerificationToast(
-                `Data verified using ${verification.strategy} strategy`,
-                'success',
-              );
-              // Data verified successfully
-            } else if (verification) {
-              addVerificationIndicator(element, 'failed');
-              showVerificationToast(
-                `Verification failed: ${verification.error || 'Unknown error'}`,
-                'error',
-              );
-              // Verification failed
-            }
-          }
-        } else if (showVerificationIndicators && !verifyResponse) {
-          // No verification data - verification might be disabled
-          // Verification disabled
-        }
-      } catch (_verifyError) {
-        // If verification fails, still allow the content to load but show failed status
-        if (showVerificationIndicators) {
-          addVerificationIndicator(element, 'failed');
-        }
-        // Verification error occurred
-      }
-    } else {
-      // For ArNS names, just show as verified since we can't verify them directly
-      if (showVerificationIndicators) {
-        addVerificationIndicator(element, 'verified');
-      }
-    }
   } catch (error) {
-    // Remove indicator on total failure
-    const indicator = element.parentElement?.querySelector(
-      '.wayfinder-verification',
-    );
-    if (indicator) {
-      indicator.remove();
-    }
-
     logger.error(
       `[CONTENT] Failed to process ${arUrl}:`,
       error.message || error,
@@ -316,7 +89,7 @@ async function processArUrl(
 }
 
 /**
- * Main content script initialization with enhanced verification
+ * Main content script initialization
  */
 async function afterContentDOMLoaded(): Promise<void> {
   // Processing ar:// URLs
@@ -378,7 +151,7 @@ async function afterContentDOMLoaded(): Promise<void> {
     }
 
     if (arUrl && attribute) {
-      // Process each URL with verification
+      // Process each URL
       processArUrl(element, arUrl, attribute).catch((error) =>
         logger.error('[CONTENT] Error:', error.message || error),
       );
