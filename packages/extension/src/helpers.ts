@@ -21,11 +21,11 @@ export async function isKnownGateway(fqdn: string): Promise<boolean> {
   const normalizedFQDN = await normalizeGatewayFQDN(fqdn);
 
   const { localGatewayAddressRegistry = {} } = await chrome.storage.local.get([
-    "localGatewayAddressRegistry",
+    'localGatewayAddressRegistry',
   ]);
 
   return Object.values(localGatewayAddressRegistry).some(
-    (gw: any) => gw.settings.fqdn === normalizedFQDN
+    (gw: any) => gw.settings.fqdn === normalizedFQDN,
   );
 }
 
@@ -34,13 +34,13 @@ export async function isKnownGateway(fqdn: string): Promise<boolean> {
  */
 export async function updateGatewayPerformance(
   rawFQDN: string, // The full hostname from the request
-  startTime: number
+  startTime: number,
 ) {
   const gatewayFQDN = await normalizeGatewayFQDN(rawFQDN); // ✅ Normalize before storage
   const responseTime = Math.max(0, performance.now() - startTime); // Prevent negatives
 
   // Ensure performance storage is initialized
-  const storage = await chrome.storage.local.get(["gatewayPerformance"]);
+  const storage = await chrome.storage.local.get(['gatewayPerformance']);
   const gatewayPerformance = storage.gatewayPerformance || {};
 
   // Ensure the gateway entry exists
@@ -79,7 +79,7 @@ export async function updateGatewayUsageHistory(gatewayFQDN: string) {
   const now = new Date().toISOString();
 
   const { gatewayUsageHistory = {} } = await chrome.storage.local.get([
-    "gatewayUsageHistory",
+    'gatewayUsageHistory',
   ]);
 
   if (!gatewayUsageHistory[gatewayFQDN]) {
@@ -105,11 +105,11 @@ export async function updateGatewayUsageHistory(gatewayFQDN: string) {
  */
 export async function normalizeGatewayFQDN(fqdn: string): Promise<string> {
   const { localGatewayAddressRegistry = {} } = await chrome.storage.local.get([
-    "localGatewayAddressRegistry",
+    'localGatewayAddressRegistry',
   ]);
 
   const knownGateways = Object.values(localGatewayAddressRegistry).map(
-    (gw: any) => gw.settings.fqdn
+    (gw: any) => gw.settings.fqdn,
   );
 
   // ✅ Direct match (e.g., `arweave.net`)

@@ -9,8 +9,9 @@
   padding: 0;
 }
 
-html, body {
-  font-family: var(--font-family-base, 'Rubik', sans-serif);
+html,
+body {
+  font-family: var(--font-family-base, "Rubik", sans-serif);
   background: var(--colors-container-containerL0, #050505);
   color: var(--colors-text-textHigh, #cacad6);
   width: var(--extension-width, 420px);
@@ -83,7 +84,7 @@ html, body {
 }
 
 .header-title h1 {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 700;
   font-size: 16px;
   line-height: 1.5;
@@ -92,7 +93,7 @@ html, body {
 }
 
 .header-title p {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 400;
   font-size: 16px;
   line-height: 1.5;
@@ -152,9 +153,15 @@ html, body {
 } */
 
 @keyframes pulse {
-  0% { opacity: 1; }
-  50% { opacity: 0.5; }
-  100% { opacity: 1; }
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
 }
 
 /* Main content */
@@ -170,8 +177,6 @@ html, body {
   overflow-x: hidden;
 }
 
-
-
 /* Settings sections */
 .settings-section {
   width: 384px;
@@ -184,7 +189,13 @@ html, body {
   transition: all 0.2s ease;
 }
 
-.settings-section:hover:not(.routing-config):not(.verification-strategy-config):not(.theme-config):not(.advanced-options):not(.verified-browsing-config):not(.gateway-provider-config):not(.trusted-gateways-config):not(.network-config):not(.data-management) {
+.settings-section:hover:not(.routing-config):not(
+    .verification-strategy-config
+  ):not(.theme-config):not(.advanced-options):not(
+    .verified-browsing-config
+  ):not(.gateway-provider-config):not(.trusted-gateways-config):not(
+    .network-config
+  ):not(.data-management) {
   background: #1c1c1f; /* containerL2 */
   border-color: rgba(202, 202, 214, 0.1);
 }
@@ -195,7 +206,7 @@ html, body {
 }
 
 .section-header h2 {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 700;
   font-size: 17px;
   line-height: 1.4;
@@ -204,7 +215,7 @@ html, body {
 }
 
 .section-header p {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 400;
   font-size: 14px;
   line-height: 1.4;
@@ -241,11 +252,11 @@ html, body {
 }
 
 .strategy-option:has(input[type="radio"]:checked)::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   padding: 1px;
-  background: linear-gradient(135deg, #F7C3A1, #DF9BE8);
+  background: linear-gradient(135deg, #f7c3a1, #df9be8);
   border-radius: inherit;
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask-composite: xor;
@@ -299,7 +310,7 @@ html, body {
 }
 
 .strategy-info h3 {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 700;
   font-size: 14px;
   line-height: 1.4;
@@ -308,7 +319,7 @@ html, body {
 }
 
 .strategy-info p {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 400;
   font-size: 12px;
   line-height: 1.4;
@@ -326,7 +337,7 @@ html, body {
 }
 
 .strategy-badge.recommended {
-  background: #1E1E24;
+  background: #1e1e24;
   color: var(--colors-solid-neutrals-100, #ffffff);
 }
 
@@ -347,7 +358,8 @@ html, body {
 }
 
 /* Specific rule for static gateway details */
-.strategy-option[data-strategy="static"]:has(input[type="radio"]:checked) .strategy-details {
+.strategy-option[data-strategy="static"]:has(input[type="radio"]:checked)
+  .strategy-details {
   display: block !important;
 }
 
@@ -366,7 +378,7 @@ html, body {
 }
 
 .feature::before {
-  content: '•';
+  content: "•";
   position: absolute;
   left: 0;
   color: var(--accent-primary, #349fa8);
@@ -410,7 +422,7 @@ html, body {
   border-radius: 8px;
   color: var(--colors-text-textHigh, #cacad6);
   font-size: 14px;
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
 }
 
 .gateway-dropdown {
@@ -437,7 +449,7 @@ html, body {
 }
 
 .gateway-divider::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 50%;
   left: 0;
@@ -493,7 +505,7 @@ html, body {
 }
 
 .apply-static-gateway .btn-primary {
-  background: linear-gradient(135deg, #F7C3A1, #DF9BE8);
+  background: linear-gradient(135deg, #f7c3a1, #df9be8);
   color: #000000;
   border: none;
   padding: 12px 24px;
@@ -537,17 +549,19 @@ html, body {
   margin-bottom: 0;
 }
 
-.verification-strategy-config .strategy-option:hover:not(:has(input[type="radio"]:checked)) {
+.verification-strategy-config
+  .strategy-option:hover:not(:has(input[type="radio"]:checked)) {
   background: #1c1c1f; /* containerL2 */
   border-color: rgba(202, 202, 214, 0.1);
 }
 
-.verification-strategy-config .strategy-option:has(input[type="radio"]:checked)::before {
-  content: '';
+.verification-strategy-config
+  .strategy-option:has(input[type="radio"]:checked)::before {
+  content: "";
   position: absolute;
   inset: 0;
   padding: 1px;
-  background: linear-gradient(135deg, #F7C3A1, #DF9BE8);
+  background: linear-gradient(135deg, #f7c3a1, #df9be8);
   border-radius: inherit;
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask-composite: xor;
@@ -556,7 +570,8 @@ html, body {
   z-index: 0;
 }
 
-.verification-strategy-config .strategy-option:has(input[type="radio"]:checked) {
+.verification-strategy-config
+  .strategy-option:has(input[type="radio"]:checked) {
   border: 1px solid transparent;
 }
 
@@ -597,7 +612,7 @@ html, body {
 }
 
 .verification-strategy-config .strategy-info h3 {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 700;
   font-size: 14px;
   line-height: 1.4;
@@ -606,7 +621,7 @@ html, body {
 }
 
 .verification-strategy-config .strategy-info p {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 400;
   font-size: 12px;
   line-height: 1.4;
@@ -628,15 +643,21 @@ html, body {
 }
 
 .verification-strategy-config .strategy-badge.recommended {
-  background: #1E1E24;
+  background: #1e1e24;
   color: var(--colors-solid-neutrals-100, #ffffff);
 }
 
-.verification-strategy-config .strategy-option input[type="radio"]:checked + label {
+.verification-strategy-config
+  .strategy-option
+  input[type="radio"]:checked
+  + label {
   color: var(--colors-solid-neutrals-100, #ffffff);
 }
 
-.verification-strategy-config .strategy-option input[type="radio"]:checked ~ .strategy-details {
+.verification-strategy-config
+  .strategy-option
+  input[type="radio"]:checked
+  ~ .strategy-details {
   display: block !important;
 }
 
@@ -648,7 +669,10 @@ html, body {
   z-index: 1;
 }
 
-.verification-strategy-config .strategy-option[data-strategy="hash"] input[type="radio"]:checked ~ .strategy-details {
+.verification-strategy-config
+  .strategy-option[data-strategy="hash"]
+  input[type="radio"]:checked
+  ~ .strategy-details {
   display: block !important;
 }
 
@@ -667,7 +691,7 @@ html, body {
 }
 
 .verification-strategy-config .feature::before {
-  content: '•';
+  content: "•";
   position: absolute;
   left: 0;
   color: var(--accent-primary, #349fa8);
@@ -677,7 +701,7 @@ html, body {
 .coming-soon-badge {
   display: inline-block;
   padding: 2px 8px;
-  background: linear-gradient(135deg, #F7C3A1, #DF9BE8);
+  background: linear-gradient(135deg, #f7c3a1, #df9be8);
   color: #ffffff;
   font-size: 10px;
   font-weight: 600;
@@ -714,7 +738,10 @@ html, body {
   padding: 16px; /* Match routing strategy */
 }
 
-.verification-strategy-config .verification-strategy-selector .strategy-info h3 {
+.verification-strategy-config
+  .verification-strategy-selector
+  .strategy-info
+  h3 {
   font-size: 14px; /* Match routing strategy */
   font-weight: 700; /* Match routing strategy */
   margin: 0 0 4px 0; /* Match routing strategy */
@@ -753,24 +780,30 @@ html, body {
   border-color: rgba(15, 23, 42, 0.16); /* Light theme border */
 }
 
-.theme-option[data-theme="light"]:hover:not(:has(input[type="radio"]:checked)) .theme-info h3 {
+.theme-option[data-theme="light"]:hover:not(:has(input[type="radio"]:checked))
+  .theme-info
+  h3 {
   color: #0f172a; /* Light theme text */
 }
 
-.theme-option[data-theme="light"]:hover:not(:has(input[type="radio"]:checked)) .theme-info p {
+.theme-option[data-theme="light"]:hover:not(:has(input[type="radio"]:checked))
+  .theme-info
+  p {
   color: #1e293b; /* Light theme secondary text */
 }
 
-.theme-option[data-theme="light"]:hover:not(:has(input[type="radio"]:checked)) .theme-icon svg {
+.theme-option[data-theme="light"]:hover:not(:has(input[type="radio"]:checked))
+  .theme-icon
+  svg {
   color: #1e293b; /* Light theme icon color */
 }
 
 .theme-option:has(input[type="radio"]:checked)::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   padding: 1px;
-  background: linear-gradient(135deg, #F7C3A1, #DF9BE8);
+  background: linear-gradient(135deg, #f7c3a1, #df9be8);
   border-radius: inherit;
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask-composite: xor;
@@ -820,7 +853,7 @@ html, body {
 }
 
 .theme-info h3 {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 700;
   font-size: 14px;
   line-height: 1.4;
@@ -829,7 +862,7 @@ html, body {
 }
 
 .theme-info p {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 400;
   font-size: 12px;
   line-height: 1.4;
@@ -863,7 +896,7 @@ html, body {
 }
 
 .advanced-option .option-info h3 {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 700;
   font-size: 14px;
   line-height: 1.4;
@@ -872,7 +905,7 @@ html, body {
 }
 
 .advanced-option .option-info p {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 400;
   font-size: 12px;
   line-height: 1.4;
@@ -882,7 +915,7 @@ html, body {
 
 .advanced-option .option-description {
   margin-top: 12px;
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 400;
   font-size: 12px;
   line-height: 1.5;
@@ -924,7 +957,7 @@ html, body {
 }
 
 .advanced-info h3 {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 700;
   font-size: 14px;
   line-height: 1.4;
@@ -933,7 +966,7 @@ html, body {
 }
 
 .advanced-info p {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 400;
   font-size: 12px;
   line-height: 1.4;
@@ -967,7 +1000,7 @@ html, body {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 400;
   font-size: 12px;
   line-height: 1.4;
@@ -1002,12 +1035,13 @@ html, body {
   padding: 20px;
 }
 
-.verification-strategy-selector .strategy-option:has(input[type="radio"]:checked)::before {
-  content: '';
+.verification-strategy-selector
+  .strategy-option:has(input[type="radio"]:checked)::before {
+  content: "";
   position: absolute;
   inset: 0;
   padding: 1px;
-  background: linear-gradient(135deg, #F7C3A1, #DF9BE8);
+  background: linear-gradient(135deg, #f7c3a1, #df9be8);
   border-radius: inherit;
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask-composite: xor;
@@ -1016,7 +1050,8 @@ html, body {
   z-index: 0;
 }
 
-.verification-strategy-selector .strategy-option:has(input[type="radio"]:checked) {
+.verification-strategy-selector
+  .strategy-option:has(input[type="radio"]:checked) {
   border: 1px solid transparent;
 }
 
@@ -1057,7 +1092,7 @@ html, body {
 }
 
 .verification-strategy-selector .strategy-info h3 {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 600;
   font-size: 12px;
   line-height: 1.4;
@@ -1066,7 +1101,7 @@ html, body {
 }
 
 .verification-strategy-selector .strategy-info p {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 400;
   font-size: 10px;
   line-height: 1.4;
@@ -1116,7 +1151,7 @@ html, body {
 }
 
 .mode-info h3 {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 600;
   font-size: 12px;
   line-height: 1.4;
@@ -1125,7 +1160,7 @@ html, body {
 }
 
 .mode-info p {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 400;
   font-size: 10px;
   line-height: 1.4;
@@ -1141,7 +1176,7 @@ html, body {
 
 .gateway-count-config label {
   display: block;
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 600;
   font-size: 12px;
   color: var(--colors-text-textHigh, #cacad6);
@@ -1184,7 +1219,7 @@ html, body {
 }
 
 .slider-value {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 700;
   font-size: 14px;
   color: var(--colors-solid-neutrals-100, #ffffff);
@@ -1250,7 +1285,7 @@ html, body {
 }
 
 .mode-info h3 {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 700;
   font-size: 14px;
   line-height: 1.4;
@@ -1259,7 +1294,7 @@ html, body {
 }
 
 .mode-info p {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 400;
   font-size: 12px;
   line-height: 1.4;
@@ -1283,12 +1318,12 @@ html, body {
 }
 
 .option-card::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   padding: 1px;
   margin-bottom: 10px;
-  background: linear-gradient(135deg, #F7C3A1, #DF9BE8);
+  background: linear-gradient(135deg, #f7c3a1, #df9be8);
   border-radius: inherit;
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask-composite: xor;
@@ -1297,16 +1332,19 @@ html, body {
 }
 
 /* Verified browsing card when toggled off */
-.verified-browsing-config:has(#verifiedBrowsingToggle:not(:checked)) .option-card:first-child {
+.verified-browsing-config:has(#verifiedBrowsingToggle:not(:checked))
+  .option-card:first-child {
   border: 1px solid rgba(202, 202, 214, 0.08);
 }
 
-.verified-browsing-config:has(#verifiedBrowsingToggle:not(:checked)) .option-card:first-child::before {
+.verified-browsing-config:has(#verifiedBrowsingToggle:not(:checked))
+  .option-card:first-child::before {
   display: none;
 }
 
 /* Expanded state when toggle is ON */
-.verified-browsing-config:has(#verifiedBrowsingToggle:checked) .option-card:first-child {
+.verified-browsing-config:has(#verifiedBrowsingToggle:checked)
+  .option-card:first-child {
   border-color: #f7c3a1;
 }
 
@@ -1356,7 +1394,7 @@ html, body {
 }
 
 .feature-label {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 700;
   font-size: 14px;
   line-height: 1.4;
@@ -1364,7 +1402,7 @@ html, body {
 }
 
 .feature-description {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 400;
   font-size: 12px;
   line-height: 1.4;
@@ -1391,7 +1429,7 @@ html, body {
 }
 
 .option-info h3 {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 700;
   font-size: 14px;
   line-height: 1.4;
@@ -1400,7 +1438,7 @@ html, body {
 }
 
 .option-info p {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 400;
   font-size: 12px;
   line-height: 1.4;
@@ -1409,14 +1447,16 @@ html, body {
 }
 
 /* Toggle Switch - matches popup design exactly */
-.toggle-switch, .switch {
+.toggle-switch,
+.switch {
   position: relative;
   width: 32px;
   height: 18.286px;
   flex-shrink: 0;
 }
 
-.toggle-switch input, .switch input {
+.toggle-switch input,
+.switch input {
   opacity: 0;
   width: 100%;
   height: 100%;
@@ -1425,7 +1465,8 @@ html, body {
   z-index: 1;
 }
 
-.toggle-slider, .switch-slider {
+.toggle-slider,
+.switch-slider {
   position: absolute;
   cursor: pointer;
   top: 0;
@@ -1443,12 +1484,13 @@ html, body {
   padding: 1.14286px;
 }
 
-.toggle-slider:before, .switch-slider:before {
+.toggle-slider:before,
+.switch-slider:before {
   content: "";
   height: 13.714px;
   width: 13.714px;
   border-radius: 50%;
-  background: #CACAD6;
+  background: #cacad6;
   transition: 0.3s;
   position: relative;
 }
@@ -1463,20 +1505,20 @@ html, body {
 
 .toggle-switch input:not(:checked) + .toggle-slider:before,
 .switch input:not(:checked) + .switch-slider:before {
-  background: #7F7F87;
+  background: #7f7f87;
 }
 
 /* Data Management */
 .danger-section::before {
-  background: linear-gradient(135deg, #FFB4B4, #FF6C6C);
+  background: linear-gradient(135deg, #ffb4b4, #ff6c6c);
 }
 
 .data-management::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   padding: 1px;
-  background: linear-gradient(135deg, #FFB4B4, #FF6C6C);
+  background: linear-gradient(135deg, #ffb4b4, #ff6c6c);
   border-radius: inherit;
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask-composite: xor;
@@ -1626,7 +1668,7 @@ html, body {
 }
 
 .toast-text {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 400;
   font-size: 14px;
   line-height: 1.4;
@@ -1793,7 +1835,7 @@ html, body {
 }
 
 .provider-option .option-info h3 {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 700;
   font-size: 14px;
   line-height: 1.4;
@@ -1802,7 +1844,7 @@ html, body {
 }
 
 .provider-option .option-info p {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 400;
   font-size: 12px;
   line-height: 1.4;
@@ -1816,7 +1858,7 @@ html, body {
   border-radius: 8px;
   padding: 8px 12px;
   color: var(--colors-solid-neutrals-100, #ffffff);
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-size: 14px;
   min-width: 160px;
   cursor: pointer;
@@ -1869,7 +1911,8 @@ html, body {
   margin-bottom: 0;
 }
 
-.trusted-gateways-config .mode-option:hover:not(:has(input[type="radio"]:checked)) {
+.trusted-gateways-config
+  .mode-option:hover:not(:has(input[type="radio"]:checked)) {
   background: #1c1c1f; /* containerL2 */
   border-color: rgba(202, 202, 214, 0.1);
 }
@@ -1879,11 +1922,11 @@ html, body {
 }
 
 .trusted-gateways-config .mode-option:has(input[type="radio"]:checked)::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   padding: 1px;
-  background: linear-gradient(135deg, #F7C3A1, #DF9BE8);
+  background: linear-gradient(135deg, #f7c3a1, #df9be8);
   border-radius: inherit;
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask-composite: xor;
@@ -1921,7 +1964,7 @@ html, body {
 }
 
 .trusted-gateways-config .mode-info h3 {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 700;
   font-size: 14px;
   line-height: 1.4;
@@ -1930,7 +1973,7 @@ html, body {
 }
 
 .trusted-gateways-config .mode-info p {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 400;
   font-size: 12px;
   line-height: 1.4;
@@ -1954,7 +1997,7 @@ html, body {
 }
 
 .gateway-count-config label {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 700;
   font-size: 14px;
   line-height: 1.4;
@@ -1979,7 +2022,7 @@ html, body {
 }
 
 .gateway-selection-section h4 {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 700;
   font-size: 14px;
   color: var(--colors-solid-neutrals-100, #ffffff);
@@ -2038,7 +2081,7 @@ html, body {
 }
 
 .gateway-selection-item input[type="checkbox"]:checked::before {
-  content: '✓';
+  content: "✓";
   position: absolute;
   top: -1px;
   left: 1px;
@@ -2067,7 +2110,7 @@ html, body {
 }
 
 .trusted-gateways-preview h4 {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 700;
   font-size: 14px;
   color: var(--colors-solid-neutrals-100, #ffffff);
@@ -2136,7 +2179,7 @@ html, body {
 }
 
 .network-option .option-info h3 {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 700;
   font-size: 14px;
   line-height: 1.4;
@@ -2145,7 +2188,7 @@ html, body {
 }
 
 .network-option .option-info p {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 400;
   font-size: 12px;
   line-height: 1.4;
@@ -2167,7 +2210,7 @@ html, body {
   border-radius: 8px;
   padding: 12px 16px;
   color: var(--colors-solid-neutrals-100, #ffffff);
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-size: 14px;
 }
 
@@ -2188,7 +2231,7 @@ html, body {
   border-radius: 8px;
   padding: 12px 16px;
   color: var(--colors-solid-neutrals-100, #ffffff);
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -2242,7 +2285,8 @@ html, body {
     border-color: var(--border-default);
   }
 
-  .verification-strategy-config .strategy-option:hover:not(:has(input[type="radio"]:checked)) {
+  .verification-strategy-config
+    .strategy-option:hover:not(:has(input[type="radio"]:checked)) {
     background: var(--colors-container-containerL2, #f1f5f9);
     border-color: var(--border-default);
   }
@@ -2262,7 +2306,8 @@ html, body {
     border-color: var(--border-default);
   }
 
-  .trusted-gateways-config .mode-option:hover:not(:has(input[type="radio"]:checked)) {
+  .trusted-gateways-config
+    .mode-option:hover:not(:has(input[type="radio"]:checked)) {
     background: var(--colors-container-containerL2, #f1f5f9);
     border-color: var(--border-default);
   }
@@ -2417,4 +2462,3 @@ html, body {
   color: var(--colors-text-textMid);
   margin: 0;
 }
-

@@ -55,12 +55,10 @@ export const WAYFINDER_DEFAULTS = {
   routingMethod: 'random',
   staticGateway: null,
 
-
   // Gateway Management
   gatewayCacheTTL: 3600, // 1 hour in seconds
   gatewaySortBy: 'totalDelegatedStake',
   gatewaySortOrder: 'desc',
-
 
   // Telemetry Configuration (opt-in, default disabled)
   telemetryEnabled: false,
@@ -87,14 +85,12 @@ export const ROUTING_STRATEGY_DEFAULTS = {
   },
 } as const;
 
-
 /**
  * Cache management defaults
  */
 export const CACHE_DEFAULTS = {
   // ArNS Cache Settings
   arnsDefaultTTL: 60 * 60 * 1000, // 1 hour in milliseconds
-
 
   // Gateway Cache Settings
   gatewayCacheTTL: 3600, // 1 hour in seconds
@@ -113,7 +109,6 @@ export const CACHE_DEFAULTS = {
 export const UI_DEFAULTS = {
   // Theme
   theme: 'dark',
-
 
   // Error display
   showDetailedErrors: true,

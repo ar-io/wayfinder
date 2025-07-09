@@ -57,7 +57,7 @@
   --extension-width: 420px;
 
   /* Typography - Network Portal Design System */
-  --font-family-base: 'Rubik', sans-serif;
+  --font-family-base: "Rubik", sans-serif;
   --font-weight-regular: 400;
   --font-weight-medium: 500;
   --font-weight-bold: 700;
@@ -169,7 +169,8 @@
   padding: 0;
 }
 
-html, body {
+html,
+body {
   font-family: var(--font-family-base);
   background: var(--bg-primary);
   color: var(--text-high);
@@ -284,12 +285,12 @@ html, body {
   height: 89.7px;
   background: var(--bg-secondary);
   border-radius: var(--radius-lg);
-  box-shadow: 
-    0px 1726px 483px 0px rgba(0,0,0,0.01),
-    0px 1105px 442px 0px rgba(0,0,0,0.04),
-    0px 621px 373px 0px rgba(0,0,0,0.15),
-    0px 276px 276px 0px rgba(0,0,0,0.26),
-    0px 69px 152px 0px rgba(0,0,0,0.29);
+  box-shadow:
+    0px 1726px 483px 0px rgba(0, 0, 0, 0.01),
+    0px 1105px 442px 0px rgba(0, 0, 0, 0.04),
+    0px 621px 373px 0px rgba(0, 0, 0, 0.15),
+    0px 276px 276px 0px rgba(0, 0, 0, 0.26),
+    0px 69px 152px 0px rgba(0, 0, 0, 0.29);
   display: flex;
   align-items: center;
   padding: 0 18px;
@@ -303,11 +304,11 @@ html, body {
 }
 
 .stat-card::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   padding: 1px;
-  background: linear-gradient(135deg, #F7C3A1, #DF9BE8);
+  background: linear-gradient(135deg, #f7c3a1, #df9be8);
   border-radius: inherit;
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask-composite: xor;
@@ -452,7 +453,7 @@ html, body {
   height: 13.714px;
   width: 13.714px;
   border-radius: 50%;
-  background: #CACAD6;
+  background: #cacad6;
   transition: 0.3s;
   position: relative;
 }
@@ -465,7 +466,7 @@ html, body {
 }
 
 .toggle-switch input:not(:checked) + .toggle-slider:before {
-  background: #7F7F87;
+  background: #7f7f87;
 }
 
 /* Current strategy section */
@@ -732,7 +733,7 @@ html, body {
 }
 
 .toast-text {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 400;
   font-size: 14px;
   line-height: 1.4;
@@ -778,8 +779,12 @@ html, body {
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .nav-card.syncing {

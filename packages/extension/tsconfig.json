@@ -9,7 +9,7 @@
     "sourceMap": true,
     "baseUrl": ".",
     "lib": ["dom", "esnext"],
-    "types": ["chrome"],
+    "types": ["chrome"]
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"],
   "exclude": ["node_modules"]

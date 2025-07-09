@@ -9,8 +9,9 @@
   padding: 0;
 }
 
-html, body {
-  font-family: var(--font-family-base, 'Rubik', sans-serif);
+html,
+body {
+  font-family: var(--font-family-base, "Rubik", sans-serif);
   background: var(--colors-container-containerL0, #050505);
   color: var(--colors-text-textHigh, #cacad6);
   width: var(--extension-width, 420px);
@@ -79,7 +80,7 @@ html, body {
 }
 
 .header-title h1 {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 700;
   font-size: 16px;
   line-height: 1.5;
@@ -88,7 +89,7 @@ html, body {
 }
 
 .header-title p {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 400;
   font-size: 16px;
   line-height: 1.5;
@@ -184,9 +185,15 @@ html, body {
 } */
 
 @keyframes pulse {
-  0% { opacity: 1; }
-  50% { opacity: 0.5; }
-  100% { opacity: 1; }
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
 }
 
 /* Main content */
@@ -224,12 +231,12 @@ html, body {
   height: 89.7px;
   background: var(--bg-secondary);
   border-radius: var(--radius-lg);
-  box-shadow: 
-    0px 1726px 483px 0px rgba(0,0,0,0.01),
-    0px 1105px 442px 0px rgba(0,0,0,0.04),
-    0px 621px 373px 0px rgba(0,0,0,0.15),
-    0px 276px 276px 0px rgba(0,0,0,0.26),
-    0px 69px 152px 0px rgba(0,0,0,0.29);
+  box-shadow:
+    0px 1726px 483px 0px rgba(0, 0, 0, 0.01),
+    0px 1105px 442px 0px rgba(0, 0, 0, 0.04),
+    0px 621px 373px 0px rgba(0, 0, 0, 0.15),
+    0px 276px 276px 0px rgba(0, 0, 0, 0.26),
+    0px 69px 152px 0px rgba(0, 0, 0, 0.29);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -245,11 +252,11 @@ html, body {
 }
 
 .stat-card::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   padding: 1px;
-  background: linear-gradient(135deg, #F7C3A1, #DF9BE8);
+  background: linear-gradient(135deg, #f7c3a1, #df9be8);
   border-radius: inherit;
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask-composite: xor;
@@ -266,7 +273,7 @@ html, body {
 }
 
 .stat-value {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 700;
   font-size: 17px;
   line-height: 1.4;
@@ -275,7 +282,7 @@ html, body {
 }
 
 .stat-label {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 400;
   font-size: 12px;
   line-height: 1.4;
@@ -323,7 +330,7 @@ html, body {
   border-radius: 8px;
   color: var(--colors-text-textHigh, #cacad6);
   font-size: 14px;
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
 }
 
 .search-box input::placeholder {
@@ -362,11 +369,11 @@ html, body {
 }
 
 .filter-btn.active::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   padding: 1px;
-  background: linear-gradient(135deg, #F7C3A1, #DF9BE8);
+  background: linear-gradient(135deg, #f7c3a1, #df9be8);
   border-radius: inherit;
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask-composite: xor;
@@ -433,7 +440,7 @@ html, body {
   color: var(--colors-text-textHigh, #cacad6);
   padding: 8px 12px;
   border-radius: 6px;
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-size: 12px;
   font-weight: 500;
   white-space: nowrap;
@@ -449,7 +456,7 @@ html, body {
 
 /* Tooltip arrow */
 .gateway-status::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 50%;
   right: calc(100% + 2px);
@@ -512,7 +519,7 @@ html, body {
 }
 
 .gateway-url {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 700;
   font-size: 14px;
   line-height: 1.4;
@@ -559,7 +566,7 @@ html, body {
 }
 
 .info-label {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 400;
   font-size: 10px;
   line-height: 1.4;
@@ -569,7 +576,7 @@ html, body {
 }
 
 .info-value {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 700;
   font-size: 12px;
   line-height: 1.2;
@@ -599,7 +606,7 @@ html, body {
 }
 
 .metric-value {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 700;
   font-size: 14px;
   line-height: 1.2;
@@ -607,7 +614,7 @@ html, body {
 }
 
 .metric-label {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 400;
   font-size: 10px;
   line-height: 1.4;
@@ -644,7 +651,7 @@ html, body {
 }
 
 .empty-state h3 {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 700;
   font-size: 17px;
   line-height: 1.4;
@@ -653,7 +660,7 @@ html, body {
 }
 
 .empty-state p {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 400;
   font-size: 14px;
   line-height: 1.4;
@@ -662,7 +669,7 @@ html, body {
 }
 
 .no-results-state h3 {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 700;
   font-size: 17px;
   line-height: 1.4;
@@ -671,7 +678,7 @@ html, body {
 }
 
 .no-results-state p {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 400;
   font-size: 14px;
   line-height: 1.4;
@@ -724,7 +731,7 @@ html, body {
 }
 
 .loading-state p {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 400;
   font-size: 14px;
   line-height: 1.4;
@@ -836,11 +843,11 @@ html, body {
 }
 
 .modal-content::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   padding: 1px;
-  background: linear-gradient(135deg, #F7C3A1, #DF9BE8);
+  background: linear-gradient(135deg, #f7c3a1, #df9be8);
   border-radius: inherit;
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask-composite: xor;
@@ -863,7 +870,7 @@ html, body {
 }
 
 .modal-header h2 {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 700;
   font-size: 20px;
   line-height: 1.4;
@@ -885,20 +892,20 @@ html, body {
 }
 
 .modal-title-section h2 {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 700;
   font-size: 20px;
   line-height: 1.4;
   color: var(--colors-solid-neutrals-100, #ffffff);
   margin: 0;
-  background: linear-gradient(135deg, #F7C3A1, #DF9BE8);
+  background: linear-gradient(135deg, #f7c3a1, #df9be8);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .modal-subtitle {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: "JetBrains Mono", monospace;
   font-weight: 400;
   font-size: 12px;
   color: var(--colors-text-textHigh, #cacad6);
@@ -913,7 +920,7 @@ html, body {
   background: var(--colors-container-containerL2, #1c1c1f);
   border: 1px solid var(--colors-stroke-strokeLow);
   border-radius: 8px;
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-size: 13px;
   font-weight: 600;
   color: var(--colors-text-textHigh, #cacad6);
@@ -924,7 +931,7 @@ html, body {
 }
 
 .gateway-status-badge::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
@@ -952,8 +959,13 @@ html, body {
 }
 
 @keyframes statusPulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
 }
 
 .gateway-status-badge.online .status-dot {
@@ -988,10 +1000,10 @@ html, body {
 }
 
 .close-btn::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, #F7C3A1, #DF9BE8);
+  background: linear-gradient(135deg, #f7c3a1, #df9be8);
   opacity: 0;
   transition: opacity 0.3s ease;
 }
@@ -1050,7 +1062,7 @@ html, body {
 }
 
 .section-title h3 {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 700;
   font-size: 17px;
   line-height: 1.4;
@@ -1060,10 +1072,10 @@ html, body {
 }
 
 .section-title::before {
-  content: '';
+  content: "";
   width: 4px;
   height: 24px;
-  background: linear-gradient(135deg, #F7C3A1, #DF9BE8);
+  background: linear-gradient(135deg, #f7c3a1, #df9be8);
   border-radius: 2px;
   flex-shrink: 0;
 }
@@ -1100,7 +1112,7 @@ html, body {
   color: var(--colors-text-textHigh, #cacad6);
   text-decoration: none;
   font-size: 14px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: "JetBrains Mono", monospace;
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
@@ -1109,10 +1121,10 @@ html, body {
 
 .gateway-link::before,
 .address-link::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, #F7C3A1, #DF9BE8);
+  background: linear-gradient(135deg, #f7c3a1, #df9be8);
   opacity: 0;
   transition: opacity 0.3s ease;
 }
@@ -1176,7 +1188,7 @@ html, body {
   font-size: 16px;
   color: var(--colors-text-textHigh);
   font-weight: 600;
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
 }
 
 .modal-stat-card {
@@ -1193,17 +1205,15 @@ html, body {
   background: #1c1c1f; /* containerL2 */
   border-color: rgba(202, 202, 214, 0.1);
   transform: translateY(-2px);
-  box-shadow: 
-    0px 8px 25px rgba(0, 0, 0, 0.15),
-    0px 4px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 0px 8px 25px rgba(0, 0, 0, 0.15), 0px 4px 10px rgba(0, 0, 0, 0.1);
 }
 
 .modal-stat-card::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   padding: 1px;
-  background: linear-gradient(135deg, #F7C3A1, #DF9BE8);
+  background: linear-gradient(135deg, #f7c3a1, #df9be8);
   border-radius: inherit;
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask-composite: xor;
@@ -1250,7 +1260,7 @@ html, body {
 }
 
 .modal-stat-card .stat-label {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 500;
   font-size: 13px;
   line-height: 1.4;
@@ -1258,12 +1268,12 @@ html, body {
 }
 
 .modal-stat-card .stat-value {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 700;
   font-size: 16px;
   line-height: 1.2;
   color: var(--colors-solid-neutrals-100, #ffffff);
-  background: linear-gradient(135deg, #F7C3A1, #DF9BE8);
+  background: linear-gradient(135deg, #f7c3a1, #df9be8);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -1285,7 +1295,7 @@ html, body {
 }
 
 .ping-test-description {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 400;
   font-size: 14px;
   line-height: 1.4;
@@ -1302,7 +1312,7 @@ html, body {
   border: none;
   border-radius: 8px;
   color: var(--colors-solid-neutrals-100, #ffffff);
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 600;
   font-size: 12px;
   cursor: pointer;
@@ -1338,7 +1348,7 @@ html, body {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 500;
   font-size: 12px;
   color: var(--colors-text-textHigh, #cacad6);
@@ -1347,7 +1357,7 @@ html, body {
 }
 
 .ping-result-value {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 700;
   font-size: 14px;
   color: var(--colors-solid-neutrals-100, #ffffff);
@@ -1360,7 +1370,7 @@ html, body {
   gap: 12px;
   padding: 24px;
   color: var(--colors-text-textHigh, #cacad6);
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-size: 14px;
 }
 
@@ -1417,7 +1427,7 @@ html, body {
 }
 
 .gateway-info-label {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 500;
   font-size: 12px;
   color: var(--colors-text-textHigh, #cacad6);
@@ -1426,7 +1436,7 @@ html, body {
 }
 
 .gateway-info-value {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 600;
   font-size: 14px;
   color: var(--colors-solid-neutrals-100, #ffffff);
@@ -1439,7 +1449,7 @@ html, body {
   gap: 4px;
   padding: 6px 10px;
   border-radius: 12px;
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 600;
   font-size: 11px;
   line-height: 1.3;
@@ -1491,7 +1501,7 @@ html, body {
   gap: 4px;
   padding: 6px 10px;
   border-radius: 12px;
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 600;
   font-size: 11px;
   line-height: 1.3;
@@ -1530,7 +1540,7 @@ html, body {
   background: var(--colors-container-containerL0, #050505);
   border: 1px solid rgba(202, 202, 214, 0.08);
   border-radius: 8px;
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 500;
   font-size: 14px;
   color: var(--colors-text-textHigh, #cacad6);
@@ -1558,7 +1568,7 @@ html, body {
 }
 
 .operator-note {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 400;
   font-size: 14px;
   line-height: 1.5;
@@ -1590,7 +1600,7 @@ html, body {
   border-radius: 8px;
   color: var(--colors-text-textHigh, #cacad6);
   text-decoration: none;
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 600;
   font-size: 12px;
   cursor: pointer;
@@ -1612,7 +1622,7 @@ html, body {
   border: none;
   border-radius: 8px;
   color: var(--colors-solid-neutrals-100, #ffffff);
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 600;
   font-size: 12px;
   cursor: pointer;
@@ -1724,7 +1734,7 @@ html, body {
 }
 
 .toast-text {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 400;
   font-size: 14px;
   line-height: 1.4;
@@ -1800,9 +1810,8 @@ html, body {
 
   .modal-content {
     background: var(--colors-container-containerL0, #ffffff);
-    box-shadow: 
-      0px 20px 60px rgba(0, 0, 0, 0.15),
-      0px 8px 25px rgba(0, 0, 0, 0.08);
+    box-shadow: 0px 20px 60px rgba(0, 0, 0, 0.15), 0px 8px 25px
+      rgba(0, 0, 0, 0.08);
   }
 
   .modal-header {

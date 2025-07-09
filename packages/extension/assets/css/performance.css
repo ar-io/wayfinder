@@ -9,8 +9,9 @@
   padding: 0;
 }
 
-html, body {
-  font-family: var(--font-family-base, 'Rubik', sans-serif);
+html,
+body {
+  font-family: var(--font-family-base, "Rubik", sans-serif);
   background: var(--colors-container-containerL0, #050505);
   color: var(--colors-text-textHigh, #cacad6);
   width: var(--extension-width, 420px);
@@ -83,7 +84,7 @@ html, body {
 }
 
 .header-title h1 {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 700;
   font-size: 16px;
   line-height: 1.5;
@@ -92,7 +93,7 @@ html, body {
 }
 
 .header-title p {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 400;
   font-size: 16px;
   line-height: 1.5;
@@ -182,9 +183,15 @@ html, body {
 } */
 
 @keyframes pulse {
-  0% { opacity: 1; }
-  50% { opacity: 0.5; }
-  100% { opacity: 1; }
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
 }
 
 /* Main content */
@@ -250,11 +257,11 @@ html, body {
 }
 
 .filter-btn.active::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   padding: 1px;
-  background: linear-gradient(135deg, #F7C3A1, #DF9BE8);
+  background: linear-gradient(135deg, #f7c3a1, #df9be8);
   border-radius: inherit;
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask-composite: xor;
@@ -286,7 +293,7 @@ html, body {
   border-radius: 6px;
   color: var(--colors-text-textHigh, #cacad6);
   font-size: 12px;
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   min-width: 140px;
 }
 
@@ -309,12 +316,12 @@ html, body {
   height: 89.7px;
   background: var(--bg-secondary);
   border-radius: var(--radius-lg);
-  box-shadow: 
-    0px 1726px 483px 0px rgba(0,0,0,0.01),
-    0px 1105px 442px 0px rgba(0,0,0,0.04),
-    0px 621px 373px 0px rgba(0,0,0,0.15),
-    0px 276px 276px 0px rgba(0,0,0,0.26),
-    0px 69px 152px 0px rgba(0,0,0,0.29);
+  box-shadow:
+    0px 1726px 483px 0px rgba(0, 0, 0, 0.01),
+    0px 1105px 442px 0px rgba(0, 0, 0, 0.04),
+    0px 621px 373px 0px rgba(0, 0, 0, 0.15),
+    0px 276px 276px 0px rgba(0, 0, 0, 0.26),
+    0px 69px 152px 0px rgba(0, 0, 0, 0.29);
   display: flex;
   align-items: center;
   padding: 0 18px;
@@ -322,11 +329,11 @@ html, body {
 }
 
 .stat-card::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   padding: 1px;
-  background: linear-gradient(135deg, #F7C3A1, #DF9BE8);
+  background: linear-gradient(135deg, #f7c3a1, #df9be8);
   border-radius: inherit;
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask-composite: xor;
@@ -387,17 +394,15 @@ html, body {
   background: #1c1c1f; /* containerL2 */
   border-color: rgba(202, 202, 214, 0.1);
   transform: translateY(-2px);
-  box-shadow: 
-    0px 8px 25px rgba(0, 0, 0, 0.15),
-    0px 4px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 0px 8px 25px rgba(0, 0, 0, 0.15), 0px 4px 10px rgba(0, 0, 0, 0.1);
 }
 
 .perf-card::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   padding: 1px;
-  background: linear-gradient(135deg, #F7C3A1, #DF9BE8);
+  background: linear-gradient(135deg, #f7c3a1, #df9be8);
   border-radius: inherit;
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask-composite: xor;
@@ -478,7 +483,7 @@ html, body {
   font-size: 16px;
   line-height: 1.2;
   color: var(--colors-solid-neutrals-100, #ffffff);
-  background: linear-gradient(135deg, #F7C3A1, #DF9BE8);
+  background: linear-gradient(135deg, #f7c3a1, #df9be8);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -503,7 +508,7 @@ html, body {
 }
 
 .action-card::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
@@ -511,7 +516,12 @@ html, body {
   bottom: 0;
   border-radius: 12px;
   padding: 1px;
-  background: linear-gradient(135deg, var(--error, #ef4444) 0%, transparent 50%, var(--error, #ef4444) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--error, #ef4444) 0%,
+    transparent 50%,
+    var(--error, #ef4444) 100%
+  );
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: source-out;
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
@@ -525,7 +535,7 @@ html, body {
 }
 
 .action-info h3 {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 700;
   font-size: 17px;
   line-height: 1.4;
@@ -534,7 +544,7 @@ html, body {
 }
 
 .action-info p {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 400;
   font-size: 12px;
   line-height: 1.4;
@@ -604,7 +614,7 @@ html, body {
 }
 
 .section-header h2 {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 700;
   font-size: 17px;
   line-height: 1.4;
@@ -613,7 +623,7 @@ html, body {
 }
 
 .section-header p {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 400;
   font-size: 12px;
   line-height: 1.4;
@@ -642,7 +652,7 @@ html, body {
 }
 
 .usage-info h4 {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 700;
   font-size: 14px;
   line-height: 1.4;
@@ -651,7 +661,7 @@ html, body {
 }
 
 .usage-info p {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 400;
   font-size: 12px;
   line-height: 1.4;
@@ -673,7 +683,7 @@ html, body {
 }
 
 .usage-metric-value {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 700;
   font-size: 14px;
   line-height: 1.2;
@@ -681,7 +691,7 @@ html, body {
 }
 
 .usage-metric-label {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 400;
   font-size: 10px;
   line-height: 1.4;
@@ -710,11 +720,11 @@ html, body {
 }
 
 .gateway-usage-card::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   padding: 1px;
-  background: linear-gradient(135deg, #F7C3A1, #DF9BE8);
+  background: linear-gradient(135deg, #f7c3a1, #df9be8);
   border-radius: inherit;
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask-composite: xor;
@@ -742,7 +752,7 @@ html, body {
 }
 
 .gateway-name {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 700;
   font-size: 16px;
   line-height: 1.4;
@@ -754,7 +764,7 @@ html, body {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 400;
   font-size: 12px;
   line-height: 1.4;
@@ -768,7 +778,7 @@ html, body {
 }
 
 .request-count {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 700;
   font-size: 24px;
   line-height: 1.2;
@@ -793,7 +803,7 @@ html, body {
 }
 
 .stat-label {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 400;
   font-size: 10px;
   line-height: 1.4;
@@ -803,7 +813,7 @@ html, body {
 }
 
 .stat-sublabel {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 400;
   font-size: 9px;
   line-height: 1.2;
@@ -813,7 +823,7 @@ html, body {
 }
 
 .stat-value {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 600;
   font-size: 14px;
   line-height: 1.2;
@@ -842,7 +852,7 @@ html, body {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 8px;
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 500;
   font-size: 12px;
   line-height: 1.4;
@@ -859,7 +869,11 @@ html, body {
 
 .usage-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--accent-primary, #349fa8), var(--accent-secondary, #22c55e));
+  background: linear-gradient(
+    90deg,
+    var(--accent-primary, #349fa8),
+    var(--accent-secondary, #22c55e)
+  );
   border-radius: 3px;
   transition: width 0.3s ease;
 }
@@ -883,7 +897,7 @@ html, body {
 }
 
 .empty-state h3 {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 700;
   font-size: 17px;
   line-height: 1.4;
@@ -892,7 +906,7 @@ html, body {
 }
 
 .empty-state p {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 400;
   font-size: 14px;
   line-height: 1.4;
@@ -931,7 +945,7 @@ html, body {
 }
 
 .loading-state p {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 400;
   font-size: 14px;
   line-height: 1.4;
@@ -1047,7 +1061,7 @@ html, body {
 }
 
 .toast-text {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 400;
   font-size: 14px;
   line-height: 1.4;
@@ -1195,7 +1209,7 @@ html, body {
 }
 
 .modal-header h2 {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 700;
   font-size: 18px;
   color: var(--colors-solid-neutrals-100, #ffffff);
@@ -1234,14 +1248,14 @@ html, body {
 }
 
 .detail-label {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 500;
   font-size: 14px;
   color: var(--colors-text-textHigh, #cacad6);
 }
 
 .detail-value {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-weight: 600;
   font-size: 14px;
   color: var(--colors-solid-neutrals-100, #ffffff);

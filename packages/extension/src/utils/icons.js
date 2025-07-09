@@ -3,6 +3,8 @@
  * Provides SVG icons from Lucide for use throughout the extension
  */
 
+import { logger } from './logger';
+
 export const lucideIcons = {
   // Status icons
   checkCircle:
@@ -80,7 +82,7 @@ export function createIcon(iconName, options = {}) {
   const icon = lucideIcons[iconName];
 
   if (!icon) {
-    console.warn(`Icon "${iconName}" not found in lucideIcons`);
+    logger.warn(`Icon "${iconName}" not found in lucideIcons`);
     return '';
   }
 
