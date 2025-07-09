@@ -1,0 +1,384 @@
+/* ==========================================================================
+   Wayfinder Settings - Compact Overrides
+   ========================================================================== */
+/* Overrides for smaller viewport heights - uses proportional spacing reduction */
+
+@media (max-height: 700px) {
+  /* Base adjustments */
+  .settings-container {
+    font-size: 13px;
+  }
+
+  /* Reduce spacing scale proportionally */
+  /* Original: 8px, 12px, 16px, 24px, 32px */
+  /* Compact: 6px, 8px, 12px, 16px, 24px */
+
+  /* Header */
+  .settings-header {
+    padding: 12px 16px; /* md spacing */
+  }
+
+  .settings-header h1 {
+    font-size: 20px; /* Reduced from 24px */
+  }
+
+  /* Main content */
+  .settings-content {
+    padding: 16px; /* lg to md */
+  }
+
+  .settings-section {
+    margin-bottom: 24px; /* xl to lg */
+  }
+
+  .section-header h2 {
+    font-size: 16px; /* Reduced from 18px */
+    line-height: 1.3;
+  }
+
+  .section-header p {
+    font-size: 12px; /* Reduced from 14px */
+    line-height: 1.3;
+  }
+
+  /* Expandable section headers */
+  .section-header.expandable {
+    padding: 12px 16px; /* Consistent with cards */
+  }
+
+  /* Cards and options */
+  .option-card,
+  .config-card {
+    padding: 16px; /* lg to md */
+    margin-bottom: 10px;
+  }
+
+  .option-info h3,
+  .subsection-header h3 {
+    font-size: 14px; /* Reduced from 16px */
+  }
+
+  .option-info p,
+  .subsection-header p {
+    font-size: 12px; /* Reduced from 14px */
+    line-height: 1.3;
+  }
+
+  /* Strategy selectors */
+  .routing-strategy-selector,
+  .verification-strategy-selector {
+    gap: 12px; /* md to sm */
+  }
+
+  .strategy-header {
+    padding: 12px; /* md to sm */
+  }
+
+  .strategy-details {
+    padding: 8px 12px 12px; /* Proportional reduction */
+  }
+
+  .strategy-info h3 {
+    font-size: 14px; /* Reduced from 16px */
+  }
+
+  .strategy-info p {
+    font-size: 12px; /* Reduced from 14px */
+  }
+
+  .feature-list {
+    font-size: 12px;
+    gap: 6px; /* xs spacing */
+  }
+
+  .feature {
+    padding: 2px 0;
+  }
+
+  /* Config sections */
+  .config-subsection {
+    margin-bottom: 24px; /* xl to lg */
+  }
+
+  .config-details {
+    padding: 12px 0 0; /* sm spacing */
+  }
+
+  /* Advanced content */
+  .advanced-content {
+    padding: 16px 0; /* md spacing */
+  }
+
+  /* Form elements */
+  .input-group {
+    margin-bottom: 12px; /* md to sm */
+  }
+
+  .input-group label {
+    font-size: 13px;
+    margin-bottom: 6px; /* xs spacing */
+  }
+
+  .input-description {
+    font-size: 11px;
+    margin-top: 6px; /* xs spacing */
+  }
+
+  input[type="text"],
+  input[type="url"],
+  select,
+  .gateway-dropdown {
+    padding: 8px 12px; /* Proportional reduction */
+    font-size: 13px;
+    height: 36px; /* Reduced from 40px */
+  }
+
+  /* Buttons */
+  .primary-button,
+  .secondary-button,
+  .danger-button,
+  .text-button {
+    padding: 8px 16px; /* Proportional reduction */
+    font-size: 13px;
+    height: 36px; /* Reduced from 40px */
+  }
+
+  /* Gateway items */
+  .gateway-item {
+    padding: 12px; /* md to sm */
+  }
+
+  .gateway-details h4 {
+    font-size: 13px;
+  }
+
+  .gateway-meta {
+    font-size: 11px;
+  }
+
+  /* Mode options */
+  .mode-option {
+    padding: 12px; /* md to sm */
+  }
+
+  .mode-content {
+    gap: 6px; /* xs spacing */
+  }
+
+  .mode-info h4 {
+    font-size: 13px;
+  }
+
+  .mode-info p {
+    font-size: 11px;
+  }
+
+  /* Slider groups */
+  .slider-group {
+    margin-bottom: 6px; /* xs spacing */
+  }
+
+  .slider-value {
+    font-size: 13px;
+    min-width: 36px;
+  }
+
+  /* Footer */
+  .settings-footer {
+    padding: 12px 16px; /* sm/md spacing */
+  }
+
+  .footer-link {
+    padding: 6px; /* xs spacing */
+  }
+
+  .version-info {
+    font-size: 11px;
+  }
+
+  /* Theme selector */
+  .theme-selector {
+    gap: 8px; /* sm spacing */
+  }
+
+  .theme-preview {
+    padding: 8px; /* sm spacing */
+  }
+
+  .theme-preview span {
+    font-size: 11px;
+  }
+
+  /* Verification options */
+  .verified-browsing-options {
+    gap: 12px; /* md to sm */
+  }
+
+  .strictness-selector {
+    gap: 8px; /* sm spacing */
+  }
+
+  .strictness-description {
+    font-size: 11px;
+    margin-top: 8px; /* sm spacing */
+  }
+
+  /* Switch - keep functional size */
+  .switch {
+    width: 40px;
+    height: 22px;
+  }
+
+  .switch-slider:before {
+    width: 18px;
+    height: 18px;
+  }
+
+  input:checked + .switch-slider:before {
+    transform: translateX(18px);
+  }
+
+  /* Toast */
+  .toast {
+    padding: 8px 12px; /* sm spacing */
+    font-size: 12px;
+  }
+
+  /* Badge sizes */
+  .strategy-badge {
+    padding: 2px 6px;
+    font-size: 10px;
+  }
+
+  /* Expandable icon */
+  .expand-icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  /* Auto-save notice */
+  .auto-save-notice {
+    padding: 6px 12px;
+    margin-bottom: 12px;
+    font-size: 12px;
+  }
+
+  .auto-save-notice svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  /* Performance cards */
+  .performance-cards {
+    gap: 12px; /* md to sm */
+    margin-bottom: 16px; /* lg to md */
+  }
+
+  .perf-card {
+    padding: 12px 16px; /* Reduced padding */
+  }
+
+  .perf-header {
+    gap: 10px; /* Reduced gap */
+    margin-bottom: 12px; /* md to sm */
+  }
+
+  .perf-stats {
+    gap: 12px; /* lg to md */
+  }
+
+  /* Gateway mode selector */
+  .gateway-mode-selector {
+    gap: 8px; /* sm spacing */
+    margin-bottom: 16px; /* lg to md */
+  }
+
+  .gateway-mode-selector .mode-content {
+    padding: 12px; /* md to sm */
+  }
+
+  /* Trusted gateways preview */
+  .trusted-gateways-preview {
+    margin-top: 16px; /* lg to md */
+    padding-top: 16px; /* lg to md */
+  }
+
+  .trusted-gateways-preview h4 {
+    font-size: 13px;
+    margin-bottom: 8px; /* sm spacing */
+  }
+
+  .gateway-preview-list {
+    gap: 6px; /* xs spacing */
+  }
+
+  .gateway-preview-item {
+    padding: 8px 12px; /* sm/md spacing */
+    font-size: 12px;
+  }
+
+  /* Icon sizing adjustments */
+  .strategy-icon svg,
+  .option-icon svg,
+  .perf-icon svg,
+  .mode-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  /* Exceptions list */
+  .exceptions-input {
+    gap: 8px; /* sm spacing */
+  }
+
+  .exceptions-input input {
+    font-size: 13px;
+  }
+
+  .exceptions-items {
+    gap: 6px; /* xs spacing */
+  }
+
+  .exception-item {
+    padding: 8px 12px; /* sm/md spacing */
+    font-size: 12px;
+  }
+
+  /* Divider adjustments */
+  .gateway-divider {
+    margin: 12px 0; /* sm spacing */
+  }
+
+  /* Static gateway config */
+  .gateway-selector-container {
+    gap: 12px; /* md to sm */
+  }
+
+  .test-button {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  /* Gateway selection list */
+  .gateway-selection-list {
+    max-height: 200px; /* Reduced from 300px */
+    padding: 6px; /* xs spacing */
+  }
+
+  .gateway-checkbox {
+    padding: 8px; /* sm spacing */
+  }
+
+  .gateway-checkbox label {
+    font-size: 12px;
+  }
+
+  .gateway-checkbox .gateway-stake {
+    font-size: 11px;
+  }
+
+  /* Section expand collapse animations */
+  .expandable-content {
+    padding-top: 12px; /* sm spacing when expanded */
+  }
+}

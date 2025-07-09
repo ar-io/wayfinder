@@ -22,11 +22,13 @@ import { viteStaticCopy } from 'vite-plugin-static-copy';
 export default defineConfig({
   plugins: [
     nodePolyfills({
+      include: ['crypto', 'stream', 'util', 'buffer'],
       globals: {
         Buffer: true,
         global: true,
         process: true,
       },
+      protocolImports: true,
     }),
     viteStaticCopy({
       targets: [
@@ -34,7 +36,18 @@ export default defineConfig({
           src: 'src/popup.html',
           dest: '.',
         },
-
+        {
+          src: 'src/settings.html',
+          dest: '.',
+        },
+        {
+          src: 'src/gateways.html',
+          dest: '.',
+        },
+        {
+          src: 'src/performance.html',
+          dest: '.',
+        },
         {
           src: 'manifest.json',
           dest: '.',
@@ -59,11 +72,23 @@ export default defineConfig({
         background: './src/background.ts',
         content: './src/content.ts',
         popup: './src/popup.ts',
+        settings: './src/settings.ts',
+        gateways: './src/gateways.ts',
+        performance: './src/performance.ts',
       },
       output: {
         entryFileNames: '[name].js',
         chunkFileNames: '[name].js',
         assetFileNames: '[name].[ext]',
+        // Manual chunks configuration
+        manualChunks: {
+          // Group SDK and large dependencies together
+          webIndex: [
+            '@ar.io/sdk/web',
+            '@permaweb/aoconnect',
+            '@ar.io/wayfinder-core',
+          ],
+        },
       },
     },
   },

@@ -23,6 +23,8 @@
   "scripts": {
     "start": "vite preview",
     "build": "vite build --config vite.config.js",
+    "dev": "vite build --watch --config vite.config.js",
+    "watch": "vite build --watch --config vite.config.js",
     "clean": "rimraf dist",
     "test": "echo \"Passing\"",
     "lint:fix": "biome check --write --unsafe",
@@ -31,8 +33,8 @@
     "format:check": "biome format"
   },
   "dependencies": {
-    "@ar.io/sdk": "^3.5.0",
-    "@ar.io/wayfinder-core": "1.0.1-alpha.0",
+    "@ar.io/sdk": "^3.13.0",
+    "@ar.io/wayfinder-core": "^1.0.1-alpha.0",
     "@permaweb/aoconnect": "0.0.69"
   }
 }

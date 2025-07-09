@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wayfinder Gateways</title>
+    <!-- AR.IO Brand Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&family=Albert+Sans:wght@400;600&family=DM+Sans:wght@400;500&family=JetBrains+Mono:wght@400;500&family=Rubik:wght@300;400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="assets/css/variables.css" />
+    <link rel="stylesheet" href="assets/css/gateways.css" />
+    <link rel="stylesheet" href="assets/css/gateways-enhanced.css" />
+    <script type="module" src="gateways.js"></script>
+  </head>
+  <body>
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+    
+    <div class="gateways-container">
+      <!-- Header -->
+      <header class="gateways-header">
+        <div class="header-content">
+          <div class="header-left">
+            <button class="back-button" id="backToMain">
+              <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+                <path d="M21.75 27L13.5 18.75L21.75 10.5" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <div class="header-title">
+              <h1>Gateways</h1>
+              <p>View networked gateway details.</p>
+            </div>
+          </div>
+          
+          <div class="header-actions">
+            <button class="sync-button" id="syncGateways">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M3 12C3 9.61305 3.94821 7.32387 5.63604 5.63604C7.32387 3.94821 9.61305 3 12 3C14.516 3.00947 16.931 3.99122 18.74 5.74L21 8" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M21 3V8H16" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M21 12C21 14.3869 20.0518 16.6761 18.364 18.364C16.6761 20.0518 14.3869 21 12 21C9.48395 20.9905 7.06897 20.0088 5.26 18.26L3 16" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M8 16H3V21" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Content -->
+      <main class="gateways-content">
+        
+        <!-- Stats Section -->
+        <section class="stats-section">
+          <div class="stats-grid">
+            <div class="stat-card" title="All gateways registered in the AR.IO network">
+              <div class="stat-content">
+                <div class="stat-value" id="totalGateways">0</div>
+                <div class="stat-label">Total Gateways</div>
+              </div>
+            </div>
+            <div class="stat-card" title="Gateways currently joined and operational">
+              <div class="stat-content">
+                <div class="stat-value" id="activeGateways">0</div>
+                <div class="stat-label">Active Gateways</div>
+              </div>
+            </div>
+            <div class="stat-card" title="Active gateways with zero consecutive failed network epochs">
+              <div class="stat-content">
+                <div class="stat-value" id="healthyGateways">0</div>
+                <div class="stat-label">Healthy Gateways</div>
+              </div>
+            </div>
+            <div class="stat-card" title="Total ARIO tokens staked across the network">
+              <div class="stat-content">
+                <div class="stat-value" id="networkStake">--</div>
+                <div class="stat-label">Network Stake</div>
+              </div>
+            </div>
+          </div>
+          <div class="last-sync">
+            Last updated: <span id="lastSyncTime">Never</span>
+          </div>
+        </section>
+
+        <!-- Filter and Search -->
+        <section class="filter-section">
+          <div class="search-box">
+            <svg width="18" height="18" viewBox="0 0 36 36" fill="none">
+              <circle cx="16.5" cy="16.5" r="12" stroke="var(--colors-icons-iconMid)" stroke-width="2"/>
+              <path d="M31.5 31.5l-6.525-6.525" stroke="var(--colors-icons-iconMid)" stroke-width="2"/>
+            </svg>
+            <input type="text" id="searchGateways" placeholder="Search gateways...">
+          </div>
+          <div class="filter-buttons">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="joined">Active</button>
+            <button class="filter-btn" data-filter="fast">Fast</button>
+            <button class="filter-btn" data-filter="blacklisted">Blacklisted</button>
+          </div>
+        </section>
+
+        <!-- Gateways List -->
+        <section class="gateways-list-section">
+          <div class="gateways-list" id="gatewaysList">
+            <!-- Gateway cards will be populated here -->
+          </div>
+          
+          <div class="empty-state" id="emptyState" style="display: none;">
+            <svg class="empty-icon" width="48" height="48" viewBox="0 0 36 36" fill="none" stroke="var(--colors-icons-iconMid)" stroke-width="2" opacity="0.5">
+              <circle cx="18" cy="18" r="15"/>
+              <path d="M18 3a22.95 22.95 0 0 1 6 15 22.95 22.95 0 0 1-6 15 22.95 22.95 0 0 1-6-15 22.95 22.95 0 0 1 6-15z"/>
+              <path d="M3 18h30"/>
+            </svg>
+            <h3>No Gateways Found</h3>
+            <p>Try syncing the gateway registry or adjusting your filters.</p>
+            <button class="primary-button" id="syncEmptyState">Sync Gateways</button>
+          </div>
+
+          <div class="loading-state" id="loadingState" style="display: none;">
+            <div class="loading-spinner"></div>
+            <p>Loading gateways...</p>
+          </div>
+        </section>
+      </main>
+
+      <!-- Footer -->
+      <footer class="gateways-footer">
+        <div class="footer-content">
+          <div class="footer-links">
+            <a href="https://github.com/ar-io/wayfinder" target="_blank" title="View source code" class="footer-link">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <path d="M11.25 16.5V13.5C11.3543 12.5605 11.0849 11.6176 10.5 10.875C12.75 10.875 15 9.375 15 6.75C15.06 5.8125 14.7975 4.89 14.25 4.125C14.46 3.2625 14.46 2.3625 14.25 1.5C14.25 1.5 13.5 1.5 12 2.625C10.02 2.25 7.98 2.25 6 2.625C4.5 1.5 3.75 1.5 3.75 1.5C3.525 2.3625 3.525 3.2625 3.75 4.125C3.20391 4.88691 2.93885 5.81459 3 6.75C3 9.375 5.25 10.875 7.5 10.875C7.2075 11.2425 6.99 11.6625 6.8625 12.1125C6.735 12.5625 6.6975 13.035 6.75 13.5V16.5" stroke="var(--colors-icons-iconLow)" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M6.75 13.5C3.3675 15 3 12 1.5 12" stroke="var(--colors-icons-iconLow)" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+            <a href="https://discord.gg/zAZ8p9ARqC" target="_blank" title="Join our Discord" class="footer-link">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <path d="M7.75 2.43768H9.76971C9.91219 2.43768 10.0424 2.35693 10.1057 2.22928L10.6143 1.2035C10.6916 1.04772 10.8649 0.965904 11.0321 1.01384C11.5236 1.1548 12.5552 1.49486 13.3782 2.06268C16.2761 4.2356 16.0059 9.10495 15.9839 10.1334C15.9826 10.1961 15.9666 10.258 15.9356 10.3126C14.4483 12.9377 11.8683 12.9377 11.8683 12.9377L10.9936 11.118M9.25 2.43768H7.23395C7.09177 2.43768 6.96182 2.35727 6.89837 2.23004L6.38595 1.20258C6.30849 1.04726 6.13541 0.965813 5.96857 1.01365C5.47734 1.15449 4.44519 1.49461 3.62182 2.06268C0.723852 4.2356 0.994133 9.10495 1.01605 10.1334C1.01739 10.1961 1.03342 10.258 1.06437 10.3126C2.5517 12.9377 5.13173 12.9377 5.13173 12.9377L6.0092 11.1177M4.75096 10.6877C5.20071 10.8563 5.61675 10.9996 6.0092 11.1177M12.2529 10.6877C11.8027 10.8564 11.3863 10.9999 10.9936 11.118M6.0092 11.1177C7.84238 11.6692 9.1606 11.6693 10.9936 11.118M7.00154 6.93768C7.00154 7.35189 6.66567 7.68768 6.25135 7.68768C5.83703 7.68768 5.50115 7.35189 5.50115 6.93768C5.50115 6.52346 5.83703 6.18768 6.25135 6.18768C6.66567 6.18768 7.00154 6.52346 7.00154 6.93768ZM11.5027 6.93768C11.5027 7.35189 11.1668 7.68768 10.7525 7.68768C10.3382 7.68768 10.0023 7.35189 10.0023 6.93768C10.0023 6.52346 10.3382 6.18768 10.7525 6.18768C11.1668 6.18768 11.5027 6.52346 11.5027 6.93768Z" stroke="var(--colors-icons-iconLow)" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+            <a href="https://ar.io" target="_blank" title="AR.IO Network" class="footer-link">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <circle cx="9" cy="9" r="7.5" stroke="var(--colors-icons-iconLow)" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M9 1.5C7.07418 3.52212 6 6.20756 6 9C6 11.7924 7.07418 14.4779 9 16.5C10.9258 14.4779 12 11.7924 12 9C12 6.20756 10.9258 3.52212 9 1.5Z" stroke="var(--colors-icons-iconLow)" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M1.5 9H16.5" stroke="var(--colors-icons-iconLow)" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+          </div>
+          <div class="version-info" id="extensionVersion"></div>
+        </div>
+      </footer>
+    </div>
+
+    <!-- Gateway Details Modal -->
+    <div id="gatewayModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Gateway Details</h2>
+          <div class="modal-header-actions">
+            <div class="gateway-status-badge" id="modalStatusBadge">
+              <div class="status-dot"></div>
+              <span>Unknown</span>
+            </div>
+            <button class="close-btn" id="closeModal">
+              <svg width="32" height="32" viewBox="0 0 36 36" fill="none">
+                <path d="M27 9L9 27M9 9l18 18" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        
+        <div class="modal-body">
+          <!-- Connection Information -->
+          <div class="modal-section">
+            <div class="section-title">
+              <svg width="18" height="18" viewBox="0 0 36 36" fill="none">
+                <circle cx="18" cy="18" r="15" stroke="var(--colors-icons-iconMid)" stroke-width="2"/>
+                <path d="M18 3a22.95 22.95 0 0 1 6 15 22.95 22.95 0 0 1-6 15 22.95 22.95 0 0 1-6-15 22.95 22.95 0 0 1 6-15z" stroke="var(--colors-icons-iconMid)" stroke-width="2"/>
+                <path d="M3 18h30" stroke="var(--colors-icons-iconMid)" stroke-width="2"/>
+              </svg>
+              <h3>Gateway Information</h3>
+            </div>
+            
+            <div class="modal-field-group">
+              <div class="modal-field">
+                <label>Gateway URL</label>
+                <a id="modal-gateway-url" href="#" target="_blank" class="gateway-link">
+                  <svg width="16" height="16" viewBox="0 0 36 36" fill="none">
+                    <path d="M15 19.5a7.5 7.5 0 0 0 11.31.81l4.5-4.5a7.5 7.5 0 0 0-10.605-10.605L17.58 7.83" stroke="var(--colors-icons-iconMid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M21 16.5a7.5 7.5 0 0 0-11.31-.81l-4.5 4.5a7.5 7.5 0 0 0 10.605 10.605L18.42 28.17" stroke="var(--colors-icons-iconMid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  <span>url...</span>
+                </a>
+              </div>
+              
+              <div class="modal-field">
+                <label>Gateway Address</label>
+                <a id="modal-gateway-wallet" href="#" target="_blank" class="address-link">
+                  <svg width="16" height="16" viewBox="0 0 36 36" fill="none">
+                    <path d="M31.5 3l-3 3m-11.415 11.415a8.25 8.25 0 1 1-11.667 11.667 8.25 8.25 0 0 1 11.667-11.667zm0 0L23.25 11.25m0 0l4.5 4.5L33 9l-4.5-4.5m-5.25 5.25L28.5 6" stroke="var(--colors-icons-iconMid)" stroke-width="2"/>
+                  </svg>
+                  <span>address...</span>
+                </a>
+              </div>
+
+              <div class="gateway-info-content">
+                  <div class="gateway-info-label">Uptime</div>
+                  <div id="gatewayUptime" class="gateway-info-value"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Performance Metrics -->
+          <div class="modal-section">
+            <div class="section-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="13,2 3,14 12,14 11,22 21,10 12,10 13,2"/>
+              </svg>
+              <h3>Performance Metrics</h3>
+            </div>
+            
+            <div class="modal-stats-grid">
+              <div class="modal-stat-card">
+                <div class="stat-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                  </svg>
+                </div>
+                <div class="stat-content">
+                  <div class="stat-label">Avg Response Time</div>
+                  <div class="stat-value" id="modal-gateway-avg-response-time">-- ms</div>
+                </div>
+              </div>
+              
+              <div class="modal-stat-card">
+                <div class="stat-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                  </svg>
+                </div>
+                <div class="stat-content">
+                  <div class="stat-label">Total Stake</div>
+                  <div class="stat-value" id="modal-total-stake">0 ARIO</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Usage History Section -->
+          <div class="modal-section">
+            <div class="section-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="12" y1="18" x2="8" y2="18"/>
+                <line x1="12" y1="13" x2="8" y2="13"/>
+              </svg>
+              <h3>Usage History</h3>
+            </div>
+            
+            <div class="network-stats-grid">
+              <div class="network-stat-item">
+                <div class="stat-label">Total Requests</div>
+                <div class="stat-value" id="modal-usage-count">0</div>
+              </div>
+              
+              <div class="network-stat-item">
+                <div class="stat-label">Last Used</div>
+                <div class="stat-value" id="modal-last-used">Never</div>
+              </div>
+              
+              <div class="network-stat-item">
+                <div class="stat-label">Your Success Rate</div>
+                <div class="stat-value" id="modal-request-success-rate">--</div>
+              </div>
+              
+              <div class="network-stat-item">
+                <div class="stat-label">Failed Requests</div>
+                <div class="stat-value" id="modal-failed-requests">0</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Network Performance Section -->
+          <div class="modal-section">
+            <div class="section-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>
+              </svg>
+              <h3>Network Performance</h3>
+            </div>
+            
+            <div class="network-stats-grid">
+              <div class="network-stat-item">
+                <div class="stat-label">Reliability Streak</div>
+                <div class="stat-value" id="modal-current-streak">
+                  <span>--</span>
+                </div>
+              </div>
+              
+              <div class="network-stat-item">
+                <div class="stat-label">Network Reliability</div>
+                <div class="stat-value" id="modal-epoch-success-rate">--</div>
+              </div>
+              
+              <div class="network-stat-item">
+                <div class="stat-label">Network Participation</div>
+                <div class="stat-value" id="modal-total-epochs">--</div>
+              </div>
+              
+              <div class="network-stat-item">
+                <div class="stat-label">Network Failures</div>
+                <div class="stat-value" id="modal-failed-epochs">--</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ping Test Section -->
+          <div class="modal-section">
+            <div class="section-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+              </svg>
+              <h3>Connection Test</h3>
+            </div>
+            
+            <div class="ping-test-section">
+              <div class="ping-test-header">
+                <p class="ping-test-description">Test real-time gateway performance</p>
+                <button id="pingTestButton" class="ping-test-button">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="5 3 19 12 5 21 5 3"/>
+                  </svg>
+                  <span>Run Test</span>
+                </button>
+              </div>
+              
+              <div id="pingResults" class="ping-results" style="display: none;">
+                <div class="ping-result-item">
+                  <span class="ping-result-label">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    </svg>
+                    Response Time
+                  </span>
+                  <span id="pingResponseTime" class="ping-result-value">--</span>
+                </div>
+                <div class="ping-result-item">
+                  <span class="ping-result-label">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                    </svg>
+                    Status Code
+                  </span>
+                  <span id="pingStatusCode" class="ping-result-value">--</span>
+                </div>
+                <div class="ping-result-item">
+                  <span class="ping-result-label">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                      <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                    Health Check
+                  </span>
+                  <span id="pingHealthCheck" class="ping-result-value">--</span>
+                </div>
+              </div>
+              
+              <div id="pingLoading" class="ping-loading" style="display: none;">
+                <div class="ping-loading-spinner"></div>
+                <span>Testing gateway connection...</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Additional Information -->
+          <div class="modal-section">
+            <div class="section-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M12 1v6m0 6v6"/>
+                <path d="M21 12h-6m-6 0H3"/>
+              </svg>
+              <h3>Additional Information</h3>
+            </div>
+            
+            <div class="modal-field-group">
+              <div class="modal-field">
+                <label>Network Join Date</label>
+                <div class="field-value">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                    <line x1="16" y1="2" x2="16" y2="6"/>
+                    <line x1="8" y1="2" x2="8" y2="6"/>
+                    <line x1="3" y1="10" x2="21" y2="10"/>
+                  </svg>
+                  <span id="modal-start">--</span>
+                </div>
+              </div>
+              
+              <div class="modal-field full-width">
+                <label>Operator Note</label>
+                <div class="operator-note-container">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14,2 14,8 20,8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                    <polyline points="10,9 9,9 8,9"/>
+                  </svg>
+                  <p id="modal-note" class="operator-note">No note provided</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Action Buttons -->
+          <div class="modal-actions">
+            <a id="modal-gateway-more-info" href="#" target="_blank" class="secondary-button">
+              <span>View on AR.IO Network</span>
+            </a>
+            <button id="blacklistButton" class="danger-button">
+              <span>Blacklist Gateway</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

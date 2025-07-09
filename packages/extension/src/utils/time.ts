@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-export async function fetchEnsArweaveTxId(
-  ensName: string,
-): Promise<string | null> {
-  try {
-    const response = await fetch(`https://api.ensdata.net/${ensName}`);
-    if (!response.ok) throw new Error(`ENS API error: ${response.statusText}`);
 
-    const data = await response.json();
-    return data['ar://'] || data['contentHash'] || null; // Return the Arweave TX ID or content hash if available
-  } catch (error) {
-    console.error(`[ERROR] Failed to fetch ENS data for ${ensName}:`, error);
-    return null;
-  }
+// Helper function for relative time display
+export function getRelativeTime(date: Date) {
+  const diff = Date.now() - date.getTime();
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+
+  if (minutes < 1) return 'Just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  if (days < 30) return `${days}d ago`;
+  return date.toLocaleDateString();
 }
