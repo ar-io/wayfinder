@@ -27,6 +27,7 @@ import {
 } from './helpers';
 import {
   getRoutableGatewayUrl,
+  getWayfinderInstance,
   resetWayfinderInstance,
 } from './routing';
 import { RedirectedTabInfo, VerificationCacheEntry } from './types';
@@ -91,17 +92,23 @@ const VERIFICATION_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 const MAX_VERIFICATION_CACHE_SIZE = 1000;
 
 // Clean up old verification cache entries periodically
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, entry] of verificationCache.entries()) {
-    if (now - entry.timestamp > VERIFICATION_CACHE_TTL) {
-      verificationCache.delete(key);
+setInterval(
+  () => {
+    const now = Date.now();
+    for (const [key, entry] of verificationCache.entries()) {
+      if (now - entry.timestamp > VERIFICATION_CACHE_TTL) {
+        verificationCache.delete(key);
+      }
     }
-  }
-}, 5 * 60 * 1000); // Clean every 5 minutes
+  },
+  5 * 60 * 1000,
+); // Clean every 5 minutes
 
 // Helper function to generate cache key
-function getVerificationCacheKey(hostname: string, resolvedId?: string): string {
+function getVerificationCacheKey(
+  hostname: string,
+  resolvedId?: string,
+): string {
   return `${hostname}:${resolvedId || 'direct'}`;
 }
 
@@ -116,14 +123,14 @@ async function shouldShowVerificationToast(
   const { showVerificationToasts = true } = await chrome.storage.local.get([
     'showVerificationToasts',
   ]);
-  
+
   if (!showVerificationToasts) {
     return false;
   }
 
   const cacheKey = getVerificationCacheKey(hostname, resolvedId);
   const cachedEntry = verificationCache.get(cacheKey);
-  
+
   // If no cache entry, always show
   if (!cachedEntry) {
     // Add to cache
@@ -132,7 +139,7 @@ async function shouldShowVerificationToast(
       timestamp: Date.now(),
       gatewayFQDN,
     });
-    
+
     // Enforce cache size limit
     if (verificationCache.size > MAX_VERIFICATION_CACHE_SIZE) {
       const firstKey = verificationCache.keys().next().value;
@@ -140,10 +147,10 @@ async function shouldShowVerificationToast(
         verificationCache.delete(firstKey);
       }
     }
-    
+
     return true;
   }
-  
+
   // Check if verification status changed
   if (cachedEntry.verified !== verified) {
     // Update cache
@@ -152,7 +159,7 @@ async function shouldShowVerificationToast(
     cachedEntry.gatewayFQDN = gatewayFQDN;
     return true;
   }
-  
+
   // Same verification status - don't show
   return false;
 }
@@ -247,13 +254,17 @@ let arIO = ARIO.init({
       EXTENSION_DEFAULTS.localGatewayAddressRegistry;
 
   // Only set these if they don't exist in storage
-  const { routingMethod, blacklistedGateways, ensResolutionEnabled, showVerificationToasts } =
-    await chrome.storage.local.get([
-      'routingMethod',
-      'blacklistedGateways',
-      'ensResolutionEnabled',
-      'showVerificationToasts',
-    ]);
+  const {
+    routingMethod,
+    blacklistedGateways,
+    ensResolutionEnabled,
+    showVerificationToasts,
+  } = await chrome.storage.local.get([
+    'routingMethod',
+    'blacklistedGateways',
+    'ensResolutionEnabled',
+    'showVerificationToasts',
+  ]);
 
   if (routingMethod === undefined)
     updates.routingMethod = EXTENSION_DEFAULTS.routingMethod;
@@ -309,8 +320,7 @@ async function initializeWayfinder() {
       logger.info(`[SYNC] ${gatewayCount} gateways loaded`);
     }
 
-    // Initialize Wayfinder instance - this will be created lazily on first use
-    // Wayfinder initialization completed
+    await getWayfinderInstance();
   } catch (error) {
     logger.error('Error during Wayfinder initialization:', error);
     logger.warn(
@@ -535,14 +545,14 @@ chrome.tabs.onRemoved.addListener(async (tabId) => {
   if (tabStateManager.delete(tabId)) {
     // Cleaned up tab state
   }
-  
+
   // Also clean up verification cache entries for this tab
   try {
     const tab = await chrome.tabs.get(tabId);
     if (tab?.url) {
       const url = new URL(tab.url);
       const hostname = url.hostname;
-      
+
       // Remove all cache entries for this hostname
       for (const key of verificationCache.keys()) {
         if (key.startsWith(`${hostname}:`)) {
@@ -596,74 +606,75 @@ chrome.webRequest.onCompleted.addListener(
   { urls: ['<all_urls>'] },
 );
 
-
 chrome.webRequest.onHeadersReceived.addListener(
   (details) => {
-    
     // Check for verification header on ALL gateway requests - handle async without blocking
     (async () => {
       try {
         const url = new URL(details.url);
         const hostname = url.hostname;
-        
+
         // Check if this is a known gateway
         const isGateway = await isKnownGateway(hostname);
-        
+
         if (isGateway && details.tabId !== -1) {
-        // Parse headers for verification
-        let verified = false;
-        let arnsResolvedId: string | null = null;
-        let dataId: string | null = null;
-        
-        for (const header of details.responseHeaders || []) {
-          const headerName = header.name.toLowerCase();
-          const headerValue = header.value || '';
-          
-          switch (headerName) {
-            case 'x-ar-io-verified':
-              verified = headerValue.toLowerCase() === 'true';
-              break;
-            case 'x-arns-resolved-id':
-              arnsResolvedId = headerValue;
-              break;
-            case 'x-ar-io-data-id':
-              dataId = headerValue;
-              break;
+          // Parse headers for verification
+          let verified = false;
+          let arnsResolvedId: string | null = null;
+          let dataId: string | null = null;
+
+          for (const header of details.responseHeaders || []) {
+            const headerName = header.name.toLowerCase();
+            const headerValue = header.value || '';
+
+            switch (headerName) {
+              case 'x-ar-io-verified':
+                verified = headerValue.toLowerCase() === 'true';
+                break;
+              case 'x-arns-resolved-id':
+                arnsResolvedId = headerValue;
+                break;
+              case 'x-ar-io-data-id':
+                dataId = headerValue;
+                break;
+            }
           }
-        }
-        
-        // Use resolved ID if available, otherwise data ID
-        const resolvedId = arnsResolvedId || dataId || undefined;
-        
-        // Only show toast if content is verified
-        if (verified) {
-          // Check if we should show verification toast
-          const shouldShow = await shouldShowVerificationToast(
-            hostname,
-            resolvedId,
-            verified,
-            hostname
-          );
-          
-          if (shouldShow) {
-            // Send message to content script
-            try {
-              await chrome.tabs.sendMessage(details.tabId, {
-                type: 'showVerificationToast',
-                verified,
-                gatewayFQDN: hostname,
-                resolvedId,
-              });
-            } catch (error) {
-              // Content script might not be injected yet or tab might be closing
-              logger.debug('Could not send verification toast message:', error);
+
+          // Use resolved ID if available, otherwise data ID
+          const resolvedId = arnsResolvedId || dataId || undefined;
+
+          // Only show toast if content is verified
+          if (verified) {
+            // Check if we should show verification toast
+            const shouldShow = await shouldShowVerificationToast(
+              hostname,
+              resolvedId,
+              verified,
+              hostname,
+            );
+
+            if (shouldShow) {
+              // Send message to content script
+              try {
+                await chrome.tabs.sendMessage(details.tabId, {
+                  type: 'showVerificationToast',
+                  verified,
+                  gatewayFQDN: hostname,
+                  resolvedId,
+                });
+              } catch (error) {
+                // Content script might not be injected yet or tab might be closing
+                logger.debug(
+                  'Could not send verification toast message:',
+                  error,
+                );
+              }
             }
           }
         }
+      } catch (error) {
+        logger.error('Error checking verification header:', error);
       }
-    } catch (error) {
-      logger.error('Error checking verification header:', error);
-    }
     })(); // Execute the async IIFE
   },
   { urls: ['<all_urls>'] },
@@ -839,10 +850,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     'updateAdvancedSettings',
     'resetAdvancedSettings',
   ];
-  const validTypes = [
-    'convertArUrlToHttpUrl',
-    'openSettings',
-  ];
+  const validTypes = ['convertArUrlToHttpUrl', 'openSettings'];
 
   if (
     !validMessages.includes(request.message) &&
@@ -896,7 +904,6 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     return;
   }
 
-
   // Convert ar:// URL to HTTP URL
   if (request.type === 'convertArUrlToHttpUrl') {
     const arUrl = request.arUrl;
@@ -913,7 +920,6 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
       });
     return true;
   }
-
 
   // Handle routing strategy updates
   if (request.message === 'updateRoutingStrategy') {
@@ -986,7 +992,6 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   }
 
   // Removed: getCacheStats handler - verification cache removed
-
 });
 
 /**
@@ -1120,9 +1125,6 @@ async function reinitializeArIO(): Promise<void> {
     arIO = ARIO.init();
   }
 }
-
-// REMOVED: Old verifyInBackground function - use verifyInBackgroundWithCache instead
-// REMOVED: updateArNSCache and showVerificationToast functions (moved to background-verification-cached.ts)
 
 // Start initialization after storage is ready
 chrome.storage.local

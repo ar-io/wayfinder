@@ -89,7 +89,7 @@ Click the settings icon in the popup to access:
 
 #### Performance Settings
 - **Gateway Cache TTL**: Set how long to cache gateway information
-- **Telemetry**: Enable anonymous usage statistics (10% sample rate)
+- **Telemetry**: Enable anonymous ar:// request telemetry
 
 #### Data Management
 - **Clear Cache**: Remove gateway performance data and usage history

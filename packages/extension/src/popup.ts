@@ -14,10 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+import { setExtensionVersion } from './utils/version';
 // Toast notification system
 // Exported for potential future use
-export function showToast(message: string, type: 'success' | 'error' = 'success') {
+export function showToast(
+  message: string,
+  type: 'success' | 'error' = 'success',
+) {
   const container = document.getElementById('toastContainer');
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
@@ -81,18 +84,6 @@ async function initializePopup() {
   await setExtensionVersion();
 }
 
-async function setExtensionVersion() {
-  try {
-    const manifest = chrome.runtime.getManifest();
-    const versionElement = document.getElementById('extensionVersion');
-    if (versionElement) {
-      versionElement.textContent = `v${manifest.version}`;
-    }
-  } catch (error) {
-    console.error('Failed to set extension version:', error);
-  }
-}
-
 function setupEventHandlers() {
   // Navigation cards
   document.getElementById('showGateways')?.addEventListener('click', () => {
@@ -136,8 +127,9 @@ async function loadStats() {
 
     // Calculate healthy gateways - joined gateways with 0 consecutive failed epochs
     const healthyCount = Object.values(localGatewayAddressRegistry).filter(
-      (gateway: any) => gateway.status === 'joined' && 
-                   (!gateway.stats || gateway.stats.failedConsecutiveEpochs === 0)
+      (gateway: any) =>
+        gateway.status === 'joined' &&
+        (!gateway.stats || gateway.stats.failedConsecutiveEpochs === 0),
     ).length;
 
     // Update gateway count with loading state
@@ -234,7 +226,9 @@ async function loadCurrentStrategy() {
       roundRobin: 'Balanced', // Fallback for old configs
     };
 
-    const strategyName = strategyNames[routingMethod as keyof typeof strategyNames] || 'Fastest Ping';
+    const strategyName =
+      strategyNames[routingMethod as keyof typeof strategyNames] ||
+      'Fastest Ping';
     const currentStrategyElement = document.getElementById('currentStrategy');
     if (currentStrategyElement) {
       currentStrategyElement.textContent = strategyName;

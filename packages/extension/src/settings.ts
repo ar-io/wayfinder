@@ -18,9 +18,13 @@
 // Import wayfinder-core modules for gateway discovery
 import { ARIO } from '@ar.io/sdk/web';
 import { NetworkGatewaysProvider } from '@ar.io/wayfinder-core';
+import { setExtensionVersion } from './utils/version';
 
 // Toast notification system
-function showToast(message: string, type: 'warning' | 'info' | 'success' | 'error' = 'success') {
+function showToast(
+  message: string,
+  type: 'warning' | 'info' | 'success' | 'error' = 'success',
+) {
   const container = document.getElementById('toastContainer');
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
@@ -99,7 +103,7 @@ function setupEventHandlers() {
   document
     .getElementById('resetSettings')
     ?.addEventListener('click', resetSettings);
-  
+
   // Data management
   document
     .getElementById('clearCache')
@@ -151,7 +155,6 @@ function setupEventHandlers() {
 
   // Performance actions moved to performance.js
 
-
   // Gateway registry sync
   document
     .getElementById('syncGatewayRegistry')
@@ -165,7 +168,6 @@ function setupEventHandlers() {
   // View logs
   document.getElementById('viewLogs')?.addEventListener('click', viewLogs);
 
-
   // Gateway provider settings
   document
     .getElementById('gatewaySortBy')
@@ -176,7 +178,6 @@ function setupEventHandlers() {
   document
     .getElementById('gatewayCacheTTL')
     ?.addEventListener('input', handleGatewayCacheTTLChange);
-
 
   // Telemetry toggle
   document
@@ -205,11 +206,14 @@ function setupRoutingStrategyDetails() {
   document
     .querySelectorAll('.routing-strategy-selector .strategy-option')
     .forEach((option) => {
-      const radio = option.querySelector('input[type="radio"]') as HTMLInputElement;
+      const radio = option.querySelector(
+        'input[type="radio"]',
+      ) as HTMLInputElement;
       const header = option.querySelector('.strategy-header');
 
       header?.addEventListener('click', () => {
-        if (!radio.checked) {  // Only trigger if not already selected
+        if (!radio.checked) {
+          // Only trigger if not already selected
           radio.checked = true;
           // Create a synthetic event that will trigger saving
           handleRoutingStrategyChange({ target: radio, isTrusted: true });
@@ -243,7 +247,9 @@ async function loadCurrentSettings() {
     if (settings.staticGateway) {
       const { protocol, fqdn, port } = settings.staticGateway.settings;
       const staticUrl = `${protocol}://${fqdn}${port !== (protocol === 'https' ? 443 : 80) ? `:${port}` : ''}`;
-      const staticGatewayUrlEl = document.getElementById('staticGatewayUrl') as HTMLInputElement;
+      const staticGatewayUrlEl = document.getElementById(
+        'staticGatewayUrl',
+      ) as HTMLInputElement;
       if (staticGatewayUrlEl) {
         staticGatewayUrlEl.value = staticUrl;
       }
@@ -255,7 +261,7 @@ async function loadCurrentSettings() {
     // Ensure a valid radio button is selected
     const routingRadio = document.querySelector<HTMLInputElement>(
       `input[name="routingStrategy"][value="${routingMethod}"]`,
-    )
+    );
     if (routingRadio) {
       routingRadio.checked = true;
       // Update UI without triggering change event
@@ -284,7 +290,9 @@ async function loadCurrentSettings() {
 
     // Load verification toast setting
     const showToasts = settings.showVerificationToasts !== false; // Default to true
-    const toastsEl = document.getElementById('showVerificationToasts') as HTMLInputElement;
+    const toastsEl = document.getElementById(
+      'showVerificationToasts',
+    ) as HTMLInputElement;
     if (toastsEl) {
       toastsEl.checked = showToasts;
     }
@@ -301,7 +309,9 @@ async function loadCurrentSettings() {
 
     // Load advanced settings
     if (settings.processId) {
-      const processIdEl = document.getElementById('processId') as HTMLInputElement;
+      const processIdEl = document.getElementById(
+        'processId',
+      ) as HTMLInputElement;
       if (processIdEl) {
         processIdEl.value = settings.processId;
       }
@@ -317,19 +327,25 @@ async function loadCurrentSettings() {
 
     // Load gateway provider settings
     const gatewaySortBy = settings.gatewaySortBy || 'operatorStake';
-    const gatewaySortByEl = document.getElementById('gatewaySortBy') as HTMLInputElement;
+    const gatewaySortByEl = document.getElementById(
+      'gatewaySortBy',
+    ) as HTMLInputElement;
     if (gatewaySortByEl) {
       gatewaySortByEl.value = gatewaySortBy;
     }
 
     const gatewaySortOrder = settings.gatewaySortOrder || 'desc';
-    const gatewaySortOrderEl = document.getElementById('gatewaySortOrder') as HTMLInputElement;
+    const gatewaySortOrderEl = document.getElementById(
+      'gatewaySortOrder',
+    ) as HTMLInputElement;
     if (gatewaySortOrderEl) {
       gatewaySortOrderEl.value = gatewaySortOrder;
     }
 
     const gatewayCacheTTL = settings.gatewayCacheTTL || 3600;
-    const gatewayCacheTTLEl = document.getElementById('gatewayCacheTTL') as HTMLInputElement;
+    const gatewayCacheTTLEl = document.getElementById(
+      'gatewayCacheTTL',
+    ) as HTMLInputElement;
     if (gatewayCacheTTLEl) {
       gatewayCacheTTLEl.value = gatewayCacheTTL;
     }
@@ -342,7 +358,9 @@ async function loadCurrentSettings() {
 
     // Load telemetry settings
     const telemetryEnabled = settings.telemetryEnabled || false;
-    const telemetryToggle = document.getElementById('telemetryToggle') as HTMLInputElement;
+    const telemetryToggle = document.getElementById(
+      'telemetryToggle',
+    ) as HTMLInputElement;
     if (telemetryToggle) {
       telemetryToggle.checked = telemetryEnabled;
       // Update details visibility
@@ -363,7 +381,8 @@ async function updateConnectionStatus() {
 
   if (!statusIndicator) return;
 
-  const statusDot = statusIndicator.querySelector<HTMLDivElement>('.status-dot');
+  const statusDot =
+    statusIndicator.querySelector<HTMLDivElement>('.status-dot');
   const statusText = statusIndicator.querySelector<HTMLSpanElement>('span');
 
   if (statusDot && statusText) {
@@ -371,7 +390,6 @@ async function updateConnectionStatus() {
     statusText.textContent = 'Connected';
   }
 }
-
 
 // Performance functions moved to performance.js
 
@@ -382,18 +400,25 @@ async function handleRoutingStrategyChange(event: any) {
   );
 
   // Show/hide static gateway configuration
-  const staticConfig = document.querySelector<HTMLDivElement>('.static-gateway-config');
-  const applyContainer = document.getElementById('applyStaticGatewayContainer') as HTMLDivElement;
-  
+  const staticConfig = document.querySelector<HTMLDivElement>(
+    '.static-gateway-config',
+  );
+  const applyContainer = document.getElementById(
+    'applyStaticGatewayContainer',
+  ) as HTMLDivElement;
+
   if (staticConfig) {
     if (strategy === 'static') {
       staticConfig.style.display = 'block';
       // Populate the gateway dropdown when static is selected
       await populateGatewayDropdown();
-      
+
       // Don't save yet for static - user needs to configure and apply
       if (event.isTrusted) {
-        showToast('Please configure and test a gateway, then click Apply', 'info');
+        showToast(
+          'Please configure and test a gateway, then click Apply',
+          'info',
+        );
       }
       return; // Exit early for static
     } else {
@@ -431,7 +456,8 @@ async function handleRoutingStrategyChange(event: any) {
             random: 'Balanced',
             static: 'Static Gateway',
           };
-          currentValueEl.textContent = strategyNames[strategy as keyof typeof strategyNames] || strategy;
+          currentValueEl.textContent =
+            strategyNames[strategy as keyof typeof strategyNames] || strategy;
         }
       } else {
         throw new Error(
@@ -448,12 +474,18 @@ async function handleRoutingStrategyChange(event: any) {
 }
 
 // Store the tested gateway configuration temporarily
-let pendingStaticGateway: { settings: { protocol: string; fqdn: string; port: number } } | null = null;
+let pendingStaticGateway: {
+  settings: { protocol: string; fqdn: string; port: number };
+} | null = null;
 
 async function testStaticGateway() {
   const url = document.getElementById('staticGatewayUrl') as HTMLInputElement;
-  const testButton = document.getElementById('testStaticGateway') as HTMLButtonElement;
-  const applyContainer = document.getElementById('applyStaticGatewayContainer') as HTMLDivElement;
+  const testButton = document.getElementById(
+    'testStaticGateway',
+  ) as HTMLButtonElement;
+  const applyContainer = document.getElementById(
+    'applyStaticGatewayContainer',
+  ) as HTMLDivElement;
 
   testButton.disabled = true;
   testButton.textContent = 'Testing...';
@@ -465,7 +497,10 @@ async function testStaticGateway() {
     });
 
     if (response.ok) {
-      showToast('Gateway is reachable! Click Apply to use this gateway.', 'success');
+      showToast(
+        'Gateway is reachable! Click Apply to use this gateway.',
+        'success',
+      );
 
       // Store the gateway configuration for applying later
       const urlObj = new URL(url.value);
@@ -516,9 +551,9 @@ async function applyStaticGateway() {
 
   try {
     // Save the static gateway configuration
-    await chrome.storage.local.set({ 
+    await chrome.storage.local.set({
       staticGateway: pendingStaticGateway,
-      routingMethod: 'static'
+      routingMethod: 'static',
     });
 
     // Send message to background script to update routing
@@ -529,19 +564,21 @@ async function applyStaticGateway() {
 
     if (response && response.success) {
       showToast('Static gateway applied successfully!', 'success');
-      
+
       // Update the current value display
       const currentValueEl = document.getElementById('currentRoutingStrategy');
       if (currentValueEl) {
         currentValueEl.textContent = 'Static Gateway';
       }
-      
+
       // Hide the apply button after successful application
-      const applyContainer = document.getElementById('applyStaticGatewayContainer');
+      const applyContainer = document.getElementById(
+        'applyStaticGatewayContainer',
+      );
       if (applyContainer) {
         applyContainer.style.display = 'none';
       }
-      
+
       // Clear the pending configuration
       pendingStaticGateway = null;
     } else {
@@ -586,7 +623,7 @@ async function fetchAvailableGateways() {
     // Try to fetch from AR.IO network as fallback
     try {
       const networkProvider = new NetworkGatewaysProvider({
-        ario: ARIO.mainnet()
+        ario: ARIO.mainnet(),
       });
       const networkGateways = await networkProvider.getGateways();
 
@@ -617,7 +654,9 @@ async function fetchAvailableGateways() {
 
 // Populate the gateway dropdown with available options
 async function populateGatewayDropdown() {
-  const dropdown = document.getElementById('gatewayDropdown') as HTMLSelectElement;
+  const dropdown = document.getElementById(
+    'gatewayDropdown',
+  ) as HTMLSelectElement;
   if (!dropdown) return;
 
   // Show loading state
@@ -658,7 +697,9 @@ async function populateGatewayDropdown() {
       const randomIndex = Math.floor(
         Math.random() * Math.min(5, gateways.length),
       ); // Pick from top 5
-      const customInput = document.getElementById('staticGatewayUrl') as HTMLInputElement;
+      const customInput = document.getElementById(
+        'staticGatewayUrl',
+      ) as HTMLInputElement;
       if (customInput && !customInput.value) {
         const randomGateway = gateways[randomIndex];
         const randomUrl = `${randomGateway.protocol}://${randomGateway.fqdn}`;
@@ -678,7 +719,7 @@ async function populateGatewayDropdown() {
 function formatStake(stake: number) {
   // Assuming stake is in milli-units, convert to actual units first
   const actualStake = stake / 1000000; // Convert from milli to regular units
-  
+
   if (actualStake >= 1000000) {
     return (actualStake / 1000000).toFixed(1) + 'M';
   } else if (actualStake >= 1000) {
@@ -693,7 +734,9 @@ function formatStake(stake: number) {
 // Handle gateway dropdown selection
 function handleGatewayDropdownChange(event: any) {
   const selectedGateway = event.target.value;
-  const customInput = document.getElementById('staticGatewayUrl') as HTMLInputElement;
+  const customInput = document.getElementById(
+    'staticGatewayUrl',
+  ) as HTMLInputElement;
 
   if (selectedGateway && customInput) {
     customInput.value = selectedGateway;
@@ -711,8 +754,12 @@ function handleGatewayDropdownChange(event: any) {
 // Enhanced validation that also handles dropdown state
 async function validateStaticGateway() {
   const url = document.getElementById('staticGatewayUrl') as HTMLInputElement;
-  const testButton = document.getElementById('testStaticGateway') as HTMLButtonElement;
-  const dropdown = document.getElementById('gatewayDropdown') as HTMLSelectElement;
+  const testButton = document.getElementById(
+    'testStaticGateway',
+  ) as HTMLButtonElement;
+  const dropdown = document.getElementById(
+    'gatewayDropdown',
+  ) as HTMLSelectElement;
 
   try {
     if (url) {
@@ -744,12 +791,14 @@ async function validateStaticGateway() {
   }
 }
 
-
 // Save verification toasts preference
 async function saveVerificationToasts(event: any) {
   const enabled = event.target.checked;
   await chrome.storage.local.set({ showVerificationToasts: enabled });
-  showToast(`Verification notifications ${enabled ? 'enabled' : 'disabled'}`, 'success');
+  showToast(
+    `Verification notifications ${enabled ? 'enabled' : 'disabled'}`,
+    'success',
+  );
 }
 
 async function saveEnsResolution(event: any) {
@@ -874,23 +923,11 @@ function viewLogs() {
   showToast('Open browser console (F12) to view extension logs', 'info');
 }
 
-async function setExtensionVersion() {
-  try {
-    const manifest = chrome.runtime.getManifest();
-    const versionElement = document.getElementById('extensionVersion');
-    if (versionElement) {
-      versionElement.textContent = `v${manifest.version}`;
-    }
-  } catch (error) {
-    console.error('Failed to set extension version:', error);
-  }
-}
-
 async function updateGatewayCounts() {
   try {
     const { localGatewayAddressRegistry = {} } = await chrome.storage.local.get(
       ['localGatewayAddressRegistry'],
-    )
+    );
 
     const gateways = Object.values(localGatewayAddressRegistry) as any[];
     const totalCount = gateways.length;
@@ -898,12 +935,16 @@ async function updateGatewayCounts() {
       (gateway) => gateway.status === 'joined',
     ).length;
 
-    const totalElement = document.getElementById('totalGateways') as HTMLSpanElement;
+    const totalElement = document.getElementById(
+      'totalGateways',
+    ) as HTMLSpanElement;
     if (totalElement) {
       totalElement.textContent = `${totalCount}`;
     }
 
-    const activeElement = document.getElementById('activeGateways') as HTMLSpanElement;
+    const activeElement = document.getElementById(
+      'activeGateways',
+    ) as HTMLSpanElement;
     if (activeElement) {
       activeElement.textContent = `${activeCount}`;
     }
@@ -911,8 +952,10 @@ async function updateGatewayCounts() {
     // Update registry status based on gateway count
     const statusElement = document.getElementById('registryStatus');
     if (statusElement) {
-      const statusDot = statusElement.querySelector<HTMLDivElement>('.status-dot');
-      const statusText = statusElement.querySelector<HTMLSpanElement>('span:last-child');
+      const statusDot =
+        statusElement.querySelector<HTMLDivElement>('.status-dot');
+      const statusText =
+        statusElement.querySelector<HTMLSpanElement>('span:last-child');
 
       if (totalCount > 0) {
         statusElement.classList.add('connected');
@@ -950,7 +993,9 @@ async function updateLastSyncTime() {
 }
 
 async function syncGatewayRegistry() {
-  const button = document.getElementById('syncGatewayRegistry') as HTMLButtonElement;
+  const button = document.getElementById(
+    'syncGatewayRegistry',
+  ) as HTMLButtonElement;
   const originalContent = button.innerHTML;
 
   try {
@@ -1030,7 +1075,9 @@ async function handleGatewayCacheTTLChange(event: any) {
   await chrome.storage.local.set({ gatewayCacheTTL: ttl });
 
   // Update the display value
-  const valueEl = document.getElementById('gatewayCacheTTLValue') as HTMLSpanElement;
+  const valueEl = document.getElementById(
+    'gatewayCacheTTLValue',
+  ) as HTMLSpanElement;
   if (valueEl) {
     valueEl.textContent = `${ttl}`;
   }
@@ -1071,31 +1118,33 @@ async function handleTelemetryToggle(event: any) {
 
 // Data Management Functions
 async function clearAllCache() {
-  if (!confirm('Clear all cached gateway performance data and usage history?')) {
+  if (
+    !confirm('Clear all cached gateway performance data and usage history?')
+  ) {
     return;
   }
-  
+
   try {
     // Get all storage keys
     const allData = await chrome.storage.local.get();
     const keysToRemove = [];
-    
+
     // Add specific cache-related keys
     keysToRemove.push(
       'gatewayPerformance',
-      'gatewayUsageHistory', 
-      'dailyStats'
+      'gatewayUsageHistory',
+      'dailyStats',
     );
-    
+
     // Add all DNS cache entries (they start with 'dnsCache_')
-    Object.keys(allData).forEach(key => {
+    Object.keys(allData).forEach((key) => {
       if (key.startsWith('dnsCache_') || key.startsWith('arns:')) {
         keysToRemove.push(key);
       }
     });
-    
+
     await chrome.storage.local.remove(keysToRemove);
-    
+
     showToast('Cache cleared successfully', 'success');
   } catch (error) {
     console.error('Error clearing cache:', error);
@@ -1104,25 +1153,29 @@ async function clearAllCache() {
 }
 
 async function resetAllData() {
-  if (!confirm('Reset ALL extension data including settings, gateways, and cache? This cannot be undone.')) {
+  if (
+    !confirm(
+      'Reset ALL extension data including settings, gateways, and cache? This cannot be undone.',
+    )
+  ) {
     return;
   }
-  
+
   try {
     // Get all keys
     const allData = await chrome.storage.local.get();
     const allKeys = Object.keys(allData);
-    
+
     // Define protected keys that should never be removed
-    const protectedKeys = ['extension_id', 'install_date']; 
-    
+    const protectedKeys = ['extension_id', 'install_date'];
+
     // Remove all non-protected keys
-    const keysToRemove = allKeys.filter(key => !protectedKeys.includes(key));
-    
+    const keysToRemove = allKeys.filter((key) => !protectedKeys.includes(key));
+
     await chrome.storage.local.remove(keysToRemove);
-    
+
     showToast('Extension reset to factory defaults', 'success');
-    
+
     // Reload extension after a delay
     setTimeout(() => {
       chrome.runtime.reload();

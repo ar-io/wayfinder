@@ -1,6 +1,22 @@
 /**
- * WayFinder History - Gateway Usage Statistics
+ * WayFinder
+ * Copyright (C) 2022-2025 Permanent Data Solutions, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
+
+import { getRelativeTime } from './utils/time';
+import { setExtensionVersion } from './utils/version';
 
 // State management
 let currentPeriod = 'today';
@@ -17,32 +33,29 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 function setupEventHandlers() {
   // Navigation
-  document.getElementById('backToMain').addEventListener('click', () => {
+  document.getElementById('backToMain')?.addEventListener('click', () => {
     window.location.href = 'popup.html';
   });
 
-  // Clear history - removed as functionality moved to Settings page
-
   // Time filter buttons
-  document.querySelectorAll('.filter-btn').forEach((btn) => {
-    btn.addEventListener('click', (e) => {
+  document.querySelectorAll<HTMLButtonElement>('.filter-btn').forEach((btn) => {
+    btn.addEventListener('click', (e: Event) => {
+      if (!(e.target instanceof HTMLButtonElement)) return;
       document
         .querySelectorAll('.filter-btn')
         .forEach((b) => b.classList.remove('active'));
-      e.target.classList.add('active');
-      currentPeriod = e.target.dataset.period;
+      e.target?.classList.add('active');
+      currentPeriod = e.target?.dataset.period || 'today';
       loadGatewayUsage();
     });
   });
 
   // Sort dropdown
-  document.getElementById('sortBy').addEventListener('change', (e) => {
+  document.getElementById('sortBy')?.addEventListener('change', (e) => {
+    if (!(e.target instanceof HTMLSelectElement)) return;
     currentSort = e.target.value;
     renderGatewayUsage();
   });
-
-  // Modal handlers removed - gateway cards now navigate to gateways page
-  // Performance action handlers removed - functionality moved to Settings page
 }
 
 async function loadGatewayUsage() {
@@ -54,21 +67,24 @@ async function loadGatewayUsage() {
       gatewayPerformance = {},
       gatewayUsageHistory = {},
       localGatewayAddressRegistry = {},
-    } = await chrome.storage.local.get([
+    } = (await chrome.storage.local.get([
       'gatewayPerformance',
       'gatewayUsageHistory',
       'localGatewayAddressRegistry',
-    ]);
+    ])) as {
+      gatewayPerformance: Record<string, any>;
+      gatewayUsageHistory: Record<string, any>;
+      localGatewayAddressRegistry: Record<string, any>;
+    };
 
     // Clear existing data
     gatewayUsageData.clear();
 
     // Get time filter
-    const _now = new Date();
     const periodStart = getPeriodStartDate(currentPeriod);
 
     // Process only AR.IO gateways (those in the registry)
-    for (const [_registryKey, gatewayDetails] of Object.entries(
+    for (const [, gatewayDetails] of Object.entries(
       localGatewayAddressRegistry,
     )) {
       const fqdn = gatewayDetails.settings?.fqdn;
@@ -113,7 +129,7 @@ async function loadGatewayUsage() {
   }
 }
 
-function getPeriodStartDate(period) {
+function getPeriodStartDate(period: string) {
   const now = new Date();
 
   switch (period) {
@@ -134,7 +150,7 @@ async function updateSummaryStats() {
   let totalResponseTime = 0;
   let responseTimeCount = 0;
 
-  for (const [_fqdn, data] of gatewayUsageData) {
+  for (const [, data] of gatewayUsageData) {
     totalRequests += data.usage.requestCount;
     if (
       data.performance.avgResponseTime &&
@@ -145,27 +161,30 @@ async function updateSummaryStats() {
     }
   }
 
-  // Get daily stats for permaweb ratio calculation
-  const { dailyStats = null } = await chrome.storage.local.get(['dailyStats']);
-
   // Update UI with shortened labels for mobile
-  document.getElementById('totalRequests').textContent =
+  const totalRequestsEl = document.getElementById('totalRequests');
+  if (!totalRequestsEl) return;
+  totalRequestsEl.textContent =
     totalRequests >= 1000
       ? `${(totalRequests / 1000).toFixed(1)}k`
       : totalRequests.toString();
-  document.getElementById('uniqueGateways').textContent =
-    gatewayUsageData.size.toString();
+
+  const uniqueGatewaysEl = document.getElementById('uniqueGateways');
+  if (!uniqueGatewaysEl) return;
+  uniqueGatewaysEl.textContent = gatewayUsageData.size.toString();
 
   const avgTime =
     responseTimeCount > 0 ? totalResponseTime / responseTimeCount : 0;
-  document.getElementById('avgResponseTime').textContent =
+  const avgResponseTimeEl = document.getElementById('avgResponseTime');
+  if (!avgResponseTimeEl) return;
+  avgResponseTimeEl.textContent =
     avgTime > 0 ? `${Math.round(avgTime)}ms` : '--';
 
   // Find the most used gateway
   let topGateway = '--';
   let topGatewayFull = '--';
   let maxRequests = 0;
-  
+
   for (const [fqdn, data] of gatewayUsageData) {
     if (data.usage.requestCount > maxRequests) {
       maxRequests = data.usage.requestCount;
@@ -180,28 +199,29 @@ async function updateSummaryStats() {
   }
 
   const topGatewayEl = document.getElementById('topGateway');
+  if (!topGatewayEl) return;
   topGatewayEl.textContent = topGateway;
-  
+
   // Make it clickable if we have a gateway
   if (topGatewayFull !== '--') {
     topGatewayEl.style.cursor = 'pointer';
     topGatewayEl.style.textDecoration = 'underline';
     topGatewayEl.title = `Click to view ${topGatewayFull} details`;
-    
+
     topGatewayEl.onclick = async () => {
       // Store the gateway to highlight and open
-      await chrome.storage.local.set({ 
+      await chrome.storage.local.set({
         highlightGateway: topGatewayFull,
-        openGatewayModal: true 
+        openGatewayModal: true,
       });
       window.location.href = 'gateways.html';
     };
   }
 }
 
-
 function renderGatewayUsage() {
   const container = document.getElementById('gatewayUsageList');
+  if (!container) return;
   container.innerHTML = '';
 
   if (gatewayUsageData.size === 0) {
@@ -214,16 +234,16 @@ function renderGatewayUsage() {
 
   // Sort data
   const sortedData = Array.from(gatewayUsageData.entries()).sort((a, b) => {
-    const [_fqdnA, dataA] = a;
-    const [_fqdnB, dataB] = b;
+    const [, dataA] = a;
+    const [, dataB] = b;
 
     switch (currentSort) {
       case 'requests':
         return dataB.usage.requestCount - dataA.usage.requestCount;
       case 'recent':
         return (
-          new Date(dataB.usage.lastUsed || 0) -
-          new Date(dataA.usage.lastUsed || 0)
+          new Date(dataB.usage.lastUsed || '').getTime() -
+          new Date(dataA.usage.lastUsed || '').getTime()
         );
       case 'performance': {
         const perfA = dataA.performance.avgResponseTime || Infinity;
@@ -243,7 +263,7 @@ function renderGatewayUsage() {
   // Calculate total requests for usage share
   const totalRequests = Array.from(gatewayUsageData.values()).reduce(
     (sum, d) => sum + d.usage.requestCount,
-    0
+    0,
   );
 
   // Render cards
@@ -253,7 +273,11 @@ function renderGatewayUsage() {
   });
 }
 
-function createGatewayUsageCard(fqdn, data, totalRequests) {
+function createGatewayUsageCard(
+  fqdn: string,
+  data: any,
+  totalRequests: number,
+) {
   const card = document.createElement('div');
   card.className = 'gateway-usage-card';
 
@@ -272,9 +296,10 @@ function createGatewayUsageCard(fqdn, data, totalRequests) {
   }
 
   // Calculate usage percentage - handle edge case where totalRequests is 0
-  const usagePercentage = totalRequests > 0 
-    ? Math.round((data.usage.requestCount / totalRequests) * 100)
-    : 0;
+  const usagePercentage =
+    totalRequests > 0
+      ? Math.round((data.usage.requestCount / totalRequests) * 100)
+      : 0;
 
   card.innerHTML = `
     <div class="usage-header">
@@ -325,9 +350,9 @@ function createGatewayUsageCard(fqdn, data, totalRequests) {
 
   // Click to navigate to gateway details on gateways page
   card.addEventListener('click', async () => {
-    await chrome.storage.local.set({ 
+    await chrome.storage.local.set({
       highlightGateway: fqdn,
-      openGatewayModal: true 
+      openGatewayModal: true,
     });
     window.location.href = 'gateways.html';
   });
@@ -335,30 +360,15 @@ function createGatewayUsageCard(fqdn, data, totalRequests) {
   return card;
 }
 
-function getSuccessRate(performance) {
+function getSuccessRate(performance: any) {
   const total = performance.successCount + performance.failures;
   if (total === 0) return 0;
   return Math.round((performance.successCount / total) * 100);
 }
 
-function getRelativeTime(date) {
-  const now = new Date();
-  const diff = now - date;
-
-  const minutes = Math.floor(diff / 60000);
-  const hours = Math.floor(diff / 3600000);
-  const days = Math.floor(diff / 86400000);
-
-  if (minutes < 1) return 'Just now';
-  if (minutes < 60) return `${minutes}m ago`;
-  if (hours < 24) return `${hours}h ago`;
-  if (days < 30) return `${days}d ago`;
-
-  return date.toLocaleDateString();
-}
-
 function updatePeriodLabel() {
   const label = document.getElementById('periodLabel');
+  if (!label) return;
   const periodText = {
     today: 'today',
     week: 'the last 7 days',
@@ -366,10 +376,11 @@ function updatePeriodLabel() {
     all: 'all time',
   };
 
-  label.textContent = `Showing usage for ${periodText[currentPeriod]}`;
+  label.textContent = `Showing usage for ${periodText[currentPeriod as keyof typeof periodText]}`;
 
   // Update footer date range
   const dataRange = document.getElementById('dataRange');
+  if (!dataRange) return;
   const start = getPeriodStartDate(currentPeriod);
   const now = new Date();
 
@@ -385,49 +396,47 @@ function updatePeriodLabel() {
 // Removed: clearHistory function - functionality moved to Settings page
 
 function showLoadingState() {
-  document.getElementById('loadingState').style.display = 'flex';
-  document.getElementById('gatewayUsageList').style.display = 'none';
-  document.getElementById('emptyState').style.display = 'none';
+  const loadingState = document.getElementById('loadingState');
+  if (!loadingState) return;
+  loadingState.style.display = 'flex';
+
+  const gatewayUsageList = document.getElementById('gatewayUsageList');
+  if (!gatewayUsageList) return;
+  gatewayUsageList.style.display = 'none';
+
+  const emptyState = document.getElementById('emptyState');
+  if (!emptyState) return;
+  emptyState.style.display = 'flex';
 }
 
 function hideLoadingState() {
-  document.getElementById('loadingState').style.display = 'none';
-  document.getElementById('gatewayUsageList').style.display = 'block';
+  const loadingState = document.getElementById('loadingState');
+  if (!loadingState) return;
+  loadingState.style.display = 'none';
+
+  const gatewayUsageList = document.getElementById('gatewayUsageList');
+  if (!gatewayUsageList) return;
+  gatewayUsageList.style.display = 'block';
 }
 
 function showEmptyState() {
-  document.getElementById('emptyState').style.display = 'flex';
-  document.getElementById('gatewayUsageList').style.display = 'none';
-  document.getElementById('loadingState').style.display = 'none';
+  const emptyState = document.getElementById('emptyState');
+  if (!emptyState) return;
+  emptyState.style.display = 'flex';
+
+  const gatewayUsageList = document.getElementById('gatewayUsageList');
+  if (!gatewayUsageList) return;
+  gatewayUsageList.style.display = 'none';
+
+  const loadingState = document.getElementById('loadingState');
+  if (!loadingState) return;
+  loadingState.style.display = 'none';
 }
 
 function hideEmptyState() {
-  document.getElementById('emptyState').style.display = 'none';
-}
-
-function showToast(message, type = 'info') {
-  const toast = document.createElement('div');
-  toast.className = `toast ${type}`;
-  toast.textContent = message;
-
-  const container = document.getElementById('toastContainer');
-  container.appendChild(toast);
-
-  setTimeout(() => {
-    toast.remove();
-  }, 3000);
-}
-
-async function setExtensionVersion() {
-  try {
-    const manifest = chrome.runtime.getManifest();
-    const versionElement = document.getElementById('extensionVersion');
-    if (versionElement) {
-      versionElement.textContent = `v${manifest.version}`;
-    }
-  } catch (error) {
-    console.error('Failed to set extension version:', error);
-  }
+  const emptyState = document.getElementById('emptyState');
+  if (!emptyState) return;
+  emptyState.style.display = 'none';
 }
 
 // Performance stats functions moved from settings.js
@@ -441,7 +450,7 @@ async function updatePerformanceStats() {
     if (performances.length > 0) {
       // Calculate average response time
       const avgResponseTimes = performances
-        .map((p) => p.avgResponseTime)
+        .map((p: any) => p.avgResponseTime)
         .filter((time) => time !== undefined);
 
       const overallAvg =
@@ -457,7 +466,7 @@ async function updatePerformanceStats() {
       }
 
       // Calculate success rate
-      const successRates = performances.map((p) => {
+      const successRates = performances.map((p: any) => {
         const total = p.successCount + p.failures;
         return total > 0 ? (p.successCount / total) * 100 : 0;
       });
@@ -484,25 +493,7 @@ async function updatePerformanceStats() {
     if (requestsTodayEl) {
       requestsTodayEl.textContent = todayRequests;
     }
-
-    // Verification stats from daily stats
-    const verifiedCount =
-      dailyStats && dailyStats.date === today ? dailyStats.verifiedCount : 0;
-    const failedCount =
-      dailyStats && dailyStats.date === today ? dailyStats.failedCount : 0;
-    const totalVerificationAttempts = verifiedCount + failedCount;
-    const verificationSuccessRate =
-      totalVerificationAttempts > 0
-        ? Math.round((verifiedCount / totalVerificationAttempts) * 100)
-        : 0;
-
-    // Verification stats elements removed - functionality moved elsewhere
   } catch (error) {
     console.error('Error updating performance stats:', error);
   }
 }
-
-// Removed: updateCacheStats function - verification cache removed
-// Removed: clearPerformanceData function - functionality moved to Settings page
-// Removed: clearVerificationCache function - verification cache removed
-// Removed: openGatewayModal and closeModal functions - gateway cards now navigate to gateways page

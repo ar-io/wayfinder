@@ -6,7 +6,7 @@
   "permissions": ["storage", "webNavigation", "webRequest", "scripting"],
   "host_permissions": ["<all_urls>"],
   "background": {
-    "service_worker": "background.ts",
+    "service_worker": "background.js",
     "type": "module"
   },
   "action": {
@@ -15,7 +15,7 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content.ts"]
+      "js": ["content.js"]
     }
   ],
   "content_security_policy": {

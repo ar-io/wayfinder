@@ -15,6 +15,9 @@
  * limitations under the License.
  */
 
+import { getRelativeTime } from './utils/time';
+import { setExtensionVersion } from './utils/version';
+
 let allGateways: any[] = [];
 let filteredGateways: any[] = [];
 let currentFilter = 'all';
@@ -78,11 +81,13 @@ function setupEventHandlers() {
   document.getElementById('closeModal')?.addEventListener('click', closeModal);
 
   // Close modal when clicking outside
-  document.getElementById('gatewayModal')?.addEventListener('click', (e: any) => {
-    if (e.target.id === 'gatewayModal') {
-      closeModal();
-    }
-  });
+  document
+    .getElementById('gatewayModal')
+    ?.addEventListener('click', (e: any) => {
+      if (e.target.id === 'gatewayModal') {
+        closeModal();
+      }
+    });
 }
 
 async function loadGateways() {
@@ -170,18 +175,18 @@ function applyFiltersAndSearch() {
 }
 
 function renderGateways() {
-  const container = document.getElementById('gatewaysList')
+  const container = document.getElementById('gatewaysList');
 
   if (!container) {
     return;
   }
-  
+
   if (allGateways.length === 0) {
     // No gateways at all - show sync message
     showEmptyState();
     return;
   }
-  
+
   if (filteredGateways.length === 0) {
     // Have gateways but no matches - show different message
     container.innerHTML = `
@@ -208,7 +213,7 @@ function renderGateways() {
     }
     return;
   }
-  
+
   // Show the gateway list
   container.style.display = 'grid';
   const emptyState = document.getElementById('emptyState');
@@ -222,7 +227,7 @@ function renderGateways() {
     loadingState.style.display = 'none';
   }
   container.innerHTML = '';
-  
+
   filteredGateways.forEach((gateway) => {
     const card = createGatewayCard(gateway);
     container.appendChild(card);
@@ -258,18 +263,24 @@ function createGatewayCard(gateway: any) {
   if (performance.avgResponseTime !== undefined) {
     const avgTime = performance.avgResponseTime;
     if (performance.failures > 10) {
-      statusBadge = '<div class="performance-badge offline"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-right: 4px;"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg> Offline</div>';
+      statusBadge =
+        '<div class="performance-badge offline"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-right: 4px;"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg> Offline</div>';
     } else if (avgTime <= 150) {
-      statusBadge = '<div class="performance-badge fastest"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-right: 4px;"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> Fastest</div>';
+      statusBadge =
+        '<div class="performance-badge fastest"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-right: 4px;"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> Fastest</div>';
     } else if (avgTime <= 500) {
-      statusBadge = '<div class="performance-badge fast"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-right: 4px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Fast</div>';
+      statusBadge =
+        '<div class="performance-badge fast"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-right: 4px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Fast</div>';
     } else if (avgTime <= 2000) {
-      statusBadge = '<div class="performance-badge good"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-right: 4px;"><polyline points="20 6 9 17 4 12"/></svg> Good</div>';
+      statusBadge =
+        '<div class="performance-badge good"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-right: 4px;"><polyline points="20 6 9 17 4 12"/></svg> Good</div>';
     } else {
-      statusBadge = '<div class="performance-badge slow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-right: 4px;"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg> Slow</div>';
+      statusBadge =
+        '<div class="performance-badge slow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-right: 4px;"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg> Slow</div>';
     }
   } else {
-    statusBadge = '<div class="performance-badge unknown"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-right: 4px;"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Unknown</div>';
+    statusBadge =
+      '<div class="performance-badge unknown"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-right: 4px;"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Unknown</div>';
   }
 
   const card = document.createElement('div');
@@ -339,18 +350,24 @@ async function showGatewayDetails(gateway: any) {
   }
 
   // Update status badge
-  const statusBadge = document.getElementById('modalStatusBadge') as HTMLDivElement;
+  const statusBadge = document.getElementById(
+    'modalStatusBadge',
+  ) as HTMLDivElement;
   statusBadge.className = `gateway-status-badge ${statusClass}`;
   statusBadge.querySelector('span')!.textContent = statusText;
 
   // Populate URL link
-  const urlElement = document.getElementById('modal-gateway-url') as HTMLAnchorElement;
+  const urlElement = document.getElementById(
+    'modal-gateway-url',
+  ) as HTMLAnchorElement;
   const urlSpan = urlElement.querySelector<HTMLSpanElement>('span');
   urlSpan!.textContent = `${settings.protocol}://${settings.fqdn}`;
   urlElement.href = `${settings.protocol}://${settings.fqdn}:${settings.port}`;
 
   // Populate address link
-  const addressElement = document.getElementById('modal-gateway-wallet') as HTMLAnchorElement;
+  const addressElement = document.getElementById(
+    'modal-gateway-wallet',
+  ) as HTMLAnchorElement;
   const addressSpan = addressElement.querySelector<HTMLSpanElement>('span');
   addressSpan!.textContent = `${address.slice(0, 6)}...${address.slice(-4)}`;
   addressElement.href = `https://viewblock.io/arweave/address/${address}`;
@@ -360,33 +377,39 @@ async function showGatewayDetails(gateway: any) {
     ((data.operatorStake || 0) + (data.totalDelegatedStake || 0)) / 1000000,
   );
 
-  const totalStakeElement = document.getElementById('modal-total-stake') as HTMLSpanElement;
-  totalStakeElement.textContent =
-    `${totalStake.toLocaleString()} ARIO`;
+  const totalStakeElement = document.getElementById(
+    'modal-total-stake',
+  ) as HTMLSpanElement;
+  totalStakeElement.textContent = `${totalStake.toLocaleString()} ARIO`;
 
   // Populate response time
   const avgResponseTime = performance.avgResponseTime;
-  const avgResponseTimeElement = document.getElementById('modal-gateway-avg-response-time') as HTMLSpanElement;
+  const avgResponseTimeElement = document.getElementById(
+    'modal-gateway-avg-response-time',
+  ) as HTMLSpanElement;
   avgResponseTimeElement.textContent =
     avgResponseTime !== undefined ? `${Math.round(avgResponseTime)}ms` : 'N/A';
 
   // Populate join date
-  const startElement = document.getElementById('modal-start') as HTMLSpanElement;
-  startElement.textContent = new Date(
-    data.startTimestamp,
-  ).toLocaleDateString();
+  const startElement = document.getElementById(
+    'modal-start',
+  ) as HTMLSpanElement;
+  startElement.textContent = new Date(data.startTimestamp).toLocaleDateString();
 
   // Populate operator note
   const noteElement = document.getElementById('modal-note') as HTMLSpanElement;
-  noteElement.textContent =
-    settings.note || 'No note provided';
+  noteElement.textContent = settings.note || 'No note provided';
 
   // Update more info link
-  const moreInfoElement = document.getElementById('modal-gateway-more-info') as HTMLAnchorElement;
+  const moreInfoElement = document.getElementById(
+    'modal-gateway-more-info',
+  ) as HTMLAnchorElement;
   moreInfoElement.href = `${settings.protocol}://gateways.${settings.fqdn}:${settings.port}/#/gateways/${address}`;
 
   // Update blacklist button
-  const blacklistButton = document.getElementById('blacklistButton') as HTMLButtonElement;
+  const blacklistButton = document.getElementById(
+    'blacklistButton',
+  ) as HTMLButtonElement;
   const blacklistSpan = blacklistButton.querySelector<HTMLSpanElement>('span');
   blacklistSpan!.textContent = isBlacklisted
     ? 'Unblacklist Gateway'
@@ -394,33 +417,51 @@ async function showGatewayDetails(gateway: any) {
   blacklistButton.addEventListener('click', () => toggleBlacklist(address));
 
   // Get usage history for this gateway
-  const { gatewayUsageHistory = {} } = await chrome.storage.local.get(['gatewayUsageHistory']);
+  const { gatewayUsageHistory = {} } = await chrome.storage.local.get([
+    'gatewayUsageHistory',
+  ]);
   const usageData = gatewayUsageHistory[settings.fqdn] || {};
-  
+
   // Update usage metrics
-  const usageCountElement = document.getElementById('modal-usage-count') as HTMLSpanElement;
-  usageCountElement.textContent = 
-    usageData.requestCount ? usageData.requestCount.toString() : '0';
-  
-  const lastUsedElement = document.getElementById('modal-last-used') as HTMLSpanElement;
-  lastUsedElement.textContent = 
-    usageData.lastUsed ? getRelativeTime(new Date(usageData.lastUsed)) : 'Never';
-  
+  const usageCountElement = document.getElementById(
+    'modal-usage-count',
+  ) as HTMLSpanElement;
+  usageCountElement.textContent = usageData.requestCount
+    ? usageData.requestCount.toString()
+    : '0';
+
+  const lastUsedElement = document.getElementById(
+    'modal-last-used',
+  ) as HTMLSpanElement;
+  lastUsedElement.textContent = usageData.lastUsed
+    ? getRelativeTime(new Date(usageData.lastUsed))
+    : 'Never';
+
   // Calculate request success rate from performance data
-  const requestSuccessRate = performance.successCount + performance.failures > 0
-    ? Math.round((performance.successCount / (performance.successCount + performance.failures)) * 100)
-    : 0;
-  const requestSuccessRateElement = document.getElementById('modal-request-success-rate') as HTMLSpanElement;
+  const requestSuccessRate =
+    performance.successCount + performance.failures > 0
+      ? Math.round(
+          (performance.successCount /
+            (performance.successCount + performance.failures)) *
+            100,
+        )
+      : 0;
+  const requestSuccessRateElement = document.getElementById(
+    'modal-request-success-rate',
+  ) as HTMLSpanElement;
   requestSuccessRateElement.textContent = `${requestSuccessRate}%`;
-  
-  const failedRequestsElement = document.getElementById('modal-failed-requests') as HTMLSpanElement;
-  failedRequestsElement.textContent = 
-    performance.failures ? performance.failures.toString() : '0';
+
+  const failedRequestsElement = document.getElementById(
+    'modal-failed-requests',
+  ) as HTMLSpanElement;
+  failedRequestsElement.textContent = performance.failures
+    ? performance.failures.toString()
+    : '0';
 
   // Update network performance stats
   if (data.stats) {
     const stats = data.stats;
-    
+
     // Display reliability streak
     const streakElement = document.getElementById('modal-current-streak');
 
@@ -445,32 +486,46 @@ async function showGatewayDetails(gateway: any) {
       streakSpan.textContent = 'No streak';
       streakSpan.style.color = '#6b7280'; // gray
     }
-    
+
     // Success rate
-    const successRate = stats.totalEpochCount > 0 
-      ? Math.round((stats.passedEpochCount / stats.totalEpochCount) * 100)
-      : 0;
-    const successRateElement = document.getElementById('modal-epoch-success-rate') as HTMLSpanElement;
+    const successRate =
+      stats.totalEpochCount > 0
+        ? Math.round((stats.passedEpochCount / stats.totalEpochCount) * 100)
+        : 0;
+    const successRateElement = document.getElementById(
+      'modal-epoch-success-rate',
+    ) as HTMLSpanElement;
     successRateElement.textContent = `${successRate}%`;
-    
+
     // Total epochs (passed/total)
-    const totalEpochsElement = document.getElementById('modal-total-epochs') as HTMLSpanElement;
-    totalEpochsElement.textContent = 
-      `${stats.passedEpochCount}/${stats.totalEpochCount}`;
-    
-    // Failed epochs  
+    const totalEpochsElement = document.getElementById(
+      'modal-total-epochs',
+    ) as HTMLSpanElement;
+    totalEpochsElement.textContent = `${stats.passedEpochCount}/${stats.totalEpochCount}`;
+
+    // Failed epochs
     const failedEpochs = stats.totalEpochCount - stats.passedEpochCount;
-    const failedEpochsElement = document.getElementById('modal-failed-epochs') as HTMLSpanElement;
+    const failedEpochsElement = document.getElementById(
+      'modal-failed-epochs',
+    ) as HTMLSpanElement;
     failedEpochsElement.textContent = failedEpochs.toString();
   } else {
     // No stats available
-    const streakElement = document.getElementById('modal-current-streak') as HTMLSpanElement;
+    const streakElement = document.getElementById(
+      'modal-current-streak',
+    ) as HTMLSpanElement;
     streakElement.textContent = 'No data';
-    const successRateElement = document.getElementById('modal-epoch-success-rate') as HTMLSpanElement;
+    const successRateElement = document.getElementById(
+      'modal-epoch-success-rate',
+    ) as HTMLSpanElement;
     successRateElement.textContent = '--';
-    const totalEpochsElement = document.getElementById('modal-total-epochs') as HTMLSpanElement;
+    const totalEpochsElement = document.getElementById(
+      'modal-total-epochs',
+    ) as HTMLSpanElement;
     totalEpochsElement.textContent = '--';
-    const failedEpochsElement = document.getElementById('modal-failed-epochs') as HTMLSpanElement;
+    const failedEpochsElement = document.getElementById(
+      'modal-failed-epochs',
+    ) as HTMLSpanElement;
     failedEpochsElement.textContent = '--';
   }
 
@@ -593,8 +648,10 @@ function updateStats() {
 
   // Calculate healthy gateways - joined gateways with 0 consecutive failed epochs
   const healthyCount = allGateways.filter((g) => {
-    return g.data.status === 'joined' && 
-           (!g.data.stats || g.data.stats.failedConsecutiveEpochs === 0);
+    return (
+      g.data.status === 'joined' &&
+      (!g.data.stats || g.data.stats.failedConsecutiveEpochs === 0)
+    );
   }).length;
 
   // Calculate total network stake
@@ -618,16 +675,24 @@ function updateStats() {
     displayValue = Math.floor(stakeInARIO).toLocaleString();
   }
 
-  const totalGatewaysElement = document.getElementById('totalGateways') as HTMLSpanElement;
+  const totalGatewaysElement = document.getElementById(
+    'totalGateways',
+  ) as HTMLSpanElement;
   totalGatewaysElement.textContent = totalCount.toString();
 
-  const activeGatewaysElement = document.getElementById('activeGateways') as HTMLSpanElement;
+  const activeGatewaysElement = document.getElementById(
+    'activeGateways',
+  ) as HTMLSpanElement;
   activeGatewaysElement.textContent = activeCount.toString();
 
-  const healthyGatewaysElement = document.getElementById('healthyGateways') as HTMLSpanElement;
+  const healthyGatewaysElement = document.getElementById(
+    'healthyGateways',
+  ) as HTMLSpanElement;
   healthyGatewaysElement.textContent = healthyCount.toString();
 
-  const networkStakeElement = document.getElementById('networkStake') as HTMLSpanElement;
+  const networkStakeElement = document.getElementById(
+    'networkStake',
+  ) as HTMLSpanElement;
   networkStakeElement.textContent = displayValue;
 }
 
@@ -635,10 +700,10 @@ async function updateLastSyncTime() {
   try {
     const { lastSyncTime } = await chrome.storage.local.get(['lastSyncTime']);
     if (lastSyncTime) {
-      const lastSyncTimeElement = document.getElementById('lastSyncTime') as HTMLSpanElement;
-      lastSyncTimeElement.textContent = new Date(
-        lastSyncTime,
-      ).toLocaleString();
+      const lastSyncTimeElement = document.getElementById(
+        'lastSyncTime',
+      ) as HTMLSpanElement;
+      lastSyncTimeElement.textContent = new Date(lastSyncTime).toLocaleString();
     }
   } catch (error) {
     console.error('Error updating last sync time:', error);
@@ -689,32 +754,6 @@ function showEmptyState() {
   }
 }
 
-async function setExtensionVersion() {
-  try {
-    const manifest = chrome.runtime.getManifest();
-    const versionElement = document.getElementById('extensionVersion');
-    if (versionElement) {
-      versionElement.textContent = `v${manifest.version}`;
-    }
-  } catch (error) {
-    console.error('Failed to set extension version:', error);
-  }
-}
-
-// Helper function for relative time display
-function getRelativeTime(date: number) {
-  const diff = Date.now() - date;
-  const minutes = Math.floor(diff / 60000);
-  const hours = Math.floor(diff / 3600000);
-  const days = Math.floor(diff / 86400000);
-
-  if (minutes < 1) return 'Just now';
-  if (minutes < 60) return `${minutes}m ago`;
-  if (hours < 24) return `${hours}h ago`;
-  if (days < 30) return `${days}d ago`;
-  return new Date(date).toLocaleDateString();
-}
-
 // Initialize last sync time on load
 updateLastSyncTime();
 
@@ -723,7 +762,9 @@ checkForHighlightGateway();
 
 // Ping test functionality
 function setupPingTest(gateway: any) {
-  const pingButton = document.getElementById('pingTestButton') as HTMLButtonElement;
+  const pingButton = document.getElementById(
+    'pingTestButton',
+  ) as HTMLButtonElement;
   const pingResults = document.getElementById('pingResults') as HTMLDivElement;
   const pingLoading = document.getElementById('pingLoading') as HTMLDivElement;
 
@@ -744,7 +785,9 @@ function setupPingTest(gateway: any) {
 }
 
 async function runPingTest(gateway: any) {
-  const pingButton = document.getElementById('pingTestButton') as HTMLButtonElement;
+  const pingButton = document.getElementById(
+    'pingTestButton',
+  ) as HTMLButtonElement;
   const pingResults = document.getElementById('pingResults') as HTMLDivElement;
   const pingLoading = document.getElementById('pingLoading') as HTMLDivElement;
 
@@ -773,7 +816,9 @@ async function runPingTest(gateway: any) {
     const responseTime = endTime - startTime;
 
     // Update response time
-    const responseTimeEl = document.getElementById('pingResponseTime') as HTMLSpanElement;
+    const responseTimeEl = document.getElementById(
+      'pingResponseTime',
+    ) as HTMLSpanElement;
     responseTimeEl.textContent = `${Math.round(responseTime)}ms`;
 
     if (!responseTimeEl) {
@@ -789,7 +834,9 @@ async function runPingTest(gateway: any) {
     }
 
     // Update status code
-    const statusCodeEl = document.getElementById('pingStatusCode') as HTMLSpanElement;
+    const statusCodeEl = document.getElementById(
+      'pingStatusCode',
+    ) as HTMLSpanElement;
     statusCodeEl.textContent = response.status.toString();
     statusCodeEl.className = response.ok
       ? 'ping-result-value good'
@@ -802,19 +849,21 @@ async function runPingTest(gateway: any) {
     if (response.ok) {
       try {
         const info = await response.json();
-        
+
         // Check for required fields based on actual ar-io/info response
         const hasWallet = info.wallet && typeof info.wallet === 'string';
-        const hasProcessId = info.processId && typeof info.processId === 'string';
+        const hasProcessId =
+          info.processId && typeof info.processId === 'string';
         const hasRelease = info.release && typeof info.release === 'string';
-        
+
         // Check for manifest support
-        const hasManifests = Array.isArray(info.supportedManifestVersions) && 
-                            info.supportedManifestVersions.length > 0;
-        
+        const hasManifests =
+          Array.isArray(info.supportedManifestVersions) &&
+          info.supportedManifestVersions.length > 0;
+
         // Check for ANS-104 configuration
         // const hasANS104Config = 'ans104UnbundleFilter' in info && 'ans104IndexFilter' in info;
-        
+
         if (hasWallet && hasProcessId && hasRelease && hasManifests) {
           healthStatus = 'Healthy';
           healthClass = 'ping-result-value good';
@@ -844,13 +893,19 @@ async function runPingTest(gateway: any) {
     healthCheckEl.className = healthClass;
   } catch {
     // Handle errors
-    const responseTimeEl = document.getElementById('pingResponseTime') as HTMLSpanElement;
+    const responseTimeEl = document.getElementById(
+      'pingResponseTime',
+    ) as HTMLSpanElement;
     responseTimeEl.textContent = 'Timeout';
     responseTimeEl.className = 'ping-result-value bad';
-    const statusCodeEl = document.getElementById('pingStatusCode') as HTMLSpanElement;
+    const statusCodeEl = document.getElementById(
+      'pingStatusCode',
+    ) as HTMLSpanElement;
     statusCodeEl.textContent = 'Failed';
     statusCodeEl.className = 'ping-result-value bad';
-    const healthCheckEl = document.getElementById('pingHealthCheck') as HTMLSpanElement;
+    const healthCheckEl = document.getElementById(
+      'pingHealthCheck',
+    ) as HTMLSpanElement;
     healthCheckEl.textContent = 'Offline';
     healthCheckEl.className = 'ping-result-value bad';
   } finally {
@@ -859,7 +914,8 @@ async function runPingTest(gateway: any) {
     pingResults.style.display = 'block';
     pingButton.disabled = false;
     pingButton.classList.remove('testing');
-    pingButton.querySelector<HTMLSpanElement>('span')!.textContent = 'Run Again';
+    pingButton.querySelector<HTMLSpanElement>('span')!.textContent =
+      'Run Again';
   }
 }
 
@@ -903,10 +959,9 @@ async function loadGatewayInfo(gateway: any) {
 
 // Highlight gateway functionality
 async function checkForHighlightGateway() {
-  const { highlightGateway, openGatewayModal } = await chrome.storage.local.get([
-    'highlightGateway',
-    'openGatewayModal'
-  ]);
+  const { highlightGateway, openGatewayModal } = await chrome.storage.local.get(
+    ['highlightGateway', 'openGatewayModal'],
+  );
 
   if (highlightGateway) {
     // Clear the flags
@@ -915,16 +970,20 @@ async function checkForHighlightGateway() {
     // Wait for gateways to load and then highlight
     setTimeout(() => {
       // Find the gateway in our loaded data
-      const targetGateway = allGateways.find(g => g.data.settings?.fqdn === highlightGateway);
-      
+      const targetGateway = allGateways.find(
+        (g) => g.data.settings?.fqdn === highlightGateway,
+      );
+
       if (targetGateway && openGatewayModal) {
         // Open the modal directly
         showGatewayDetails(targetGateway);
       } else {
         // Just highlight the card
-        const gatewayCards = document.querySelectorAll<HTMLDivElement>('.gateway-card');
+        const gatewayCards =
+          document.querySelectorAll<HTMLDivElement>('.gateway-card');
         for (const card of Array.from(gatewayCards)) {
-          const gatewayUrl = card.querySelector<HTMLSpanElement>('.gateway-url');
+          const gatewayUrl =
+            card.querySelector<HTMLSpanElement>('.gateway-url');
 
           if (!gatewayUrl) {
             continue;

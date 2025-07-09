@@ -15,13 +15,27 @@
  * limitations under the License.
  */
 
+import { logger } from './logger';
+
 export async function getExtensionVersion(): Promise<string> {
   try {
     // Get manifest data using chrome extension API
-    const manifest = chrome.runtime.getManifest();
+    const manifest = await chrome.runtime.getManifest();
     return manifest.version || '0.1.0';
   } catch (error) {
-    console.error('Failed to get extension version:', error);
-    return '0.1.0';
+    logger.error('Failed to get extension version:', error);
+    return '';
+  }
+}
+
+export async function setExtensionVersion() {
+  try {
+    const manifest = await chrome.runtime.getManifest();
+    const versionElement = document.getElementById('extensionVersion');
+    if (versionElement) {
+      versionElement.textContent = `v${manifest.version}`;
+    }
+  } catch (error) {
+    console.error('Failed to set extension version:', error);
   }
 }

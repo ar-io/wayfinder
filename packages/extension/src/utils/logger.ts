@@ -18,7 +18,6 @@
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 class Logger {
-  private isDevelopment = false; // Set to false for production
   private enabledLevels: Set<LogLevel> = new Set(['info', 'warn', 'error']);
 
   private log(level: LogLevel, message: string, ...args: any[]) {

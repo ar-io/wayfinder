@@ -43,7 +43,6 @@ function withTimeout<T>(
   ]);
 }
 
-
 // Toast container for verification messages
 let toastContainer: HTMLDivElement | null = null;
 
@@ -70,20 +69,31 @@ function getToastContainer(): HTMLDivElement {
 /**
  * Show verification toast
  */
-function showVerificationToast(verified: boolean, gatewayFQDN: string, resolvedId?: string) {
+function showVerificationToast(
+  verified: boolean,
+  gatewayFQDN: string,
+  resolvedId?: string,
+) {
   const container = getToastContainer();
-  
+
+  logger.info(
+    `[CONTENT] Showing verification toast for ${gatewayFQDN}`,
+    verified,
+    resolvedId,
+  );
+
   // Create toast element
   const toast = document.createElement('div');
   toast.className = 'wayfinder-verification-toast';
-  
+
   // Since we only show verified toasts, use green styling
   const bgColor = '#10b981';
   const textColor = '#ffffff';
-  const icon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
-  
+  const icon =
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
+
   const message = `Remotely verified by ${gatewayFQDN}`;
-  
+
   toast.style.cssText = `
     background-color: ${bgColor};
     color: ${textColor};
@@ -101,7 +111,7 @@ function showVerificationToast(verified: boolean, gatewayFQDN: string, resolvedI
     animation: wayfinder-slide-in 0.3s ease-out;
     cursor: pointer;
   `;
-  
+
   toast.innerHTML = `
     <div style="flex-shrink: 0;">${icon}</div>
     <div style="flex: 1;">
@@ -112,7 +122,7 @@ function showVerificationToast(verified: boolean, gatewayFQDN: string, resolvedI
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
     </a>
   `;
-  
+
   // Add click to dismiss
   toast.addEventListener('click', (e) => {
     if ((e.target as HTMLElement).tagName !== 'A') {
@@ -120,9 +130,9 @@ function showVerificationToast(verified: boolean, gatewayFQDN: string, resolvedI
       setTimeout(() => toast.remove(), 300);
     }
   });
-  
+
   container.appendChild(toast);
-  
+
   // Auto-dismiss after 4 seconds
   setTimeout(() => {
     if (toast.parentNode) {
@@ -166,7 +176,11 @@ document.head.appendChild(style);
 // Listen for verification messages from background script
 chrome.runtime.onMessage.addListener((message) => {
   if (message.type === 'showVerificationToast') {
-    showVerificationToast(message.verified, message.gatewayFQDN, message.resolvedId);
+    showVerificationToast(
+      message.verified,
+      message.gatewayFQDN,
+      message.resolvedId,
+    );
   }
 });
 
@@ -177,7 +191,6 @@ if (document.readyState === 'loading') {
   afterContentDOMLoaded();
 }
 
-
 /**
  * Process ar:// URLs
  */
@@ -186,7 +199,6 @@ async function processArUrl(
   arUrl: string,
   attribute: string,
 ): Promise<void> {
-
   try {
     // First, convert the ar:// URL to HTTP with timeout
     const convertResponse = await withTimeout(
@@ -230,7 +242,7 @@ async function afterContentDOMLoaded(): Promise<void> {
   // Found ar:// elements to process
 
   // Process each element
-  for (const element of arElements) {
+  for (const element of Array.from(arElements)) {
     let arUrl: string | null = null;
     let attribute: string | null = null;
 
