@@ -19,7 +19,9 @@
  * Returns true if running in a browser environment (window is defined).
  */
 export function isBrowser(): boolean {
-  return typeof window !== 'undefined' && typeof window.document !== 'undefined';
+  return (
+    typeof window !== 'undefined' && typeof window.document !== 'undefined'
+  );
 }
 
 /**

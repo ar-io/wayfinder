@@ -19,6 +19,7 @@ import {
   DiagLogLevel,
   Span,
   type Tracer,
+  TracerProvider,
   context,
   diag,
   trace,
@@ -43,15 +44,25 @@ import type {
   TelemetrySettings,
   WayfinderOptions,
 } from './types.js';
+import { isBrowser, isChromeExtension } from './utils/browser.js';
 import { WAYFINDER_CORE_VERSION } from './version.js';
+
+// avoid re-initializing the tracer provider and tracer
+let tracerProvider: TracerProvider | undefined;
 
 export const initTelemetry = ({
   enabled = false,
   sampleRate = 0.1, // 10% sample rate by default
   exporterUrl = 'https://api.honeycomb.io/v1/traces',
   apiKey = 'c8gU8dHlu6V7e5k2Gn9LaG', // intentionally left here - if it gets abused we'll disable it
-}: TelemetrySettings): Tracer | undefined => {
+}: TelemetrySettings): TracerProvider | undefined => {
   if (enabled === false) return undefined;
+
+  // if the tracer provider and tracer are already initialized, return the tracer
+  if (tracerProvider) {
+    return tracerProvider;
+  }
+
   diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.ERROR);
 
   const exporter = new OTLPTraceExporter({
@@ -62,15 +73,15 @@ export const initTelemetry = ({
     },
   });
 
-  const isBrowser = typeof window !== 'undefined';
-  const spanProcessor = new BatchSpanProcessor(exporter);
   const sampler = new TraceIdRatioBasedSampler(sampleRate);
+  const spanProcessor = new BatchSpanProcessor(exporter);
   const resource = resourceFromAttributes({
     [ATTR_SERVICE_NAME]: 'wayfinder-core',
     [ATTR_SERVICE_VERSION]: WAYFINDER_CORE_VERSION,
   });
 
-  const provider = isBrowser
+  const useWebTracer = isBrowser() || isChromeExtension();
+  const provider = useWebTracer
     ? new WebTracerProvider({
         sampler,
         resource,
@@ -82,17 +93,12 @@ export const initTelemetry = ({
         spanProcessors: [spanProcessor],
       });
 
-  if (isBrowser) {
-    // import zone.js for browser
-    provider.register({
-      contextManager: new ZoneContextManager(),
-    });
-  } else {
-    // node environments don't need zone.js
-    provider.register();
-  }
+  provider.register({
+    // zone.js is only used in the browser (node/extensions/service workers don't need it)
+    contextManager: isBrowser() ? new ZoneContextManager() : undefined,
+  });
 
-  return trace.getTracer('wayfinder-core');
+  return tracerProvider;
 };
 
 export const startRequestSpans = ({

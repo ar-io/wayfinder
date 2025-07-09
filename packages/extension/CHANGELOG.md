@@ -1,5 +1,12 @@
 # @ar.io/wayfinder-extension
 
+## 0.0.19-alpha.0
+
+### Patch Changes
+
+- Updated dependencies [aa5700e]
+  - @ar.io/wayfinder-core@1.0.1-alpha.0
+
 ## 0.0.18
 
 ### Patch Changes
