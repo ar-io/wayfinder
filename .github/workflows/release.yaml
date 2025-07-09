@@ -76,49 +76,9 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Get Extension Version
-        if: steps.changesets.outputs.published == 'true'
-        id: version
-        run: |
-          cd packages/extension
-          VERSION=$(node -p "require('./package.json').version")
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-
-      - name: Update Manifest Version
-        if: steps.changesets.outputs.published == 'true'
-        run: |
-          cd packages/extension
-          node -e "
-            const fs = require('fs');
-            const pkg = require('./package.json');
-            const manifest = JSON.parse(fs.readFileSync('manifest.json', 'utf8'));
-            manifest.version = pkg.version;
-            fs.writeFileSync('manifest.json', JSON.stringify(manifest, null, 2));
-          "
-
-      - name: Rebuild Extension with Published Packages
-        if: steps.changesets.outputs.published == 'true'
-        run: |
-          cd packages/extension
-          npm install
-          npm run build
-
-      - name: Create Extension Zip
-        if: steps.changesets.outputs.published == 'true'
-        run: |
-          cd packages/extension/dist
-          zip -r ../wayfinder-extension-v${{ steps.version.outputs.version }}.zip .
-
       - name: Push Tags
         if: steps.changesets.outputs.published == 'true'
         run: git push --follow-tags
-        
-      - name: Create GitHub Release
-        if: steps.changesets.outputs.published == 'true'
-        uses: ncipollo/release-action@v1
-        with:
-          generateReleaseNotes: true
-          prerelease: ${{ github.ref == 'refs/heads/alpha' }}
-          tag: ${{ steps.changesets.outputs.publishedPackages[0].name }}@${{ steps.changesets.outputs.publishedPackages[0].version }}
-          artifacts: packages/extension/wayfinder-extension-v${{ steps.version.outputs.version }}.zip
-          token: ${{ secrets.GITHUB_TOKEN }}
+
+  # TODO: send slack notification
+
