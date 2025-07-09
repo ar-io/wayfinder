@@ -17,7 +17,13 @@
 
 import { defaultLogger } from './logger.js';
 
-import { Span, type Tracer, TracerProvider, context, trace } from '@opentelemetry/api';
+import {
+  Span,
+  type Tracer,
+  TracerProvider,
+  context,
+  trace,
+} from '@opentelemetry/api';
 import { WayfinderEmitter } from './emitter.js';
 import { FastestPingRoutingStrategy } from './routing/ping.js';
 import { initTelemetry, startRequestSpans } from './telemetry.js';
@@ -577,7 +583,7 @@ export class Wayfinder {
   /**
    * OpenTelemetry tracer provider instance
    */
-  public readonly tracerProvider?: TracerProvider;
+  protected tracerProvider?: TracerProvider;
 
   /**
    * A helper function that resolves a provided url to a target gateway.
