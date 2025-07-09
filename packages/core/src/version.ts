@@ -14,7 +14,4 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-export * from './components/index.js';
-export * from './hooks/index.js';
-export * from './cache/index.js';
+export const WAYFINDER_CORE_VERSION = 'v0.0.5-alpha.7';

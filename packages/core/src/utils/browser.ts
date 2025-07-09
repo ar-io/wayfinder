@@ -15,6 +15,20 @@
  * limitations under the License.
  */
 
-export * from './components/index.js';
-export * from './hooks/index.js';
-export * from './cache/index.js';
+/**
+ * Returns true if running in a browser environment (window is defined).
+ */
+export function isBrowser(): boolean {
+  return typeof window !== 'undefined' && typeof window.document !== 'undefined';
+}
+
+/**
+ * Returns true if running as a Chrome extension (chrome.runtime and chrome.runtime.id are defined).
+ */
+export function isChromeExtension(): boolean {
+  return (
+    typeof chrome !== 'undefined' &&
+    typeof chrome.runtime !== 'undefined' &&
+    typeof chrome.runtime.id === 'string'
+  );
+}

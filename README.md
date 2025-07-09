@@ -6,19 +6,32 @@ Wayfinder is a set of tools and libraries that enable decentralized and cryptogr
 
 This monorepo contains the following packages:
 
-- **[@ar.io/wayfinder-core](./packages/core)**: Core JavaScript library for the Wayfinder routing and verification protocol
-- **[@ar.io/wayfinder-react](./packages/react)**: React components for Wayfinder, including Hooks and Context provider
-- **[@ar.io/wayfinder-extension](./packages/extension)**: Chrome extension for Wayfinder
-- **[@ar.io/wayfinder-cli](./packages/cli)**: CLI for interacting with Wayfinder in the terminal
+- **[@ar.io/wayfinder-core](./packages/core)**: Core JavaScript library for the Wayfinder routing and verification protocol (ALPHA)
+- **[@ar.io/wayfinder-react](./packages/react)**: React components for Wayfinder, including Hooks and Context provider (ALPHA)
+- **[@ar.io/wayfinder-extension](./packages/extension)**: Chrome extension for Wayfinder (ALPHA)
+- **[@ar.io/wayfinder-cli](./packages/cli)**: CLI for interacting with Wayfinder in the terminal - COMING SOON
 
 ## What is it?
 
 Wayfinder is a simple, open-source client-side routing and verification protocol for the permaweb. It leverages the [AR.IO Network](https://ar.io) to route users to the most optimal gateway for a given request.
 
-## Who is it built for?
+## Who is it for?
 
-- Anyone who wants to browse the Permaweb. Since no wallet is required, the user does not need to have ever touched tokens or uploaded data.
-- Developers who want to integrate ar:// protocol. Wayfinder allows developers to retrieve data from Arweave via the [ar.io network], ensuring decentralized access to all assets of your permaweb app.
+- **Builders** who need reliable, decentralized access to Arweave data through the powerful [AR.IO Network](https://ar.io)
+- **Browsers** who demand complete control over their permaweb journey with customizable gateways and robust verification settings for enhanced security and reliability
+- **Operators** who power the [AR.IO Network](https://ar.io) and want to earn rewards<sup>*</sup> for serving wayfinder traffic to the growing permaweb ecosystem
+
+## Contributing
+
+1. Branch from `alpha`
+2. Create a new branch for your changes (e.g. `feat/my-feature`)
+3. Make your changes on your branch, push them to your branch
+4. As you make commits/changes or once you're ready to release, create a changeset describing your changes via `npx changeset`.
+5. Follow the prompts to select the packages that are affected by your changes.
+6. Add and commit the changeset to your branch
+7. Request review from a maintainer, and once approved, merge your changes into the `alpha` branch
+8. A release PR will be automatically created with all pending changesets to the `alpha` branch
+9. The maintainer will review the PR and merge it into `alpha`, which will trigger the automated release process using all pending changesets
 
 ## Releases
 
@@ -39,7 +52,7 @@ This will guide you through the process of documenting your changes and selectin
 This repository is configured with GitHub Actions workflows that automate the release process:
 
 - **Main Branch**: When changes are merged to `main`, a standard release is created
-- **Alpha Branch**: When changes are merged to `alpha`, a prerelease (beta tagged) is created
+- **Alpha Branch**: When changes are merged to `alpha`, a prerelease (alpha tagged) is created
 
 The workflow automatically:
 1. Determines whether to create a prerelease or standard release based on the branch
@@ -54,16 +67,14 @@ To use the automated process:
 3. Create a pull request to `alpha` (for prereleases) or `main` (for standard releases)
 4. When the PR is merged, the release will be automatically created
 
+
 ### Manual Release Process
 
 If you need to release manually, follow these steps:
 
-#### Normal Releases
+#### Alpha Releases
 
-To release a new version:
-
-1. Ensure all changes are documented with changesets
-2. Run the version command to update package versions and changelogs:
+To release a new alpha version:
 
 ```bash
 npx changeset version

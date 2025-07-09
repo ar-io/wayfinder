@@ -102,7 +102,7 @@ export const convertDataStreamToDataRoot = async ({
 
 // TODO: this is a TransactionDataRootVerificationStrategy, we will hold of on implementing Ans104DataRootVerificationStrategy for now
 export class DataRootVerificationStrategy implements VerificationStrategy {
-  private readonly trustedGateways: URL[];
+  public readonly trustedGateways: URL[];
   private readonly maxConcurrency: number;
   private readonly logger: Logger;
   private readonly classifier: DataClassifier;

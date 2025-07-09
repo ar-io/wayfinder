@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+import type { WayfinderEmitter } from './emitter.js';
+
 // Types
 
 /**
@@ -81,7 +83,24 @@ export interface WayfinderVerificationEventArgs {
 export interface WayfinderEventArgs {
   verification?: WayfinderVerificationEventArgs;
   routing?: WayfinderRoutingEventArgs;
+  parentEmitter?: WayfinderEmitter;
 }
+
+export type WayfinderURL = `ar://${string}`;
+
+export type WayfinderURLParams =
+  | {
+      originalUrl: string; // e.g. https://arweave.net/<txId>
+    }
+  | {
+      wayfinderUrl: WayfinderURL; // e.g. ar://<txId>
+    }
+  | {
+      txId: string; // e.g. <txId>
+    }
+  | {
+      arnsName: string; // e.g. <arnsName>
+    };
 
 /**
  * Configuration options for the Wayfinder
@@ -141,6 +160,22 @@ export interface WayfinderOptions {
      */
     strategy?: RoutingStrategy;
   };
+
+  /**
+   * Telemetry configuration used to initialize OpenTelemetry tracing
+   */
+  telemetrySettings?: TelemetrySettings;
+}
+
+export interface TelemetrySettings {
+  /** Enable or disable telemetry collection */
+  enabled: boolean;
+  /** Sampling ratio between 0 and 1 */
+  sampleRate?: number;
+  /** Honeycomb API key */
+  apiKey?: string;
+  /** Optional custom OTLP exporter URL */
+  exporterUrl?: string;
 }
 
 // Interfaces
@@ -160,6 +195,7 @@ export interface RoutingStrategy {
 }
 
 export interface VerificationStrategy {
+  trustedGateways: URL[];
   verifyData(params: { data: DataStream; txId: string }): Promise<void>;
 }
 

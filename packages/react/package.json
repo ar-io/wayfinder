@@ -1,6 +1,6 @@
 {
   "name": "@ar.io/wayfinder-react",
-  "version": "0.0.5-alpha.4",
+  "version": "1.0.1",
   "description": "React components for WayFinder",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -23,14 +23,14 @@
   "scripts": {
     "build": "tsc",
     "clean": "rimraf dist",
-    "test": "echo \"Passing\"",
+    "test": "tsx --test 'src/**/*.test.ts'",
     "lint:fix": "biome check --write --unsafe",
     "lint:check": "biome check --unsafe",
     "format:fix": "biome format --write",
     "format:check": "biome format"
   },
   "dependencies": {
-    "@ar.io/wayfinder-core": "0.0.5-alpha.3",
+    "@ar.io/wayfinder-core": "1.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },

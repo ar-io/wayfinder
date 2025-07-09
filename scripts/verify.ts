@@ -14,12 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { StaticGatewaysProvider } from '../packages/core/src/gateways/static.js';
+import { ARIO } from '@ar.io/sdk';
+import { NetworkGatewaysProvider } from '../packages/core/src/gateways/network.js';
 import { StaticRoutingStrategy } from '../packages/core/src/routing/static.js';
+import {
+  VerificationStrategy,
+  WayfinderEvent,
+} from '../packages/core/src/types.js';
 import { DataRootVerificationStrategy } from '../packages/core/src/verification/data-root-verifier.js';
 import { HashVerificationStrategy } from '../packages/core/src/verification/hash-verifier.js';
 import { SignatureVerificationStrategy } from '../packages/core/src/verification/signature-verifier.js';
-import { Wayfinder, WayfinderEvent } from '../packages/core/src/wayfinder.js';
+import { Wayfinder } from '../packages/core/src/wayfinder.js';
 
 // Define the verification strategies
 type VerificationStrategyType = 'data-root' | 'hash' | 'signature';
@@ -53,7 +58,7 @@ function parseArgs() {
 function createVerificationStrategy(
   strategyType: VerificationStrategyType,
   gateway: string,
-) {
+): VerificationStrategy {
   // Use permagate.io as the trusted provider for verification
   const trustedGateway = new URL(gateway);
 
@@ -90,8 +95,11 @@ async function main() {
     );
 
     // Set up a static gateway provider with a known gateway
-    const gatewaysProvider = new StaticGatewaysProvider({
-      gateways: ['https://permagate.io'],
+    const gatewaysProvider = new NetworkGatewaysProvider({
+      ario: ARIO.mainnet(),
+      sortBy: 'operatorStake',
+      sortOrder: 'desc',
+      limit: 10,
     });
 
     // Use static routing to simplify the verification process
@@ -104,6 +112,10 @@ async function main() {
       gatewaysProvider,
       routingSettings: {
         strategy: routingStrategy,
+      },
+      telemetrySettings: {
+        enabled: true,
+        sampleRate: 1,
       },
       verificationSettings: {
         enabled: true,
@@ -158,6 +170,9 @@ async function main() {
 
     // Consume the response to ensure verification completes
     await response.text();
+
+    // wait for 15 seconds so telemetry can flush
+    await new Promise((resolve) => setTimeout(resolve, 15000));
   } catch (error) {
     console.error('Error during verification:');
     console.error(error);

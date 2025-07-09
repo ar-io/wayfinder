@@ -17,13 +17,14 @@
 import assert from 'node:assert';
 import { before, describe, it } from 'node:test';
 
+import { WayfinderEmitter } from './emitter.js';
 import { RandomRoutingStrategy } from './routing/random.js';
 import { StaticRoutingStrategy } from './routing/static.js';
-import { GatewaysProvider, WayfinderEvent } from './types.js';
+import { GatewaysProvider, RoutingStrategy, WayfinderEvent } from './types.js';
 import { HashVerificationStrategy } from './verification/hash-verifier.js';
 import {
   Wayfinder,
-  WayfinderEmitter,
+  createWayfinderUrl,
   tapAndVerifyReadableStream,
 } from './wayfinder.js';
 
@@ -34,7 +35,7 @@ const stubbedGatewaysProvider: GatewaysProvider = {
 } as unknown as GatewaysProvider;
 
 describe('Wayfinder', () => {
-  describe('fetch', () => {
+  describe('request', () => {
     let wayfinder: Wayfinder;
     before(() => {
       wayfinder = new Wayfinder({
@@ -156,6 +157,200 @@ describe('Wayfinder', () => {
       assert.strictEqual(response.status, nativeFetch.status);
       assert.strictEqual(response.statusText, nativeFetch.statusText);
     });
+
+    describe('selectGateway is called with correct parameters', () => {
+      it('should call selectGateway with correct subdomain and path for ArNS names', async () => {
+        let capturedParams: {
+          gateways: URL[];
+          path?: string;
+          subdomain?: string;
+        } = { gateways: [] };
+
+        const mockRoutingStrategy: RoutingStrategy = {
+          selectGateway: async (params) => {
+            capturedParams = params;
+            return new URL(`http://${gatewayUrl}`);
+          },
+        };
+
+        const mockGatewaysProvider: GatewaysProvider = {
+          getGateways: async () => [new URL(`http://${gatewayUrl}`)],
+        };
+
+        const wayfinder = new Wayfinder({
+          gatewaysProvider: mockGatewaysProvider,
+          verificationSettings: { enabled: false },
+          routingSettings: { strategy: mockRoutingStrategy, events: {} },
+        });
+
+        // Mock global fetch to avoid network calls
+        const originalFetch = global.fetch;
+        global.fetch = async () => new Response('test', { status: 200 });
+
+        try {
+          await wayfinder.request('ar://myapp/dashboard/users');
+
+          assert.ok(capturedParams, 'selectGateway should have been called');
+          assert.strictEqual(
+            capturedParams?.subdomain,
+            'myapp',
+            'Should extract ArNS name as subdomain',
+          );
+          assert.strictEqual(
+            capturedParams?.path,
+            '/dashboard/users',
+            'Should extract remaining path',
+          );
+        } finally {
+          global.fetch = originalFetch;
+        }
+      });
+
+      it('should call selectGateway with correct subdomain and path for transaction IDs', async () => {
+        let capturedParams: {
+          gateways: URL[];
+          path?: string;
+          subdomain?: string;
+        } = { gateways: [] };
+
+        const mockRoutingStrategy: RoutingStrategy = {
+          selectGateway: async (params) => {
+            capturedParams = params;
+            return new URL(`http://${gatewayUrl}`);
+          },
+        };
+
+        const mockGatewaysProvider: GatewaysProvider = {
+          getGateways: async () => [new URL(`http://${gatewayUrl}`)],
+        };
+
+        const wayfinder = new Wayfinder({
+          gatewaysProvider: mockGatewaysProvider,
+          verificationSettings: { enabled: false },
+          routingSettings: { strategy: mockRoutingStrategy },
+        });
+
+        // Mock global fetch to avoid network calls
+        const originalFetch = global.fetch;
+        global.fetch = async () => new Response('test', { status: 200 });
+
+        const txId = 'c7wkwt6TKgcWJUfgvpJ5q5qi4DIZyJ1_TqhjXgURh0U';
+        const expectedSandbox =
+          'oo6cjqw6smvaofrfi7ql5etzvonkfybsdhej272ovbrv4birq5cq';
+
+        try {
+          await wayfinder.request(`ar://${txId}/path/to/app`);
+
+          assert.ok(capturedParams, 'selectGateway should have been called');
+          assert.strictEqual(
+            capturedParams?.subdomain,
+            expectedSandbox,
+            'Should extract sandbox as subdomain for transaction ID',
+          );
+          assert.strictEqual(
+            capturedParams?.path,
+            `/${txId}/path/to/app`,
+            'Should include transaction ID and path',
+          );
+        } finally {
+          global.fetch = originalFetch;
+        }
+      });
+
+      it('should call selectGateway with correct parameters for gateway endpoints', async () => {
+        let capturedParams: {
+          gateways: URL[];
+          path?: string;
+          subdomain?: string;
+        } = { gateways: [] };
+
+        const mockRoutingStrategy: RoutingStrategy = {
+          selectGateway: async (params) => {
+            capturedParams = params;
+            return new URL(`http://${gatewayUrl}`);
+          },
+        };
+
+        const mockGatewaysProvider: GatewaysProvider = {
+          getGateways: async () => [new URL(`http://${gatewayUrl}`)],
+        };
+
+        const wayfinder = new Wayfinder({
+          gatewaysProvider: mockGatewaysProvider,
+          verificationSettings: { enabled: false },
+          routingSettings: { strategy: mockRoutingStrategy },
+        });
+
+        // Mock global fetch to avoid network calls
+        const originalFetch = global.fetch;
+        global.fetch = async () => new Response('test', { status: 200 });
+
+        try {
+          await wayfinder.request('ar:///ar-io/info');
+
+          assert.ok(capturedParams, 'selectGateway should have been called');
+          assert.strictEqual(
+            capturedParams?.subdomain,
+            '',
+            'Should have empty subdomain for gateway endpoints',
+          );
+          assert.strictEqual(
+            capturedParams?.path,
+            '/ar-io/info',
+            'Should pass through gateway endpoint path',
+          );
+        } finally {
+          global.fetch = originalFetch;
+        }
+      });
+
+      it('should call selectGateway with correct parameters for ArNS names without paths', async () => {
+        let capturedParams: {
+          gateways: URL[];
+          path?: string;
+          subdomain?: string;
+        } = { gateways: [] };
+
+        const mockRoutingStrategy: RoutingStrategy = {
+          selectGateway: async (params) => {
+            capturedParams = params;
+            return new URL(`http://${gatewayUrl}`);
+          },
+        };
+
+        const mockGatewaysProvider: GatewaysProvider = {
+          getGateways: async () => [new URL(`http://${gatewayUrl}`)],
+        };
+
+        const wayfinder = new Wayfinder({
+          gatewaysProvider: mockGatewaysProvider,
+          verificationSettings: { enabled: false },
+          routingSettings: { strategy: mockRoutingStrategy },
+        });
+
+        // Mock global fetch to avoid network calls
+        const originalFetch = global.fetch;
+        global.fetch = async () => new Response('test', { status: 200 });
+
+        try {
+          await wayfinder.request('ar://myapp');
+
+          assert.ok(capturedParams, 'selectGateway should have been called');
+          assert.strictEqual(
+            capturedParams?.subdomain,
+            'myapp',
+            'Should extract ArNS name as subdomain',
+          );
+          assert.strictEqual(
+            capturedParams?.path,
+            '/',
+            'Should default to root path for ArNS names without paths',
+          );
+        } finally {
+          global.fetch = originalFetch;
+        }
+      });
+    });
   });
 
   describe('events', () => {
@@ -169,6 +364,7 @@ describe('Wayfinder', () => {
         },
         verificationSettings: {
           strategy: {
+            trustedGateways: [new URL(`http://${gatewayUrl}`)],
             verifyData: async () => {
               // do nothing
               return;
@@ -209,6 +405,7 @@ describe('Wayfinder', () => {
         },
         verificationSettings: {
           strategy: {
+            trustedGateways: [new URL(`http://${gatewayUrl}`)],
             verifyData: async () => {
               // do nothing
               return;
@@ -336,166 +533,7 @@ describe('Wayfinder', () => {
     });
   });
 
-  describe('tapAndVerifyReadableStream', () => {
-    describe('strict mode enabled', () => {
-      it('should duplicate the ReadableStream, verify the first and return the second if verification passes', async () => {
-        // create a simple readable
-        const chunks = [
-          Buffer.from('foo'),
-          Buffer.from('bar'),
-          Buffer.from('baz'),
-        ];
-        const contentLength = chunks.reduce((sum, c) => sum + c.length, 0);
-
-        // a stream that will emit chunks
-        const originalStream = new ReadableStream({
-          start(controller) {
-            for (const chunk of chunks) {
-              controller.enqueue(chunk);
-            }
-            controller.close();
-          },
-        });
-        let seen = Buffer.alloc(0);
-        const verifyData = async ({
-          data,
-        }: {
-          data: AsyncIterable<Uint8Array>;
-        }): Promise<void> => {
-          // verify the data
-          for await (const chunk of data) {
-            seen = Buffer.concat([seen, chunk]);
-          }
-          return;
-        };
-
-        const txId = 'test-tx-1';
-        const emitter = new WayfinderEmitter();
-        const events: any[] = [];
-        emitter.on('verification-progress', (e) =>
-          events.push({ type: 'verification-progress', ...e }),
-        );
-        emitter.on('verification-succeeded', (e) =>
-          events.push({ type: 'verification-succeeded', ...e }),
-        );
-
-        // tap with verification
-        const tapped = tapAndVerifyReadableStream({
-          originalStream,
-          contentLength,
-          verifyData,
-          txId,
-          emitter,
-          strict: true,
-        });
-
-        // read the stream
-        const out: Buffer[] = [];
-        for await (const chunk of tapped) {
-          out.push(chunk);
-        }
-
-        // assert the stream is the same
-        assert.strictEqual(
-          Buffer.concat(out).toString(),
-          Buffer.concat(chunks).toString(),
-          'The tapped stream should emit exactly the original data',
-        );
-
-        assert.ok(
-          events.find((e) => e.type === 'verification-progress'),
-          'Should emit at least one verification-progress',
-        );
-        assert.ok(
-          events.find(
-            (e) => e.type === 'verification-succeeded' && e.txId === txId,
-          ),
-          'Should emit at least one verification-succeeded',
-        );
-      });
-
-      it('should throw an error on the client stream if verification fails', async () => {
-        const chunks = [
-          Buffer.from('foo'),
-          Buffer.from('bar'),
-          Buffer.from('baz'),
-        ];
-        const contentLength = chunks.reduce((sum, c) => sum + c.length, 0);
-
-        // a stream that will emit chunks
-        const originalStream = new ReadableStream({
-          start(controller) {
-            for (const chunk of chunks) {
-              controller.enqueue(chunk);
-            }
-            controller.close();
-          },
-        });
-        const verifyData = async ({
-          txId,
-        }: {
-          txId: string;
-        }): Promise<void> => {
-          throw new Error('Verification failed for txId: ' + txId);
-        };
-
-        const txId = 'test-tx-1';
-        const emitter = new WayfinderEmitter();
-        const events: any[] = [];
-        emitter.on('verification-progress', (e) =>
-          events.push({ type: 'verification-progress', ...e }),
-        );
-        emitter.on('verification-failed', (e) =>
-          events.push({ type: 'verification-failed', ...e }),
-        );
-
-        // tap with verification (using strict mode)
-        const tapped = tapAndVerifyReadableStream({
-          originalStream,
-          contentLength,
-          verifyData,
-          txId,
-          emitter,
-          strict: true,
-        });
-
-        // read the stream and expect verification to fail
-        try {
-          const out: Buffer[] = [];
-          const reader = tapped.getReader();
-          while (true) {
-            try {
-              const { done, value } = await reader.read();
-              if (done) break;
-              out.push(Buffer.from(value));
-            } catch {
-              // This is expected - verification should fail
-              break;
-            }
-          }
-          // If we get here, verification didn't throw as expected
-          assert.fail('Should have thrown an error during verification');
-        } catch {
-          // Wait a bit for the event to be emitted
-          await new Promise((resolve) => setTimeout(resolve, 100));
-
-          // Now we should have the verification-failed event
-          assert.ok(events.length > 0, 'Should have emitted events');
-
-          // Check if one of them is verification-failed
-          const failedEvent = events.find(
-            (e) => e.type === 'verification-failed',
-          );
-          assert.ok(
-            failedEvent,
-            'Should emit at least one verification-failed event',
-          );
-        }
-      });
-    });
-  });
-
-  describe('URL resolution', () => {
+  describe('resolveUrl', () => {
     let wayfinder: Wayfinder;
     before(() => {
       wayfinder = new Wayfinder({
@@ -505,36 +543,6 @@ describe('Wayfinder', () => {
           }),
         },
         gatewaysProvider: stubbedGatewaysProvider,
-      });
-    });
-
-    describe('Non-ar:// URLs (fallback)', () => {
-      it('should pass through non-ar:// URLs unchanged', async () => {
-        const originalUrl = 'https://example.com/path';
-        const resolvedUrl = await wayfinder.resolveUrl({
-          originalUrl,
-        });
-
-        assert.strictEqual(resolvedUrl.toString(), originalUrl);
-      });
-
-      it('should return unchanged HTTPS URLs with query params', async () => {
-        const originalUrl =
-          'https://api.example.com/v1/data?key=value&limit=10';
-        const result = await wayfinder.resolveUrl({
-          originalUrl,
-        });
-
-        assert.strictEqual(result.toString(), originalUrl);
-      });
-
-      it('should return unchanged file:// URLs', async () => {
-        const originalUrl = 'file:///path/to/local/file.txt';
-        const result = await wayfinder.resolveUrl({
-          originalUrl,
-        });
-
-        assert.strictEqual(result.toString(), originalUrl);
       });
     });
 
@@ -793,7 +801,10 @@ describe('Wayfinder', () => {
           originalUrl,
         });
 
-        assert.strictEqual(result.toString(), originalUrl);
+        assert.strictEqual(
+          result.toString(),
+          `http://${gatewayUrl}/${tooLongName}/path`,
+        );
       });
 
       it('should fallback for names with invalid characters', async () => {
@@ -803,7 +814,10 @@ describe('Wayfinder', () => {
           originalUrl,
         });
 
-        assert.strictEqual(result.toString(), originalUrl);
+        assert.strictEqual(
+          result.toString(),
+          `http://${gatewayUrl}/my.app/path`,
+        );
       });
 
       it('should fallback for names with uppercase letters', async () => {
@@ -813,17 +827,359 @@ describe('Wayfinder', () => {
           originalUrl,
         });
 
-        assert.strictEqual(result.toString(), originalUrl);
+        assert.strictEqual(
+          result.toString(),
+          `http://${upperCaseName.toLowerCase()}.${gatewayUrl}/path`,
+        );
       });
 
-      it('should fallback for empty names', async () => {
+      it('should fallback for empty path', async () => {
         const originalUrl = 'ar://';
         const result = await wayfinder.resolveUrl({
           originalUrl,
         });
 
-        assert.strictEqual(result.toString(), originalUrl);
+        assert.strictEqual(result.toString(), `http://${gatewayUrl}/`);
       });
+    });
+
+    describe('Non-ar:// URLs', () => {
+      it('should throw error for non-ar:// URLs', async () => {
+        await assert.rejects(
+          wayfinder.resolveUrl({
+            originalUrl: 'https://example.com/path',
+          }),
+          { message: 'Invalid URL' },
+        );
+      });
+    });
+  });
+});
+
+describe('tapAndVerifyReadableStream', () => {
+  describe('strict mode enabled', () => {
+    it('should duplicate the ReadableStream, verify the first and return the second if verification passes', async () => {
+      // create a simple readable
+      const chunks = [
+        Buffer.from('foo'),
+        Buffer.from('bar'),
+        Buffer.from('baz'),
+      ];
+      const contentLength = chunks.reduce((sum, c) => sum + c.length, 0);
+
+      // a stream that will emit chunks
+      const originalStream = new ReadableStream({
+        start(controller) {
+          for (const chunk of chunks) {
+            controller.enqueue(chunk);
+          }
+          controller.close();
+        },
+      });
+      let seen = Buffer.alloc(0);
+      const verifyData = async ({
+        data,
+      }: {
+        data: AsyncIterable<Uint8Array>;
+      }): Promise<void> => {
+        // verify the data
+        for await (const chunk of data) {
+          seen = Buffer.concat([seen, chunk]);
+        }
+        return;
+      };
+
+      const txId = 'test-tx-1';
+      const emitter = new WayfinderEmitter();
+      const events: any[] = [];
+      emitter.on('verification-progress', (e) =>
+        events.push({ type: 'verification-progress', ...e }),
+      );
+      emitter.on('verification-succeeded', (e) =>
+        events.push({ type: 'verification-succeeded', ...e }),
+      );
+
+      // tap with verification
+      const tapped = tapAndVerifyReadableStream({
+        originalStream,
+        contentLength,
+        verifyData,
+        txId,
+        emitter,
+        strict: true,
+      });
+
+      // read the stream
+      const out: Buffer[] = [];
+      for await (const chunk of tapped) {
+        out.push(chunk);
+      }
+
+      // assert the stream is the same
+      assert.strictEqual(
+        Buffer.concat(out).toString(),
+        Buffer.concat(chunks).toString(),
+        'The tapped stream should emit exactly the original data',
+      );
+
+      assert.ok(
+        events.find((e) => e.type === 'verification-progress'),
+        'Should emit at least one verification-progress',
+      );
+      assert.ok(
+        events.find(
+          (e) => e.type === 'verification-succeeded' && e.txId === txId,
+        ),
+        'Should emit at least one verification-succeeded',
+      );
+    });
+
+    it('should throw an error on the client stream if verification fails', async () => {
+      const chunks = [
+        Buffer.from('foo'),
+        Buffer.from('bar'),
+        Buffer.from('baz'),
+      ];
+      const contentLength = chunks.reduce((sum, c) => sum + c.length, 0);
+
+      // a stream that will emit chunks
+      const originalStream = new ReadableStream({
+        start(controller) {
+          for (const chunk of chunks) {
+            controller.enqueue(chunk);
+          }
+          controller.close();
+        },
+      });
+      const verifyData = async ({
+        txId,
+      }: {
+        txId: string;
+      }): Promise<void> => {
+        throw new Error('Verification failed for txId: ' + txId);
+      };
+
+      const txId = 'test-tx-1';
+      const emitter = new WayfinderEmitter();
+      const events: any[] = [];
+      emitter.on('verification-progress', (e) =>
+        events.push({ type: 'verification-progress', ...e }),
+      );
+      emitter.on('verification-failed', (e) =>
+        events.push({ type: 'verification-failed', ...e }),
+      );
+
+      // tap with verification (using strict mode)
+      const tapped = tapAndVerifyReadableStream({
+        originalStream,
+        contentLength,
+        verifyData,
+        txId,
+        emitter,
+        strict: true,
+      });
+
+      // read the stream and expect verification to fail
+      try {
+        const out: Buffer[] = [];
+        const reader = tapped.getReader();
+        while (true) {
+          try {
+            const { done, value } = await reader.read();
+            if (done) break;
+            out.push(Buffer.from(value));
+          } catch {
+            // This is expected - verification should fail
+            break;
+          }
+        }
+        // If we get here, verification didn't throw as expected
+        assert.fail('Should have thrown an error during verification');
+      } catch {
+        // Wait a bit for the event to be emitted
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        // Now we should have the verification-failed event
+        assert.ok(events.length > 0, 'Should have emitted events');
+
+        // Check if one of them is verification-failed
+        const failedEvent = events.find(
+          (e) => e.type === 'verification-failed',
+        );
+        assert.ok(
+          failedEvent,
+          'Should emit at least one verification-failed event',
+        );
+      }
+    });
+  });
+});
+
+describe('createWayfinderUrl', () => {
+  describe('originalUrl parameter', () => {
+    it('should parse arweave.net URL with transaction ID', () => {
+      const result = createWayfinderUrl({
+        originalUrl:
+          'https://arweave.net/abc123def456ghi789jkl012mno345pqr678stu901vwx',
+      });
+      assert.strictEqual(
+        result,
+        'ar://abc123def456ghi789jkl012mno345pqr678stu901vwx',
+      );
+    });
+
+    it('should parse arweave.dev URL with transaction ID', () => {
+      const result = createWayfinderUrl({
+        originalUrl:
+          'https://arweave.dev/abc123def456ghi789jkl012mno345pqr678stu901vwx',
+      });
+      assert.strictEqual(
+        result,
+        'ar://abc123def456ghi789jkl012mno345pqr678stu901vwx',
+      );
+    });
+    it('should handle URLs with additional path segments', () => {
+      const result = createWayfinderUrl({
+        originalUrl:
+          'https://arweave.net/abc123def456ghi789jkl012mno345pqr678stu901vwx/path/to/file',
+      });
+      assert.strictEqual(
+        result,
+        'ar://abc123def456ghi789jkl012mno345pqr678stu901vwx/path/to/file',
+      );
+    });
+
+    it('should handle URLs with query parameters', () => {
+      const result = createWayfinderUrl({
+        originalUrl:
+          'https://arweave.net/abc123def456ghi789jkl012mno345pqr678stu901vwx?param=value',
+      });
+      assert.strictEqual(
+        result,
+        'ar://abc123def456ghi789jkl012mno345pqr678stu901vwx',
+      );
+    });
+
+    it('should handle URLs with hash fragments', () => {
+      const result = createWayfinderUrl({
+        originalUrl:
+          'https://arweave.net/abc123def456ghi789jkl012mno345pqr678stu901vwx#section',
+      });
+      assert.strictEqual(
+        result,
+        'ar://abc123def456ghi789jkl012mno345pqr678stu901vwx',
+      );
+    });
+
+    it('should throw error for invalid hostname', () => {
+      assert.throws(
+        () => {
+          createWayfinderUrl({
+            originalUrl:
+              'https://invalid-host.com/abc123def456ghi789jkl012mno345pqr678stu901vwx',
+          });
+        },
+        { message: 'Invalid URL' },
+      );
+    });
+  });
+
+  describe('wayfinderUrl parameter', () => {
+    it('should return wayfinderUrl as-is when already in ar:// format', () => {
+      const wayfinderUrl = 'ar://abc123def456ghi789jkl012mno345pqr678stu901vwx';
+      const result = createWayfinderUrl({ wayfinderUrl });
+      assert.strictEqual(result, wayfinderUrl);
+    });
+
+    it('should handle wayfinderUrl with ArNS name', () => {
+      const wayfinderUrl = 'ar://my-arns-name';
+      const result = createWayfinderUrl({ wayfinderUrl });
+      assert.strictEqual(result, wayfinderUrl);
+    });
+
+    it('should handle wayfinderUrl with path segments', () => {
+      const wayfinderUrl =
+        'ar://abc123def456ghi789jkl012mno345pqr678stu901vwx/path/to/file';
+      const result = createWayfinderUrl({ wayfinderUrl });
+      assert.strictEqual(result, wayfinderUrl);
+    });
+  });
+
+  describe('txId parameter', () => {
+    it('should wrap transaction ID with ar:// protocol', () => {
+      const result = createWayfinderUrl({
+        txId: 'abc123def456ghi789jkl012mno345pqr678stu901vwx',
+      });
+      assert.strictEqual(
+        result,
+        'ar://abc123def456ghi789jkl012mno345pqr678stu901vwx',
+      );
+    });
+
+    it('should handle short transaction ID', () => {
+      const result = createWayfinderUrl({
+        txId: 'abc123',
+      });
+      assert.strictEqual(result, 'ar://abc123');
+    });
+
+    it('should handle transaction ID with special characters', () => {
+      const result = createWayfinderUrl({
+        txId: 'abc-123_DEF',
+      });
+      assert.strictEqual(result, 'ar://abc-123_DEF');
+    });
+  });
+
+  describe('arnsName parameter', () => {
+    it('should wrap ArNS name with ar:// protocol', () => {
+      const result = createWayfinderUrl({
+        arnsName: 'my-arns-name',
+      });
+      assert.strictEqual(result, 'ar://my-arns-name');
+    });
+
+    it('should handle ArNS name with underscores', () => {
+      const result = createWayfinderUrl({
+        arnsName: 'my_arns_name',
+      });
+      assert.strictEqual(result, 'ar://my_arns_name');
+    });
+
+    it('should handle ArNS name with numbers', () => {
+      const result = createWayfinderUrl({
+        arnsName: 'arns123',
+      });
+      assert.strictEqual(result, 'ar://arns123');
+    });
+  });
+
+  describe('error handling', () => {
+    it('should throw error when no valid parameters are provided', () => {
+      assert.throws(
+        () => {
+          createWayfinderUrl({} as any);
+        },
+        {
+          message:
+            'Invalid URL params, only one of the following is allowed: originalUrl, wayfinderUrl, txId, arnsName',
+        },
+      );
+    });
+
+    it('should throw error when multiple parameters are provided', () => {
+      assert.throws(
+        () => {
+          createWayfinderUrl({
+            txId: 'abc123',
+            arnsName: 'my-arns',
+          } as any);
+        },
+        {
+          message:
+            'Invalid URL params, only one of the following is allowed: originalUrl, wayfinderUrl, txId, arnsName',
+        },
+      );
     });
   });
 });

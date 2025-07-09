@@ -14,118 +14,165 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { EventEmitter } from 'eventemitter3';
 
 import { defaultLogger } from './logger.js';
 
+import { type Tracer, context, trace } from '@opentelemetry/api';
+import { WayfinderEmitter } from './emitter.js';
 import { FastestPingRoutingStrategy } from './routing/ping.js';
+import { initTelemetry, startRequestSpans } from './telemetry.js';
 import type {
   GatewaysProvider,
   Logger,
+  TelemetrySettings,
   VerificationStrategy,
-  WayfinderEvent,
-  WayfinderEventArgs,
   WayfinderFetch,
   WayfinderOptions,
+  WayfinderURL,
+  WayfinderURLParams,
 } from './types.js';
 import { sandboxFromId } from './utils/base64.js';
 import { HashVerificationStrategy } from './verification/hash-verifier.js';
+
+// headers
+export const wayfinderRequestHeaders = ({
+  traceId,
+}: {
+  traceId?: string;
+}) => {
+  return {
+    'x-ar-io-component': 'wayfinder',
+    // TODO: add the version to the header
+    ...(traceId ? { 'x-ar-io-trace-id': traceId } : {}),
+  };
+};
 
 // known regexes for wayfinder urls
 export const arnsRegex = /^[a-z0-9_-]{1,51}$/;
 export const txIdRegex = /^[A-Za-z0-9_-]{43}$/;
 
 /**
- * Core function that converts a wayfinder url to the proper ar-io gateway URL
- * @param originalUrl - the wayfinder url to resolve
- * @param selectedGateway - the target gateway to resolve the url against
- * @returns the resolved url that can be used to make a request
+ * Parses the original URL from the params and returns a WayfinderURL (e.g. ar://<txId>)
+ * @param params - The params to parse
+ * @returns The WayfinderURL
  */
-export const resolveWayfinderUrl = ({
-  originalUrl,
-  selectedGateway,
-  logger,
-}: {
-  originalUrl: string;
-  selectedGateway: URL;
-  logger?: Logger;
-}): URL => {
-  if (originalUrl.toString().startsWith('ar://')) {
-    logger?.debug(`Applying wayfinder routing protocol to ${originalUrl}`, {
-      originalUrl,
-    });
-    const [, path] = originalUrl.toString().split('ar://');
-
-    // e.g. ar:///info should route to the info endpoint of the target gateway
-    if (path.startsWith('/')) {
-      logger?.debug(`Routing to ${path.slice(1)} on ${selectedGateway}`, {
-        originalUrl,
-        selectedGateway,
-      });
-      return new URL(path.slice(1), selectedGateway);
-    }
-
-    // Split path to get the first part (name/txId) and remaining path components
-    const [firstPart, ...rest] = path.split('/');
-
-    // TODO: this breaks 43 character named arns names - we should check a a local name cache list before resolving raw transaction ids
-    if (txIdRegex.test(firstPart)) {
-      const sandbox = sandboxFromId(firstPart);
-      return new URL(
-        `${firstPart}${rest.length > 0 ? '/' + rest.join('/') : ''}`,
-        `${selectedGateway.protocol}//${sandbox}.${selectedGateway.hostname}`,
-      );
-    }
-
-    if (arnsRegex.test(firstPart)) {
-      // TODO: tests to ensure arns names support query params and paths
-      const arnsUrl = `${selectedGateway.protocol}//${firstPart}.${selectedGateway.hostname}${selectedGateway.port ? `:${selectedGateway.port}` : ''}`;
-      logger?.debug(`Routing to ${path} on ${arnsUrl}`, {
-        originalUrl,
-        selectedGateway,
-      });
-      return new URL(rest.length > 0 ? rest.join('/') : '', arnsUrl);
-    }
-
-    // TODO: support .eth addresses
-    // TODO: "gasless" routing via DNS TXT records
+export const createWayfinderUrl = (
+  params: WayfinderURLParams,
+): WayfinderURL => {
+  // only allow one of the params to be provided
+  if (Object.keys(params).length !== 1) {
+    throw new Error(
+      'Invalid URL params, only one of the following is allowed: originalUrl, wayfinderUrl, txId, arnsName',
+    );
   }
 
-  logger?.debug('No wayfinder routing protocol applied', {
-    originalUrl,
-  });
+  let wayfinderUrl: WayfinderURL;
+  if ('originalUrl' in params) {
+    // for backwards compatibility, if the original url is already a wayfinder url, return it as-is
+    if (params.originalUrl.startsWith('ar://')) {
+      return params.originalUrl as WayfinderURL;
+    }
+    // parse out old urls to arweave.net and arweave.dev, e.g. put it into a URL and get the path
+    const url = new URL(params.originalUrl);
+    // hard coded for now, but can extend to other hosts
+    if (
+      url.hostname.toLowerCase().includes('arweave.net') ||
+      url.hostname.toLowerCase().includes('arweave.dev')
+    ) {
+      wayfinderUrl = `ar://${url.pathname.startsWith('/') ? url.pathname.slice(1) : url.pathname}`;
+    } else {
+      throw new Error('Invalid URL');
+    }
+  } else if ('wayfinderUrl' in params) {
+    wayfinderUrl = params.wayfinderUrl;
+  } else if ('txId' in params) {
+    wayfinderUrl = `ar://${params.txId}`;
+  } else if ('arnsName' in params) {
+    wayfinderUrl = `ar://${params.arnsName}`;
+  } else {
+    throw new Error('Invalid URL params');
+  }
 
-  // return the original url if it's not a wayfinder url
-  return new URL(originalUrl);
+  return wayfinderUrl;
 };
 
-export class WayfinderEmitter extends EventEmitter<WayfinderEvent> {
-  constructor({ verification, routing }: WayfinderEventArgs = {}) {
-    super();
-    if (verification) {
-      if (verification.onVerificationSucceeded) {
-        this.on('verification-succeeded', verification.onVerificationSucceeded);
-      }
-      if (verification.onVerificationFailed) {
-        this.on('verification-failed', verification.onVerificationFailed);
-      }
-      if (verification.onVerificationProgress) {
-        this.on('verification-progress', verification.onVerificationProgress);
-      }
-    }
-    if (routing) {
-      if (routing.onRoutingStarted) {
-        this.on('routing-started', routing.onRoutingStarted);
-      }
-      if (routing.onRoutingSkipped) {
-        this.on('routing-skipped', routing.onRoutingSkipped);
-      }
-      if (routing.onRoutingSucceeded) {
-        this.on('routing-succeeded', routing.onRoutingSucceeded);
-      }
-    }
+/**
+ * Extracts subdomain and path information from an ar:// URL for routing purposes
+ * @param arUrl - the ar:// URL to parse
+ * @returns object containing subdomain and path for gateway routing
+ */
+export const extractRoutingInfo = (
+  arUrl: string,
+): { subdomain: string; path: string } => {
+  if (!arUrl.startsWith('ar://')) {
+    return { subdomain: '', path: '' };
   }
-}
+
+  const [, pathPart] = arUrl.split('ar://');
+
+  // Handle ar:///info style URLs (direct gateway endpoints)
+  if (pathPart.startsWith('/')) {
+    return { subdomain: '', path: pathPart };
+  }
+
+  // Split path to get the first part (name/txId) and remaining path components
+  const [firstPart, ...rest] = pathPart.split('/');
+  const remainingPath = rest.length > 0 ? `/${rest.join('/')}` : '';
+
+  if (txIdRegex.test(firstPart)) {
+    // For transaction IDs, use sandbox subdomain
+    const sandbox = sandboxFromId(firstPart);
+    return {
+      subdomain: sandbox,
+      path: `/${firstPart}${remainingPath}`,
+    };
+  }
+
+  const firstPartLowerCase = firstPart.toLowerCase();
+
+  if (arnsRegex.test(firstPartLowerCase)) {
+    // For ArNS names, use the name as subdomain
+    return {
+      subdomain: firstPartLowerCase,
+      path: remainingPath || '/',
+    };
+  }
+
+  // Default case - no special routing
+  return { subdomain: '', path: `/${pathPart}` };
+};
+
+/**
+ * Constructs the final gateway URL using the selected gateway and routing information
+ * @param selectedGateway - the selected gateway
+ * @param subdomain - the subdomain to prepend to the gateway
+ * @param path - the path to append to the gateway
+ * @param logger - optional logger for debugging
+ * @returns the constructed URL
+ */
+export const constructGatewayUrl = ({
+  selectedGateway,
+  subdomain,
+  path,
+}: {
+  selectedGateway: URL;
+  subdomain: string;
+  path: string;
+}): URL => {
+  const gatewayUrl = new URL(selectedGateway);
+
+  if (subdomain) {
+    gatewayUrl.hostname = `${subdomain}.${gatewayUrl.hostname}`;
+  }
+
+  const [pathname, rawQuery] = path.split('?');
+  gatewayUrl.pathname = pathname;
+
+  if (rawQuery) {
+    gatewayUrl.search = rawQuery;
+  }
+  return gatewayUrl;
+};
 
 export function tapAndVerifyReadableStream({
   originalStream,
@@ -241,12 +288,14 @@ export const wayfinderFetch = ({
   verificationSettings,
   routingSettings,
   emitter,
+  tracer,
 }: {
   logger?: Logger;
   gatewaysProvider: GatewaysProvider;
   verificationSettings: NonNullable<WayfinderOptions['verificationSettings']>;
   routingSettings: NonNullable<WayfinderOptions['routingSettings']>;
   emitter?: WayfinderEmitter;
+  tracer?: Tracer;
 }) => {
   return async (
     input: URL | RequestInfo,
@@ -264,33 +313,21 @@ export const wayfinderFetch = ({
       ...restInit
     } = init ?? {};
 
+    const url = input instanceof URL ? input.toString() : input.toString();
     const requestEmitter = new WayfinderEmitter({
       verification: requestVerificationSettings?.events,
       routing: requestRoutingSettings?.events,
+      parentEmitter: emitter,
     });
 
-    if (emitter) {
-      requestEmitter.on('routing-started', (event) => {
-        emitter.emit('routing-started', event);
-      });
-      requestEmitter.on('routing-skipped', (event) =>
-        emitter.emit('routing-skipped', event),
-      );
-      requestEmitter.on('routing-succeeded', (event) =>
-        emitter.emit('routing-succeeded', event),
-      );
-      requestEmitter.on('verification-succeeded', (event) =>
-        emitter.emit('verification-succeeded', event),
-      );
-      requestEmitter.on('verification-failed', (event) =>
-        emitter.emit('verification-failed', event),
-      );
-      requestEmitter.on('verification-progress', (event) =>
-        emitter.emit('verification-progress', event),
-      );
-    }
-
-    const url = input instanceof URL ? input.toString() : input.toString();
+    const { parentSpan } = startRequestSpans({
+      originalUrl: url,
+      verificationSettings: requestVerificationSettings ?? verificationSettings,
+      routingSettings: requestRoutingSettings ?? routingSettings,
+      gatewaysProvider,
+      emitter: requestEmitter,
+      tracer,
+    });
 
     if (!url.toString().startsWith('ar://')) {
       logger?.debug('URL is not a wayfinder url, skipping routing', {
@@ -311,11 +348,14 @@ export const wayfinderFetch = ({
 
     for (let i = 0; i < maxRetries; i++) {
       try {
+        // extract routing information from the ar:// URL
+        const { subdomain, path } = extractRoutingInfo(url);
+
         // select the target gateway
         const selectedGateway = await routingSettings.strategy?.selectGateway({
           gateways: await gatewaysProvider.getGateways(),
-          path: url.split('/').slice(1).join('/'), // everything after the first /
-          subdomain: '',
+          path,
+          subdomain,
         });
 
         if (!selectedGateway) {
@@ -327,11 +367,11 @@ export const wayfinderFetch = ({
           selectedGateway: selectedGateway?.toString(),
         });
 
-        // route the request to the target gateway
-        const redirectUrl = await resolveWayfinderUrl({
-          originalUrl: url.toString(),
+        // construct the final gateway URL
+        const redirectUrl = constructGatewayUrl({
           selectedGateway,
-          logger,
+          subdomain,
+          path,
         });
 
         requestEmitter.emit('routing-succeeded', {
@@ -345,12 +385,34 @@ export const wayfinderFetch = ({
           redirectUrl: redirectUrl.toString(),
         });
 
+        const requestSpan = parentSpan
+          ? tracer?.startSpan(
+              'wayfinder.fetch',
+              undefined,
+              trace.setSpan(context.active(), parentSpan),
+            )
+          : undefined;
+
         // make the request to the target gateway using the redirect url
         const response = await fetch(redirectUrl.toString(), {
           // enforce CORS given we're likely going to a different origin, but always allow the client to override
           redirect: 'follow',
           mode: 'cors',
+          headers: {
+            // add wayfinder headers, but allow the client to override
+            ...wayfinderRequestHeaders({
+              traceId: requestSpan?.spanContext().traceId,
+            }),
+            ...restInit.headers,
+          },
           ...restInit,
+        });
+
+        // add response attributes to the span
+        requestSpan?.setAttribute('response.status', response.status);
+        requestSpan?.setAttribute('response.statusText', response.statusText);
+        response.headers.forEach((value, key) => {
+          requestSpan?.setAttribute(`response.headers.${key}`, value);
         });
 
         logger?.debug(`Successfully routed request to gateway`, {
@@ -359,62 +421,97 @@ export const wayfinderFetch = ({
         });
 
         // only verify data if the redirect url is different from the original url
-        if (redirectUrl.toString() !== url) {
-          if (
+        if (redirectUrl.toString() === url) {
+          logger?.debug(
+            'Redirect URL is the same as the original URL, skipping verification',
+            {
+              redirectUrl: redirectUrl.toString(),
+              originalUrl: url,
+            },
+          );
+          requestEmitter.emit('verification-skipped', {
+            originalUrl: url,
+          });
+          requestSpan?.end();
+          return response;
+        }
+
+        // if verification is disabled, return the response
+        if (
+          !(
             verificationSettings.enabled &&
             verificationSettings.strategy?.verifyData
-          ) {
-            const headers = response.headers;
-
-            // transaction id is either in the response headers or the path of the request as the first parameter
-            const txId =
-              headers.get('x-arns-resolved-id') ??
-              redirectUrl.pathname.split('/')[1];
-
-            const contentLength = +(headers.get('content-length') ?? 0);
-
-            if (!txIdRegex.test(txId)) {
-              // no transaction id found, skip verification
-              logger?.debug('No transaction id found, skipping verification', {
-                redirectUrl: redirectUrl.toString(),
-                originalUrl: url,
-              });
-              requestEmitter.emit('verification-skipped', {
-                originalUrl: url,
-              });
-              return response;
-            }
-
-            // Check if the response has a body
-            if (response.body) {
-              const newClientStream = tapAndVerifyReadableStream({
-                originalStream: response.body,
-                contentLength,
-                verifyData: verificationSettings.strategy?.verifyData.bind(
-                  verificationSettings.strategy,
-                ),
-                txId,
-                emitter: requestEmitter,
-                strict: verificationSettings.strict,
-              });
-
-              return new Response(newClientStream, {
-                status: response.status,
-                statusText: response.statusText,
-                headers: response.headers,
-              });
-            } else {
-              // No response body to verify, skip verification
-              logger?.debug('No response body to verify', {
-                redirectUrl: redirectUrl.toString(),
-                originalUrl: url,
-                txId,
-              });
-              return response;
-            }
-          }
+          )
+        ) {
+          logger?.debug(
+            'Verification is disabled or no verification strategy is provided, skipping verification',
+            {
+              redirectUrl: redirectUrl.toString(),
+              originalUrl: url,
+            },
+          );
+          requestEmitter.emit('verification-skipped', {
+            originalUrl: url,
+          });
+          requestSpan?.end();
+          return response;
         }
-        return response;
+
+        // Verify the response
+
+        // TODO: add more verification and response attributes to the span
+        const headers = response.headers;
+
+        // transaction id is either in the response headers or the path of the request as the first parameter
+        const txId =
+          headers.get('x-arns-resolved-id') ??
+          redirectUrl.pathname.split('/')[1];
+
+        const contentLength = +(headers.get('content-length') ?? 0);
+
+        requestSpan?.setAttribute('txId', txId);
+        requestSpan?.setAttribute('contentLength', contentLength);
+        requestSpan?.end();
+
+        if (!txIdRegex.test(txId)) {
+          // no transaction id found, skip verification
+          logger?.debug('No transaction id found, skipping verification', {
+            redirectUrl: redirectUrl.toString(),
+            originalUrl: url,
+          });
+          requestEmitter.emit('verification-skipped', {
+            originalUrl: url,
+          });
+          return response;
+        }
+
+        // Check if the response has a body
+        if (response.body) {
+          const newClientStream = tapAndVerifyReadableStream({
+            originalStream: response.body,
+            contentLength,
+            verifyData: verificationSettings.strategy?.verifyData.bind(
+              verificationSettings.strategy,
+            ),
+            txId,
+            emitter: requestEmitter,
+            strict: verificationSettings.strict,
+          });
+
+          return new Response(newClientStream, {
+            status: response.status,
+            statusText: response.statusText,
+            headers: response.headers,
+          });
+        } else {
+          // No response body to verify, skip verification
+          logger?.debug('No response body to verify', {
+            redirectUrl: redirectUrl.toString(),
+            originalUrl: url,
+            txId,
+          });
+          return response;
+        }
       } catch (error: any) {
         logger?.debug('Failed to route request', {
           error: error.message,
@@ -469,9 +566,20 @@ export class Wayfinder {
   public readonly verificationSettings: WayfinderOptions['verificationSettings'];
 
   /**
-   * A helper function that resolves the redirect url for ar:// requests to a target gateway.
+   * Telemetry configuration used for OpenTelemetry tracing
+   */
+  public readonly telemetrySettings: TelemetrySettings;
+
+  /**
+   * OpenTelemetry tracer instance
+   */
+  protected tracer?: Tracer;
+
+  /**
+   * A helper function that resolves a provided url to a target gateway.
    *
-   * Note: no verification is done when resolving an ar://<path> url to a wayfinder route.
+   * Note: no verification is done when calling this function.
+   * It just generates the redirect url based on the routing strategy.
    * In order to verify the data, you must use the `request` function or request the data and
    * verify it yourself via the `verifyData` function.
    *
@@ -479,14 +587,28 @@ export class Wayfinder {
    * const { resolveUrl } = new Wayfinder();
    *
    * // returns the redirected URL based on the routing strategy and the original url
-   * const redirectUrl = await resolveUrl({ originalUrl: 'ar://example' });
+   * const redirectUrl = await resolveUrl({
+   *   originalUrl: 'https://arweave.net/<txId>',
+   * });
+   *
+   * // returns the redirected URL based on the routing strategy and the provided arns name
+   * const redirectUrl = await resolveUrl({
+   *   arnsName: 'ardrive',
+   * });
+   *
+   * // returns the redirected URL based on the routing strategy and the provided wayfinder url
+   * const redirectUrl = await resolveUrl({
+   *   wayfinderUrl: 'ar://1234567890',
+   * });
+   *
+   * // returns the redirected URL based on the routing strategy and the provided txId
+   * const redirectUrl = await resolveUrl({
+   *   txId: '1234567890',
+   * });
    *
    * window.open(redirectUrl.toString(), '_blank');
    */
-  public readonly resolveUrl: (params: {
-    originalUrl: string;
-    logger?: Logger;
-  }) => Promise<URL>;
+  public readonly resolveUrl: (params: WayfinderURLParams) => Promise<URL>;
 
   /**
    * A wrapped fetch function that supports ar:// protocol. If a verification strategy is provided,
@@ -593,6 +715,7 @@ export class Wayfinder {
     gatewaysProvider, // forcing it to be required to avoid making ar-io-sdk a dependency
     verificationSettings,
     routingSettings,
+    telemetrySettings,
   }: WayfinderOptions) {
     this.logger = logger;
     this.gatewaysProvider = gatewaysProvider;
@@ -626,30 +749,49 @@ export class Wayfinder {
       routing: this.routingSettings?.events,
     });
 
+    this.telemetrySettings = {
+      enabled: telemetrySettings?.enabled ?? false,
+      sampleRate: telemetrySettings?.sampleRate,
+      apiKey: telemetrySettings?.apiKey,
+      exporterUrl: telemetrySettings?.exporterUrl,
+    };
+
+    this.tracer = initTelemetry(this.telemetrySettings);
+
     this.request = wayfinderFetch({
       logger: this.logger,
       emitter: this.emitter,
       gatewaysProvider: this.gatewaysProvider,
       routingSettings: this.routingSettings,
       verificationSettings: this.verificationSettings,
+      tracer: this.tracer,
     });
 
-    this.resolveUrl = async ({ originalUrl, logger = this.logger }) => {
+    this.resolveUrl = async (params: WayfinderURLParams) => {
+      const wayfinderUrl = createWayfinderUrl(params);
+
+      // extract routing information from the original URL
+      const { subdomain, path } = extractRoutingInfo(wayfinderUrl);
+
       const selectedGateway = await this.routingSettings.strategy.selectGateway(
         {
           gateways: await this.gatewaysProvider.getGateways(),
+          path,
+          subdomain,
         },
       );
 
-      return resolveWayfinderUrl({
-        originalUrl,
+      return constructGatewayUrl({
         selectedGateway,
-        logger,
+        subdomain,
+        path,
       });
     };
 
-    this.logger.debug(
-      `Wayfinder initialized with ${this.routingSettings.strategy?.constructor.name} routing strategy`,
-    );
+    this.logger.debug('Wayfinder initialized', {
+      verificationSettings: this.verificationSettings,
+      routingSettings: this.routingSettings,
+      telemetrySettings: this.telemetrySettings,
+    });
   }
 }

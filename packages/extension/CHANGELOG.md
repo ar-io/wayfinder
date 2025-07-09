@@ -1,5 +1,56 @@
 # @ar.io/wayfinder-extension
 
+## 0.0.18
+
+### Patch Changes
+
+- Updated dependencies [dc90515]
+- Updated dependencies [09b3759]
+- Updated dependencies [2d72bba]
+- Updated dependencies [79254d1]
+- Updated dependencies [89c0efe]
+- Updated dependencies [4f062ad]
+- Updated dependencies [e9245df]
+- Updated dependencies [063e480]
+  - @ar.io/wayfinder-core@1.0.0
+
+## 0.0.18-alpha.8
+
+### Patch Changes
+
+- Updated dependencies [09b3759]
+- Updated dependencies [89c0efe]
+- Updated dependencies [e9245df]
+  - @ar.io/wayfinder-core@1.0.0-alpha.8
+
+## 0.0.18-alpha.7
+
+### Patch Changes
+
+- Updated dependencies [4f062ad]
+  - @ar.io/wayfinder-core@0.0.5-alpha.7
+
+## 0.0.18-alpha.6
+
+### Patch Changes
+
+- Updated dependencies [dc90515]
+  - @ar.io/wayfinder-core@0.0.5-alpha.6
+
+## 0.0.18-alpha.5
+
+### Patch Changes
+
+- Updated dependencies [79254d1]
+  - @ar.io/wayfinder-core@0.0.5-alpha.5
+
+## 0.0.18-alpha.4
+
+### Patch Changes
+
+- Updated dependencies [2d72bba]
+  - @ar.io/wayfinder-core@0.0.5-alpha.4
+
 ## 0.0.18-alpha.3
 
 ### Patch Changes

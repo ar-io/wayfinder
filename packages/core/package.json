@@ -1,6 +1,6 @@
 {
   "name": "@ar.io/wayfinder-core",
-  "version": "0.0.5-alpha.3",
+  "version": "1.0.0",
   "description": "WayFinder core library for intelligently routing to optimal AR.IO gateways",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -28,8 +28,9 @@
     "url": "git+https://github.com/ar-io/wayfinder.git"
   },
   "scripts": {
-    "build": "npm run clean && tsc",
+    "build": "npm run clean && npm run update-version && tsc",
     "clean": "rimraf dist",
+    "update-version": "node scripts/update-version.mjs",
     "test": "npm run test:unit",
     "test:unit": "c8 tsx --test 'src/**/*.test.ts'",
     "lint:fix": "biome check --write --unsafe --config-path=../../biome.json",
@@ -39,10 +40,17 @@
   },
   "dependencies": {
     "@dha-team/arbundles": "^1.0.3",
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/context-zone": "^2.0.1",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.202.0",
+    "@opentelemetry/sdk-trace-base": "^2.0.1",
+    "@opentelemetry/sdk-trace-node": "^2.0.1",
+    "@opentelemetry/sdk-trace-web": "^2.0.1",
     "arweave": "^1.14.0",
     "eventemitter3": "^5.0.1",
     "plimit-lit": "^3.0.1",
-    "rfc4648": "^1.5.4"
+    "rfc4648": "^1.5.4",
+    "zone.js": "^0.15.1"
   },
   "peerDependencies": {
     "@ar.io/sdk": ">=3.12.0"
