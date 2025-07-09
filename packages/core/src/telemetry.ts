@@ -43,7 +43,11 @@ import type {
   TelemetrySettings,
   WayfinderOptions,
 } from './types.js';
+import { isBrowser, isChromeExtension } from './utils/browser.js';
 import { WAYFINDER_CORE_VERSION } from './version.js';
+
+// avoid re-initializing the tracer provider and tracer
+let tracer: Tracer | undefined;
 
 export const initTelemetry = ({
   enabled = false,
@@ -52,6 +56,12 @@ export const initTelemetry = ({
   apiKey = 'c8gU8dHlu6V7e5k2Gn9LaG', // intentionally left here - if it gets abused we'll disable it
 }: TelemetrySettings): Tracer | undefined => {
   if (enabled === false) return undefined;
+
+  // if the tracer provider and tracer are already initialized, return the tracer
+  if (tracer) {
+    return tracer;
+  }
+
   diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.ERROR);
 
   const exporter = new OTLPTraceExporter({
@@ -62,15 +72,15 @@ export const initTelemetry = ({
     },
   });
 
-  const isBrowser = typeof window !== 'undefined';
-  const spanProcessor = new BatchSpanProcessor(exporter);
   const sampler = new TraceIdRatioBasedSampler(sampleRate);
+  const spanProcessor = new BatchSpanProcessor(exporter);
   const resource = resourceFromAttributes({
     [ATTR_SERVICE_NAME]: 'wayfinder-core',
     [ATTR_SERVICE_VERSION]: WAYFINDER_CORE_VERSION,
   });
 
-  const provider = isBrowser
+  const useWebTracer = isBrowser() || isChromeExtension();
+  const provider = useWebTracer
     ? new WebTracerProvider({
         sampler,
         resource,
@@ -82,7 +92,7 @@ export const initTelemetry = ({
         spanProcessors: [spanProcessor],
       });
 
-  if (isBrowser) {
+  if (useWebTracer) {
     // import zone.js for browser
     provider.register({
       contextManager: new ZoneContextManager(),
