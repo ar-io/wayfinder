@@ -19,6 +19,7 @@ import {
   DiagLogLevel,
   Span,
   type Tracer,
+  TracerProvider,
   context,
   diag,
   trace,
@@ -47,19 +48,19 @@ import { isBrowser, isChromeExtension } from './utils/browser.js';
 import { WAYFINDER_CORE_VERSION } from './version.js';
 
 // avoid re-initializing the tracer provider and tracer
-let tracer: Tracer | undefined;
+let tracerProvider: TracerProvider | undefined;
 
 export const initTelemetry = ({
   enabled = false,
   sampleRate = 0.1, // 10% sample rate by default
   exporterUrl = 'https://api.honeycomb.io/v1/traces',
   apiKey = 'c8gU8dHlu6V7e5k2Gn9LaG', // intentionally left here - if it gets abused we'll disable it
-}: TelemetrySettings): Tracer | undefined => {
+}: TelemetrySettings): TracerProvider | undefined => {
   if (enabled === false) return undefined;
 
   // if the tracer provider and tracer are already initialized, return the tracer
-  if (tracer) {
-    return tracer;
+  if (tracerProvider) {
+    return tracerProvider;
   }
 
   diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.ERROR);
@@ -92,17 +93,12 @@ export const initTelemetry = ({
         spanProcessors: [spanProcessor],
       });
 
-  if (useWebTracer) {
-    // import zone.js for browser
-    provider.register({
-      contextManager: new ZoneContextManager(),
-    });
-  } else {
-    // node environments don't need zone.js
-    provider.register();
-  }
+  provider.register({
+    // zone.js is only used in the browser (node/extensions/service workers don't need it)
+    contextManager: isBrowser() ? new ZoneContextManager() : undefined,
+  });
 
-  return trace.getTracer('wayfinder-core');
+  return tracerProvider;
 };
 
 export const startRequestSpans = ({

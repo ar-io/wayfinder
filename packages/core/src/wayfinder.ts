@@ -17,7 +17,7 @@
 
 import { defaultLogger } from './logger.js';
 
-import { type Tracer, context, trace } from '@opentelemetry/api';
+import { Span, type Tracer, TracerProvider, context, trace } from '@opentelemetry/api';
 import { WayfinderEmitter } from './emitter.js';
 import { FastestPingRoutingStrategy } from './routing/ping.js';
 import { initTelemetry, startRequestSpans } from './telemetry.js';
@@ -345,6 +345,7 @@ export const wayfinderFetch = ({
 
     const maxRetries = 3;
     const retryDelay = 1000;
+    let requestSpan: Span | undefined;
 
     for (let i = 0; i < maxRetries; i++) {
       try {
@@ -385,7 +386,7 @@ export const wayfinderFetch = ({
           redirectUrl: redirectUrl.toString(),
         });
 
-        const requestSpan = parentSpan
+        requestSpan = parentSpan
           ? tracer?.startSpan(
               'wayfinder.fetch',
               undefined,
@@ -513,6 +514,7 @@ export const wayfinderFetch = ({
           return response;
         }
       } catch (error: any) {
+        requestSpan?.end();
         logger?.debug('Failed to route request', {
           error: error.message,
           stack: error.stack,
@@ -523,6 +525,8 @@ export const wayfinderFetch = ({
         if (i < maxRetries - 1) {
           await new Promise((resolve) => setTimeout(resolve, retryDelay));
         }
+      } finally {
+        requestSpan?.end();
       }
     }
 
@@ -571,9 +575,9 @@ export class Wayfinder {
   public readonly telemetrySettings: TelemetrySettings;
 
   /**
-   * OpenTelemetry tracer instance
+   * OpenTelemetry tracer provider instance
    */
-  protected tracer?: Tracer;
+  public readonly tracerProvider?: TracerProvider;
 
   /**
    * A helper function that resolves a provided url to a target gateway.
@@ -756,7 +760,7 @@ export class Wayfinder {
       exporterUrl: telemetrySettings?.exporterUrl,
     };
 
-    this.tracer = initTelemetry(this.telemetrySettings);
+    this.tracerProvider = initTelemetry(this.telemetrySettings);
 
     this.request = wayfinderFetch({
       logger: this.logger,
@@ -764,7 +768,7 @@ export class Wayfinder {
       gatewaysProvider: this.gatewaysProvider,
       routingSettings: this.routingSettings,
       verificationSettings: this.verificationSettings,
-      tracer: this.tracer,
+      tracer: this.tracerProvider?.getTracer('wayfinder-core'),
     });
 
     this.resolveUrl = async (params: WayfinderURLParams) => {
