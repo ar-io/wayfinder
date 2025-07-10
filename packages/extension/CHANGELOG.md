@@ -1,5 +1,17 @@
 # @ar.io/wayfinder-extension
 
+## 1.0.0-alpha.1
+
+### Major Changes
+
+- 147f087: Initial release of wayfinder-extension
+
+### Patch Changes
+
+- 9629604: Initial wayfinder-extension@1.0.0
+- Updated dependencies [2c170be]
+  - @ar.io/wayfinder-core@1.0.1-alpha.1
+
 ## 0.0.19-alpha.0
 
 ### Patch Changes
