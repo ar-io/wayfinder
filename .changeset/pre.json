@@ -6,5 +6,10 @@
     "@ar.io/wayfinder-extension": "0.0.18",
     "@ar.io/wayfinder-react": "1.0.1"
   },
-  "changesets": ["dark-bees-draw"]
+  "changesets": [
+    "dark-bees-draw",
+    "plain-waves-follow",
+    "pretty-candies-glow",
+    "real-otters-prove"
+  ]
 }
