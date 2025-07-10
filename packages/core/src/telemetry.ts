@@ -19,7 +19,6 @@ import {
   DiagLogLevel,
   Span,
   type Tracer,
-  TracerProvider,
   context,
   diag,
   trace,
@@ -29,6 +28,7 @@ import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import {
   BatchSpanProcessor,
+  SimpleSpanProcessor,
   TraceIdRatioBasedSampler,
 } from '@opentelemetry/sdk-trace-base';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
@@ -48,19 +48,28 @@ import { isBrowser, isChromeExtension } from './utils/browser.js';
 import { WAYFINDER_CORE_VERSION } from './version.js';
 
 // avoid re-initializing the tracer provider and tracer
-let tracerProvider: TracerProvider | undefined;
+let tracerProvider: WebTracerProvider | NodeTracerProvider | undefined;
+let tracer: Tracer | undefined;
 
 export const initTelemetry = ({
   enabled = false,
   sampleRate = 0.1, // 10% sample rate by default
   exporterUrl = 'https://api.honeycomb.io/v1/traces',
   apiKey = 'c8gU8dHlu6V7e5k2Gn9LaG', // intentionally left here - if it gets abused we'll disable it
-}: TelemetrySettings): TracerProvider | undefined => {
+}: TelemetrySettings):
+  | {
+      tracerProvider: WebTracerProvider | NodeTracerProvider;
+      tracer: Tracer;
+    }
+  | undefined => {
   if (enabled === false) return undefined;
 
   // if the tracer provider and tracer are already initialized, return the tracer
   if (tracerProvider) {
-    return tracerProvider;
+    return {
+      tracerProvider,
+      tracer: tracerProvider.getTracer('wayfinder-core'),
+    };
   }
 
   diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.ERROR);
@@ -74,13 +83,17 @@ export const initTelemetry = ({
   });
 
   const sampler = new TraceIdRatioBasedSampler(sampleRate);
-  const spanProcessor = new BatchSpanProcessor(exporter);
   const resource = resourceFromAttributes({
     [ATTR_SERVICE_NAME]: 'wayfinder-core',
     [ATTR_SERVICE_VERSION]: WAYFINDER_CORE_VERSION,
   });
 
   const useWebTracer = isBrowser() || isChromeExtension();
+  const spanProcessor = useWebTracer
+    ? new SimpleSpanProcessor(exporter)
+    : new BatchSpanProcessor(exporter, {
+        scheduledDelayMillis: 500,
+      });
   const provider = useWebTracer
     ? new WebTracerProvider({
         sampler,
@@ -95,10 +108,16 @@ export const initTelemetry = ({
 
   provider.register({
     // zone.js is only used in the browser (node/extensions/service workers don't need it)
-    contextManager: isBrowser() ? new ZoneContextManager() : undefined,
+    contextManager: useWebTracer ? new ZoneContextManager() : undefined,
   });
 
-  return tracerProvider;
+  tracerProvider = provider;
+  tracer = provider.getTracer('wayfinder-core');
+
+  return {
+    tracerProvider,
+    tracer,
+  };
 };
 
 export const startRequestSpans = ({
