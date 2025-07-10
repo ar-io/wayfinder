@@ -14,6 +14,7 @@
     "@types/node": "^20.12.12",
     "@vitejs/plugin-react": "^4.3.1",
     "@vitejs/plugin-react-swc": "^3.7.0",
+    "chrome-webstore-upload-cli": "^3.3.2",
     "vite": "^5.2.10",
     "vite-plugin-copy": "^0.1.6",
     "vite-plugin-html": "^3.2.2",

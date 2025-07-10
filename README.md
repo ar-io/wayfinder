@@ -6,10 +6,10 @@ Wayfinder is a set of tools and libraries that enable decentralized and cryptogr
 
 This monorepo contains the following packages:
 
-- **[@ar.io/wayfinder-core](./packages/core)**: Core JavaScript library for the Wayfinder routing and verification protocol (ALPHA)
-- **[@ar.io/wayfinder-react](./packages/react)**: React components for Wayfinder, including Hooks and Context provider (ALPHA)
-- **[@ar.io/wayfinder-extension](./packages/extension)**: Chrome extension for Wayfinder (ALPHA)
-- **[@ar.io/wayfinder-cli](./packages/cli)**: CLI for interacting with Wayfinder in the terminal - COMING SOON
+- **[@ar.io/wayfinder-core](./packages/wayfinder-core)**: Core JavaScript library for the Wayfinder routing and verification protocol
+- **[@ar.io/wayfinder-react](./packages/wayfinder-react)**: React components for Wayfinder, including Hooks and Context provider
+- **[@ar.io/wayfinder-extension](./packages/wayfinder-extension)**: Chrome extension for Wayfinder
+- **[@ar.io/wayfinder-cli](./packages/wayfinder-cli)**: CLI for interacting with Wayfinder in the terminal (COMING SOON)
 
 ## What is it?
 

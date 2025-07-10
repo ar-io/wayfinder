@@ -15,4 +15,4 @@
  * limitations under the License.
  */
 
-export * from './wayfinder-provider.js';
+export * from './wayfinder-provider.jsx';

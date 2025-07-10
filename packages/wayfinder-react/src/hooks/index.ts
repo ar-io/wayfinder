@@ -20,7 +20,7 @@ import { useContext, useEffect, useState } from 'react';
 import {
   WayfinderContext,
   type WayfinderContextValue,
-} from '../components/wayfinder-provider.js';
+} from '../components/wayfinder-provider.jsx';
 
 /**
  * Hook for getting the Wayfinder instance

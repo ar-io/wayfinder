@@ -99,7 +99,7 @@ jobs:
       - name: Rebuild Extension with Published Packages
         if: steps.changesets.outputs.published == 'true'
         run: |
-          cd packages/extension
+          cd packages/wayfinder-extension
           npm install
           npm run build
 
