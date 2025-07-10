@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-extension
 
+## 1.0.0-alpha.2
+
+### Patch Changes
+
+- f823114: Update manifest.json
+
 ## 1.0.0-alpha.1
 
 ### Major Changes
