@@ -120,5 +120,13 @@ jobs:
           generateReleaseNotes: true
           prerelease: ${{ github.ref == 'refs/heads/alpha' }}
           tag: ${{ steps.changesets.outputs.publishedPackages[0].name }}@${{ steps.changesets.outputs.publishedPackages[0].version }}
-          artifacts: packages/extension/wayfinder-extension-v${{ steps.version.outputs.version }}.zip
           token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Extension Zip
+        if: steps.changesets.outputs.published == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wayfinder-extension-v${{ steps.version.outputs.version }}.zip
+          path: packages/extension/wayfinder-extension-v${{ steps.version.outputs.version }}.zip
+
+      
