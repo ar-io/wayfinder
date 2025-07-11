@@ -1,5 +1,30 @@
 # @ar.io/wayfinder-extension
 
+## 1.0.0-alpha.2
+
+### Patch Changes
+
+- f823114: Update manifest.json
+
+## 1.0.0-alpha.1
+
+### Major Changes
+
+- 147f087: Initial release of wayfinder-extension
+
+### Patch Changes
+
+- 9629604: Initial wayfinder-extension@1.0.0
+- Updated dependencies [2c170be]
+  - @ar.io/wayfinder-core@1.0.1-alpha.1
+
+## 0.0.19-alpha.0
+
+### Patch Changes
+
+- Updated dependencies [aa5700e]
+  - @ar.io/wayfinder-core@1.0.1-alpha.0
+
 ## 0.0.18
 
 ### Patch Changes

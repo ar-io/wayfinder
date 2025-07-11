@@ -14,17 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-export async function fetchEnsArweaveTxId(
-  ensName: string,
-): Promise<string | null> {
-  try {
-    const response = await fetch(`https://api.ensdata.net/${ensName}`);
-    if (!response.ok) throw new Error(`ENS API error: ${response.statusText}`);
 
-    const data = await response.json();
-    return data['ar://'] || data['contentHash'] || null; // Return the Arweave TX ID or content hash if available
-  } catch (error) {
-    console.error(`[ERROR] Failed to fetch ENS data for ${ensName}:`, error);
-    return null;
-  }
+/**
+ * Returns true if running in a browser environment (window is defined).
+ */
+export function isBrowser(): boolean {
+  return (
+    typeof window !== 'undefined' && typeof window.document !== 'undefined'
+  );
+}
+
+/**
+ * Returns true if running as a Chrome extension (chrome.runtime and chrome.runtime.id are defined).
+ */
+export function isChromeExtension(): boolean {
+  return (
+    typeof chrome !== 'undefined' &&
+    typeof chrome.runtime !== 'undefined' &&
+    typeof chrome.runtime.id === 'string'
+  );
 }

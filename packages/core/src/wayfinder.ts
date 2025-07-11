@@ -17,7 +17,9 @@
 
 import { defaultLogger } from './logger.js';
 
-import { type Tracer, context, trace } from '@opentelemetry/api';
+import { Span, type Tracer, context, trace } from '@opentelemetry/api';
+import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
+import { WebTracerProvider } from '@opentelemetry/sdk-trace-web';
 import { WayfinderEmitter } from './emitter.js';
 import { FastestPingRoutingStrategy } from './routing/ping.js';
 import { initTelemetry, startRequestSpans } from './telemetry.js';
@@ -345,6 +347,7 @@ export const wayfinderFetch = ({
 
     const maxRetries = 3;
     const retryDelay = 1000;
+    let requestSpan: Span | undefined;
 
     for (let i = 0; i < maxRetries; i++) {
       try {
@@ -385,7 +388,7 @@ export const wayfinderFetch = ({
           redirectUrl: redirectUrl.toString(),
         });
 
-        const requestSpan = parentSpan
+        requestSpan = parentSpan
           ? tracer?.startSpan(
               'wayfinder.fetch',
               undefined,
@@ -513,6 +516,7 @@ export const wayfinderFetch = ({
           return response;
         }
       } catch (error: any) {
+        requestSpan?.end();
         logger?.debug('Failed to route request', {
           error: error.message,
           stack: error.stack,
@@ -523,6 +527,8 @@ export const wayfinderFetch = ({
         if (i < maxRetries - 1) {
           await new Promise((resolve) => setTimeout(resolve, retryDelay));
         }
+      } finally {
+        requestSpan?.end();
       }
     }
 
@@ -569,6 +575,11 @@ export class Wayfinder {
    * Telemetry configuration used for OpenTelemetry tracing
    */
   public readonly telemetrySettings: TelemetrySettings;
+
+  /**
+   * OpenTelemetry tracer provider instance
+   */
+  protected tracerProvider?: WebTracerProvider | NodeTracerProvider;
 
   /**
    * OpenTelemetry tracer instance
@@ -756,7 +767,10 @@ export class Wayfinder {
       exporterUrl: telemetrySettings?.exporterUrl,
     };
 
-    this.tracer = initTelemetry(this.telemetrySettings);
+    const { tracerProvider, tracer } =
+      initTelemetry(this.telemetrySettings) ?? {};
+    this.tracerProvider = tracerProvider;
+    this.tracer = tracer;
 
     this.request = wayfinderFetch({
       logger: this.logger,
@@ -768,30 +782,82 @@ export class Wayfinder {
     });
 
     this.resolveUrl = async (params: WayfinderURLParams) => {
+      // create a span for the resolveUrl function
+      const resolveUrlSpan = this.tracer?.startSpan('wayfinder.resolveUrl', {
+        attributes: {
+          ...Object.entries(params).reduce(
+            (acc, [key, value]) => ({
+              ...acc,
+              [`params.${key}`]: value,
+              gatewaysProvider: this.gatewaysProvider.constructor.name,
+              'routing.strategy':
+                this.routingSettings.strategy?.constructor.name,
+            }),
+            {},
+          ),
+        },
+      });
+
+      // parse url span that uses the resolveUrl as the parent span
       const wayfinderUrl = createWayfinderUrl(params);
+
+      resolveUrlSpan?.setAttribute('wayfinderUrl', wayfinderUrl);
 
       // extract routing information from the original URL
       const { subdomain, path } = extractRoutingInfo(wayfinderUrl);
 
+      resolveUrlSpan?.setAttribute('subdomain', subdomain);
+      resolveUrlSpan?.setAttribute('path', path);
+
+      const gateways = await this.gatewaysProvider.getGateways();
+      resolveUrlSpan?.setAttribute('gatewaysCount', gateways.length);
+
       const selectedGateway = await this.routingSettings.strategy.selectGateway(
         {
-          gateways: await this.gatewaysProvider.getGateways(),
+          gateways,
           path,
           subdomain,
         },
       );
 
-      return constructGatewayUrl({
+      resolveUrlSpan?.setAttribute(
+        'selectedGateway',
+        selectedGateway.toString(),
+      );
+
+      const constructedGatewayUrl = constructGatewayUrl({
         selectedGateway,
         subdomain,
         path,
       });
+
+      resolveUrlSpan?.setAttribute(
+        'constructedGatewayUrl',
+        constructedGatewayUrl.toString(),
+      );
+      resolveUrlSpan?.end();
+
+      // return the constructed gateway url
+      return constructedGatewayUrl;
     };
 
-    this.logger.debug('Wayfinder initialized', {
-      verificationSettings: this.verificationSettings,
-      routingSettings: this.routingSettings,
-      telemetrySettings: this.telemetrySettings,
-    });
+    // send an event that the wayfinder is initialized
+    this.tracer
+      ?.startSpan('wayfinder.initialized', {
+        attributes: {
+          gatewaysProvider: this.gatewaysProvider.constructor.name,
+          'verification.strategy':
+            this.verificationSettings.strategy?.constructor.name,
+          'verification.enabled': this.verificationSettings.enabled,
+          'verification.trustedGateways':
+            this.verificationSettings.strategy?.trustedGateways.map((gateway) =>
+              gateway.toString(),
+            ),
+          'routing.strategy': this.routingSettings.strategy?.constructor.name,
+          'telemetry.enabled': this.telemetrySettings.enabled,
+          'telemetry.sampleRate': this.telemetrySettings.sampleRate,
+        },
+      })
+      .end();
   }
 }

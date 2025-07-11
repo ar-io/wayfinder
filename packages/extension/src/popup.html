@@ -3,237 +3,202 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AR.IO WayFinder</title>
+    <title>Wayfinder</title>
+    <!-- AR.IO Brand Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-      href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&family=Albert+Sans:wght@400;600&family=DM+Sans:wght@400;500&family=JetBrains+Mono:wght@400;500&family=Rubik:wght@300;400;500;600;700;800;900&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="assets/css/styles.css" />
+    <link rel="stylesheet" href="assets/css/variables.css" />
+    <link rel="stylesheet" href="assets/css/popup.css" />
     <script type="module" src="popup.js"></script>
   </head>
   <body>
-    <div id="aboutSection">
-      <h2>About the ar:// protocol</h2>
-      <p>
-        WayFinder uses the <code>ar://</code> protocol. This is a unique web
-        address schema powered by the
-        <a href="https://ar.io" target="_blank" id="arioLink">AR.IO Network</a>
-        and used to access content stored on the Arweave Permaweb. By using this
-        protocol, users can directly navigate to and interact with decentralized
-        web pages and applications via their
-        <a href="https://ar.io/arns" target="_blank" id="arioLink">ArNS Name</a>
-        or Arweave transaction ID.
-      </p>
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+    
+    <div class="popup-container">
+      <!-- Header -->
+      <header class="popup-header">
+        <div class="header-content">
+          <div class="logo-section">
+            <div class="logo-icon">
+              <img src="assets/Vector.png" alt="Wayfinder Logo" width="55" height="55">
+            </div>
+            <div class="logo-text">
+              <h1>Wayfinder</h1>
+              <p>Gateway Management</p>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Content -->
+      <main class="popup-content">
+        
+        <!-- Stats Section -->
+        <section class="stats-section">
+          <div class="stats-grid">
+            <div class="stat-card" title="Active gateways with zero consecutive failed network epochs">
+              <div class="stat-content">
+                <div class="stat-value" id="healthyGatewayCount">--</div>
+                <div class="stat-label">Healthy Gateways</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-content">
+                <div class="stat-value" id="requestsToday">--</div>
+                <div class="stat-label">Requests Today</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-content">
+                <div class="stat-value" id="avgResponseTime">--</div>
+                <div class="stat-label">Average Response</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Removed: Verified Browsing Toggle - verification features removed -->
+
+        <!-- Current Strategy Section -->
+        <section class="current-strategy-section">
+          <div class="strategy-card" id="changeStrategy">
+            <svg class="strategy-icon" width="32" height="32" viewBox="0 0 36 36" fill="none">
+              <path d="M16.278 22.158L15.7035 23.5425" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M19.722 22.158C20.268 21.9319 20.7642 21.6004 21.1821 21.1825C21.6001 20.7646 21.9316 20.2685 22.1578 19.7225C22.384 19.1765 22.5004 18.5913 22.5005 18.0003C22.5005 17.4093 22.3841 16.824 22.158 16.278C21.9319 15.732 21.6004 15.2358 21.1825 14.8179C20.7646 14.3999 20.2685 14.0684 19.7225 13.8422C19.1765 13.616 18.5913 13.4996 18.0003 13.4995C17.4093 13.4995 16.824 13.6159 16.278 13.842L15.7035 12.4575" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M19.722 13.842L20.2965 12.4575" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M20.295 23.544L19.722 22.158C19.176 22.3841 18.5907 22.5005 17.9997 22.5005C17.4087 22.5004 16.8235 22.384 16.2775 22.1578C15.7315 21.9316 15.2354 21.6001 14.8175 21.1821C14.3996 20.7642 14.0681 20.268 13.842 19.722C13.6159 19.176 13.4995 18.5907 13.4995 17.9997C13.4996 17.4087 13.616 16.8235 13.8422 16.2775C14.0684 15.7315 14.3999 15.2354 14.8179 14.8175C15.2358 14.3996 15.732 14.0681 16.278 13.842" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M22.158 16.278L23.5425 15.7035" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M22.158 19.722L23.5425 20.2965" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M6.75 15H6C5.20435 15 4.44129 14.6839 3.87868 14.1213C3.31607 13.5587 3 12.7956 3 12V6C3 5.20435 3.31607 4.44129 3.87868 3.87868C4.44129 3.31607 5.20435 3 6 3H30C30.7956 3 31.5587 3.31607 32.1213 3.87868C32.6839 4.44129 33 5.20435 33 6V12C33 12.7956 32.6839 13.5587 32.1213 14.1213C31.5587 14.6839 30.7956 15 30 15H29.25" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M6.75 21H6C5.20435 21 4.44129 21.3161 3.87868 21.8787C3.31607 22.4413 3 23.2044 3 24V30C3 30.7956 3.31607 31.5587 3.87868 32.1213C4.44129 32.6839 5.20435 33 6 33H30C30.7956 33 31.5587 32.6839 32.1213 32.1213C32.6839 31.5587 33 30.7956 33 30V24C33 23.2044 32.6839 22.4413 32.1213 21.8787C31.5587 21.3161 30.7956 21 30 21H29.25" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M9 27H9.015" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M9 9H9.015" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M13.842 16.278L12.4575 15.7035" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M13.842 19.722L12.4575 20.2965" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <div class="strategy-content">
+              <div class="strategy-label" id="currentStrategy">Fastest Ping</div>
+              <div class="strategy-description">Routing strategy.</div>
+            </div>
+            <svg class="nav-arrow" width="32" height="32" viewBox="0 0 36 36" fill="none">
+              <path d="M3 13.23C7.125 9.54 12.59 7.5 18 7.5C23.41 7.5 28.875 9.54 33 13.23" stroke="var(--colors-icons-iconMid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M32.067 24.939C32.664 24.342 33 23.53 33 22.686C33 21.842 32.664 21.03 32.067 20.433C31.47 19.836 30.658 19.5 29.814 19.5C28.97 19.5 28.158 19.836 27.561 20.433L21.546 26.451C21.19 26.807 20.928 27.248 20.787 27.733L19.531 32.037C19.494 32.167 19.492 32.304 19.525 32.435C19.558 32.566 19.626 32.682 19.72 32.776C19.814 32.87 19.93 32.938 20.061 32.971C20.192 33.004 20.329 33.002 20.459 32.965L24.766 31.712C25.251 31.571 25.692 31.309 26.048 30.953L32.067 24.939Z" stroke="var(--colors-icons-iconMid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M7.5 19.314C9.537 17.293 12.101 15.92 14.89 15.38C17.679 14.84 20.544 15.165 23.25 16.31" stroke="var(--colors-icons-iconMid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12.75 24.644C14.017 23.45 15.679 22.706 18.75 22.534" stroke="var(--colors-icons-iconMid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </section>
+
+        <!-- Current Verification Section 
+        <section class="current-verification-section">
+          <div class="verification-card">
+            <div class="verification-header">
+              <svg class="verification-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                <path d="M9 12l2 2 4-4"/>
+              </svg>
+              <div class="verification-content">
+                <div class="verification-label">Data Verification</div>
+                <div class="verification-name" id="currentVerification">Background Mode</div>
+              </div>
+              <button class="change-verification-btn" id="changeVerification">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 20h9"/>
+                  <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </section>-->
+
+        <!-- Navigation Section -->
+        <section class="navigation-section">
+          <div class="nav-cards">
+            <div class="nav-card" id="showGateways">
+              <svg class="nav-icon" width="32" height="32" viewBox="0 0 36 36" fill="none">
+                <path d="M30 3H6C4.34315 3 3 4.34315 3 6V12C3 13.6569 4.34315 15 6 15H30C31.6569 15 33 13.6569 33 12V6C33 4.34315 31.6569 3 30 3Z" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M30 21H6C4.34315 21 3 22.3431 3 24V30C3 31.6569 4.34315 33 6 33H30C31.6569 33 33 31.6569 33 30V24C33 22.3431 31.6569 21 30 21Z" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M9 9H9.015" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M9 27H9.015" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <div class="nav-content">
+                <h3>Gateways</h3>
+                <p>View networked gateway details.</p>
+              </div>
+              <svg class="nav-arrow" width="32" height="32" viewBox="0 0 36 36" fill="none">
+                <path d="M13.5 27L22.5 18L13.5 9" stroke="var(--colors-icons-iconMid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+
+            <div class="nav-card" id="showHistory">
+              <svg class="nav-icon" width="32" height="32" viewBox="0 0 36 36" fill="none">
+                <path d="M4.5 4.5V28.5C4.5 29.2956 4.81607 30.0587 5.37868 30.6213C5.94129 31.1839 6.70435 31.5 7.5 31.5H31.5" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M27 25.5V13.5" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M19.5 25.5V7.5" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M12 25.5V21" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <div class="nav-content">
+                <h3>Performance & Usage</h3>
+                <p>View performance analytics.</p>
+              </div>
+              <svg class="nav-arrow" width="32" height="32" viewBox="0 0 36 36" fill="none">
+                <path d="M13.5 27L22.5 18L13.5 9" stroke="var(--colors-icons-iconMid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+
+            <div class="nav-card" id="showSettings">
+              <svg class="nav-icon" width="32" height="32" viewBox="0 0 36 36" fill="none">
+                <path d="M18.33 3H17.67C16.8744 3 16.1113 3.31607 15.5487 3.87868C14.9861 4.44129 14.67 5.20435 14.67 6V6.27C14.6695 6.79609 14.5306 7.31278 14.2673 7.76826C14.004 8.22373 13.6256 8.60196 13.17 8.865L12.525 9.24C12.0689 9.5033 11.5516 9.64192 11.025 9.64192C10.4984 9.64192 9.98106 9.5033 9.525 9.24L9.3 9.12C8.6116 8.72289 7.79376 8.61517 7.026 8.82046C6.25825 9.02576 5.60333 9.5273 5.205 10.215L4.875 10.785C4.47789 11.4734 4.37017 12.2912 4.57546 13.059C4.78076 13.8268 5.2823 14.4817 5.97 14.88L6.195 15.03C6.64841 15.2918 7.02543 15.6676 7.28858 16.1202C7.55172 16.5729 7.69184 17.0865 7.695 17.61V18.375C7.6971 18.9036 7.55948 19.4234 7.29607 19.8818C7.03266 20.3401 6.65281 20.7207 6.195 20.985L5.97 21.12C5.2823 21.5183 4.78076 22.1732 4.57546 22.941C4.37017 23.7088 4.47789 24.5266 4.875 25.215L5.205 25.785C5.60333 26.4727 6.25825 26.9742 7.026 27.1795C7.79376 27.3848 8.6116 27.2771 9.3 26.88L9.525 26.76C9.98106 26.4967 10.4984 26.3581 11.025 26.3581C11.5516 26.3581 12.0689 26.4967 12.525 26.76L13.17 27.135C13.6256 27.398 14.004 27.7763 14.2673 28.2317C14.5306 28.6872 14.6695 29.2039 14.67 29.73V30C14.67 30.7956 14.9861 31.5587 15.5487 32.1213C16.1113 32.6839 16.8744 33 17.67 33H18.33C19.1256 33 19.8887 32.6839 20.4513 32.1213C21.0139 31.5587 21.33 30.7956 21.33 30V29.73C21.3305 29.2039 21.4694 28.6872 21.7327 28.2317C21.996 27.7763 22.3744 27.398 22.83 27.135L23.475 26.76C23.9311 26.4967 24.4484 26.3581 24.975 26.3581C25.5016 26.3581 26.0189 26.4967 26.475 26.76L26.7 26.88C27.3884 27.2771 28.2062 27.3848 28.974 27.1795C29.7417 26.9742 30.3967 26.4727 30.795 25.785L31.125 25.2C31.5221 24.5116 31.6298 23.6938 31.4245 22.926C31.2192 22.1582 30.7177 21.5033 30.03 21.105L29.805 20.985C29.3472 20.7207 28.9673 20.3401 28.7039 19.8818C28.4405 19.4234 28.3029 18.9036 28.305 18.375V17.625C28.3029 17.0964 28.4405 16.5766 28.7039 16.1182C28.9673 15.6599 29.3472 15.2793 29.805 15.015L30.03 14.88C30.7177 14.4817 31.2192 13.8268 31.4245 13.059C31.6298 12.2912 31.5221 11.4734 31.125 10.785L30.795 10.215C30.3967 9.5273 29.7417 9.02576 28.974 8.82046C28.2062 8.61517 27.3884 8.72289 26.7 9.12L26.475 9.24C26.0189 9.5033 25.5016 9.64192 24.975 9.64192C24.4484 9.64192 23.9311 9.5033 23.475 9.24L22.83 8.865C22.3744 8.60196 21.996 8.22373 21.7327 7.76826C21.4694 7.31278 21.3305 6.79609 21.33 6.27V6C21.33 5.20435 21.0139 4.44129 20.4513 3.87868C19.8887 3.31607 19.1256 3 18.33 3Z" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M18 22.5C20.4853 22.5 22.5 20.4853 22.5 18C22.5 15.5147 20.4853 13.5 18 13.5C15.5147 13.5 13.5 15.5147 13.5 18C13.5 20.4853 15.5147 22.5 18 22.5Z" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <div class="nav-content">
+                <h3>Settings</h3>
+                <p>Configure preferences.</p>
+              </div>
+              <svg class="nav-arrow" width="32" height="32" viewBox="0 0 36 36" fill="none">
+                <path d="M13.5 27L22.5 18L13.5 9" stroke="var(--colors-icons-iconMid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+          </div>
+        </section>
+
+
+      </main>
+
+      <!-- Footer -->
+      <footer class="popup-footer">
+        <div class="footer-content">
+          <div class="footer-links">
+            <a href="https://github.com/ar-io/wayfinder" target="_blank" title="View source code" class="footer-link">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <path d="M11.25 16.5V13.5C11.3543 12.5605 11.0849 11.6176 10.5 10.875C12.75 10.875 15 9.375 15 6.75C15.06 5.8125 14.7975 4.89 14.25 4.125C14.46 3.2625 14.46 2.3625 14.25 1.5C14.25 1.5 13.5 1.5 12 2.625C10.02 2.25 7.98 2.25 6 2.625C4.5 1.5 3.75 1.5 3.75 1.5C3.525 2.3625 3.525 3.2625 3.75 4.125C3.20391 4.88691 2.93885 5.81459 3 6.75C3 9.375 5.25 10.875 7.5 10.875C7.2075 11.2425 6.99 11.6625 6.8625 12.1125C6.735 12.5625 6.6975 13.035 6.75 13.5V16.5" stroke="var(--colors-icons-iconLow)" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M6.75 13.5C3.3675 15 3 12 1.5 12" stroke="var(--colors-icons-iconLow)" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+            <a href="https://discord.gg/zAZ8p9ARqC" target="_blank" title="Join our Discord" class="footer-link">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <path d="M7.75 2.43768H9.76971C9.91219 2.43768 10.0424 2.35693 10.1057 2.22928L10.6143 1.2035C10.6916 1.04772 10.8649 0.965904 11.0321 1.01384C11.5236 1.1548 12.5552 1.49486 13.3782 2.06268C16.2761 4.2356 16.0059 9.10495 15.9839 10.1334C15.9826 10.1961 15.9666 10.258 15.9356 10.3126C14.4483 12.9377 11.8683 12.9377 11.8683 12.9377L10.9936 11.118M9.25 2.43768H7.23395C7.09177 2.43768 6.96182 2.35727 6.89837 2.23004L6.38595 1.20258C6.30849 1.04726 6.13541 0.965813 5.96857 1.01365C5.47734 1.15449 4.44519 1.49461 3.62182 2.06268C0.723852 4.2356 0.994133 9.10495 1.01605 10.1334C1.01739 10.1961 1.03342 10.258 1.06437 10.3126C2.5517 12.9377 5.13173 12.9377 5.13173 12.9377L6.0092 11.1177M4.75096 10.6877C5.20071 10.8563 5.61675 10.9996 6.0092 11.1177M12.2529 10.6877C11.8027 10.8564 11.3863 10.9999 10.9936 11.118M6.0092 11.1177C7.84238 11.6692 9.1606 11.6693 10.9936 11.118M7.00154 6.93768C7.00154 7.35189 6.66567 7.68768 6.25135 7.68768C5.83703 7.68768 5.50115 7.35189 5.50115 6.93768C5.50115 6.52346 5.83703 6.18768 6.25135 6.18768C6.66567 6.18768 7.00154 6.52346 7.00154 6.93768ZM11.5027 6.93768C11.5027 7.35189 11.1668 7.68768 10.7525 7.68768C10.3382 7.68768 10.0023 7.35189 10.0023 6.93768C10.0023 6.52346 10.3382 6.18768 10.7525 6.18768C11.1668 6.18768 11.5027 6.52346 11.5027 6.93768Z" stroke="var(--colors-icons-iconLow)" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+            <a href="https://ar.io" target="_blank" title="AR.IO Network" class="footer-link">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <circle cx="9" cy="9" r="7.5" stroke="var(--colors-icons-iconLow)" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M9 1.5C7.07418 3.52212 6 6.20756 6 9C6 11.7924 7.07418 14.4779 9 16.5C10.9258 14.4779 12 11.7924 12 9C12 6.20756 10.9258 3.52212 9 1.5Z" stroke="var(--colors-icons-iconLow)" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M1.5 9H16.5" stroke="var(--colors-icons-iconLow)" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+          </div>
+          <div class="version-info" id="extensionVersion"></div>
+        </div>
+      </footer>
     </div>
-    <div id="gatewayAddressRegistrySection">
-      <h2 id="gatewayListTitle" style="display: none">
-        Gateway Address Registry
-      </h2>
-      <div id="gatewayListHeader" style="display: none">
-        <span class="active-gateways"
-          >Active: <span id="activeGatewayCount">0</span></span
-        >
-        <span class="total-gateways"
-          >Total: <span id="totalGatewayCount">0</span></span
-        >
-        <span class="refresh-gateways"
-          ><span id="refreshGateways"
-            ><a
-              href="#"
-              id="refreshIcon"
-              title="Refresh the gateway address registry"
-              >↺</a
-            ></span
-          ></span
-        >
-      </div>
-      <ul id="gatewayList" style="display: none">
-        <li class="gateway-header">
-          <span class="gateway-url">Gateway</span>
-          <span class="online-status">Status</span>
-          <span class="response-time">Response Time</span>
-        </li>
-      </ul>
-    </div>
-    <h2 id="historyListTitle" style="display: none">Usage History</h2>
-    <ul id="historyList" style="display: none"></ul>
-    <h2 id="settingsListTitle" style="display: none">Settings</h2>
-    <ul id="settingsList" style="display: none"></ul>
-    <div id="settingsSection" style="display: none">
-      <div class="setting">
-        <label for="themeToggle" title="Switch between light and dark themes."
-          >Theme:</label
-        >
-        <select id="themeToggle">
-          <option value="dark">Dark Mode</option>
-          <option value="light">Light Mode</option>
-        </select>
-      </div>
-      <div class="setting">
-        <label for="ensResolutionToggle" title="Enable or disable experimental ENS name resolution.">
-          Experimental ENS Resolution:
-        </label>
-        <label class="switch">
-          <input type="checkbox" id="ensResolutionToggle">
-          <span class="slider round"></span>
-        </label>
-      </div>
-      
-      <div class="setting">
-        <label
-          for="routingToggle"
-          title="Switch the ar:// routing protocol Wayfinder uses."
-          >Routing Method:</label
-        >
-        <select id="routingToggle">
-          <option
-            value="optimalGateway"
-            title="Route to the most optimal gateway based on onchain and offchain performance indicators."
-          >
-            Most Optimal Gateway
-          </option>
-          <option
-            value="topFiveStake"
-            title="Route to one of the top 5 staked gateways."
-          >
-            Random Top 5 Stake
-          </option>
-          <option
-            value="weightedOnchainPerformance"
-            title="Route to a gateway based on its onchain performance."
-          >
-            Weighted Onchain Performance
-          </option>
-          <option
-            value="stakeRandom"
-            title="Route to gateways based on a weighted list by stake."
-          >
-            Stake-weighted Random
-          </option>
-          <option
-            value="highestStake"
-            title="Route to the gateway with the highest stake."
-          >
-            Highest Stake
-          </option>
-          <option value="random" title="Route to a random gateway.">
-            Random
-          </option>
-        </select>
-      </div>
-      <div class="setting">
-        <label
-          for="staticGateway"
-          title="Route all ar:// requests to a single, static gateway"
-          >Static Gateway:</label
-        >
-        <input
-          type="text"
-          id="staticGateway"
-          placeholder="e.g. https://ar-io.dev"
-        />
-        <button id="saveStaticGateway">✔</button>
-      </div>
-      <div class="setting">
-        <label
-          for="arIOProcessId"
-          title="Configure a different AR.IO Process ID for the Gateway Address Registry."
-          >AR.IO Process ID:</label
-        >
-        <input
-          type="text"
-          id="arIOProcessId"
-          placeholder="e.g. agYcCFJtrMG6cqMuZfskIkFTGvUPddICmtQSBIoPdiA"
-        />
-        <button id="saveArIOProcessId">✔</button>
-      </div>
-      <div class="setting">
-        <label
-          for="aoCuUrl"
-          title="Configure a different AO Compute Unit URL that serves as the source for the Gateway Address Registry."
-          >AO CU Url:</label
-        >
-        <input
-          type="text"
-          id="aoCuUrl"
-          placeholder="e.g. https://cu.ardrive.io"
-        />
-        <button id="saveAoCuUrl">✔</button>
-      </div>
-    </div>
-    <button id="showGateways">Gateway Address Registry</button>
-    <button id="showHistory">Usage History</button>
-    <button id="showSettings">Settings</button>
-    <div id="gatewayModal" class="modal">
-      <div class="modal-content">
-        <span class="close-btn" tabindex="0" title="Close">&times;</span>
-        <h2>Gateway Details</h2>
-        <p title="The root domain of this gateway.  Click to view details.">
-          <strong
-            ><a id="modal-gateway-url" href="#" target="_blank"
-              >url...</a
-            ></strong
-          >
-        </p>
-        <p
-          title="The unique wallet address of the gateway. Click to view details on from Viewblock."
-        >
-          <strong>Gateway Address:</strong>
-          <a id="modal-gateway-wallet" href="#" target="_blank"
-            >shortened_address...</a
-          >
-        </p>
-        <p
-          title="The amount of stake committed by this gateway. This indicates the gateway's vested interest in the network."
-        >
-          <strong>Total Stake:</strong>
-          <span id="modal-total-stake">placeholder_stake_value</span>
-        </p>
-        <p
-        title="The average response time for this gateway."
-      >
-        <strong>Avg Response Time:</strong>
-        <span id="modal-gateway-avg-response-time">placeholder_gateway_average_response_time</span>
-      </p>
-        <p title="When this gateway joined the network.">
-          <strong>Joined Since:</strong>
-          <span id="modal-start">placeholder_start_date</span>
-        </p>
-        <p title="A note from the gateway operator." id="modal-note">
-          placeholder_note
-        </p>
-        <p title="Find more information about this gateway from the AR.IO Network App."
-        >
-        <strong>
-        <a id="modal-gateway-more-info" href="#" target="_blank"
-          >more_info_link...</a
-        ></strong>
-        </p>
-        <button id="blacklistButton">Blacklist Gateway</button>
-      </div>
-    </div>
-    <footer>
-      <a
-        href="https://discord.gg/zAZ8p9ARqC"
-        target="_blank"
-        id="discordLink"
-        title="Join the community discussion"
-        >Discord</a
-      >
-      <a
-        href="https://github.com/ar-io/wayfinder"
-        target="_blank"
-        id="githubLink"
-        title="Wayfinder Source Code"
-        >Github</a
-      >
-      <a
-        href="https://github.com/ar-io/ar-io-network-process"
-        target="_blank"
-        id="contractCodeLink"
-        title="AR.IO Network Testnet AO Process"
-        >Network</a
-      >
-    </footer>
+
+    <!-- Toast Notifications -->
+    <div id="toastContainer" class="toast-container"></div>
   </body>
 </html>

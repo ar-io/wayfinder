@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wayfinder Performance & Usage</title>
+    <!-- AR.IO Brand Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&family=Albert+Sans:wght@400;600&family=DM+Sans:wght@400;500&family=JetBrains+Mono:wght@400;500&family=Rubik:wght@300;400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="assets/css/variables.css" />
+    <link rel="stylesheet" href="assets/css/performance.css" />
+    <link rel="stylesheet" href="assets/css/gateways-enhanced.css" />
+    <script type="module" src="performance.js"></script>
+  </head>
+  <body>
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+    
+    <div class="performance-container">
+      <!-- Header -->
+      <header class="performance-header">
+        <div class="header-content">
+          <div class="header-left">
+            <button class="back-button" id="backToMain">
+              <svg width="32" height="32" viewBox="0 0 36 36" fill="none">
+                <path d="M21.75 27L13.5 18.75L21.75 10.5" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <div class="header-title">
+              <h1>Performance & Usage</h1>
+              <p>View performance analytics</p>
+            </div>
+          </div>
+        </div>
+        
+      </header>
+
+      <!-- Main Content -->
+      <main class="performance-content">
+
+        <!-- Time Filter -->
+      <section class="filter-section">
+        <div class="time-filter">
+          <button class="filter-btn active" data-period="today">Today</button>
+          <button class="filter-btn" data-period="week">7 Days</button>
+          <button class="filter-btn" data-period="month">30 Days</button>
+          <button class="filter-btn" data-period="all">All Time</button>
+        </div>
+        
+        <div class="sort-options">
+          <label for="sortBy">Sort by:</label>
+          <select id="sortBy" class="sort-select">
+            <option value="requests">Most Used</option>
+            <option value="recent">Most Recent</option>
+            <option value="performance">Best Performance</option>
+            <option value="success">Success Rate</option>
+          </select>
+        </div>
+      </section>
+
+        <!-- Summary Stats -->
+        <section class="stats-section">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-content">
+                <div class="stat-value" id="totalRequests">0</div>
+                <div class="stat-label">Total Requests</div>
+                <div class="stat-sublabel">All resources</div>
+              </div>
+            </div>
+            
+            <div class="stat-card">
+              <div class="stat-content">
+                <div class="stat-value" id="uniqueGateways">0</div>
+                <div class="stat-label">Gateways Used</div>
+                <div class="stat-sublabel">Unique</div>
+              </div>
+            </div>
+            
+            <div class="stat-card">
+              <div class="stat-content">
+                <div class="stat-value" id="avgResponseTime">--</div>
+                <div class="stat-label">Avg Response</div>
+                <div class="stat-sublabel">Time (ms)</div>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-content">
+                <div class="stat-value" id="topGateway">--</div>
+                <div class="stat-label">Top Gateway</div>
+                <div class="stat-sublabel">Most used</div>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-content">
+                <div class="stat-value" id="requestsToday">0</div>
+                <div class="stat-label">Pages Today</div>
+                <div class="stat-sublabel">ar:// navigations</div>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-content">
+                <div class="stat-value" id="successRate">--</div>
+                <div class="stat-label">Success Rate</div>
+                <div class="stat-sublabel">All requests</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Removed: Verification Performance Section - verification features removed -->
+
+        <!-- Gateway Usage List -->
+        <section class="usage-section">
+          <div class="section-header">
+            <h2>Gateway Usage</h2>
+            <p id="periodLabel">Showing usage for today</p>
+            <p id="dataRange" style="font-size: 12px; color: var(--colors-text-textLow); margin-top: 4px;"></p>
+          </div>
+          
+          <div class="gateway-usage-list" id="gatewayUsageList">
+            <!-- Gateway usage cards will be populated here -->
+          </div>
+          
+          <div class="empty-state" id="emptyState" style="display: none;">
+            <svg class="empty-icon" width="48" height="48" viewBox="0 0 36 36" fill="none" stroke="var(--colors-icons-iconMid)" stroke-width="2" opacity="0.5">
+              <rect x="4.5" y="6" width="27" height="27" rx="3" ry="3"/>
+              <path d="M24 3v6M12 3v6M4.5 15h27"/>
+            </svg>
+            <h3>No History Found</h3>
+            <p>Start browsing ar:// links to see gateway usage statistics.</p>
+          </div>
+          
+          <div class="loading-state" id="loadingState" style="display: none;">
+            <div class="loading-spinner"></div>
+            <p>Loading history...</p>
+          </div>
+        </section>
+
+        <!-- Removed: Action Cards Section - data management moved to Settings page -->
+
+      </main>
+
+      <!-- Footer -->
+      <footer class="performance-footer">
+        <div class="footer-content">
+          <div class="footer-links">
+            <a href="https://github.com/ar-io/wayfinder" target="_blank" title="View source code" class="footer-link">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <path d="M11.25 16.5V13.5C11.3543 12.5605 11.0849 11.6176 10.5 10.875C12.75 10.875 15 9.375 15 6.75C15.06 5.8125 14.7975 4.89 14.25 4.125C14.46 3.2625 14.46 2.3625 14.25 1.5C14.25 1.5 13.5 1.5 12 2.625C10.02 2.25 7.98 2.25 6 2.625C4.5 1.5 3.75 1.5 3.75 1.5C3.525 2.3625 3.525 3.2625 3.75 4.125C3.20391 4.88691 2.93885 5.81459 3 6.75C3 9.375 5.25 10.875 7.5 10.875C7.2075 11.2425 6.99 11.6625 6.8625 12.1125C6.735 12.5625 6.6975 13.035 6.75 13.5V16.5" stroke="var(--colors-icons-iconLow)" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M6.75 13.5C3.3675 15 3 12 1.5 12" stroke="var(--colors-icons-iconLow)" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+            <a href="https://discord.gg/zAZ8p9ARqC" target="_blank" title="Join our Discord" class="footer-link">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <path d="M7.75 2.43768H9.76971C9.91219 2.43768 10.0424 2.35693 10.1057 2.22928L10.6143 1.2035C10.6916 1.04772 10.8649 0.965904 11.0321 1.01384C11.5236 1.1548 12.5552 1.49486 13.3782 2.06268C16.2761 4.2356 16.0059 9.10495 15.9839 10.1334C15.9826 10.1961 15.9666 10.258 15.9356 10.3126C14.4483 12.9377 11.8683 12.9377 11.8683 12.9377L10.9936 11.118M9.25 2.43768H7.23395C7.09177 2.43768 6.96182 2.35727 6.89837 2.23004L6.38595 1.20258C6.30849 1.04726 6.13541 0.965813 5.96857 1.01365C5.47734 1.15449 4.44519 1.49461 3.62182 2.06268C0.723852 4.2356 0.994133 9.10495 1.01605 10.1334C1.01739 10.1961 1.03342 10.258 1.06437 10.3126C2.5517 12.9377 5.13173 12.9377 5.13173 12.9377L6.0092 11.1177M4.75096 10.6877C5.20071 10.8563 5.61675 10.9996 6.0092 11.1177M12.2529 10.6877C11.8027 10.8564 11.3863 10.9999 10.9936 11.118M6.0092 11.1177C7.84238 11.6692 9.1606 11.6693 10.9936 11.118M7.00154 6.93768C7.00154 7.35189 6.66567 7.68768 6.25135 7.68768C5.83703 7.68768 5.50115 7.35189 5.50115 6.93768C5.50115 6.52346 5.83703 6.18768 6.25135 6.18768C6.66567 6.18768 7.00154 6.52346 7.00154 6.93768ZM11.5027 6.93768C11.5027 7.35189 11.1668 7.68768 10.7525 7.68768C10.3382 7.68768 10.0023 7.35189 10.0023 6.93768C10.0023 6.52346 10.3382 6.18768 10.7525 6.18768C11.1668 6.18768 11.5027 6.52346 11.5027 6.93768Z" stroke="var(--colors-icons-iconLow)" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+            <a href="https://ar.io" target="_blank" title="AR.IO Network" class="footer-link">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <circle cx="9" cy="9" r="7.5" stroke="var(--colors-icons-iconLow)" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M9 1.5C7.07418 3.52212 6 6.20756 6 9C6 11.7924 7.07418 14.4779 9 16.5C10.9258 14.4779 12 11.7924 12 9C12 6.20756 10.9258 3.52212 9 1.5Z" stroke="var(--colors-icons-iconLow)" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M1.5 9H16.5" stroke="var(--colors-icons-iconLow)" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+          </div>
+          <div class="version-info" id="extensionVersion">v0.1.0</div>
+        </div>
+      </footer>
+    </div>
+  </body>
+</html>

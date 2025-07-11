@@ -165,6 +165,11 @@ async function main() {
       },
     });
 
+    // an example resolve url
+    await wayfinder.resolveUrl({
+      txId,
+    });
+
     // Request the transaction data using the ar:// protocol
     const response = await wayfinder.request(`ar://${txId}`);
 

@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wayfinder Settings</title>
+    <!-- AR.IO Brand Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&family=Albert+Sans:wght@400;600&family=DM+Sans:wght@400;500&family=JetBrains+Mono:wght@400;500&family=Rubik:wght@300;400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="assets/css/variables.css" />
+    <link rel="stylesheet" href="assets/css/settings.css" />
+    <link rel="stylesheet" href="assets/css/gateways-enhanced.css" />
+    <script type="module" src="settings.js"></script>
+  </head>
+  <body>
+    <!-- Toast Container -->
+    <div id="toastContainer" class="toast-container"></div>
+    
+    <div class="settings-container">
+      <!-- Header -->
+      <header class="settings-header">
+        <div class="header-content">
+          <div class="header-left">
+            <button class="back-button" id="backToMain">
+              <svg width="32" height="32" viewBox="0 0 36 36" fill="none">
+                <path d="M21.75 27L13.5 18.75L21.75 10.5" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <div class="header-title">
+              <h1>Settings</h1>
+              <p>Configure preferences</p>
+            </div>
+        </div>
+      </header>
+
+      <!-- Settings Content -->
+      <main class="settings-content">
+     
+        <!-- Routing Configuration -->
+        <section class="settings-section routing-config" id="routing">
+          <div class="section-header">
+            <h2>Routing Strategy</h2>
+            <p>Gateway selection method</p>
+          </div>
+          
+          <div class="routing-strategy-selector">
+            <div class="strategy-option" data-strategy="fastestPing">
+              <div class="strategy-header">
+                <input type="radio" name="routingStrategy" value="fastestPing" id="fastestPing">
+                <label for="fastestPing">
+                  <div class="strategy-icon">
+                    <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+                      <path d="M19.5 3L4.5 21h13.5l-1.5 12L31.5 15h-13.5L19.5 3z" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </div>
+                  <div class="strategy-info">
+                    <h3>Fastest Ping</h3>
+                    <p>Select gateway based on lowest latency response</p>
+                  </div>
+                </label>
+              </div>
+              <div class="strategy-details">
+                <div class="feature-list">
+                  <div class="feature">Parallel ping testing</div>
+                  <div class="feature">Sub-second gateway selection</div>
+                  <div class="feature">Optimal for performance</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="strategy-option" data-strategy="random">
+              <div class="strategy-header">
+                <input type="radio" name="routingStrategy" value="random" id="random">
+                <label for="random">
+                  <div class="strategy-icon">
+                    <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+                      <rect x="4.5" y="4.5" width="27" height="27" rx="3" ry="3" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M24 12h.015M18 18h.015M12 24h.015" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </div>
+                  <div class="strategy-info">
+                    <h3>Balanced</h3>
+                    <p>Distribute load evenly across gateways</p>
+                  </div>
+                  <div class="strategy-badge recommended">Recommended</div>
+                </label>
+              </div>
+              <div class="strategy-details">
+                <div class="feature-list">
+                  <div class="feature">Optimized load distribution</div>
+                  <div class="feature">Network resilience</div>
+                  <div class="feature">Prevents gateway overload</div>
+                  <div class="feature">Supports decentralization</div>
+                </div>
+              </div>
+            </div>
+
+
+            <div class="strategy-option" data-strategy="static">
+              <div class="strategy-header">
+                <input type="radio" name="routingStrategy" value="static" id="static">
+                <label for="static">
+                  <div class="strategy-icon"><svg width="36" height="36" viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg></div>
+                  <div class="strategy-info">
+                    <h3>Static Gateway</h3>
+                    <p>Always use a specific gateway</p>
+                  </div>
+                </label>
+              </div>
+              <div class="strategy-details">
+                <div class="static-gateway-config">
+                  <div class="gateway-selector-container">
+                    <div class="gateway-quick-select">
+                      <label for="gatewayDropdown" class="select-label">Quick Select</label>
+                      <div class="select-wrapper">
+                        <select id="gatewayDropdown" class="gateway-dropdown">
+                          <option value="">Loading available gateways...</option>
+                        </select>
+                        <svg class="select-arrow" width="18" height="18" viewBox="0 0 36 36" fill="none">
+                          <path d="M9 13.5L18 22.5L27 13.5" stroke="var(--colors-icons-iconMid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                      </div>
+                    </div>
+                    
+                    <div class="gateway-divider">
+                      <span>or</span>
+                    </div>
+                    
+                    <div class="gateway-custom-input">
+                      <label for="staticGatewayUrl" class="input-label">Custom Gateway URL</label>
+                      <div class="input-with-button">
+                        <input type="url" id="staticGatewayUrl" placeholder="Enter custom gateway URL..." />
+                        <button class="test-button" id="testStaticGateway" disabled>Test</button>
+                      </div>
+                    </div>
+                    
+                    <div class="apply-static-gateway" id="applyStaticGatewayContainer" style="display: none;">
+                      <button class="btn btn-primary" id="applyStaticGateway">
+                        Apply Static Gateway
+                      </button>
+                      <p class="apply-hint">Gateway tested successfully. Click to apply this configuration.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Removed: Verified Browsing Settings and Verification Strategy - verification features removed -->
+
+        <!-- Theme Settings -->
+        <section class="settings-section theme-config" id="theme">
+          <div class="section-header">
+            <h2>Theme</h2>
+            <p>Choose your preferred appearance</p>
+          </div>
+          
+          <div class="theme-selector">
+            <div class="theme-option" data-theme="light">
+              <div class="theme-header">
+                <input type="radio" name="theme" value="light" id="lightTheme">
+                <label for="lightTheme">
+                  <div class="theme-icon">
+                    <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+                      <circle cx="18" cy="18" r="7.5" stroke="var(--colors-icons-iconHigh)" stroke-width="2"/>
+                      <path d="M18 1.5v3M18 31.5v3M6.705 6.705l2.12 2.12M27.175 27.175l2.12 2.12M1.5 18h3M31.5 18h3M6.705 29.295l2.12-2.12M27.175 8.825l2.12-2.12" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </div>
+                  <div class="theme-info">
+                    <h3>Light</h3>
+                    <p>Bright and clean interface</p>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div class="theme-option" data-theme="dark">
+              <div class="theme-header">
+                <input type="radio" name="theme" value="dark" id="darkTheme" checked>
+                <label for="darkTheme">
+                  <div class="theme-icon">
+                    <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+                      <path d="M31.5 18.795A13.5 13.5 0 1 1 16.815 4.5 10.5 10.5 0 0 0 31.5 18.795z" stroke="var(--colors-icons-iconHigh)" stroke-width="2"/>
+                    </svg>
+                  </div>
+                  <div class="theme-info">
+                    <h3>Dark</h3>
+                    <p>Reduced eye strain for low-light</p>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div class="theme-option" data-theme="system">
+              <div class="theme-header">
+                <input type="radio" name="theme" value="system" id="systemTheme">
+                <label for="systemTheme">
+                  <div class="theme-icon">
+                    <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+                      <rect x="4.5" y="7.5" width="27" height="18" rx="3" ry="3" stroke="var(--colors-icons-iconHigh)" stroke-width="2"/>
+                      <path d="M13.5 31.5h9" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M16.5 25.5v6M19.5 25.5v6" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </div>
+                  <div class="theme-info">
+                    <h3>System</h3>
+                    <p>Match your device settings</p>
+                  </div>
+                </label>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- Network Configuration -->
+        <section class="settings-section network-config" id="networkConfig">
+          <div class="section-header">
+            <h2>Network Configuration</h2>
+            <p>Configure network endpoints and identifiers</p>
+          </div>
+          
+          <div class="network-options">
+            <!-- AR.IO Process ID -->
+            <div class="network-option">
+              <div class="option-header">
+                <div class="option-info">
+                  <h3>AR.IO Process ID</h3>
+                  <p>Process identifier for AR.IO network interactions</p>
+                </div>
+              </div>
+              <div class="option-input">
+                <input type="text" id="processId" placeholder="Enter AR.IO Process ID..." />
+                <button class="test-button" id="testProcessId" disabled>Test</button>
+              </div>
+            </div>
+
+            <!-- AO Compute Unit URL -->
+            <div class="network-option">
+              <div class="option-header">
+                <div class="option-info">
+                  <h3>AO Compute Unit URL</h3>
+                  <p>URL for AO compute unit interactions</p>
+                </div>
+              </div>
+              <div class="option-input">
+                <input type="url" id="aoCuUrl" placeholder="Enter AO Compute Unit URL..." />
+                <button class="test-button" id="testAoCuUrl" disabled>Test</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Advanced Settings -->
+        <section class="settings-section advanced-config" id="advancedSettings">
+          <div class="section-header">
+            <h2>Advanced Settings</h2>
+            <p>Additional configuration options</p>
+          </div>
+          
+          <div class="advanced-options">
+            <!-- Verification Toasts -->
+            <div class="advanced-option">
+              <div class="option-header">
+                <div class="option-info">
+                  <h3>Verification Toasts</h3>
+                  <p>Show toast notifications when content is remotely verified</p>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="showVerificationToasts" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="option-description">
+                <p>When enabled, displays brief notifications when content has been remotely verified by AR.IO gateways. Helps you identify verified content while browsing.</p>
+              </div>
+            </div>
+
+            <!-- Telemetry -->
+            <div class="advanced-option">
+              <div class="option-header">
+                <div class="option-info">
+                  <h3>Anonymous Telemetry</h3>
+                  <p>Help improve Wayfinder by sharing anonymous usage data</p>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="telemetryToggle">
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="option-description" id="telemetryDetails">
+                <p>When enabled, 10% of routing requests will include anonymous performance metrics to help improve gateway selection algorithms. No personal data or browsing history is collected.</p>
+                <div class="telemetry-info">
+                  <div class="info-item">
+                    <svg width="14" height="14" viewBox="0 0 36 36" fill="none">
+                      <path d="M27 13.5L15 25.5L9 19.5" stroke="var(--colors-success-successHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>Completely anonymous</span>
+                  </div>
+                  <div class="info-item">
+                    <svg width="14" height="14" viewBox="0 0 36 36" fill="none">
+                      <path d="M27 13.5L15 25.5L9 19.5" stroke="var(--colors-success-successHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>Improves routing performance</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Data Management -->
+        <section class="settings-section data-management danger-section" id="dataManagement">
+          <div class="section-header">
+            <h2>Data Management</h2>
+            <p>Manage extension data and cache</p>
+          </div>
+          
+          <div class="data-actions">
+            <div class="action-item">
+              <div class="action-info">
+                <h3>Clear Cache</h3>
+                <p>Remove gateway performance data and usage history</p>
+              </div>
+              <button class="secondary-button" id="clearCache">Clear Cache</button>
+            </div>
+            
+            <div class="action-item danger">
+              <div class="action-info">
+                <h3>Factory Reset</h3>
+                <p>Reset entire extension to original state (deletes all data)</p>
+              </div>
+              <button class="danger-button" id="resetExtension">Factory Reset</button>
+            </div>
+          </div>
+        </section>
+
+      </main>
+
+      <!-- Footer -->
+      <footer class="settings-footer">
+        <div class="footer-content">
+          <div class="footer-links">
+            <a href="https://github.com/ar-io/wayfinder" target="_blank" title="View source code" class="footer-link">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <path d="M11.25 16.5V13.5C11.3543 12.5605 11.0849 11.6176 10.5 10.875C12.75 10.875 15 9.375 15 6.75C15.06 5.8125 14.7975 4.89 14.25 4.125C14.46 3.2625 14.46 2.3625 14.25 1.5C14.25 1.5 13.5 1.5 12 2.625C10.02 2.25 7.98 2.25 6 2.625C4.5 1.5 3.75 1.5 3.75 1.5C3.525 2.3625 3.525 3.2625 3.75 4.125C3.20391 4.88691 2.93885 5.81459 3 6.75C3 9.375 5.25 10.875 7.5 10.875C7.2075 11.2425 6.99 11.6625 6.8625 12.1125C6.735 12.5625 6.6975 13.035 6.75 13.5V16.5" stroke="var(--colors-icons-iconLow)" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M6.75 13.5C3.3675 15 3 12 1.5 12" stroke="var(--colors-icons-iconLow)" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+            <a href="https://discord.gg/zAZ8p9ARqC" target="_blank" title="Join our Discord" class="footer-link">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <path d="M7.75 2.43768H9.76971C9.91219 2.43768 10.0424 2.35693 10.1057 2.22928L10.6143 1.2035C10.6916 1.04772 10.8649 0.965904 11.0321 1.01384C11.5236 1.1548 12.5552 1.49486 13.3782 2.06268C16.2761 4.2356 16.0059 9.10495 15.9839 10.1334C15.9826 10.1961 15.9666 10.258 15.9356 10.3126C14.4483 12.9377 11.8683 12.9377 11.8683 12.9377L10.9936 11.118M9.25 2.43768H7.23395C7.09177 2.43768 6.96182 2.35727 6.89837 2.23004L6.38595 1.20258C6.30849 1.04726 6.13541 0.965813 5.96857 1.01365C5.47734 1.15449 4.44519 1.49461 3.62182 2.06268C0.723852 4.2356 0.994133 9.10495 1.01605 10.1334C1.01739 10.1961 1.03342 10.258 1.06437 10.3126C2.5517 12.9377 5.13173 12.9377 5.13173 12.9377L6.0092 11.1177M4.75096 10.6877C5.20071 10.8563 5.61675 10.9996 6.0092 11.1177M12.2529 10.6877C11.8027 10.8564 11.3863 10.9999 10.9936 11.118M6.0092 11.1177C7.84238 11.6692 9.1606 11.6693 10.9936 11.118M7.00154 6.93768C7.00154 7.35189 6.66567 7.68768 6.25135 7.68768C5.83703 7.68768 5.50115 7.35189 5.50115 6.93768C5.50115 6.52346 5.83703 6.18768 6.25135 6.18768C6.66567 6.18768 7.00154 6.52346 7.00154 6.93768ZM11.5027 6.93768C11.5027 7.35189 11.1668 7.68768 10.7525 7.68768C10.3382 7.68768 10.0023 7.35189 10.0023 6.93768C10.0023 6.52346 10.3382 6.18768 10.7525 6.18768C11.1668 6.18768 11.5027 6.52346 11.5027 6.93768Z" stroke="var(--colors-icons-iconLow)" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+            <a href="https://ar.io" target="_blank" title="AR.IO Network" class="footer-link">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <circle cx="9" cy="9" r="7.5" stroke="var(--colors-icons-iconLow)" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M9 1.5C7.07418 3.52212 6 6.20756 6 9C6 11.7924 7.07418 14.4779 9 16.5C10.9258 14.4779 12 11.7924 12 9C12 6.20756 10.9258 3.52212 9 1.5Z" stroke="var(--colors-icons-iconLow)" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M1.5 9H16.5" stroke="var(--colors-icons-iconLow)" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+          </div>
+          <div class="version-info">
+            <span id="extensionVersion">v0.1.0</span>
+          </div>
+        </div>
+      </footer>
+    </div>
+
+  </body>
+</html>
