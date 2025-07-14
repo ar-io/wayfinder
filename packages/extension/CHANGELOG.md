@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-extension
 
+## 1.0.0-alpha.3
+
+### Patch Changes
+
+- f00c8a1: Update build script for wayfinder-extension
+
 ## 1.0.0-alpha.2
 
 ### Patch Changes
