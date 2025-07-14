@@ -25,9 +25,11 @@ import {
   WayfinderProvider,
   useWayfinderRequest,
   useWayfinderUrl,
-  LocalStorageGatewaysProvider,
 } from '@ar.io/wayfinder-react';
-import { NetworkGatewaysProvider } from '@ar.io/wayfinder-core';
+import {
+  NetworkGatewaysProvider,
+  LocalStorageGatewaysProvider,
+} from '@ar.io/wayfinder-core';
 import { ARIO } from '@ar.io/sdk';
 
 // Wrap your app with the provider

@@ -31,7 +31,7 @@ import {
 // TODO: replace with locally running gateway
 const gatewayUrl = 'permagate.io';
 const stubbedGatewaysProvider: GatewaysProvider = {
-  getGateways: async () => [new URL(`http://${gatewayUrl}`)],
+  getGateways: async () => [new URL(`https://${gatewayUrl}`)],
 } as unknown as GatewaysProvider;
 
 describe('Wayfinder', () => {

@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 import assert from 'node:assert';
-import { beforeEach, describe, it } from 'node:test';
-import { GatewaysProvider } from '@ar.io/wayfinder-core';
-import { LocalStorageGatewaysProvider } from './local-storage.js';
+import { after, beforeEach, describe, it } from 'node:test';
+import type { GatewaysProvider } from '../types.js';
+import { LocalStorageGatewaysProvider } from './local-storage-cache.js';
 
 interface MockLocalStorage extends Storage {
   store: Record<string, string>;
@@ -65,9 +65,10 @@ function setupBrowserEnvironment(): MockLocalStorage {
     },
   };
 
-  // @ts-expect-error - Mock global window object
   global.window = {
     localStorage: mockLocalStorage,
+    // @ts-expect-error - Mock global window object
+    document: {},
   };
 
   return mockLocalStorage;
@@ -87,6 +88,10 @@ describe('LocalStorageGatewaysProvider', () => {
     mockGatewaysProvider = new MockGatewaysProvider();
   });
 
+  after(() => {
+    teardownBrowserEnvironment();
+  });
+
   describe('constructor', () => {
     it('should initialize with default TTL when not provided', () => {
       const provider = new LocalStorageGatewaysProvider({
@@ -104,6 +109,19 @@ describe('LocalStorageGatewaysProvider', () => {
 
       assert.ok(provider instanceof LocalStorageGatewaysProvider);
     });
+  });
+
+  it('should throw an error when window is undefined', async () => {
+    teardownBrowserEnvironment();
+
+    assert.throws(() => {
+      (() => {
+        new LocalStorageGatewaysProvider({
+          ttlSeconds: 300,
+          gatewaysProvider: mockGatewaysProvider,
+        });
+      })();
+    }, /LocalStorageGatewaysProvider is only available in browser environments/);
   });
 
   describe('getGateways', () => {
@@ -270,39 +288,6 @@ describe('LocalStorageGatewaysProvider', () => {
         assert.strictEqual(result[0].toString(), 'https://gateway1.com/');
       });
     });
-
-    describe('non-browser environment', () => {
-      it('should work when window is undefined', async () => {
-        teardownBrowserEnvironment();
-
-        const provider = new LocalStorageGatewaysProvider({
-          ttlSeconds: 300,
-          gatewaysProvider: mockGatewaysProvider,
-        });
-
-        const result = await provider.getGateways();
-
-        assert.strictEqual(result.length, 2);
-        assert.strictEqual(result[0].toString(), 'https://gateway1.com/');
-
-        setupBrowserEnvironment();
-      });
-
-      it('should work when localStorage is undefined', async () => {
-        // @ts-expect-error - Mock window without localStorage
-        global.window = {};
-
-        const provider = new LocalStorageGatewaysProvider({
-          ttlSeconds: 300,
-          gatewaysProvider: mockGatewaysProvider,
-        });
-
-        const result = await provider.getGateways();
-
-        assert.strictEqual(result.length, 2);
-        assert.strictEqual(result[0].toString(), 'https://gateway1.com/');
-      });
-    });
   });
 
   describe('clearCache', () => {
@@ -342,35 +327,6 @@ describe('LocalStorageGatewaysProvider', () => {
       mockLocalStorage.removeItem = () => {
         throw new Error('Storage error');
       };
-
-      assert.doesNotThrow(() => {
-        provider.clearCache();
-      });
-    });
-
-    it('should handle non-browser environment gracefully', () => {
-      teardownBrowserEnvironment();
-
-      const provider = new LocalStorageGatewaysProvider({
-        ttlSeconds: 300,
-        gatewaysProvider: mockGatewaysProvider,
-      });
-
-      assert.doesNotThrow(() => {
-        provider.clearCache();
-      });
-
-      setupBrowserEnvironment();
-    });
-
-    it('should handle missing localStorage gracefully', () => {
-      // @ts-expect-error - Mock window without localStorage
-      global.window = {};
-
-      const provider = new LocalStorageGatewaysProvider({
-        ttlSeconds: 300,
-        gatewaysProvider: mockGatewaysProvider,
-      });
 
       assert.doesNotThrow(() => {
         provider.clearCache();
