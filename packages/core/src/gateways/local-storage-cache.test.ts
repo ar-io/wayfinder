@@ -17,7 +17,7 @@
 import assert from 'node:assert';
 import { beforeEach, describe, it } from 'node:test';
 import { GatewaysProvider } from '@ar.io/wayfinder-core';
-import { LocalStorageGatewaysProvider } from './local-storage.js';
+import { LocalStorageGatewaysProvider } from './local-storage-cache.js';
 
 interface MockLocalStorage extends Storage {
   store: Record<string, string>;
