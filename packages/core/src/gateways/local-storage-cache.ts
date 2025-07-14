@@ -15,7 +15,8 @@
  * limitations under the License.
  */
 import { GatewaysProvider } from '@ar.io/wayfinder-core';
-import { Logger } from '../index.js';
+import { defaultLogger } from '../logger.js';
+import type { Logger } from '../types.js';
 import { isBrowser } from '../utils/browser.js';
 
 /**
@@ -51,12 +52,12 @@ export class LocalStorageGatewaysProvider implements GatewaysProvider {
   private readonly defaultTtlSeconds = 3600; // 1 hour default
   private readonly gatewaysProvider: GatewaysProvider;
   private readonly ttlSeconds: number;
-  private readonly logger?: Logger;
+  private readonly logger: Logger;
 
   constructor({
     ttlSeconds = this.defaultTtlSeconds,
     gatewaysProvider,
-    logger,
+    logger = defaultLogger,
   }: {
     ttlSeconds?: number;
     gatewaysProvider: GatewaysProvider;
