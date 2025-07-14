@@ -64,7 +64,7 @@ export class LocalStorageGatewaysProvider implements GatewaysProvider {
   }) {
     if (!isBrowser()) {
       throw new Error(
-        'LocalStorageGatewaysProvider is only available in the browser environments. Consider using SimpleCacheGatewaysProvider instead.',
+        'LocalStorageGatewaysProvider is only available in browser environments. Consider using SimpleCacheGatewaysProvider for node.js environments.',
       );
     }
 
