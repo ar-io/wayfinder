@@ -17,4 +17,6 @@
 
 export * from './components/index.js';
 export * from './hooks/index.js';
-export * from './cache/index.js';
+
+// from wayfinder-core, useful for browser environments
+export { LocalStorageGatewaysProvider } from '@ar.io/wayfinder-core';
