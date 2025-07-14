@@ -68,10 +68,7 @@ export class SimpleCacheGatewaysProvider implements GatewaysProvider {
     URL[]
   > {
     const now = Date.now();
-    if (
-      this.gatewaysCache.length === 0 ||
-      now > this.expiresAt
-    ) {
+    if (this.gatewaysCache.length === 0 || now > this.expiresAt) {
       try {
         this.logger.debug('Cache expired, fetching new gateways', {
           expiresAt: this.expiresAt,

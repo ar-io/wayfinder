@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 import { GatewaysProvider } from '@ar.io/wayfinder-core';
-import { isBrowser } from '../utils/browser.js';
 import { Logger } from '../index.js';
+import { isBrowser } from '../utils/browser.js';
 
 /**
  * Browser-based cache provider for gateways that fetches gateways from a
