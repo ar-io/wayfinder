@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-core
 
+## 1.0.1-alpha.2
+
+### Patch Changes
+
+- c78effa: Add LocalStorageGatewaysProvider cache as main export from wayfinder-core
+
 ## 1.0.1-alpha.1
 
 ### Patch Changes
