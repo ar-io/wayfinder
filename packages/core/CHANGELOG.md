@@ -1,5 +1,13 @@
 # @ar.io/wayfinder-core
 
+## 1.0.1
+
+### Patch Changes
+
+- aa5700e: Improve telemetry configuration for browsers and chrome extensions
+- 2c170be: Adds additional telemetry support when calling resolveUrl
+- c78effa: Add LocalStorageGatewaysProvider cache as main export from wayfinder-core
+
 ## 1.0.1-alpha.2
 
 ### Patch Changes
