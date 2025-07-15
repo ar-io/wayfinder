@@ -73,28 +73,20 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      - name: Push Tags
+        if: steps.changesets.outputs.published == 'true'
+        run: git push --follow-tags
+
       - name: Create Extension Zip
+        id: extension
         if: steps.changesets.outputs.published == 'true'
         run: |
           cd packages/extension
           ./build_artifact.sh
 
-      - name: Push Tags
-        if: steps.changesets.outputs.published == 'true'
-        run: git push --follow-tags
-        
-      - name: Create GitHub Release
-        if: steps.changesets.outputs.published == 'true'
-        uses: ncipollo/release-action@v1
-        with:
-          generateReleaseNotes: true
-          prerelease: ${{ github.ref == 'refs/heads/alpha' }}
-          tag: ${{ steps.changesets.outputs.publishedPackages[0].name }}@${{ steps.changesets.outputs.publishedPackages[0].version }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Upload Extension Zip
         if: steps.changesets.outputs.published == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: wayfinder-extension.zip
-          path: packages/extension/wayfinder-extension-v*.zip
+          name: wayfinder-extension-v${{ steps.extension.outputs.VERSION }}.zip
+          path: packages/extension/wayfinder-extension-v${{ steps.extension.outputs.VERSION }}.zip
