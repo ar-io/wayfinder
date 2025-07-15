@@ -43,5 +43,5 @@ coverage/
 # claude
 .claude/
 
-# version files
-**/version.ts
+# releases
+*.zip

@@ -31,3 +31,6 @@ npm run build
 zip -r wayfinder-extension-v${VERSION}.zip dist
 
 echo "Build and zip complete: wayfinder-extension-v${VERSION}.zip"
+
+# output the version to github for use in the release
+echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
