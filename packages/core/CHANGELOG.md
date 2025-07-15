@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-core
 
+## 1.0.2-alpha.1
+
+### Patch Changes
+
+- cfcfb66: Default Wayfinder to use `RandomRoutingStrategy`
+
 ## 1.0.2-alpha.0
 
 ### Patch Changes
