@@ -56,6 +56,8 @@ export const initTelemetry = ({
   sampleRate = 0.1, // 10% sample rate by default
   exporterUrl = 'https://api.honeycomb.io/v1/traces',
   apiKey = 'c8gU8dHlu6V7e5k2Gn9LaG', // intentionally left here - if it gets abused we'll disable it
+  clientName,
+  clientVersion,
 }: TelemetrySettings):
   | {
       tracerProvider: WebTracerProvider | NodeTracerProvider;
@@ -86,6 +88,8 @@ export const initTelemetry = ({
   const resource = resourceFromAttributes({
     [ATTR_SERVICE_NAME]: 'wayfinder-core',
     [ATTR_SERVICE_VERSION]: WAYFINDER_CORE_VERSION,
+    'client.name': clientName,
+    'client.version': clientVersion,
   });
 
   const useWebTracer = isBrowser() || isChromeExtension();

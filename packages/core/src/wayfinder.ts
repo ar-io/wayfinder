@@ -516,7 +516,6 @@ export const wayfinderFetch = ({
           return response;
         }
       } catch (error: any) {
-        requestSpan?.end();
         logger?.debug('Failed to route request', {
           error: error.message,
           stack: error.stack,
@@ -765,6 +764,8 @@ export class Wayfinder {
       sampleRate: telemetrySettings?.sampleRate,
       apiKey: telemetrySettings?.apiKey,
       exporterUrl: telemetrySettings?.exporterUrl,
+      clientName: telemetrySettings?.clientName,
+      clientVersion: telemetrySettings?.clientVersion,
     };
 
     const { tracerProvider, tracer } =
