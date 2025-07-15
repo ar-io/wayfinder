@@ -21,7 +21,8 @@
     "url": "git+https://github.com/ar-io/wayfinder.git"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "npm run clean && npm run update-version && tsc",
+    "update-version": "node scripts/update-version.mjs",
     "clean": "rimraf dist",
     "test": "tsx --test 'src/**/*.test.ts'",
     "lint:fix": "biome check --write --unsafe",

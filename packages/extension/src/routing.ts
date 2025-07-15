@@ -35,6 +35,7 @@ import {
 } from './constants';
 import { fetchEnsArweaveTxId } from './ens';
 import { logger } from './utils/logger';
+import { getExtensionVersion } from './utils/version';
 
 /**
  * Global Wayfinder instance for the extension with thread-safe initialization
@@ -189,6 +190,8 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
     telemetrySettings: {
       enabled: telemetryEnabled,
       sampleRate: 1, // send all ar:// requests
+      clientName: 'wayfinder-extension',
+      clientVersion: await getExtensionVersion(),
     },
   };
 
