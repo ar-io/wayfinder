@@ -176,6 +176,10 @@ export interface TelemetrySettings {
   apiKey?: string;
   /** Optional custom OTLP exporter URL */
   exporterUrl?: string;
+  /** Client name (e.g. "wayfinder-extension") */
+  clientName?: string;
+  /** Client version (e.g. "1.0.0") */
+  clientVersion?: string;
 }
 
 // Interfaces
