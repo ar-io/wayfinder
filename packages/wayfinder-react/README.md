@@ -37,7 +37,7 @@ function App() {
   return (
     <WayfinderProvider
       // pass in the wayfinder options
-      // https://github.com/ar-io/wayfinder/tree/alpha/packages/core#custom-configuration
+      // https://github.com/ar-io/wayfinder/tree/alpha/packages/wayfinder-core#custom-configuration
       gatewaysProvider={new LocalStorageGatewaysProvider({ 
         ttlSeconds: 3600, // cache the gateways locally for 1 hour to avoid unnecessary network requests
         gatewaysProvider: new NetworkGatewaysProvider({ 

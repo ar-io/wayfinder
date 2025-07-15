@@ -4,18 +4,18 @@ on:
   push:
     branches: [ main, alpha ]
     paths-ignore:
-      - 'packages/core/**'
-      - 'packages/extension/**'
-      - 'packages/react/**'
+      - 'packages/wayfinder-core/**'
+      - 'packages/wayfinder-extension/**'
+      - 'packages/wayfinder-react/**'
       - '.github/workflows/core.yml'
       - '.github/workflows/extension.yml'
       - '.github/workflows/react.yml'
   pull_request:
     branches: [ main, alpha ]
     paths-ignore:
-      - 'packages/core/**'
-      - 'packages/extension/**'
-      - 'packages/react/**'
+      - 'packages/wayfinder-core/**'
+      - 'packages/wayfinder-extension/**'
+      - 'packages/wayfinder-react/**'
       - '.github/workflows/core.yml'
       - '.github/workflows/extension.yml'
       - '.github/workflows/react.yml'
