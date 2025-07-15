@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-core
 
+## 1.0.2-alpha.0
+
+### Patch Changes
+
+- a3e69af: Add support for `clientName` and `clientVersion` on telemetry settings
+
 ## 1.0.1
 
 ### Patch Changes
