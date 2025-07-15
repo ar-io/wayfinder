@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-core
 
+## 1.0.2-alpha.2
+
+### Patch Changes
+
+- 8f79caf: Fix import of zone.js file, only load once and in browsers if not already available
+
 ## 1.0.2-alpha.1
 
 ### Patch Changes

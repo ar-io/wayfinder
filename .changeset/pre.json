@@ -7,6 +7,7 @@
     "@ar.io/wayfinder-react": "1.0.2"
   },
   "changesets": [
+    "empty-breads-sniff",
     "little-worms-switch",
     "loose-ghosts-cry"
   ]
