@@ -30,8 +30,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
-          registry-url: 'https://registry.npmjs.org'
+          node-version-file: .nvmrc
           cache: npm
 
       - name: Install Dependencies
@@ -42,27 +41,25 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Check Prerelease Mode for Alpha Branch
-        if: github.ref == 'refs/heads/alpha'
+      - name: Manage Prerelease Mode
         run: |
-          if [ -f ".changeset/pre.json" ]; then
-            echo "Already in pre-release mode, skipping..."
-          else
-            npx changeset pre enter alpha
+          if [[ "${GITHUB_REF}" == "refs/heads/alpha" ]]; then
+            if [ ! -f ".changeset/pre.json" ]; then
+              npx changeset pre enter alpha
+            else
+              echo "Already in pre-release mode"
+            fi
+          elif [[ "${GITHUB_REF}" == "refs/heads/main" ]]; then
+            if [ -f ".changeset/pre.json" ]; then
+              echo "Exiting pre-release mode"
+              npx changeset pre exit
+              git add .
+              git commit -m "chore: exit pre-release mode" || echo "No changes to commit"
+            else
+              echo "Not in pre-release mode"
+            fi
           fi
-
-      - name: Exit Prerelease Mode for Main Branch
-        if: github.ref == 'refs/heads/main'
-        run: |
-          if [ -f ".changeset/pre.json" ]; then
-            echo "Exiting pre-release mode for main branch..."
-            npx changeset pre exit
-            git add .
-            git commit -m "chore: exit pre-release mode" || echo "No changes to commit"
-          else
-            echo "Not in pre-release mode, skipping..."
-          fi
-
+          
       - name: Build all packages
         run: npm run build --workspaces
         
@@ -101,7 +98,5 @@ jobs:
         if: steps.changesets.outputs.published == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: wayfinder-extension-v${{ steps.version.outputs.version }}.zip
-          path: packages/extension/wayfinder-extension-v${{ steps.version.outputs.version }}.zip
-
-      
+          name: wayfinder-extension.zip
+          path: packages/extension/wayfinder-extension-v*.zip
