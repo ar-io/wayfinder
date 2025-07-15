@@ -74,6 +74,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Push Tags
+        id: release
         if: steps.changesets.outputs.published == 'true'
         run: git push --follow-tags
 
@@ -84,9 +85,10 @@ jobs:
           cd packages/extension
           ./build_artifact.sh
 
-      - name: Upload Extension Zip
+      - name: Attach Extension Zip to Release
         if: steps.changesets.outputs.published == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: wayfinder-extension-v${{ steps.extension.outputs.VERSION }}.zip
-          path: packages/extension/wayfinder-extension-v${{ steps.extension.outputs.VERSION }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # check that the release exists
+          gh release upload @ar.io/wayfinder-extension-${{ steps.extension.outputs.VERSION }}.zip packages/extension/wayfinder-extension-v${{ steps.extension.outputs.VERSION }}.zip --clobber
