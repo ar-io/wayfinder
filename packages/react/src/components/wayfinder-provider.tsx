@@ -16,6 +16,7 @@
  */
 import { Wayfinder, type WayfinderOptions } from '@ar.io/wayfinder-core';
 import React, { createContext, useMemo } from 'react';
+import { WAYFINDER_REACT_VERSION } from '../version.js';
 
 export interface WayfinderContextValue {
   wayfinder: Wayfinder;
@@ -33,7 +34,19 @@ export const WayfinderProvider: React.FC<WayfinderProviderProps> = ({
   children,
   ...options
 }) => {
-  const wayfinder = useMemo(() => new Wayfinder(options), [options]);
+  const wayfinder = useMemo(
+    () =>
+      new Wayfinder({
+        ...options,
+        telemetrySettings: {
+          enabled: false,
+          clientName: 'wayfinder-react',
+          clientVersion: WAYFINDER_REACT_VERSION,
+          ...options.telemetrySettings,
+        },
+      }),
+    [options],
+  );
   return (
     <WayfinderContext.Provider value={{ wayfinder }}>
       {children}
