@@ -37,7 +37,6 @@ import {
   ATTR_SERVICE_NAME,
   ATTR_SERVICE_VERSION,
 } from '@opentelemetry/semantic-conventions';
-import 'zone.js';
 import { WayfinderEmitter } from './emitter.js';
 import type {
   GatewaysProvider,
@@ -45,11 +44,17 @@ import type {
   WayfinderOptions,
 } from './types.js';
 import { isBrowser, isChromeExtension } from './utils/browser.js';
+import { assertZoneLoaded, loadZonePolyfill } from './utils/zone.js';
 import { WAYFINDER_CORE_VERSION } from './version.js';
 
 // avoid re-initializing the tracer provider and tracer
 let tracerProvider: WebTracerProvider | NodeTracerProvider | undefined;
 let tracer: Tracer | undefined;
+
+// load zone.js polyfill if it's not already loaded
+if (isBrowser()) {
+  loadZonePolyfill();
+}
 
 export const initTelemetry = ({
   enabled = false,
@@ -109,6 +114,11 @@ export const initTelemetry = ({
         resource,
         spanProcessors: [spanProcessor],
       });
+
+  // ensure zone.js is loaded before registering the tracer provider if we're using the browser
+  if (useWebTracer) {
+    assertZoneLoaded();
+  }
 
   provider.register({
     // zone.js is only used in the browser (node/extensions/service workers don't need it)
