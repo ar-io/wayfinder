@@ -57,6 +57,8 @@ jobs:
           if [ -f ".changeset/pre.json" ]; then
             echo "Exiting pre-release mode for main branch..."
             npx changeset pre exit
+            git add .
+            git commit -m "chore: exit pre-release mode" || echo "No changes to commit"
           else
             echo "Not in pre-release mode, skipping..."
           fi
