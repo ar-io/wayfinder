@@ -21,7 +21,7 @@ import { Span, type Tracer, context, trace } from '@opentelemetry/api';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { WebTracerProvider } from '@opentelemetry/sdk-trace-web';
 import { WayfinderEmitter } from './emitter.js';
-import { FastestPingRoutingStrategy } from './routing/ping.js';
+import { RandomRoutingStrategy } from './routing/random.js';
 import { initTelemetry, startRequestSpans } from './telemetry.js';
 import type {
   GatewaysProvider,
@@ -745,11 +745,7 @@ export class Wayfinder {
     // default routing settings
     this.routingSettings = {
       events: {},
-      strategy: new FastestPingRoutingStrategy({
-        timeoutMs: 1000,
-        maxConcurrency: 5, // 5 concurrent HEAD requests on the requested path
-        logger: defaultLogger,
-      }),
+      strategy: new RandomRoutingStrategy(),
       // overwrite the default settings with the provided ones
       ...routingSettings,
     };
