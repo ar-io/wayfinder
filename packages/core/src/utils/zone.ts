@@ -14,4 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-export const WAYFINDER_CORE_VERSION = 'v1.0.1';
+import { defaultLogger } from '../logger.js';
+import { isBrowser } from './browser.js';
+
+export async function loadZonePolyfill() {
+  // If Zone is already loaded, skip import
+  if (isBrowser() && typeof (window as any).Zone === 'undefined') {
+    defaultLogger.info('Loading zone.js polyfill');
+    await import('zone.js');
+  }
+}
+
+export function assertZoneLoaded() {
+  if (isBrowser() && typeof (window as any).Zone === 'undefined') {
+    throw new Error(
+      'Zone.js is not loaded. Please add zone.js to your project and call loadZonePolyfill() before initializing Wayfinder.',
+    );
+  }
+}

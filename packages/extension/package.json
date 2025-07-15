@@ -1,6 +1,6 @@
 {
   "name": "@ar.io/wayfinder-extension",
-  "version": "1.0.0",
+  "version": "1.0.1-alpha.0",
   "description": "Fast, verifiable, decentralized access to ar:// links via AR.IO’s Permanent Cloud.",
   "private": true,
   "type": "module",
@@ -34,7 +34,7 @@
   },
   "dependencies": {
     "@ar.io/sdk": "^3.13.0",
-    "@ar.io/wayfinder-core": "^1.0.1",
+    "@ar.io/wayfinder-core": "^1.0.2-alpha.0",
     "@permaweb/aoconnect": "0.0.69"
   }
 }

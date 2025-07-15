@@ -1,5 +1,23 @@
 # @ar.io/wayfinder-core
 
+## 1.0.2-alpha.2
+
+### Patch Changes
+
+- 8f79caf: Fix import of zone.js file, only load once and in browsers if not already available
+
+## 1.0.2-alpha.1
+
+### Patch Changes
+
+- cfcfb66: Default Wayfinder to use `RandomRoutingStrategy`
+
+## 1.0.2-alpha.0
+
+### Patch Changes
+
+- a3e69af: Add support for `clientName` and `clientVersion` on telemetry settings
+
 ## 1.0.1
 
 ### Patch Changes

@@ -21,7 +21,7 @@ import { Span, type Tracer, context, trace } from '@opentelemetry/api';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { WebTracerProvider } from '@opentelemetry/sdk-trace-web';
 import { WayfinderEmitter } from './emitter.js';
-import { FastestPingRoutingStrategy } from './routing/ping.js';
+import { RandomRoutingStrategy } from './routing/random.js';
 import { initTelemetry, startRequestSpans } from './telemetry.js';
 import type {
   GatewaysProvider,
@@ -516,7 +516,6 @@ export const wayfinderFetch = ({
           return response;
         }
       } catch (error: any) {
-        requestSpan?.end();
         logger?.debug('Failed to route request', {
           error: error.message,
           stack: error.stack,
@@ -746,11 +745,7 @@ export class Wayfinder {
     // default routing settings
     this.routingSettings = {
       events: {},
-      strategy: new FastestPingRoutingStrategy({
-        timeoutMs: 1000,
-        maxConcurrency: 5, // 5 concurrent HEAD requests on the requested path
-        logger: defaultLogger,
-      }),
+      strategy: new RandomRoutingStrategy(),
       // overwrite the default settings with the provided ones
       ...routingSettings,
     };
@@ -765,6 +760,8 @@ export class Wayfinder {
       sampleRate: telemetrySettings?.sampleRate,
       apiKey: telemetrySettings?.apiKey,
       exporterUrl: telemetrySettings?.exporterUrl,
+      clientName: telemetrySettings?.clientName,
+      clientVersion: telemetrySettings?.clientVersion,
     };
 
     const { tracerProvider, tracer } =
