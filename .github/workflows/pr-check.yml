@@ -26,13 +26,13 @@ jobs:
       with:
         filters: |
           core:
-            - 'packages/core/**'
+            - 'packages/wayfinder-core/**'
           extension:
-            - 'packages/extension/**'
-            - 'packages/core/**'
+            - 'packages/wayfinder-extension/**'
+            - 'packages/wayfinder-core/**'
           react:
-            - 'packages/react/**'
-            - 'packages/core/**'
+            - 'packages/wayfinder-react/**'
+            - 'packages/wayfinder-core/**'
           any:
             - '**'
 

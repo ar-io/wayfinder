@@ -4,15 +4,15 @@ on:
   push:
     branches: [ main, alpha ]
     paths:
-      - 'packages/react/**'
-      - 'packages/core/**'
+      - 'packages/wayfinder-react/**'
+      - 'packages/wayfinder-core/**'
       - '.github/workflows/react.yml'
       - 'package.json'
   pull_request:
     branches: [ main, alpha ]
     paths:
-      - 'packages/react/**'
-      - 'packages/core/**'
+      - 'packages/wayfinder-react/**'
+      - 'packages/wayfinder-core/**'
       - '.github/workflows/react.yml'
       - 'package.json'
 
@@ -40,5 +40,4 @@ jobs:
       
     - name: Build React components
       run: npm run build -w @ar.io/wayfinder-react
-    
-    # TODO: Upload artifacts and use changeset for publishing new versions
+
