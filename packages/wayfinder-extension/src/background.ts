@@ -79,9 +79,9 @@ class TabStateManager {
 
 // Global variables
 const tabStateManager = new TabStateManager();
+// TODO: use an TTL/LRU cache for request timings to avoid memory leaks and performance issues
 const requestTimings = new Map<string, number>();
-
-// Verification toast cache
+// TODO: use an TTL/LRU cache for verification cache to avoid memory leaks and performance issues
 const verificationCache = new Map<string, VerificationCacheEntry>();
 const MAX_VERIFICATION_CACHE_SIZE = 1000;
 
@@ -523,9 +523,7 @@ chrome.webNavigation.onBeforeNavigate.addListener(
  * Clean up tab state when tabs are closed
  */
 chrome.tabs.onRemoved.addListener(async (tabId) => {
-  if (tabStateManager.delete(tabId)) {
-    // Cleaned up tab state
-  }
+  tabStateManager.delete(tabId);
 
   // Also clean up verification cache entries for this tab
   try {
@@ -553,7 +551,7 @@ chrome.webRequest.onCompleted.addListener(
   async (details) => {
     const gatewayFQDN = new URL(details.url).hostname;
 
-    // Only track requests from ar:// redirections
+    // only track requests from ar:// redirections (not other requests)
     const tabInfo = tabStateManager.get(details.tabId);
     if (!tabInfo) return;
 

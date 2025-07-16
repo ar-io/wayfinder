@@ -148,25 +148,3 @@ export const ALL_DEFAULTS = {
   routing: ROUTING_STRATEGY_DEFAULTS,
   performance: PERFORMANCE_DEFAULTS,
 } as const;
-
-/**
- * Helper function to get storage defaults for initialization
- */
-export function getStorageDefaults() {
-  return {
-    ...EXTENSION_DEFAULTS,
-    ...WAYFINDER_DEFAULTS,
-    ...CACHE_DEFAULTS,
-    ...UI_DEFAULTS,
-  };
-}
-
-/**
- * Helper function to get Wayfinder instance defaults
- */
-export function getWayfinderInstanceDefaults() {
-  return {
-    ...WAYFINDER_DEFAULTS,
-    routing: ROUTING_STRATEGY_DEFAULTS,
-  };
-}
