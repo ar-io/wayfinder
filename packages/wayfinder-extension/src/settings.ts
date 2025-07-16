@@ -220,11 +220,7 @@ function setupRoutingStrategyDetails() {
         }
       });
     });
-
-  // Removed: verification strategy click handlers - verification features removed
 }
-
-// Removed: setupVerificationModeExplanations - verification features removed
 
 async function loadCurrentSettings() {
   try {
@@ -280,8 +276,6 @@ async function loadCurrentSettings() {
       }
     }
 
-    // Removed: Verification settings loading - verification features removed
-
     const ensEnabled = settings.ensResolutionEnabled !== false;
     const ensEl = document.getElementById('ensResolution') as HTMLInputElement;
     if (ensEl) {
@@ -322,8 +316,6 @@ async function loadCurrentSettings() {
         aoCuUrlEl.value = settings.aoCuUrl;
       }
     }
-
-    // Removed: Verified Browsing and cache settings loading - verification features removed
 
     // Load gateway provider settings
     const gatewaySortBy = settings.gatewaySortBy || 'operatorStake';
@@ -390,8 +382,6 @@ async function updateConnectionStatus() {
     statusText.textContent = 'Connected';
   }
 }
-
-// Performance functions moved to performance.js
 
 async function handleRoutingStrategyChange(event: any) {
   const strategy = event.target.value;

@@ -167,8 +167,8 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
         routingStrategy = createCachedFastestPingStrategy();
         break;
       default:
-        // Default to fastest ping for unknown methods
-        routingStrategy = createCachedFastestPingStrategy();
+        // default to random (balanced) strategy
+        routingStrategy = new RandomRoutingStrategy();
         break;
     }
 

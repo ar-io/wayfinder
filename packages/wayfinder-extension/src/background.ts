@@ -14,24 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 import { AOProcess, ARIO, AoGateway, WalletAddress } from '@ar.io/sdk/web';
 import { connect } from '@permaweb/aoconnect';
+import pDebounce from 'p-debounce';
 import { ChromeStorageGatewayProvider } from './adapters/chrome-storage-gateway-provider';
 import { EXTENSION_DEFAULTS } from './config/defaults';
 import { ARIO_MAINNET_PROCESS_ID, DEFAULT_AO_CU_URL } from './constants';
-import {
-  isKnownGateway,
-  normalizeGatewayFQDN,
-  updateGatewayPerformance,
-} from './helpers';
+import { isKnownGateway } from './helpers';
 import {
   getRoutableGatewayUrl,
   getWayfinderInstance,
   resetWayfinderInstance,
 } from './routing';
 import { RedirectedTabInfo, VerificationCacheEntry } from './types';
-import { circuitBreaker } from './utils/circuit-breaker';
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -88,21 +83,7 @@ const requestTimings = new Map<string, number>();
 
 // Verification toast cache
 const verificationCache = new Map<string, VerificationCacheEntry>();
-const VERIFICATION_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 const MAX_VERIFICATION_CACHE_SIZE = 1000;
-
-// Clean up old verification cache entries periodically
-setInterval(
-  () => {
-    const now = Date.now();
-    for (const [key, entry] of verificationCache.entries()) {
-      if (now - entry.timestamp > VERIFICATION_CACHE_TTL) {
-        verificationCache.delete(key);
-      }
-    }
-  },
-  5 * 60 * 1000,
-); // Clean every 5 minutes
 
 // Helper function to generate cache key
 function getVerificationCacheKey(
@@ -566,16 +547,6 @@ chrome.tabs.onRemoved.addListener(async (tabId) => {
 });
 
 /**
- * Track request timing for performance metrics
- */
-chrome.webRequest.onBeforeRequest.addListener(
-  (details) => {
-    requestTimings.set(details.requestId, performance.now());
-  },
-  { urls: ['<all_urls>'] },
-);
-
-/**
  * Handle successful requests - update performance metrics and verify data
  */
 chrome.webRequest.onCompleted.addListener(
@@ -594,11 +565,6 @@ chrome.webRequest.onCompleted.addListener(
       responseTime,
       true,
     );
-
-    // Record success in circuit breaker
-    circuitBreaker.onSuccess(gatewayFQDN);
-
-    // Performance metrics updated
 
     // Clean up tracking
     tabStateManager.delete(details.tabId);
@@ -682,7 +648,7 @@ chrome.webRequest.onHeadersReceived.addListener(
 );
 
 /**
- * Handle failed requests
+ * Handle failed requests.
  */
 chrome.webRequest.onErrorOccurred.addListener(
   async (details) => {
@@ -697,67 +663,19 @@ chrome.webRequest.onErrorOccurred.addListener(
         false,
       );
 
-      // Record failure in circuit breaker
-      circuitBreaker.onFailure(gatewayFQDN);
-
       logger.warn(`Request failed to ${gatewayFQDN}: ${details.error}`);
 
       tabStateManager.delete(details.tabId);
     }
-  },
-  { urls: ['<all_urls>'] },
-);
 
-/**
- * Track web requests to known gateways for performance monitoring
- */
-chrome.webRequest.onBeforeRequest.addListener(
-  (details) => {
-    const url = new URL(details.url);
-
-    // Check if this is a request to a known gateway
-    isKnownGateway(url.hostname).then((isKnown) => {
-      if (isKnown) {
-        requestTimings.set(details.requestId.toString(), performance.now());
-      }
-    });
-  },
-  { urls: ['<all_urls>'] },
-);
-
-chrome.webRequest.onCompleted.addListener(
-  async (details) => {
+    // mark the request as failed
     const requestId = details.requestId.toString();
     const startTime = requestTimings.get(requestId);
-
     if (startTime) {
-      const url = new URL(details.url);
-
-      // Update performance metrics
-      await updateGatewayPerformance(url.hostname, startTime);
-
-      // Clean up
-      requestTimings.delete(requestId);
-    }
-  },
-  { urls: ['<all_urls>'] },
-);
-
-chrome.webRequest.onErrorOccurred.addListener(
-  async (details) => {
-    const requestId = details.requestId.toString();
-    const startTime = requestTimings.get(requestId);
-
-    if (startTime) {
-      const url = new URL(details.url);
-
-      // Track failure
-      const isKnown = await isKnownGateway(url.hostname);
+      const isKnown = await isKnownGateway(gatewayFQDN);
       if (isKnown) {
         const storage = await chrome.storage.local.get(['gatewayPerformance']);
         const gatewayPerformance = storage.gatewayPerformance || {};
-        const gatewayFQDN = await normalizeGatewayFQDN(url.hostname);
-
         if (!gatewayPerformance[gatewayFQDN]) {
           gatewayPerformance[gatewayFQDN] = {
             avgResponseTime: 0,
@@ -779,13 +697,28 @@ chrome.webRequest.onErrorOccurred.addListener(
 );
 
 /**
+ * Track web requests to known gateways for performance monitoring
+ */
+chrome.webRequest.onBeforeRequest.addListener(
+  (details) => {
+    // check if the request is to a known gateway
+    const url = new URL(details.url);
+
+    // Check if this is a request to a known gateway
+    isKnownGateway(url.hostname).then((isKnown) => {
+      if (isKnown) {
+        requestTimings.set(details.requestId.toString(), performance.now());
+      }
+    });
+  },
+  { urls: ['<all_urls>'] },
+);
+
+/**
  * Track ALL web requests for permaweb vs regular web ratio calculation
  */
 chrome.webRequest.onCompleted.addListener(
   async (details) => {
-    // Only track main frame requests (not images, scripts, etc.) to avoid inflating counts
-    if (details.type !== 'main_frame') return;
-
     // Skip chrome:// and extension:// URLs
     if (
       details.url.startsWith('chrome://') ||
@@ -820,7 +753,10 @@ chrome.webRequest.onCompleted.addListener(
       // Ignore malformed URLs
     }
   },
-  { urls: ['http://*/*', 'https://*/*'] },
+  {
+    urls: ['https://*/*'], // Only HTTPS to reduce load
+    types: ['main_frame'], // Only main frames
+  },
 );
 
 /**
@@ -1126,26 +1062,15 @@ async function reinitializeArIO(): Promise<void> {
   }
 }
 
-// Start initialization after storage is ready
+// on chrome storage ready, initialize wayfinder with debounce
+const debouncedInitializeWayfinder = pDebounce(initializeWayfinder, 1000, {
+  before: true,
+});
 chrome.storage.local
   .get(['processId', 'aoCuUrl'])
-  .then(({ processId, aoCuUrl }) => {
-    // Wait a bit to ensure storage initialization is complete
-    setTimeout(() => {
-      if (!processId || !aoCuUrl) {
-        logger.warn(
-          'Process ID or AO CU URL not yet initialized, delaying gateway sync...',
-        );
-        // Try again after storage should be initialized
-        setTimeout(() => {
-          initializeWayfinder().catch((err) =>
-            logger.error('Error during Wayfinder initialization:', err),
-          );
-        }, 2000);
-      } else {
-        initializeWayfinder().catch((err) =>
-          logger.error('Error during Wayfinder initialization:', err),
-        );
-      }
-    }, 1000);
+  .then(async () => {
+    debouncedInitializeWayfinder();
+  })
+  .catch((error) => {
+    logger.error('Error initializing Wayfinder:', error);
   });

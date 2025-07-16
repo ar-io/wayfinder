@@ -123,10 +123,7 @@ export const PERFORMANCE_DEFAULTS = {
   // Request timing
   requestTimeoutMs: 30000, // 30 seconds
 
-  // Circuit breaker settings
-  circuitBreakerEnabled: true,
-
-  // Cleanup intervals
+  // cleanup intervals
   cleanupIntervals: {
     tabState: 30000, // 30 seconds
     requestTimings: 30000, // 30 seconds
