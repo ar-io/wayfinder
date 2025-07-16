@@ -423,6 +423,53 @@ describe('LocalStorageGatewaysProvider', () => {
       assert.ok(typeof parsedCache.timestamp === 'number');
     });
 
+    it('should only call gatewayProvider.getGateways once when called multiple times with no cache', async () => {
+      let callCount = 0;
+      const mockProvider = {
+        async getGateways(): Promise<URL[]> {
+          callCount++;
+          // Simulate async operation
+          return new Promise((resolve) => {
+            setTimeout(() => {
+              resolve([
+                new URL('https://gateway1.com'),
+                new URL('https://gateway2.com'),
+              ]);
+            }, 50);
+          });
+        },
+      };
+
+      const provider = new LocalStorageGatewaysProvider({
+        ttlSeconds: 300,
+        gatewaysProvider: mockProvider,
+      });
+
+      // Make multiple concurrent calls when no cache exists
+      const promises = [
+        provider.getGateways(),
+        provider.getGateways(),
+        provider.getGateways(),
+      ];
+
+      const results = await Promise.all(promises);
+
+      // Verify all results are the same
+      assert.strictEqual(results.length, 3);
+      results.forEach((result) => {
+        assert.strictEqual(result.length, 2);
+        assert.strictEqual(result[0].toString(), 'https://gateway1.com/');
+        assert.strictEqual(result[1].toString(), 'https://gateway2.com/');
+      });
+
+      // Most importantly, verify the underlying provider was only called once
+      assert.strictEqual(
+        callCount,
+        1,
+        'gatewayProvider.getGateways should only be called once',
+      );
+    });
+
     it('should work with different gateway providers', async () => {
       const customProvider = new MockGatewaysProvider([
         'https://custom1.com',

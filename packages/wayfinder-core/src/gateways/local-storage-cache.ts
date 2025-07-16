@@ -53,9 +53,10 @@ export class LocalStorageGatewaysProvider implements GatewaysProvider {
   private readonly gatewaysProvider: GatewaysProvider;
   private readonly ttlSeconds: number;
   private readonly logger: Logger;
+  private gatewaysPromise: Promise<URL[]> | undefined;
 
   constructor({
-    ttlSeconds = this.defaultTtlSeconds,
+    ttlSeconds,
     gatewaysProvider,
     logger = defaultLogger,
   }: {
@@ -69,8 +70,7 @@ export class LocalStorageGatewaysProvider implements GatewaysProvider {
       );
     }
 
-    this.gatewaysProvider = gatewaysProvider;
-    this.ttlSeconds = ttlSeconds;
+    this.ttlSeconds = ttlSeconds ?? this.defaultTtlSeconds;
     this.gatewaysProvider = gatewaysProvider;
     this.logger = logger;
   }
@@ -88,10 +88,31 @@ export class LocalStorageGatewaysProvider implements GatewaysProvider {
       return cached.gateways.map((gateway) => new URL(gateway));
     }
 
-    const gateways = await this.gatewaysProvider.getGateways();
-    this.cacheGateways(gateways);
+    // if a promise is already set, return it vs creating a new one
+    if (this.gatewaysPromise) {
+      return this.gatewaysPromise;
+    }
 
-    return gateways;
+    try {
+      // set the promise to prevent multiple requests
+      this.gatewaysPromise = this.gatewaysProvider.getGateways();
+      const gateways = await this.gatewaysPromise;
+      this.cacheGateways(gateways);
+      return gateways;
+    } catch (error: any) {
+      this.logger?.warn(
+        'Failed to fetch gateways. Falling back to cached gateways.',
+        {
+          error: error.message,
+          stack: error.stack,
+        },
+      );
+    } finally {
+      // clear the promise for the next request
+      this.gatewaysPromise = undefined;
+    }
+    // preserve the cache if the fetch fails
+    return cached?.gateways.map((gateway) => new URL(gateway)) ?? [];
   }
 
   private getCachedGateways(): CachedGateways | undefined {
@@ -122,6 +143,10 @@ export class LocalStorageGatewaysProvider implements GatewaysProvider {
   private cacheGateways(gateways: URL[]): void {
     try {
       if (typeof window === 'undefined' || !window.localStorage) {
+        return;
+      }
+
+      if (gateways.length === 0) {
         return;
       }
 
