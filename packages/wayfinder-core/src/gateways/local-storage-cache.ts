@@ -53,6 +53,7 @@ export class LocalStorageGatewaysProvider implements GatewaysProvider {
   private readonly gatewaysProvider: GatewaysProvider;
   private readonly ttlSeconds: number;
   private readonly logger: Logger;
+  private gatewaysPromise: Promise<URL[]> | undefined;
 
   constructor({
     ttlSeconds = this.defaultTtlSeconds,
@@ -88,9 +89,18 @@ export class LocalStorageGatewaysProvider implements GatewaysProvider {
       return cached.gateways.map((gateway) => new URL(gateway));
     }
 
-    const gateways = await this.gatewaysProvider.getGateways();
+    // if a promise is already set, return it vs creating a new one
+    if (this.gatewaysPromise) {
+      return this.gatewaysPromise;
+    }
+
+    // set the promise to prevent multiple requests
+    this.gatewaysPromise = this.gatewaysProvider.getGateways();
+    const gateways = await this.gatewaysPromise;
     this.cacheGateways(gateways);
 
+    // clear the promise for the next request
+    this.gatewaysPromise = undefined;
     return gateways;
   }
 
