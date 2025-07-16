@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-core
 
+## 1.0.3-alpha.0
+
+### Patch Changes
+
+- 86bdc2f: Prevent duplicate requests in LocalStorageGatewaysProvider and SimpleCacheGatewaysProvider
+
 ## 1.0.2
 
 ### Patch Changes
