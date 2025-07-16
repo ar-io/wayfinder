@@ -103,12 +103,11 @@ export class SimpleCacheGatewaysProvider implements GatewaysProvider {
         error: error.message,
         stack: error.stack,
       });
-      // preserve the cache if the fetch fails
-      return this.gatewaysCache;
     } finally {
       // clear the promise for the next request
       this.gatewaysPromise = undefined;
     }
+    // preserve the cache if the fetch fails
     return this.gatewaysCache;
   }
 

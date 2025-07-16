@@ -94,14 +94,26 @@ export class LocalStorageGatewaysProvider implements GatewaysProvider {
       return this.gatewaysPromise;
     }
 
-    // set the promise to prevent multiple requests
-    this.gatewaysPromise = this.gatewaysProvider.getGateways();
-    const gateways = await this.gatewaysPromise;
-    this.cacheGateways(gateways);
-
-    // clear the promise for the next request
-    this.gatewaysPromise = undefined;
-    return gateways;
+    try {
+      // set the promise to prevent multiple requests
+      this.gatewaysPromise = this.gatewaysProvider.getGateways();
+      const gateways = await this.gatewaysPromise;
+      this.cacheGateways(gateways);
+      return gateways;
+    } catch (error: any) {
+      this.logger?.warn(
+        'Failed to fetch gateways. Falling back to cached gateways.',
+        {
+          error: error.message,
+          stack: error.stack,
+        },
+      );
+    } finally {
+      // clear the promise for the next request
+      this.gatewaysPromise = undefined;
+    }
+    // preserve the cache if the fetch fails
+    return cached?.gateways.map((gateway) => new URL(gateway)) ?? [];
   }
 
   private getCachedGateways(): CachedGateways | undefined {
