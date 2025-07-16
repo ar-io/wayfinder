@@ -4,13 +4,13 @@ on:
   push:
     branches: [ main, alpha ]
     paths:
-      - 'packages/core/**'
+      - 'packages/wayfinder-core/**'
       - '.github/workflows/core.yml'
       - 'package.json'
   pull_request:
     branches: [ main, alpha ]
     paths:
-      - 'packages/core/**'
+      - 'packages/wayfinder-core/**'
       - '.github/workflows/core.yml'
       - 'package.json'
 

@@ -15,16 +15,16 @@
  * limitations under the License.
  */
 import { ARIO } from '@ar.io/sdk';
-import { NetworkGatewaysProvider } from '../packages/core/src/gateways/network.js';
-import { StaticRoutingStrategy } from '../packages/core/src/routing/static.js';
+import { NetworkGatewaysProvider } from '../packages/wayfinder-core/src/gateways/network.js';
+import { StaticRoutingStrategy } from '../packages/wayfinder-core/src/routing/static.js';
 import {
   VerificationStrategy,
   WayfinderEvent,
-} from '../packages/core/src/types.js';
-import { DataRootVerificationStrategy } from '../packages/core/src/verification/data-root-verifier.js';
-import { HashVerificationStrategy } from '../packages/core/src/verification/hash-verifier.js';
-import { SignatureVerificationStrategy } from '../packages/core/src/verification/signature-verifier.js';
-import { Wayfinder } from '../packages/core/src/wayfinder.js';
+} from '../packages/wayfinder-core/src/types.js';
+import { DataRootVerificationStrategy } from '../packages/wayfinder-core/src/verification/data-root-verifier.js';
+import { HashVerificationStrategy } from '../packages/wayfinder-core/src/verification/hash-verifier.js';
+import { SignatureVerificationStrategy } from '../packages/wayfinder-core/src/verification/signature-verifier.js';
+import { Wayfinder } from '../packages/wayfinder-core/src/wayfinder.js';
 
 // Define the verification strategies
 type VerificationStrategyType = 'data-root' | 'hash' | 'signature';

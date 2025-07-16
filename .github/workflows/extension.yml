@@ -4,15 +4,15 @@ on:
   push:
     branches: [ main, alpha ]
     paths:
-      - 'packages/extension/**'
-      - 'packages/core/**'
+      - 'packages/wayfinder-extension/**'
+      - 'packages/wayfinder-core/**'
       - '.github/workflows/extension.yml'
       - 'package.json'
   pull_request:
     branches: [ main, alpha ]
     paths:
-      - 'packages/extension/**'
-      - 'packages/core/**'
+      - 'packages/wayfinder-extension/**'
+      - 'packages/wayfinder-core/**'
       - '.github/workflows/extension.yml'
       - 'package.json'
 

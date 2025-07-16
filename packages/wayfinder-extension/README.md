@@ -44,9 +44,9 @@ cd wayfinder
 npm install
 
 # Build the extension
-npm run build -w packages/extension
+npm run build -w packages/wayfinder-extension
 
-# The built extension will be in packages/extension/dist
+# The built extension will be in packages/wayfinder-extension/dist
 ```
 
 ### Loading into Chrome
@@ -54,7 +54,7 @@ npm run build -w packages/extension
 1. Open Chrome and navigate to `chrome://extensions/`
 2. Enable "Developer mode" in the top right
 3. Click "Load unpacked"
-4. Select the `packages/extension/dist` directory
+4. Select the `packages/wayfinder-extension/dist` directory
 5. The WayFinder extension icon should appear in your toolbar
 
 ## Usage
@@ -151,17 +151,17 @@ src/
 
 ```bash
 # Development build with watch mode
-npm run dev -w packages/extension
+npm run dev -w packages/wayfinder-extension
 
 # Production build
-npm run build -w packages/extension
+npm run build -w packages/wayfinder-extension
 
 # Clean build artifacts
-npm run clean -w packages/extension
+npm run clean -w packages/wayfinder-extension
 
 # Lint and format
-npm run lint:fix -w packages/extension
-npm run format:fix -w packages/extension
+npm run lint:fix -w packages/wayfinder-extension
+npm run format:fix -w packages/wayfinder-extension
 ```
 
 ## Privacy
