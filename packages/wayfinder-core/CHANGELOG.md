@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-core
 
+## 1.0.3-alpha.1
+
+### Patch Changes
+
+- 226f3af: Fix defaultTtlSeconds in gateway caches'
+
 ## 1.0.3-alpha.0
 
 ### Patch Changes
