@@ -51,7 +51,7 @@ export class SimpleCacheGatewaysProvider implements GatewaysProvider {
 
   constructor({
     gatewaysProvider,
-    ttlSeconds = this.defaultTtlSeconds,
+    ttlSeconds,
     logger = defaultLogger,
   }: {
     gatewaysProvider: GatewaysProvider;
@@ -60,7 +60,7 @@ export class SimpleCacheGatewaysProvider implements GatewaysProvider {
   }) {
     this.gatewaysCache = [];
     this.gatewaysProvider = gatewaysProvider;
-    this.ttlSeconds = ttlSeconds;
+    this.ttlSeconds = ttlSeconds ?? this.defaultTtlSeconds;
     this.expiresAt = 0;
     this.logger = logger;
   }
@@ -77,15 +77,16 @@ export class SimpleCacheGatewaysProvider implements GatewaysProvider {
       return this.gatewaysCache;
     }
 
+    // if a promise is already set, return it vs creating a new one
+    if (this.gatewaysPromise) {
+      return this.gatewaysPromise;
+    }
+
     try {
       this.logger.debug('Cache expired, fetching new gateways', {
         expiresAt: this.expiresAt,
         ttlSeconds: this.ttlSeconds,
       });
-
-      if (this.gatewaysPromise) {
-        return this.gatewaysPromise;
-      }
 
       // set the promise to prevent multiple requests to the gatewaysProvider
       this.gatewaysPromise = this.gatewaysProvider.getGateways(params);

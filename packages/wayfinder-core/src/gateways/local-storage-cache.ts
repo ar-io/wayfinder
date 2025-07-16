@@ -56,7 +56,7 @@ export class LocalStorageGatewaysProvider implements GatewaysProvider {
   private gatewaysPromise: Promise<URL[]> | undefined;
 
   constructor({
-    ttlSeconds = this.defaultTtlSeconds,
+    ttlSeconds,
     gatewaysProvider,
     logger = defaultLogger,
   }: {
@@ -70,8 +70,7 @@ export class LocalStorageGatewaysProvider implements GatewaysProvider {
       );
     }
 
-    this.gatewaysProvider = gatewaysProvider;
-    this.ttlSeconds = ttlSeconds;
+    this.ttlSeconds = ttlSeconds ?? this.defaultTtlSeconds;
     this.gatewaysProvider = gatewaysProvider;
     this.logger = logger;
   }
@@ -144,6 +143,10 @@ export class LocalStorageGatewaysProvider implements GatewaysProvider {
   private cacheGateways(gateways: URL[]): void {
     try {
       if (typeof window === 'undefined' || !window.localStorage) {
+        return;
+      }
+
+      if (gateways.length === 0) {
         return;
       }
 
