@@ -17,7 +17,7 @@ fs.writeFileSync('manifest.json', JSON.stringify(manifest, null, 2));
 "
 
 # Clean previous build artifacts
-rm -rf dist
+rm -rf dist node_modules
 rm -f wayfinder-extension-v*.zip
 
 # Install latest dependencies
