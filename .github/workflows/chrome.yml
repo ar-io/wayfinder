@@ -49,6 +49,10 @@ jobs:
         if: always()
         uses: rtCamp/action-slack-notify@v2
         env:
-          SLACK_TITLE: 'Chrome Extension ${ job.status } ({{ steps.extension.outputs.VERSION }})'
+          SLACK_TITLE: 'Chrome Extension ${{ job.status }} - v${{ steps.extension.outputs.VERSION }}'
           SLACK_COLOR: ${{ job.status }}
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_MESSAGE: |
+            Wayfinder Chrome Extension v${{ steps.extension.outputs.VERSION }} was ${{ job.status == 'success' && 'successfully published' || 'failed to publish' }}.
+
+            
