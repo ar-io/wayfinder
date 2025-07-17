@@ -17,18 +17,18 @@ fs.writeFileSync('manifest.json', JSON.stringify(manifest, null, 2));
 "
 
 # Clean previous build artifacts
-rm -rf dist
+rm -rf dist node_modules
 rm -f wayfinder-extension-v*.zip
 
 # Install latest dependencies
-npm install
+npm install --workspaces=false
 
 # run lint
-npm run lint:fix -w @ar.io/wayfinder-extension
+npm run lint:fix --workspaces=false
 
 # Build the extension
 echo "Building extension..."
-npm run build -w @ar.io/wayfinder-extension
+npm run build --workspaces=false
 
 # Zip the contents of the dist directory into a versioned zip file
 zip -r wayfinder-extension-v${VERSION}.zip dist

@@ -10,6 +10,9 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -28,14 +31,28 @@ jobs:
 
       - name: Publish to Chrome Web Store
         run: |
+          npx chrome-webstore-upload \
+            --source packages/wayfinder-extension/wayfinder-extension-v${{ steps.extension.outputs.VERSION }}.zip \
+            --extension-id ${{ secrets.CHROME_WEBSTORE_EXTENSION_ID }} \
+            --client-id ${{ secrets.CHROME_WEBSTORE_CLIENT_ID }} \
+            --client-secret ${{ secrets.CHROME_WEBSTORE_CLIENT_SECRET }} \
+            --refresh-token ${{ secrets.CHROME_WEBSTORE_REFRESH_TOKEN }}
+
+      - name: Update GitHub Releases
+        run: |
           gh release upload \
             @ar.io/wayfinder-extension@${{ steps.extension.outputs.VERSION }} \
             packages/wayfinder-extension/wayfinder-extension-v${{ steps.extension.outputs.VERSION }}.zip \
             --clobber
 
       - name: Notify Slack
+        if: always()
         uses: rtCamp/action-slack-notify@v2
         env:
-          SLACK_TITLE: 'Chrome Extension ${ job.status } ({{ steps.extension.outputs.VERSION }})'
+          SLACK_TITLE: 'Chrome Extension ${{ job.status }} - v${{ steps.extension.outputs.VERSION }}'
           SLACK_COLOR: ${{ job.status }}
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_MESSAGE: |
+            Wayfinder Chrome Extension v${{ steps.extension.outputs.VERSION }} was ${{ job.status == 'success' && 'successfully published' || 'failed to publish' }}.
+
+            
