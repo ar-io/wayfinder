@@ -21,7 +21,7 @@ import { WayfinderEmitter } from './emitter.js';
 import { RandomRoutingStrategy } from './routing/random.js';
 import { StaticRoutingStrategy } from './routing/static.js';
 import { GatewaysProvider, RoutingStrategy, WayfinderEvent } from './types.js';
-import { HashVerificationStrategy } from './verification/hash-verifier.js';
+import { HashVerificationStrategy } from './verification/hash-verification.js';
 import {
   Wayfinder,
   createWayfinderUrl,

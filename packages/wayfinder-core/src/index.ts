@@ -33,9 +33,10 @@ export * from './gateways/static.js';
 export * from './gateways/local-storage-cache.js';
 
 // verification strategies
-export * from './verification/data-root-verifier.js';
-export * from './verification/hash-verifier.js';
-export * from './verification/signature-verifier.js';
+export * from './verification/data-root-verification.js';
+export * from './verification/hash-verification.js';
+export * from './verification/signature-verification.js';
+export * from './verification/remote-verification.js';
 
 // emitter
 export * from './emitter.js';
