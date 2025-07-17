@@ -27,10 +27,10 @@
     "watch": "vite build --watch --config vite.config.js",
     "clean": "rimraf dist",
     "test": "echo \"Passing\"",
-    "lint:fix": "biome check --write --unsafe",
-    "lint:check": "biome check --unsafe",
-    "format:fix": "biome format --write",
-    "format:check": "biome format"
+    "lint:fix": "biome check --write --unsafe --config-path=../../biome.json",
+    "lint:check": "biome check --unsafe --config-path=../../biome.json",
+    "format:fix": "biome format --write --config-path=../../biome.json",
+    "format:check": "biome format --config-path=../../biome.json"
   },
   "dependencies": {
     "@ar.io/sdk": "^3.13.0",
