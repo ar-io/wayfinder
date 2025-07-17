@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-extension
 
+## 1.0.4
+
+### Patch Changes
+
+- 79a46d1: Performance improvements for wayfinder-extension
+
 ## 1.0.3
 
 ### Patch Changes
