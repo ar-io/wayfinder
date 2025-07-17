@@ -40,7 +40,4 @@ jobs:
       
     - name: Build extension
       run: npm run build -w @ar.io/wayfinder-extension
-      
-    # TODO: Upload artifacts and use changeset for publishing new versions
-
 
