@@ -68,5 +68,3 @@ jobs:
 
     - name: Build core library
       run: npm run build -w @ar.io/wayfinder-core
-      
-    # TODO: Upload artifacts and use changeset for publishing new versions
