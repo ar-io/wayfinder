@@ -1,0 +1,41 @@
+name: Publish Chrome Extension
+
+on:
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install --frozen-lockfile
+
+      - name: Build Extension Artifact
+        id: extension
+        run: |
+          cd packages/wayfinder-extension
+          ./build_artifact.sh
+
+      - name: Publish to Chrome Web Store
+        run: |
+          gh release upload \
+            @ar.io/wayfinder-extension-${{ steps.extension.outputs.VERSION }}.zip \
+            packages/wayfinder-extension/wayfinder-extension-v${{ steps.extension.outputs.VERSION }}.zip \
+            --clobber
+
+      - name: Notify Slack
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_TITLE: 'Chrome Extension ${ job.status } ({{ steps.extension.outputs.VERSION }})'
+          SLACK_COLOR: ${{ job.status }}
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}

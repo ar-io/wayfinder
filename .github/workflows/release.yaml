@@ -77,18 +77,3 @@ jobs:
         id: release
         if: steps.changesets.outputs.published == 'true'
         run: git push --follow-tags
-
-      - name: Create Extension Zip
-        id: extension
-        if: steps.changesets.outputs.published == 'true'
-        run: |
-          cd packages/wayfinder-extension
-          ./build_artifact.sh
-
-      - name: Attach Extension Zip to Release
-        if: steps.changesets.outputs.published == 'true'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # check that the release exists
-          gh release upload @ar.io/wayfinder-extension-${{ steps.extension.outputs.VERSION }}.zip packages/wayfinder-extension/wayfinder-extension-v${{ steps.extension.outputs.VERSION }}.zip --clobber
