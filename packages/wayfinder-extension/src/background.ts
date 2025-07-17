@@ -596,8 +596,6 @@ async function handleRequestCompleted(details: any) {
   // get the recorded gateway url based on the urls filter of the listener
   const gatewayBaseFqdn = matchingGateway.settings.fqdn;
 
-  console.log('gatewayBaseFqdn', gatewayBaseFqdn, fullGatewayFqdn);
-
   if (!gatewayBaseFqdn) {
     return;
   }
