@@ -15,24 +15,6 @@
  * limitations under the License.
  */
 import { AoGatewayWithAddress } from '@ar.io/sdk/web';
-/**
- * WayFinder
- * Copyright (C) 2022-2025 Permanent Data Solutions, Inc. All Rights Reserved.
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
-// import type { GatewaysProvider } from '@ar.io/wayfinder-core';
 import { GatewayRegistry } from '../types';
 
 /**
@@ -271,24 +253,27 @@ export class ChromeStorageGatewayProvider {
     }
 
     await chrome.storage.local.set({ gatewayPerformance });
+    await this.updateGatewayUsageHistory(fqdn);
   }
 
-  /**
-   * Syncs gateway registry from AR.IO network
-   */
-  async syncGatewayRegistry(): Promise<void> {
-    // Trigger the existing sync mechanism
-    return new Promise((resolve, reject) => {
-      chrome.runtime.sendMessage(
-        { message: 'syncGatewayAddressRegistry' },
-        (response) => {
-          if (chrome.runtime.lastError) {
-            reject(chrome.runtime.lastError);
-          } else {
-            resolve(response);
-          }
-        },
-      );
-    });
+  async updateGatewayUsageHistory(gatewayFQDN: string) {
+    const now = new Date().toISOString();
+
+    const { gatewayUsageHistory = {} } = await chrome.storage.local.get([
+      'gatewayUsageHistory',
+    ]);
+
+    if (!gatewayUsageHistory[gatewayFQDN]) {
+      gatewayUsageHistory[gatewayFQDN] = {
+        requestCount: 1,
+        firstUsed: now,
+        lastUsed: now,
+      };
+    } else {
+      gatewayUsageHistory[gatewayFQDN].requestCount += 1;
+      gatewayUsageHistory[gatewayFQDN].lastUsed = now;
+    }
+
+    await chrome.storage.local.set({ gatewayUsageHistory });
   }
 }

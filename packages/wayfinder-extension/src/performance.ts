@@ -393,8 +393,6 @@ function updatePeriodLabel() {
   }
 }
 
-// Removed: clearHistory function - functionality moved to Settings page
-
 function showLoadingState() {
   const loadingState = document.getElementById('loadingState');
   if (!loadingState) return;

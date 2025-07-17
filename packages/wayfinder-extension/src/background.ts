@@ -14,24 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 import { AOProcess, ARIO, AoGateway, WalletAddress } from '@ar.io/sdk/web';
 import { connect } from '@permaweb/aoconnect';
+import { LRUCache } from 'lru-cache';
+import pDebounce from 'p-debounce';
 import { ChromeStorageGatewayProvider } from './adapters/chrome-storage-gateway-provider';
 import { EXTENSION_DEFAULTS } from './config/defaults';
 import { ARIO_MAINNET_PROCESS_ID, DEFAULT_AO_CU_URL } from './constants';
-import {
-  isKnownGateway,
-  normalizeGatewayFQDN,
-  updateGatewayPerformance,
-} from './helpers';
+import { getCachedGatewayRegistry } from './helpers';
 import {
   getRoutableGatewayUrl,
   getWayfinderInstance,
   resetWayfinderInstance,
 } from './routing';
 import { RedirectedTabInfo, VerificationCacheEntry } from './types';
-import { circuitBreaker } from './utils/circuit-breaker';
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -84,25 +80,74 @@ class TabStateManager {
 
 // Global variables
 const tabStateManager = new TabStateManager();
-const requestTimings = new Map<string, number>();
+const requestTimings = new LRUCache<string, number>({
+  max: 10_000,
+  ttl: 60 * 60 * 1000 * 24, // 1 day in milliseconds
+});
+const verificationCache = new LRUCache<string, VerificationCacheEntry>({
+  max: 10_000,
+  ttl: 60 * 60 * 1000 * 24, // 1 day in milliseconds
+});
 
-// Verification toast cache
-const verificationCache = new Map<string, VerificationCacheEntry>();
-const VERIFICATION_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
-const MAX_VERIFICATION_CACHE_SIZE = 1000;
+// manage webRequest listeners
+const webRequestListeners: {
+  onCompleted?: any;
+  onHeadersReceived?: any;
+  onErrorOccurred?: any;
+  onBeforeRequest?: any;
+} = {};
 
-// Clean up old verification cache entries periodically
-setInterval(
-  () => {
-    const now = Date.now();
-    for (const [key, entry] of verificationCache.entries()) {
-      if (now - entry.timestamp > VERIFICATION_CACHE_TTL) {
-        verificationCache.delete(key);
-      }
-    }
-  },
-  5 * 60 * 1000,
-); // Clean every 5 minutes
+/**
+ * Get URL patterns for known gateways from cache
+ */
+async function getGatewayUrlPatterns(): Promise<string[]> {
+  try {
+    const registry = await getCachedGatewayRegistry();
+    if (!registry) return ['*://arweave.net/*']; // fallback
+
+    const patterns = Object.values(registry).flatMap((gw: any) => {
+      const fqdn = gw.settings?.fqdn;
+      if (!fqdn) return [];
+      return [`*://${fqdn}/*`, `*://*.${fqdn}/*`];
+    });
+
+    return patterns.length > 0 ? patterns : ['*://arweave.net/*'];
+  } catch {
+    return ['*://arweave.net/*'];
+  }
+}
+
+/**
+ * Update webRequest listeners with current gateway URLs
+ */
+async function updateWebRequestListeners() {
+  const newPatterns = await getGatewayUrlPatterns();
+
+  // Remove old listeners
+  if (webRequestListeners.onCompleted) {
+    chrome.webRequest.onCompleted.removeListener(
+      webRequestListeners.onCompleted,
+    );
+  }
+  if (webRequestListeners.onHeadersReceived) {
+    chrome.webRequest.onHeadersReceived.removeListener(
+      webRequestListeners.onHeadersReceived,
+    );
+  }
+  if (webRequestListeners.onErrorOccurred) {
+    chrome.webRequest.onErrorOccurred.removeListener(
+      webRequestListeners.onErrorOccurred,
+    );
+  }
+  if (webRequestListeners.onBeforeRequest) {
+    chrome.webRequest.onBeforeRequest.removeListener(
+      webRequestListeners.onBeforeRequest,
+    );
+  }
+
+  // Add new listeners with updated patterns
+  setupWebRequestListeners({ urls: newPatterns });
+}
 
 // Helper function to generate cache key
 function getVerificationCacheKey(
@@ -140,14 +185,6 @@ async function shouldShowVerificationToast(
       gatewayFQDN,
     });
 
-    // Enforce cache size limit
-    if (verificationCache.size > MAX_VERIFICATION_CACHE_SIZE) {
-      const firstKey = verificationCache.keys().next().value;
-      if (firstKey !== undefined) {
-        verificationCache.delete(firstKey);
-      }
-    }
-
     return true;
   }
 
@@ -163,8 +200,6 @@ async function shouldShowVerificationToast(
   // Same verification status - don't show
   return false;
 }
-
-// Initializing Wayfinder Extension
 
 /**
  * Update daily statistics
@@ -329,222 +364,128 @@ async function initializeWayfinder() {
   }
 }
 
+// before navigate
+chrome.webNavigation.onBeforeNavigate.addListener(handleBeforeNavigate, {
+  url: [{ schemes: ['http', 'https'] }],
+});
 /**
  * Handles browser navigation for `ar://` links using Wayfinder core library
  * FIXED: Back to direct gateway routing with verification tracking
  */
-chrome.webNavigation.onBeforeNavigate.addListener(
-  async (details) => {
-    let arUrl: string | null = null;
-    try {
-      // Only process main frame to avoid iframe noise
-      if (details.frameId !== 0) return;
+async function handleBeforeNavigate(details: any) {
+  let arUrl: string | null = null;
+  try {
+    // Only process main frame to avoid iframe noise
+    if (details.frameId !== 0) return;
 
-      const url = new URL(details.url);
+    const url = new URL(details.url);
 
-      // Original ar:// URL handling
-      arUrl = url.searchParams.get('q');
+    // Original ar:// URL handling
+    arUrl = url.searchParams.get('q');
 
-      if (!arUrl || !arUrl.startsWith('ar://')) return;
+    if (!arUrl || !arUrl.startsWith('ar://')) return;
 
-      // Validate ar:// URL format
-      if (arUrl.length < 6) {
-        logger.error(`Invalid ar:// URL format: ${arUrl}`);
-        return;
-      }
-
-      // Processing ar:// navigation
-
-      // Process immediately without setTimeout to prevent race conditions
-      const startTime = performance.now();
-
-      // Get the routable gateway URL using Wayfinder
-      const result = await getRoutableGatewayUrl(arUrl);
-
-      if (result?.url) {
-        // Track redirect BEFORE navigation to prevent timing issues
-        tabStateManager.set(details.tabId, {
-          originalGateway: result.gatewayFQDN || 'unknown',
-          expectedSandboxRedirect: /^[a-z0-9_-]{43}$/i.test(arUrl.slice(5)),
-          startTime,
-          arUrl,
-        });
-
-        // Navigate to the gateway URL directly
-        chrome.tabs.update(details.tabId, { url: result.url });
-        // Redirected to gateway
-
-        // Track the request
-        updateDailyStats('request');
-
-        // Navigation successful - request was routed to the gateway
-      } else {
-        const errorMessage =
-          (result as any)?.error ||
-          'No available gateways could handle this request.';
-        logger.error(`Failed to route ${arUrl}: ${errorMessage}`);
-        // Show error to user with styling
-        chrome.tabs.update(details.tabId, {
-          url: `data:text/html,
-            <!DOCTYPE html>
-            <html>
-            <head>
-              <title>Wayfinder Error</title>
-              <style>
-                body {
-                  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                  background: #f5f5f5;
-                  color: #333;
-                  margin: 0;
-                  padding: 40px;
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  min-height: 100vh;
-                }
-                .error-container {
-                  background: white;
-                  border-radius: 8px;
-                  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-                  padding: 40px;
-                  max-width: 600px;
-                  text-align: center;
-                }
-                h1 {
-                  color: #e74c3c;
-                  margin: 0 0 16px;
-                  font-size: 24px;
-                }
-                .url {
-                  background: #f8f8f8;
-                  padding: 8px 16px;
-                  border-radius: 4px;
-                  font-family: monospace;
-                  margin: 16px 0;
-                  word-break: break-all;
-                }
-                .error-message {
-                  color: #666;
-                  margin: 16px 0;
-                  line-height: 1.5;
-                }
-                .actions {
-                  margin-top: 24px;
-                }
-                button {
-                  background: #3498db;
-                  color: white;
-                  border: none;
-                  padding: 12px 24px;
-                  border-radius: 4px;
-                  font-size: 16px;
-                  cursor: pointer;
-                  margin: 0 8px;
-                }
-                button:hover {
-                  background: #2980b9;
-                }
-              </style>
-            </head>
-            <body>
-              <div class="error-container">
-                <h1>Failed to Route AR.IO Request</h1>
-                <div class="url">${arUrl}</div>
-                <div class="error-message">${errorMessage}</div>
-                <div class="actions">
-                  <button onclick="history.back()">Go Back</button>
-                  <button onclick="chrome.runtime.sendMessage({type: 'openSettings'})">Open Settings</button>
-                </div>
-              </div>
-            </body>
-            </html>`,
-        });
-      }
-    } catch (error) {
-      logger.error('Error processing ar:// navigation:', error);
-      // Show error page to user
-      try {
-        const errorMessage =
-          error instanceof Error ? error.message : 'Unknown error occurred';
-        chrome.tabs.update(details.tabId, {
-          url: `data:text/html,
-            <!DOCTYPE html>
-            <html>
-            <head>
-              <title>Wayfinder Error</title>
-              <style>
-                body {
-                  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                  background: #f5f5f5;
-                  color: #333;
-                  margin: 0;
-                  padding: 40px;
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  min-height: 100vh;
-                }
-                .error-container {
-                  background: white;
-                  border-radius: 8px;
-                  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-                  padding: 40px;
-                  max-width: 600px;
-                  text-align: center;
-                }
-                h1 {
-                  color: #e74c3c;
-                  margin: 0 0 16px;
-                  font-size: 24px;
-                }
-                .error-message {
-                  color: #666;
-                  margin: 16px 0;
-                  line-height: 1.5;
-                }
-                .actions {
-                  margin-top: 24px;
-                }
-                button {
-                  background: #3498db;
-                  color: white;
-                  border: none;
-                  padding: 12px 24px;
-                  border-radius: 4px;
-                  font-size: 16px;
-                  cursor: pointer;
-                }
-                button:hover {
-                  background: #2980b9;
-                }
-              </style>
-            </head>
-            <body>
-              <div class="error-container">
-                <h1>Error Processing AR.IO URL</h1>
-                <div class="error-message">${errorMessage}</div>
-                <div class="actions">
-                  <button onclick="history.back()">Go Back</button>
-                </div>
-              </div>
-            </body>
-            </html>`,
-        });
-      } catch (tabError) {
-        logger.error('Failed to update tab with error page:', tabError);
-      }
+    // Validate ar:// URL format
+    if (arUrl.length < 6) {
+      logger.error(`Invalid ar:// URL format: ${arUrl}`);
+      return;
     }
-  },
-  { url: [{ schemes: ['http', 'https'] }] },
-);
+
+    // Process immediately without setTimeout to prevent race conditions
+    const startTime = performance.now();
+
+    // Get the routable gateway URL using Wayfinder
+    const result = await getRoutableGatewayUrl(arUrl);
+
+    // Track redirect BEFORE navigation to prevent timing issues
+    tabStateManager.set(details.tabId, {
+      originalGateway: result.gatewayFQDN || 'unknown',
+      expectedSandboxRedirect: /^[a-z0-9_-]{43}$/i.test(arUrl.slice(5)),
+      startTime,
+      arUrl,
+    });
+
+    // Navigate to the gateway URL directly
+    chrome.tabs.update(details.tabId, { url: result.url });
+
+    // Track the request
+    updateDailyStats('request');
+  } catch (error) {
+    logger.error('Error processing ar:// navigation:', error);
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error occurred';
+    chrome.tabs.update(details.tabId, {
+      url: `data:text/html,
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Wayfinder Error</title>
+            <style>
+              body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                background: #f5f5f5;
+                color: #333;
+                margin: 0;
+                padding: 40px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 100vh;
+              }
+              .error-container {
+                background: white;
+                border-radius: 8px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                padding: 40px;
+                max-width: 600px;
+                text-align: center;
+              }
+              h1 {
+                color: #e74c3c;
+                margin: 0 0 16px;
+                font-size: 24px;
+              }
+              .error-message {
+                color: #666;
+                margin: 16px 0;
+                line-height: 1.5;
+              }
+              .actions {
+                margin-top: 24px;
+              }
+              button {
+                background: #3498db;
+                color: white;
+                border: none;
+                padding: 12px 24px;
+                border-radius: 4px;
+                font-size: 16px;
+                cursor: pointer;
+              }
+              button:hover {
+                background: #2980b9;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="error-container">
+              <h1>Error Failed to Route AR.IO URL</h1>
+              <div class="error-message">${errorMessage}</div>
+              <div class="actions">
+                <button onclick="history.back()">Go Back</button>
+              </div>
+            </div>
+          </body>
+          </html>`,
+    });
+  }
+}
 
 /**
  * Clean up tab state when tabs are closed
  */
-chrome.tabs.onRemoved.addListener(async (tabId) => {
-  if (tabStateManager.delete(tabId)) {
-    // Cleaned up tab state
-  }
+async function handleTabRemoved(tabId: number) {
+  tabStateManager.delete(tabId);
 
   // Also clean up verification cache entries for this tab
   try {
@@ -563,277 +504,228 @@ chrome.tabs.onRemoved.addListener(async (tabId) => {
   } catch {
     // Tab already closed, ignore
   }
-});
+}
+
+// Setup tab removed listener
+chrome.tabs.onRemoved.addListener(handleTabRemoved);
 
 /**
- * Track request timing for performance metrics
+ * Setup webRequest listeners with dynamic URL patterns
  */
-chrome.webRequest.onBeforeRequest.addListener(
-  (details) => {
-    requestTimings.set(details.requestId, performance.now());
-  },
-  { urls: ['<all_urls>'] },
-);
+function setupWebRequestListeners({
+  urls,
+}: {
+  urls: string[];
+}) {
+  // Store references for cleanup
+  webRequestListeners.onHeadersReceived = handleHeadersReceived;
+
+  chrome.webRequest.onHeadersReceived.addListener(
+    webRequestListeners.onHeadersReceived,
+    { urls },
+    ['responseHeaders'],
+  );
+
+  // Store references for cleanup
+  webRequestListeners.onErrorOccurred = handleRequestError;
+
+  chrome.webRequest.onErrorOccurred.addListener(
+    webRequestListeners.onErrorOccurred,
+    { urls },
+  );
+
+  // before request
+  webRequestListeners.onBeforeRequest = handleBeforeRequest;
+
+  chrome.webRequest.onBeforeRequest.addListener(
+    webRequestListeners.onBeforeRequest,
+    { urls },
+  );
+
+  // completed
+  webRequestListeners.onCompleted = handleRequestCompleted;
+
+  chrome.webRequest.onCompleted.addListener(webRequestListeners.onCompleted, {
+    urls,
+  });
+}
 
 /**
  * Handle successful requests - update performance metrics and verify data
  */
-chrome.webRequest.onCompleted.addListener(
-  async (details) => {
-    const gatewayFQDN = new URL(details.url).hostname;
+async function handleRequestCompleted(details: any) {
+  const fullGatewayFqdn = new URL(details.url).hostname;
 
-    // Only track requests from ar:// redirections
-    const tabInfo = tabStateManager.get(details.tabId);
-    if (!tabInfo) return;
+  let responseTime: number | undefined;
 
-    const responseTime = performance.now() - tabInfo.startTime;
-
-    // Update performance metrics via gateway provider
-    await gatewayProvider.updateGatewayPerformance(
-      gatewayFQDN,
-      responseTime,
-      true,
-    );
-
-    // Record success in circuit breaker
-    circuitBreaker.onSuccess(gatewayFQDN);
-
-    // Performance metrics updated
-
-    // Clean up tracking
+  // only track requests from ar:// redirections (not other requests)
+  const tabInfo = tabStateManager.get(details.tabId);
+  if (tabInfo) {
+    responseTime = performance.now() - tabInfo.startTime;
     tabStateManager.delete(details.tabId);
-  },
-  { urls: ['<all_urls>'] },
-);
+  }
 
-chrome.webRequest.onHeadersReceived.addListener(
-  (details) => {
-    // Check for verification header on ALL gateway requests - handle async without blocking
-    (async () => {
-      try {
-        const url = new URL(details.url);
-        const hostname = url.hostname;
+  const requestId = details.requestId.toString();
+  const startTime = requestTimings.get(requestId);
+  if (startTime) {
+    // update performance metrics
+    responseTime = performance.now() - startTime;
+    requestTimings.delete(requestId);
+  }
 
-        // Check if this is a known gateway
-        const isGateway = await isKnownGateway(hostname);
+  if (!responseTime) {
+    return;
+  }
 
-        if (isGateway && details.tabId !== -1) {
-          // Parse headers for verification
-          let verified = false;
-          let arnsResolvedId: string | null = null;
-          let dataId: string | null = null;
+  // get the local gateway registry to increment the stats of the gateway that served the request
+  const gatewayRegistry = await getCachedGatewayRegistry();
 
-          for (const header of details.responseHeaders || []) {
-            const headerName = header.name.toLowerCase();
-            const headerValue = header.value || '';
+  const matchingGateway: any = Object.values(gatewayRegistry).find(
+    (gateway: any) => {
+      if (!gateway.settings?.fqdn) {
+        return false;
+      }
+      return fullGatewayFqdn.includes(gateway.settings.fqdn);
+    },
+  );
 
-            switch (headerName) {
-              case 'x-ar-io-verified':
-                verified = headerValue.toLowerCase() === 'true';
-                break;
-              case 'x-arns-resolved-id':
-                arnsResolvedId = headerValue;
-                break;
-              case 'x-ar-io-data-id':
-                dataId = headerValue;
-                break;
-            }
+  if (!matchingGateway) {
+    return;
+  }
+
+  // get the recorded gateway url based on the urls filter of the listener
+  const gatewayBaseFqdn = matchingGateway.settings.fqdn;
+
+  if (!gatewayBaseFqdn) {
+    return;
+  }
+
+  // Update performance metrics via gateway provider
+  await gatewayProvider.updateGatewayPerformance(
+    gatewayBaseFqdn,
+    responseTime,
+    true,
+  );
+}
+
+/**
+ * Handle verification headers - only for known gateways
+ */
+function handleHeadersReceived(details: any) {
+  // Check for verification header on gateway requests - handle async without blocking
+  (async () => {
+    try {
+      const url = new URL(details.url);
+      const hostname = url.hostname;
+
+      // Since we're already filtering by gateway URLs, skip the isKnownGateway check
+      if (details.tabId !== -1) {
+        // Parse headers for verification
+        let verified = false;
+        let arnsResolvedId: string | null = null;
+        let dataId: string | null = null;
+
+        for (const header of details.responseHeaders || []) {
+          const headerName = header.name.toLowerCase();
+          const headerValue = header.value || '';
+
+          switch (headerName) {
+            case 'x-ar-io-verified':
+              verified = headerValue.toLowerCase() === 'true';
+              break;
+            case 'x-arns-resolved-id':
+              arnsResolvedId = headerValue;
+              break;
+            case 'x-ar-io-data-id':
+              dataId = headerValue;
+              break;
           }
+        }
 
-          // Use resolved ID if available, otherwise data ID
-          const resolvedId = arnsResolvedId || dataId || undefined;
+        // Use resolved ID if available, otherwise data ID
+        const resolvedId = arnsResolvedId || dataId || undefined;
 
-          // Only show toast if content is verified
-          if (verified) {
-            // Check if we should show verification toast
-            const shouldShow = await shouldShowVerificationToast(
-              hostname,
-              resolvedId,
-              verified,
-              hostname,
-            );
+        // Only show toast if content is verified
+        if (verified) {
+          // Check if we should show verification toast
+          const shouldShow = await shouldShowVerificationToast(
+            hostname,
+            resolvedId,
+            verified,
+            hostname,
+          );
 
-            if (shouldShow) {
-              // Send message to content script
-              try {
-                await chrome.tabs.sendMessage(details.tabId, {
-                  type: 'showVerificationToast',
-                  verified,
-                  gatewayFQDN: hostname,
-                  resolvedId,
-                });
-              } catch (error) {
-                // Content script might not be injected yet or tab might be closing
-                logger.debug(
-                  'Could not send verification toast message:',
-                  error,
-                );
-              }
+          if (shouldShow) {
+            // Send message to content script
+            try {
+              await chrome.tabs.sendMessage(details.tabId, {
+                type: 'showVerificationToast',
+                verified,
+                gatewayFQDN: hostname,
+                resolvedId,
+              });
+            } catch (error) {
+              // Content script might not be injected yet or tab might be closing
+              logger.debug('Could not send verification toast message:', error);
             }
           }
         }
-      } catch (error) {
-        logger.error('Error checking verification header:', error);
       }
-    })(); // Execute the async IIFE
-  },
-  { urls: ['<all_urls>'] },
-  ['responseHeaders'],
-);
+    } catch (error) {
+      logger.error('Error checking verification header:', error);
+    }
+  })(); // Execute the async IIFE
+}
 
 /**
  * Handle failed requests
  */
-chrome.webRequest.onErrorOccurred.addListener(
-  async (details) => {
-    const gatewayFQDN = new URL(details.url).hostname;
+async function handleRequestError(details: any) {
+  const gatewayFQDN = new URL(details.url).hostname;
 
-    // Only track failures from ar:// redirections
-    const tabInfo = tabStateManager.get(details.tabId);
-    if (tabInfo) {
-      await gatewayProvider.updateGatewayPerformance(
-        gatewayFQDN,
-        Infinity,
-        false,
-      );
+  // Only track failures from ar:// redirections
+  const tabInfo = tabStateManager.get(details.tabId);
+  if (tabInfo) {
+    await gatewayProvider.updateGatewayPerformance(
+      gatewayFQDN,
+      Infinity,
+      false,
+    );
 
-      // Record failure in circuit breaker
-      circuitBreaker.onFailure(gatewayFQDN);
+    logger.warn(`Request failed to ${gatewayFQDN}: ${details.error}`);
 
-      logger.warn(`Request failed to ${gatewayFQDN}: ${details.error}`);
+    tabStateManager.delete(details.tabId);
+  }
 
-      tabStateManager.delete(details.tabId);
+  // mark the request as failed
+  const requestId = details.requestId.toString();
+  const startTime = requestTimings.get(requestId);
+  if (startTime) {
+    const storage = await chrome.storage.local.get(['gatewayPerformance']);
+    const gatewayPerformance = storage.gatewayPerformance || {};
+    if (!gatewayPerformance[gatewayFQDN]) {
+      gatewayPerformance[gatewayFQDN] = {
+        avgResponseTime: 0,
+        failures: 1,
+        successCount: 0,
+      };
+    } else {
+      gatewayPerformance[gatewayFQDN].failures += 1;
     }
-  },
-  { urls: ['<all_urls>'] },
-);
 
+    await chrome.storage.local.set({ gatewayPerformance });
+
+    // Clean up
+    requestTimings.delete(requestId);
+  }
+}
 /**
  * Track web requests to known gateways for performance monitoring
  */
-chrome.webRequest.onBeforeRequest.addListener(
-  (details) => {
-    const url = new URL(details.url);
-
-    // Check if this is a request to a known gateway
-    isKnownGateway(url.hostname).then((isKnown) => {
-      if (isKnown) {
-        requestTimings.set(details.requestId.toString(), performance.now());
-      }
-    });
-  },
-  { urls: ['<all_urls>'] },
-);
-
-chrome.webRequest.onCompleted.addListener(
-  async (details) => {
-    const requestId = details.requestId.toString();
-    const startTime = requestTimings.get(requestId);
-
-    if (startTime) {
-      const url = new URL(details.url);
-
-      // Update performance metrics
-      await updateGatewayPerformance(url.hostname, startTime);
-
-      // Clean up
-      requestTimings.delete(requestId);
-    }
-  },
-  { urls: ['<all_urls>'] },
-);
-
-chrome.webRequest.onErrorOccurred.addListener(
-  async (details) => {
-    const requestId = details.requestId.toString();
-    const startTime = requestTimings.get(requestId);
-
-    if (startTime) {
-      const url = new URL(details.url);
-
-      // Track failure
-      const isKnown = await isKnownGateway(url.hostname);
-      if (isKnown) {
-        const storage = await chrome.storage.local.get(['gatewayPerformance']);
-        const gatewayPerformance = storage.gatewayPerformance || {};
-        const gatewayFQDN = await normalizeGatewayFQDN(url.hostname);
-
-        if (!gatewayPerformance[gatewayFQDN]) {
-          gatewayPerformance[gatewayFQDN] = {
-            avgResponseTime: 0,
-            failures: 1,
-            successCount: 0,
-          };
-        } else {
-          gatewayPerformance[gatewayFQDN].failures += 1;
-        }
-
-        await chrome.storage.local.set({ gatewayPerformance });
-      }
-
-      // Clean up
-      requestTimings.delete(requestId);
-    }
-  },
-  { urls: ['<all_urls>'] },
-);
-
-/**
- * Track ALL web requests for permaweb vs regular web ratio calculation
- */
-chrome.webRequest.onCompleted.addListener(
-  async (details) => {
-    // Only track main frame requests (not images, scripts, etc.) to avoid inflating counts
-    if (details.type !== 'main_frame') return;
-
-    // Skip chrome:// and extension:// URLs
-    if (
-      details.url.startsWith('chrome://') ||
-      details.url.startsWith('extension://')
-    )
-      return;
-
-    try {
-      const url = new URL(details.url);
-
-      // Update total request count
-      updateDailyStats('totalRequest');
-
-      // Check if this is a request to an AR.IO gateway
-      const { localGatewayAddressRegistry = {} } =
-        await chrome.storage.local.get(['localGatewayAddressRegistry']);
-      const isArioGateway = Object.values(localGatewayAddressRegistry).some(
-        (gateway: any) => {
-          return gateway.settings?.fqdn === url.hostname;
-        },
-      );
-
-      // If it's an AR.IO gateway request that's not already tracked by ar:// navigation, count it
-      if (isArioGateway) {
-        const tabInfo = tabStateManager.get(details.tabId);
-        if (!tabInfo) {
-          // This is a direct navigation to an AR.IO gateway (not via ar:// redirection)
-          updateDailyStats('request');
-        }
-      }
-    } catch {
-      // Ignore malformed URLs
-    }
-  },
-  { urls: ['http://*/*', 'https://*/*'] },
-);
-
-/**
- * Clean up request timings periodically
- */
-setInterval(() => {
-  const now = performance.now();
-  for (const [requestId, timestamp] of requestTimings.entries()) {
-    if (now - timestamp > 60000) {
-      requestTimings.delete(requestId);
-    }
-  }
-}, 30000);
+function handleBeforeRequest(details: any) {
+  // Since we're already filtering by gateway URLs, all requests are to known gateways
+  requestTimings.set(details.requestId.toString(), performance.now());
+}
 
 /**
  * Handle messages from content scripts and popup
@@ -950,8 +842,6 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     return true; // Keep message channel open for async response
   }
 
-  // Removed: updateVerificationMode handler - verification modes no longer used
-
   // Handle advanced settings updates
   if (request.message === 'updateAdvancedSettings') {
     (async () => {
@@ -1054,7 +944,6 @@ async function syncGatewayAddressRegistry(): Promise<void> {
     }
 
     // Syncing Gateway Address Registry
-
     const registry: Record<WalletAddress, AoGateway> = {};
     let cursor: string | undefined = undefined;
     let totalFetched = 0;
@@ -1126,26 +1015,31 @@ async function reinitializeArIO(): Promise<void> {
   }
 }
 
-// Start initialization after storage is ready
+// Initialize webRequest listeners with fallback patterns
+updateWebRequestListeners()
+  .then(() => {
+    logger.info('WebRequest listeners updated');
+  })
+  .catch((error) => {
+    logger.error('Error updating WebRequest listeners:', error);
+  });
+
+// Update listeners when gateway registry changes
+chrome.storage.onChanged.addListener(async (changes, namespace) => {
+  if (namespace === 'local' && changes.localGatewayAddressRegistry) {
+    await updateWebRequestListeners();
+  }
+});
+
+// on chrome storage ready, initialize wayfinder with debounce
+const debouncedInitializeWayfinder = pDebounce(initializeWayfinder, 1000, {
+  before: true,
+});
 chrome.storage.local
   .get(['processId', 'aoCuUrl'])
-  .then(({ processId, aoCuUrl }) => {
-    // Wait a bit to ensure storage initialization is complete
-    setTimeout(() => {
-      if (!processId || !aoCuUrl) {
-        logger.warn(
-          'Process ID or AO CU URL not yet initialized, delaying gateway sync...',
-        );
-        // Try again after storage should be initialized
-        setTimeout(() => {
-          initializeWayfinder().catch((err) =>
-            logger.error('Error during Wayfinder initialization:', err),
-          );
-        }, 2000);
-      } else {
-        initializeWayfinder().catch((err) =>
-          logger.error('Error during Wayfinder initialization:', err),
-        );
-      }
-    }, 1000);
+  .then(async () => {
+    debouncedInitializeWayfinder();
+  })
+  .catch((error) => {
+    logger.error('Error initializing Wayfinder:', error);
   });

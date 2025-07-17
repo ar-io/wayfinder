@@ -68,10 +68,6 @@ function setupStorageListener() {
       if (changes.routingMethod) {
         loadCurrentStrategy();
       }
-
-      // Verification section removed from popup
-
-      // Removed: Verified Browsing update - verification features removed
     }
   });
 }
@@ -102,10 +98,6 @@ function setupEventHandlers() {
   document.getElementById('changeStrategy')?.addEventListener('click', () => {
     window.location.href = 'settings.html#routing';
   });
-
-  // Verification change button removed
-
-  // Removed: Verified Browsing toggle - verification features removed
 }
 
 async function loadStats() {
@@ -238,8 +230,6 @@ async function loadCurrentStrategy() {
   }
 }
 
-// Verification section removed from popup
-
 async function updateConnectionStatus() {
   // Show static "Connected" status (connection testing removed)
   const statusElement = document.getElementById('connectionStatus');
@@ -283,5 +273,3 @@ window
       applyTheme();
     }
   });
-
-// Removed: Verified Browsing functions - verification features removed

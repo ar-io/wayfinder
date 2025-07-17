@@ -23,9 +23,12 @@ rm -f wayfinder-extension-v*.zip
 # Install latest dependencies
 npm install
 
+# run lint
+npm run lint:fix -w @ar.io/wayfinder-extension
+
 # Build the extension
 echo "Building extension..."
-npm run build --workspace=@ar.io/wayfinder-extension
+npm run build -w @ar.io/wayfinder-extension
 
 # Zip the contents of the dist directory into a versioned zip file
 zip -r wayfinder-extension-v${VERSION}.zip dist
