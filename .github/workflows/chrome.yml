@@ -32,7 +32,7 @@ jobs:
       - name: Publish to Chrome Web Store
         run: |
           npx chrome-webstore-upload \
-            --source ./packages/wayfinder-extension/wayfinder-extension-v${{ steps.extension.outputs.VERSION }}.zip \
+            --source packages/wayfinder-extension/wayfinder-extension-v${{ steps.extension.outputs.VERSION }}.zip \
             --client-id ${{ secrets.CHROME_WEBSTORE_CLIENT_ID }} \
             --client-secret ${{ secrets.CHROME_WEBSTORE_CLIENT_SECRET }} \
             --refresh-token ${{ secrets.CHROME_WEBSTORE_REFRESH_TOKEN }}
@@ -41,7 +41,7 @@ jobs:
         run: |
           gh release upload \
             @ar.io/wayfinder-extension@${{ steps.extension.outputs.VERSION }} \
-            ./packages/wayfinder-extension/wayfinder-extension-v${{ steps.extension.outputs.VERSION }}.zip \
+            packages/wayfinder-extension/wayfinder-extension-v${{ steps.extension.outputs.VERSION }}.zip \
             --clobber
 
       - name: Notify Slack
