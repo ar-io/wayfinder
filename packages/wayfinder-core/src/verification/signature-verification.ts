@@ -37,7 +37,7 @@ import {
   isAsyncIterable,
   readableStreamToAsyncIterable,
 } from '../utils/hash.js';
-import { convertDataStreamToDataRoot } from './data-root-verifier.js';
+import { convertDataStreamToDataRoot } from './data-root-verification.js';
 
 /**
  * Implementation of DataVerificationStrategy that verifies data item signatures

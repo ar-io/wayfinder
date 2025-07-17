@@ -34,7 +34,7 @@ import type {
   WayfinderURLParams,
 } from './types.js';
 import { sandboxFromId } from './utils/base64.js';
-import { HashVerificationStrategy } from './verification/hash-verifier.js';
+import { HashVerificationStrategy } from './verification/hash-verification.js';
 
 // headers
 export const wayfinderRequestHeaders = ({
@@ -179,6 +179,7 @@ export const constructGatewayUrl = ({
 export function tapAndVerifyReadableStream({
   originalStream,
   contentLength,
+  headers,
   verifyData,
   txId,
   emitter,
@@ -186,6 +187,7 @@ export function tapAndVerifyReadableStream({
 }: {
   originalStream: ReadableStream;
   contentLength: number;
+  headers: Record<string, string>;
   verifyData: VerificationStrategy['verifyData'];
   txId: string;
   emitter?: WayfinderEmitter;
@@ -208,6 +210,7 @@ export function tapAndVerifyReadableStream({
     const verificationPromise = verifyData({
       data: verifyBranch,
       txId,
+      headers,
     });
 
     let bytesProcessed = 0;
@@ -461,8 +464,6 @@ export const wayfinderFetch = ({
         }
 
         // Verify the response
-
-        // TODO: add more verification and response attributes to the span
         const headers = response.headers;
 
         // transaction id is either in the response headers or the path of the request as the first parameter
@@ -499,6 +500,8 @@ export const wayfinderFetch = ({
             txId,
             emitter: requestEmitter,
             strict: verificationSettings.strict,
+            // @ts-expect-error - headers.entries fails in our types but works at runtime
+            headers: Object.fromEntries(headers.entries()),
           });
 
           return new Response(newClientStream, {

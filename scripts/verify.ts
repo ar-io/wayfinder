@@ -21,9 +21,9 @@ import {
   VerificationStrategy,
   WayfinderEvent,
 } from '../packages/wayfinder-core/src/types.js';
-import { DataRootVerificationStrategy } from '../packages/wayfinder-core/src/verification/data-root-verifier.js';
-import { HashVerificationStrategy } from '../packages/wayfinder-core/src/verification/hash-verifier.js';
-import { SignatureVerificationStrategy } from '../packages/wayfinder-core/src/verification/signature-verifier.js';
+import { DataRootVerificationStrategy } from '../packages/wayfinder-core/src/verification/data-root-verification.js';
+import { HashVerificationStrategy } from '../packages/wayfinder-core/src/verification/hash-verification.js';
+import { SignatureVerificationStrategy } from '../packages/wayfinder-core/src/verification/signature-verification.js';
 import { Wayfinder } from '../packages/wayfinder-core/src/wayfinder.js';
 
 // Define the verification strategies
