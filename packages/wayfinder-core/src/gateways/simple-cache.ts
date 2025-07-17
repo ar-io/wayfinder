@@ -47,10 +47,11 @@ export class SimpleCacheGatewaysProvider implements GatewaysProvider {
   private expiresAt: number;
   private gatewaysCache: URL[];
   private logger: Logger;
+  private gatewaysPromise: Promise<URL[]> | undefined;
 
   constructor({
     gatewaysProvider,
-    ttlSeconds = this.defaultTtlSeconds,
+    ttlSeconds,
     logger = defaultLogger,
   }: {
     gatewaysProvider: GatewaysProvider;
@@ -59,7 +60,7 @@ export class SimpleCacheGatewaysProvider implements GatewaysProvider {
   }) {
     this.gatewaysCache = [];
     this.gatewaysProvider = gatewaysProvider;
-    this.ttlSeconds = ttlSeconds;
+    this.ttlSeconds = ttlSeconds ?? this.defaultTtlSeconds;
     this.expiresAt = 0;
     this.logger = logger;
   }
@@ -68,33 +69,46 @@ export class SimpleCacheGatewaysProvider implements GatewaysProvider {
     URL[]
   > {
     if (this.isCacheValid()) {
-      try {
-        this.logger.debug('Cache expired, fetching new gateways', {
-          expiresAt: this.expiresAt,
-          ttlSeconds: this.ttlSeconds,
-        });
-
-        // preserve the cache if the fetch fails
-        const allGateways = await this.gatewaysProvider.getGateways(params);
-        this.gatewaysCache = allGateways;
-        this.expiresAt = Date.now() + this.ttlSeconds * 1000;
-
-        this.logger.debug('Updated gateways cache', {
-          gatewayCount: allGateways.length,
-        });
-      } catch (error: any) {
-        this.logger.error('Failed to fetch gateways', {
-          error: error.message,
-          stack: error.stack,
-        });
-      }
-    } else {
       this.logger.debug('Using cached gateways', {
         expiresAt: this.expiresAt,
         ttlSeconds: this.ttlSeconds,
         gatewayCount: this.gatewaysCache.length,
       });
+      return this.gatewaysCache;
     }
+
+    // if a promise is already set, return it vs creating a new one
+    if (this.gatewaysPromise) {
+      return this.gatewaysPromise;
+    }
+
+    try {
+      this.logger.debug('Cache expired, fetching new gateways', {
+        expiresAt: this.expiresAt,
+        ttlSeconds: this.ttlSeconds,
+      });
+
+      // set the promise to prevent multiple requests to the gatewaysProvider
+      this.gatewaysPromise = this.gatewaysProvider.getGateways(params);
+      const allGateways = await this.gatewaysPromise;
+
+      // update the cache
+      this.gatewaysCache = allGateways;
+      this.expiresAt = Date.now() + this.ttlSeconds * 1000;
+
+      this.logger.debug('Updated gateways cache', {
+        gatewayCount: allGateways.length,
+      });
+    } catch (error: any) {
+      this.logger.error('Failed to fetch gateways', {
+        error: error.message,
+        stack: error.stack,
+      });
+    } finally {
+      // clear the promise for the next request
+      this.gatewaysPromise = undefined;
+    }
+    // preserve the cache if the fetch fails
     return this.gatewaysCache;
   }
 
