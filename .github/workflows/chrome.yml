@@ -33,6 +33,7 @@ jobs:
         run: |
           npx chrome-webstore-upload \
             --source packages/wayfinder-extension/wayfinder-extension-v${{ steps.extension.outputs.VERSION }}.zip \
+            --extension-id ${{ secrets.CHROME_WEBSTORE_EXTENSION_ID }} \
             --client-id ${{ secrets.CHROME_WEBSTORE_CLIENT_ID }} \
             --client-secret ${{ secrets.CHROME_WEBSTORE_CLIENT_SECRET }} \
             --refresh-token ${{ secrets.CHROME_WEBSTORE_REFRESH_TOKEN }}
@@ -45,6 +46,7 @@ jobs:
             --clobber
 
       - name: Notify Slack
+        if: always()
         uses: rtCamp/action-slack-notify@v2
         env:
           SLACK_TITLE: 'Chrome Extension ${ job.status } ({{ steps.extension.outputs.VERSION }})'
