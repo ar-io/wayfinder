@@ -16,11 +16,11 @@
  */
 // Cache for gateway registry to avoid repeated Chrome storage reads
 let gatewayCache: { registry: any; timestamp: number } | null = null;
-const GATEWAY_CACHE_TTL = 30000; // 30 seconds
+const GATEWAY_CACHE_TTL_MS = 3600000; // 1 hour
 
-export async function getCachedGatewayRegistry() {
+export async function getCachedGatewayRegistry(): Promise<any> {
   const now = Date.now();
-  if (gatewayCache && (now - gatewayCache.timestamp) < GATEWAY_CACHE_TTL) {
+  if (gatewayCache && now - gatewayCache.timestamp < GATEWAY_CACHE_TTL_MS) {
     return gatewayCache.registry;
   }
 
@@ -30,7 +30,7 @@ export async function getCachedGatewayRegistry() {
 
   gatewayCache = {
     registry: localGatewayAddressRegistry,
-    timestamp: now
+    timestamp: now,
   };
 
   return localGatewayAddressRegistry;

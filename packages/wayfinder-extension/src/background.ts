@@ -16,6 +16,7 @@
  */
 import { AOProcess, ARIO, AoGateway, WalletAddress } from '@ar.io/sdk/web';
 import { connect } from '@permaweb/aoconnect';
+import { LRUCache } from 'lru-cache';
 import pDebounce from 'p-debounce';
 import { ChromeStorageGatewayProvider } from './adapters/chrome-storage-gateway-provider';
 import { EXTENSION_DEFAULTS } from './config/defaults';
@@ -79,14 +80,16 @@ class TabStateManager {
 
 // Global variables
 const tabStateManager = new TabStateManager();
-// TODO: use an TTL/LRU cache for request timings to avoid memory leaks and performance issues
-const requestTimings = new Map<string, number>();
-// TODO: use an TTL/LRU cache for verification cache to avoid memory leaks and performance issues
-const verificationCache = new Map<string, VerificationCacheEntry>();
-const MAX_VERIFICATION_CACHE_SIZE = 1000;
+const requestTimings = new LRUCache<string, number>({
+  max: 10_000,
+  ttl: 60 * 60 * 1000 * 24, // 1 day in milliseconds
+});
+const verificationCache = new LRUCache<string, VerificationCacheEntry>({
+  max: 10_000,
+  ttl: 60 * 60 * 1000 * 24, // 1 day in milliseconds
+});
 
-// Dynamic URL patterns for webRequest listeners
-let currentGatewayUrls: string[] = [];
+// manage webRequest listeners
 const webRequestListeners: {
   onCompleted?: any;
   onHeadersReceived?: any;
@@ -97,17 +100,17 @@ const webRequestListeners: {
 /**
  * Get URL patterns for known gateways from cache
  */
-function getGatewayUrlPatterns(): string[] {
+async function getGatewayUrlPatterns(): Promise<string[]> {
   try {
-    const registry = getCachedGatewayRegistry();
+    const registry = await getCachedGatewayRegistry();
     if (!registry) return ['*://arweave.net/*']; // fallback
-    
+
     const patterns = Object.values(registry).flatMap((gw: any) => {
       const fqdn = gw.settings?.fqdn;
       if (!fqdn) return [];
       return [`*://${fqdn}/*`, `*://*.${fqdn}/*`];
     });
-    
+
     return patterns.length > 0 ? patterns : ['*://arweave.net/*'];
   } catch {
     return ['*://arweave.net/*'];
@@ -117,32 +120,33 @@ function getGatewayUrlPatterns(): string[] {
 /**
  * Update webRequest listeners with current gateway URLs
  */
-function updateWebRequestListeners() {
-  const newPatterns = getGatewayUrlPatterns();
-  
-  // Only update if patterns changed
-  if (JSON.stringify(newPatterns) === JSON.stringify(currentGatewayUrls)) {
-    return;
-  }
-  
-  currentGatewayUrls = newPatterns;
-  
+async function updateWebRequestListeners() {
+  const newPatterns = await getGatewayUrlPatterns();
+
   // Remove old listeners
   if (webRequestListeners.onCompleted) {
-    chrome.webRequest.onCompleted.removeListener(webRequestListeners.onCompleted);
+    chrome.webRequest.onCompleted.removeListener(
+      webRequestListeners.onCompleted,
+    );
   }
   if (webRequestListeners.onHeadersReceived) {
-    chrome.webRequest.onHeadersReceived.removeListener(webRequestListeners.onHeadersReceived);
+    chrome.webRequest.onHeadersReceived.removeListener(
+      webRequestListeners.onHeadersReceived,
+    );
   }
   if (webRequestListeners.onErrorOccurred) {
-    chrome.webRequest.onErrorOccurred.removeListener(webRequestListeners.onErrorOccurred);
+    chrome.webRequest.onErrorOccurred.removeListener(
+      webRequestListeners.onErrorOccurred,
+    );
   }
   if (webRequestListeners.onBeforeRequest) {
-    chrome.webRequest.onBeforeRequest.removeListener(webRequestListeners.onBeforeRequest);
+    chrome.webRequest.onBeforeRequest.removeListener(
+      webRequestListeners.onBeforeRequest,
+    );
   }
-  
+
   // Add new listeners with updated patterns
-  setupWebRequestListeners();
+  setupWebRequestListeners({ urls: newPatterns });
 }
 
 // Helper function to generate cache key
@@ -181,14 +185,6 @@ async function shouldShowVerificationToast(
       gatewayFQDN,
     });
 
-    // Enforce cache size limit
-    if (verificationCache.size > MAX_VERIFICATION_CACHE_SIZE) {
-      const firstKey = verificationCache.keys().next().value;
-      if (firstKey !== undefined) {
-        verificationCache.delete(firstKey);
-      }
-    }
-
     return true;
   }
 
@@ -204,8 +200,6 @@ async function shouldShowVerificationToast(
   // Same verification status - don't show
   return false;
 }
-
-// Initializing Wayfinder Extension
 
 /**
  * Update daily statistics
@@ -370,6 +364,10 @@ async function initializeWayfinder() {
   }
 }
 
+// before navigate
+chrome.webNavigation.onBeforeNavigate.addListener(handleBeforeNavigate, {
+  url: [{ schemes: ['http', 'https'] }],
+});
 /**
  * Handles browser navigation for `ar://` links using Wayfinder core library
  * FIXED: Back to direct gateway routing with verification tracking
@@ -399,113 +397,25 @@ async function handleBeforeNavigate(details: any) {
     // Get the routable gateway URL using Wayfinder
     const result = await getRoutableGatewayUrl(arUrl);
 
-    if (result?.url) {
-      // Track redirect BEFORE navigation to prevent timing issues
-      tabStateManager.set(details.tabId, {
-        originalGateway: result.gatewayFQDN || 'unknown',
-        expectedSandboxRedirect: /^[a-z0-9_-]{43}$/i.test(arUrl.slice(5)),
-        startTime,
-        arUrl,
-      });
+    // Track redirect BEFORE navigation to prevent timing issues
+    tabStateManager.set(details.tabId, {
+      originalGateway: result.gatewayFQDN || 'unknown',
+      expectedSandboxRedirect: /^[a-z0-9_-]{43}$/i.test(arUrl.slice(5)),
+      startTime,
+      arUrl,
+    });
 
-      // Navigate to the gateway URL directly
-      chrome.tabs.update(details.tabId, { url: result.url });
-      // Redirected to gateway
+    // Navigate to the gateway URL directly
+    chrome.tabs.update(details.tabId, { url: result.url });
 
-      // Track the request
-      updateDailyStats('request');
-
-      // Navigation successful - request was routed to the gateway
-    } else {
-      const errorMessage =
-        (result as any)?.error ||
-        'No available gateways could handle this request.';
-      logger.error(`Failed to route ${arUrl}: ${errorMessage}`);
-      // Show error to user with styling
-      chrome.tabs.update(details.tabId, {
-        url: `data:text/html,
-            <!DOCTYPE html>
-            <html>
-            <head>
-              <title>Wayfinder Error</title>
-              <style>
-                body {
-                  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                  background: #f5f5f5;
-                  color: #333;
-                  margin: 0;
-                  padding: 40px;
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  min-height: 100vh;
-                }
-                .error-container {
-                  background: white;
-                  border-radius: 8px;
-                  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-                  padding: 40px;
-                  max-width: 600px;
-                  text-align: center;
-                }
-                h1 {
-                  color: #e74c3c;
-                  margin: 0 0 16px;
-                  font-size: 24px;
-                }
-                .url {
-                  background: #f8f8f8;
-                  padding: 8px 16px;
-                  border-radius: 4px;
-                  font-family: monospace;
-                  margin: 16px 0;
-                  word-break: break-all;
-                }
-                .error-message {
-                  color: #666;
-                  margin: 16px 0;
-                  line-height: 1.5;
-                }
-                .actions {
-                  margin-top: 24px;
-                }
-                button {
-                  background: #3498db;
-                  color: white;
-                  border: none;
-                  padding: 12px 24px;
-                  border-radius: 4px;
-                  font-size: 16px;
-                  cursor: pointer;
-                  margin: 0 8px;
-                }
-                button:hover {
-                  background: #2980b9;
-                }
-              </style>
-            </head>
-            <body>
-              <div class="error-container">
-                <h1>Failed to Route AR.IO Request</h1>
-                <div class="url">${arUrl}</div>
-                <div class="error-message">${errorMessage}</div>
-                <div class="actions">
-                  <button onclick="history.back()">Go Back</button>
-                  <button onclick="chrome.runtime.sendMessage({type: 'openSettings'})">Open Settings</button>
-                </div>
-              </div>
-            </body>
-            </html>`,
-        });
-      }
+    // Track the request
+    updateDailyStats('request');
   } catch (error) {
     logger.error('Error processing ar:// navigation:', error);
-    // Show error page to user
-    try {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error occurred';
-      chrome.tabs.update(details.tabId, {
-        url: `data:text/html,
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error occurred';
+    chrome.tabs.update(details.tabId, {
+      url: `data:text/html,
           <!DOCTYPE html>
           <html>
           <head>
@@ -559,7 +469,7 @@ async function handleBeforeNavigate(details: any) {
           </head>
           <body>
             <div class="error-container">
-              <h1>Error Processing AR.IO URL</h1>
+              <h1>Error Failed to Route AR.IO URL</h1>
               <div class="error-message">${errorMessage}</div>
               <div class="actions">
                 <button onclick="history.back()">Go Back</button>
@@ -567,10 +477,7 @@ async function handleBeforeNavigate(details: any) {
             </div>
           </body>
           </html>`,
-      });
-    } catch (tabError) {
-      logger.error('Failed to update tab with error page:', tabError);
-    }
+    });
   }
 }
 
@@ -605,77 +512,102 @@ chrome.tabs.onRemoved.addListener(handleTabRemoved);
 /**
  * Setup webRequest listeners with dynamic URL patterns
  */
-function setupWebRequestListeners() {
-  const urlPatterns = { urls: currentGatewayUrls };
-  
-  // Store references for cleanup
-  webRequestListeners.onCompleted = handleRequestCompleted;
-  
-  chrome.webRequest.onCompleted.addListener(
-    webRequestListeners.onCompleted,
-    urlPatterns,
-  );
+function setupWebRequestListeners({
+  urls,
+}: {
+  urls: string[];
+}) {
   // Store references for cleanup
   webRequestListeners.onHeadersReceived = handleHeadersReceived;
-  
+
   chrome.webRequest.onHeadersReceived.addListener(
     webRequestListeners.onHeadersReceived,
-    urlPatterns,
+    { urls },
     ['responseHeaders'],
   );
 
   // Store references for cleanup
   webRequestListeners.onErrorOccurred = handleRequestError;
-  
+
   chrome.webRequest.onErrorOccurred.addListener(
     webRequestListeners.onErrorOccurred,
-    urlPatterns,
+    { urls },
   );
 
-  // Setup web navigation listener
-  chrome.webNavigation.onBeforeNavigate.addListener(
-    handleBeforeNavigate, 
-    { url: [{ schemes: ['http', 'https']   }] },
-  );
-
-  // Store references for cleanup
+  // before request
   webRequestListeners.onBeforeRequest = handleBeforeRequest;
 
   chrome.webRequest.onBeforeRequest.addListener(
     webRequestListeners.onBeforeRequest,
-    urlPatterns,
+    { urls },
   );
 
-  // Store references for cleanup
-  webRequestListeners.onBeforeRequest = handleBeforeRequest;
+  // completed
+  webRequestListeners.onCompleted = handleRequestCompleted;
 
-  chrome.webRequest.onBeforeRequest.addListener(
-    webRequestListeners.onBeforeRequest,
-    urlPatterns,
-  );
+  chrome.webRequest.onCompleted.addListener(webRequestListeners.onCompleted, {
+    urls,
+  });
 }
 
 /**
  * Handle successful requests - update performance metrics and verify data
  */
 async function handleRequestCompleted(details: any) {
-  const gatewayFQDN = new URL(details.url).hostname;
+  const fullGatewayFqdn = new URL(details.url).hostname;
+
+  let responseTime: number | undefined;
 
   // only track requests from ar:// redirections (not other requests)
   const tabInfo = tabStateManager.get(details.tabId);
-  if (!tabInfo) return;
+  if (tabInfo) {
+    responseTime = performance.now() - tabInfo.startTime;
+    tabStateManager.delete(details.tabId);
+  }
 
-  const responseTime = performance.now() - tabInfo.startTime;
+  const requestId = details.requestId.toString();
+  const startTime = requestTimings.get(requestId);
+  if (startTime) {
+    // update performance metrics
+    responseTime = performance.now() - startTime;
+    requestTimings.delete(requestId);
+  }
+
+  if (!responseTime) {
+    return;
+  }
+
+  // get the local gateway registry to increment the stats of the gateway that served the request
+  const gatewayRegistry = await getCachedGatewayRegistry();
+
+  const matchingGateway: any = Object.values(gatewayRegistry).find(
+    (gateway: any) => {
+      if (!gateway.settings?.fqdn) {
+        return false;
+      }
+      return fullGatewayFqdn.includes(gateway.settings.fqdn);
+    },
+  );
+
+  if (!matchingGateway) {
+    return;
+  }
+
+  // get the recorded gateway url based on the urls filter of the listener
+  const gatewayBaseFqdn = matchingGateway.settings.fqdn;
+
+  console.log('gatewayBaseFqdn', gatewayBaseFqdn, fullGatewayFqdn);
+
+  if (!gatewayBaseFqdn) {
+    return;
+  }
 
   // Update performance metrics via gateway provider
   await gatewayProvider.updateGatewayPerformance(
-    gatewayFQDN,
+    gatewayBaseFqdn,
     responseTime,
     true,
   );
-
-  // Clean up tracking
-  tabStateManager.delete(details.tabId);
 }
 
 /**
@@ -736,10 +668,7 @@ function handleHeadersReceived(details: any) {
               });
             } catch (error) {
               // Content script might not be injected yet or tab might be closing
-              logger.debug(
-                'Could not send verification toast message:',
-                error,
-              );
+              logger.debug('Could not send verification toast message:', error);
             }
           }
         }
@@ -799,18 +728,6 @@ function handleBeforeRequest(details: any) {
   // Since we're already filtering by gateway URLs, all requests are to known gateways
   requestTimings.set(details.requestId.toString(), performance.now());
 }
-
-/**
- * Clean up request timings periodically
- */
-setInterval(() => {
-  const now = performance.now();
-  for (const [requestId, timestamp] of requestTimings.entries()) {
-    if (now - timestamp > 60000) {
-      requestTimings.delete(requestId);
-    }
-  }
-}, 30000);
 
 /**
  * Handle messages from content scripts and popup
@@ -1029,7 +946,6 @@ async function syncGatewayAddressRegistry(): Promise<void> {
     }
 
     // Syncing Gateway Address Registry
-
     const registry: Record<WalletAddress, AoGateway> = {};
     let cursor: string | undefined = undefined;
     let totalFetched = 0;
@@ -1102,12 +1018,18 @@ async function reinitializeArIO(): Promise<void> {
 }
 
 // Initialize webRequest listeners with fallback patterns
-updateWebRequestListeners();
+updateWebRequestListeners()
+  .then(() => {
+    logger.info('WebRequest listeners updated');
+  })
+  .catch((error) => {
+    logger.error('Error updating WebRequest listeners:', error);
+  });
 
 // Update listeners when gateway registry changes
-chrome.storage.onChanged.addListener((changes, namespace) => {
+chrome.storage.onChanged.addListener(async (changes, namespace) => {
   if (namespace === 'local' && changes.localGatewayAddressRegistry) {
-    updateWebRequestListeners();
+    await updateWebRequestListeners();
   }
 });
 

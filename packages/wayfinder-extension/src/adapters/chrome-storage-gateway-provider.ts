@@ -253,5 +253,27 @@ export class ChromeStorageGatewayProvider {
     }
 
     await chrome.storage.local.set({ gatewayPerformance });
+    await this.updateGatewayUsageHistory(fqdn);
+  }
+
+  async updateGatewayUsageHistory(gatewayFQDN: string) {
+    const now = new Date().toISOString();
+
+    const { gatewayUsageHistory = {} } = await chrome.storage.local.get([
+      'gatewayUsageHistory',
+    ]);
+
+    if (!gatewayUsageHistory[gatewayFQDN]) {
+      gatewayUsageHistory[gatewayFQDN] = {
+        requestCount: 1,
+        firstUsed: now,
+        lastUsed: now,
+      };
+    } else {
+      gatewayUsageHistory[gatewayFQDN].requestCount += 1;
+      gatewayUsageHistory[gatewayFQDN].lastUsed = now;
+    }
+
+    await chrome.storage.local.set({ gatewayUsageHistory });
   }
 }
