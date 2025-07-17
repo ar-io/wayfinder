@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-core
 
+## 1.0.4
+
+### Patch Changes
+
+- 719acbd: Add `require` and `default` exports to wayfinder-core
+
 ## 1.0.3
 
 ### Patch Changes
