@@ -18,14 +18,14 @@ fs.writeFileSync('manifest.json', JSON.stringify(manifest, null, 2));
 
 # Clean previous build artifacts
 rm -rf dist
-rm -f wayfinder-extension-v${VERSION}.zip
+rm -f wayfinder-extension-v*.zip
 
 # Install latest dependencies
 npm install
 
 # Build the extension
 echo "Building extension..."
-npm run build
+npm run build --workspace=@ar.io/wayfinder-extension
 
 # Zip the contents of the dist directory into a versioned zip file
 zip -r wayfinder-extension-v${VERSION}.zip dist
@@ -33,4 +33,6 @@ zip -r wayfinder-extension-v${VERSION}.zip dist
 echo "Build and zip complete: wayfinder-extension-v${VERSION}.zip"
 
 # output the version to github for use in the release
-echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+if [ -n "$GITHUB_OUTPUT" ]; then
+  echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+fi

@@ -29,7 +29,7 @@ jobs:
       - name: Publish to Chrome Web Store
         run: |
           gh release upload \
-            @ar.io/wayfinder-extension-${{ steps.extension.outputs.VERSION }}.zip \
+            @ar.io/wayfinder-extension@${{ steps.extension.outputs.VERSION }} \
             packages/wayfinder-extension/wayfinder-extension-v${{ steps.extension.outputs.VERSION }}.zip \
             --clobber
 
