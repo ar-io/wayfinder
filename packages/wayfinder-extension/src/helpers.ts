@@ -14,50 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/**
- * Checks if a hostname belongs to a known AR.IO gateway.
- */
-export async function isKnownGateway(fqdn: string): Promise<boolean> {
-  const normalizedFQDN = await normalizeGatewayFQDN(fqdn);
+// Cache for gateway registry to avoid repeated Chrome storage reads
+let gatewayCache: { registry: any; timestamp: number } | null = null;
+const GATEWAY_CACHE_TTL = 30000; // 30 seconds
+
+export async function getCachedGatewayRegistry() {
+  const now = Date.now();
+  if (gatewayCache && (now - gatewayCache.timestamp) < GATEWAY_CACHE_TTL) {
+    return gatewayCache.registry;
+  }
 
   const { localGatewayAddressRegistry = {} } = await chrome.storage.local.get([
     'localGatewayAddressRegistry',
   ]);
 
-  return Object.values(localGatewayAddressRegistry).some(
-    (gw: any) => gw.settings.fqdn === normalizedFQDN,
-  );
-}
+  gatewayCache = {
+    registry: localGatewayAddressRegistry,
+    timestamp: now
+  };
 
-/**
- * Extracts the base gateway FQDN from a potentially subdomain-prefixed FQDN.
- * Ensures that ArNS subdomains and TXID-based URLs resolve to their root gateway.
- *
- * @param fqdn The full hostname from the request.
- * @returns The normalized gateway FQDN.
- */
-export async function normalizeGatewayFQDN(fqdn: string): Promise<string> {
-  const { localGatewayAddressRegistry = {} } = await chrome.storage.local.get([
-    'localGatewayAddressRegistry',
-  ]);
-
-  const knownGateways = Object.values(localGatewayAddressRegistry).map(
-    (gw: any) => gw.settings.fqdn,
-  );
-
-  // ✅ Direct match (e.g., `arweave.net`)
-  if (knownGateways.includes(fqdn)) {
-    return fqdn;
-  }
-
-  // 🔍 Check if fqdn is a **subdomain** of a known gateway (e.g., `example.arweave.net`)
-  for (const gatewayFQDN of knownGateways) {
-    if (fqdn.endsWith(`.${gatewayFQDN}`)) {
-      return gatewayFQDN; // ✅ Return base FQDN
-    }
-  }
-
-  // Unknown gateway fallback
-  // logger.warn(`Unknown gateway encountered: ${fqdn}`);
-  return fqdn;
+  return localGatewayAddressRegistry;
 }

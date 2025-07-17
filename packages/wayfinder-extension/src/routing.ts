@@ -18,7 +18,6 @@
 import {
   FastestPingRoutingStrategy,
   RandomRoutingStrategy,
-  SimpleCacheGatewaysProvider,
   SimpleCacheRoutingStrategy,
   StaticRoutingStrategy,
   Wayfinder,
@@ -93,15 +92,9 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
   ]);
 
   // Create the base gateway provider with configurable sorting
-  const baseGatewayProvider = new ChromeStorageGatewayProvider({
+  const gatewaysProvider = new ChromeStorageGatewayProvider({
     sortBy: gatewaySortBy,
     sortOrder: gatewaySortOrder,
-  });
-
-  // Wrap with cache provider for better performance
-  const gatewayProvider = new SimpleCacheGatewaysProvider({
-    ttlSeconds: gatewayCacheTTL,
-    gatewaysProvider: baseGatewayProvider,
   });
 
   // Single consolidated log for routing strategy
@@ -178,7 +171,7 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
   // Create Wayfinder instance
   const wayfinderConfig = {
     logger,
-    gatewaysProvider: gatewayProvider,
+    gatewaysProvider,
     routingSettings: {
       strategy: routingStrategy,
       events: {
