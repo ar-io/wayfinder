@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-react
 
+## 1.0.6-alpha.0
+
+### Patch Changes
+
+- 1f64207: Memoize params in `useWayfinderUrl` to avoid rerenders
+
 ## 1.0.5
 
 ### Patch Changes
