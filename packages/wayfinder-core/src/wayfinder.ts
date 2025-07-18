@@ -500,8 +500,13 @@ export const wayfinderFetch = ({
             txId,
             emitter: requestEmitter,
             strict: verificationSettings.strict,
-            // @ts-expect-error - headers.entries fails in our types but works at runtime
-            headers: Object.fromEntries(headers.entries()),
+            headers: Object.keys(headers).reduce(
+              (acc, key) => {
+                acc[key] = headers.get(key) ?? '';
+                return acc;
+              },
+              {} as Record<string, string>,
+            ),
           });
 
           return new Response(newClientStream, {
