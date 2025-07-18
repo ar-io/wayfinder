@@ -92,6 +92,76 @@ const verificationCache = new LRUCache<string, VerificationCacheEntry>({
   ttl: 60 * 60 * 1000 * 24, // 1 day in milliseconds
 });
 
+// Message queue for content scripts that aren't ready yet
+const messageQueue = new Map<number, Record<string, { id: string } & any>>();
+const readyTabs = new Set<number>();
+
+/**
+ * Send message to tab with queuing support
+ */
+async function sendMessageToTab(
+  tabId: number,
+  message: { id: string } & any,
+): Promise<void> {
+  if (readyTabs.has(tabId)) {
+    try {
+      await chrome.tabs.sendMessage(tabId, message);
+      // delete the message from the queue if it was queued
+      if (messageQueue.get(tabId)?.[message.id]) {
+        delete messageQueue.get(tabId)![message.id];
+      }
+    } catch (error: any) {
+      console.error('Failed to send message to tab:', error.message);
+      // Content script was removed, queue the message
+      readyTabs.delete(tabId);
+      queueMessage(tabId, message);
+    }
+  } else {
+    queueMessage(tabId, message);
+  }
+}
+
+/**
+ * Queue a message for later delivery with deduplication based on message id
+ */
+function queueMessage(tabId: number, message: { id: string } & any): void {
+  if (!messageQueue.has(tabId)) {
+    messageQueue.set(tabId, {});
+  }
+
+  // get the tab id
+  const tabQueue = messageQueue.get(tabId)!;
+
+  // add the message to the queue
+  tabQueue[message.id] = message;
+
+  // Clean up old messages (keep only last 10 per tab)
+  const queue = Object.values(messageQueue.get(tabId) || {});
+  if (queue.length > 10) {
+    queue.splice(0, queue.length - 10);
+  }
+}
+
+/**
+ * Send all queued messages for a tab
+ */
+async function flushMessageQueue(tabId: number): Promise<void> {
+  const queue = Object.values(messageQueue.get(tabId) || {});
+  if (queue.length === 0) return;
+
+  console.debug(`Flushing ${queue.length} queued messages for tab ${tabId}`);
+
+  for (const message of queue) {
+    try {
+      await chrome.tabs.sendMessage(tabId, message);
+    } catch (error) {
+      console.debug('Failed to send queued message:', error);
+    }
+  }
+
+  messageQueue.delete(tabId);
+}
+
 // manage webRequest listeners
 const webRequestListeners: {
   onCompleted?: any;
@@ -438,6 +508,10 @@ async function handleBeforeNavigate(details: any) {
 async function handleTabRemoved(tabId: number) {
   tabStateManager.delete(tabId);
 
+  // Clean up message queue and ready state
+  readyTabs.delete(tabId);
+  messageQueue.delete(tabId);
+
   // Also clean up verification cache entries for this tab
   try {
     const tab = await chrome.tabs.get(tabId);
@@ -557,18 +631,6 @@ async function handleRequestCompleted(details: any) {
     responseTime,
     true,
   );
-
-  // check the verification cache for the request
-  const verificationCacheEntry = verificationCache.get(details.requestId);
-  if (verificationCacheEntry) {
-    await chrome.tabs.sendMessage(details.tabId, {
-      type: 'showVerificationToast',
-      verified: verificationCacheEntry.verified,
-      arnsResolvedId: verificationCacheEntry.txId,
-      dataId: verificationCacheEntry.dataId,
-      gatewayFQDN: verificationCacheEntry.gatewayFQDN,
-    });
-  }
 }
 
 /**
@@ -579,29 +641,38 @@ async function handleHeadersReceived(details: any) {
     // Parse headers for verification
     const url = new URL(details.url);
     const hostname = url.hostname;
-    const headers = details.responseHeaders;
-    const arnsResolvedId: string | null =
-      headers['x-ar-io-arns-resolved-id'] || null;
-    const dataId: string | null = headers['x-ar-io-data-id'] || null;
+    const headers: Record<string, string> = details.responseHeaders.reduce(
+      (acc: Record<string, string>, header: any) => {
+        acc[header.name] = header.value;
+        return acc;
+      },
+      {},
+    );
+    // only verify if we have an x-ar-io-data-id, otherwise it's not verifiable data
+    const dataId = headers['x-ar-io-data-id'];
 
-    const remotelyVerified = await verificationStrategy
-      .verifyData({
-        headers: details.responseHeaders,
-      })
-      .catch((error) => {
-        logger.error('Failed to verify data:', error);
-        return false;
-      })
-      .then(() => true);
+    // show verification toast if the verification cache entry is for the same url
+    if (dataId) {
+      const remotelyVerified = await verificationStrategy
+        .verifyData({
+          headers,
+        })
+        .catch(() => {
+          return false;
+        })
+        .then(() => true);
 
-    // update the verification cache
-    verificationCache.set(details.requestId, {
-      txId: arnsResolvedId || '',
-      dataId: dataId || '',
-      verified: remotelyVerified,
-      timestamp: Date.now(),
-      gatewayFQDN: hostname,
-    });
+      const message: Record<string, { id: string } & any> = {
+        id: details.requestId,
+        type: 'showVerificationToast',
+        verified: remotelyVerified,
+        gateway: hostname,
+        url: details.url,
+        txId: dataId,
+      };
+
+      await sendMessageToTab(details.tabId, message);
+    }
   }
 }
 
@@ -653,19 +724,21 @@ async function handleRequestError(details: any) {
 function handleBeforeRequest(details: any) {
   // Since we're already filtering by gateway URLs, all requests are to known gateways
   requestTimings.set(details.requestId.toString(), performance.now());
-  verificationCache.set(details.requestId, {
-    txId: '',
-    dataId: '',
-    verified: false,
-    timestamp: Date.now(),
-    gatewayFQDN: '',
-  });
 }
 
 /**
  * Handle messages from content scripts and popup
  */
-chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  // Handle content script ready signal
+  if (request.type === 'contentScriptReady' && sender.tab?.id) {
+    const tabId = sender.tab.id;
+    readyTabs.add(tabId);
+    flushMessageQueue(tabId);
+    sendResponse({ success: true });
+    return;
+  }
+
   // Validate message types
   const validMessages = [
     'syncGatewayAddressRegistry',
