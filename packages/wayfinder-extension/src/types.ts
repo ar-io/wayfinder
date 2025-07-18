@@ -34,10 +34,10 @@ export type GatewayRegistry = Record<string, AoGatewayWithAddress>;
 
 export type VerificationCacheEntry = {
   txId: string;
-  dataId: string;
   verified: boolean;
   timestamp: number;
-  gatewayFQDN: string;
+  gateway: string;
+  url: string;
 };
 
 export type VerificationMessage = {
