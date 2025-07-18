@@ -15,8 +15,6 @@
  * limitations under the License.
  */
 
-import { logger } from './utils/logger';
-
 /**
  * Utility function to add timeout to promises
  */
@@ -59,30 +57,30 @@ function getToastContainer(): HTMLDivElement {
 /**
  * Show verification toast
  */
-function showVerificationToast(
-  verified: boolean,
-  gatewayFQDN: string,
-  resolvedId?: string,
-) {
+function showVerificationToast({
+  verified,
+  url,
+  txId,
+}: {
+  verified: boolean;
+  url: string;
+  txId?: string;
+}) {
   const container = getToastContainer();
-
-  logger.info(
-    `[CONTENT] Showing verification toast for ${gatewayFQDN}`,
-    verified,
-    resolvedId,
-  );
 
   // Create toast element
   const toast = document.createElement('div');
   toast.className = 'wayfinder-verification-toast';
 
-  // Since we only show verified toasts, use green styling
-  const bgColor = '#10b981';
+  console.debug(`Showing verification toast for ${url} (${txId})`, verified);
+
+  // Since we only show verified toasts, use green styling if verified, otherwise red
+  const bgColor = verified ? '#10b981' : '#f44336';
   const textColor = '#ffffff';
   const icon =
     '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
 
-  const message = `Remotely verified by ${gatewayFQDN}`;
+  const message = `Loaded ${verified ? 'verified' : 'unverified'} content: ${url}`;
 
   toast.style.cssText = `
     background-color: ${bgColor};
@@ -105,8 +103,8 @@ function showVerificationToast(
   toast.innerHTML = `
     <div style="flex-shrink: 0;">${icon}</div>
     <div style="flex: 1;">
-      <div style="font-weight: 500;">${message}</div>
-      ${resolvedId ? `<div style="font-size: 12px; opacity: 0.9; margin-top: 2px;">ID: ${resolvedId.substring(0, 8)}...</div>` : ''}
+      <div style="font-weight: 500; word-break: break-all; white-space: normal;">${message}</div>
+      ${txId ? `<div style="font-size: 12px; opacity: 0.9; margin-top: 2px; word-break: break-all; white-space: normal;">ID: ${txId.substring(0, 8)}...</div>` : ''}
     </div>
     <a href="https://docs.ar.io/guides/wayfinder" target="_blank" rel="noopener" style="color: ${textColor}; opacity: 0.8; text-decoration: none; flex-shrink: 0;" title="Learn more about AR.IO verification">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
@@ -165,15 +163,18 @@ document.head.appendChild(style);
 
 // Listen for verification messages from background script
 chrome.runtime.onMessage.addListener((message) => {
-  console.log('message received', message);
   if (message.type === 'showVerificationToast') {
-    console.error(message);
-    showVerificationToast(
-      message.verified,
-      message.gatewayFQDN,
-      message.resolvedId,
-    );
+    showVerificationToast({
+      verified: message.verified,
+      url: message.url,
+      txId: message.txId,
+    });
   }
+});
+
+// Signal that content script is ready
+chrome.runtime.sendMessage({ type: 'contentScriptReady' }).catch(() => {
+  // Background script might not be ready yet, ignore
 });
 
 // Content script initialization
@@ -211,7 +212,7 @@ async function processArUrl(
     // Set the converted URL
     (element as any)[attribute] = convertResponse.url;
   } catch (error: any) {
-    logger.error(
+    console.error(
       `[CONTENT] Failed to process ${arUrl}:`,
       error.message || error,
     );
@@ -283,7 +284,7 @@ async function afterContentDOMLoaded(): Promise<void> {
     if (arUrl && attribute) {
       // Process each URL
       processArUrl(element, arUrl, attribute).catch((error) =>
-        logger.error('[CONTENT] Error:', error.message || error),
+        console.error('[CONTENT] Error:', error.message || error),
       );
 
       // Special handling for media elements
@@ -325,7 +326,7 @@ async function afterContentDOMLoaded(): Promise<void> {
             const value = element.getAttribute(attr);
             if (value && value.startsWith('ar://')) {
               processArUrl(element, value, attr).catch((error) =>
-                logger.error(
+                console.error(
                   '[CONTENT] Dynamic error:',
                   error.message || error,
                 ),
@@ -358,7 +359,7 @@ async function afterContentDOMLoaded(): Promise<void> {
 
             if (arUrl && attribute) {
               processArUrl(childElement, arUrl, attribute).catch((error) =>
-                logger.error('[CONTENT] Child error:', error.message || error),
+                console.error('[CONTENT] Child error:', error.message || error),
               );
             }
           });
