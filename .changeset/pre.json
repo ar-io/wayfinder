@@ -6,5 +6,8 @@
     "@ar.io/wayfinder-extension": "1.0.4",
     "@ar.io/wayfinder-react": "1.0.5"
   },
-  "changesets": ["orange-foxes-glow"]
+  "changesets": [
+    "orange-foxes-glow",
+    "smooth-rabbits-sleep"
+  ]
 }
