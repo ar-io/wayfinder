@@ -33,6 +33,8 @@ export type RedirectedTabInfo = {
 export type GatewayRegistry = Record<string, AoGatewayWithAddress>;
 
 export type VerificationCacheEntry = {
+  txId: string;
+  dataId: string;
   verified: boolean;
   timestamp: number;
   gatewayFQDN: string;

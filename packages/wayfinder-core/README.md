@@ -232,7 +232,7 @@ Wayfinder includes verification mechanisms to ensure the integrity of retrieved 
 This strategy is used to verify data by checking the `x-ar-io-verified` header from the gateway that returned the data. If the header is set to `true`, the data is considered verified and trusted.
 
 > [!IMPORTANT]
-> This strategy is not recommended for most users, as it is not secure. It is only recommended for users running their own gateways and want to avoid the overhead of the other verification strategies.
+> This strategy is only recommended for users fetching data from their own gateways and want to avoid the overhead of the other verification strategies.
 
 ```javascript
 import { Wayfinder, RemoteVerificationStrategy } from '@ar.io/wayfinder-core';

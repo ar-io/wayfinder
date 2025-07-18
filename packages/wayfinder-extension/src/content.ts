@@ -15,17 +15,7 @@
  * limitations under the License.
  */
 
-// Inline logger for content script to avoid module import issues
-const logger = {
-  debug: (message: string, ...args: any[]) =>
-    console.debug('[Wayfinder Content]', message, ...args),
-  info: (message: string, ...args: any[]) =>
-    console.info('[Wayfinder Content]', message, ...args),
-  warn: (message: string, ...args: any[]) =>
-    console.warn('[Wayfinder Content]', message, ...args),
-  error: (message: string, ...args: any[]) =>
-    console.error('[Wayfinder Content]', message, ...args),
-};
+import { logger } from './utils/logger';
 
 /**
  * Utility function to add timeout to promises
@@ -175,7 +165,9 @@ document.head.appendChild(style);
 
 // Listen for verification messages from background script
 chrome.runtime.onMessage.addListener((message) => {
+  console.log('message received', message);
   if (message.type === 'showVerificationToast') {
+    console.error(message);
     showVerificationToast(
       message.verified,
       message.gatewayFQDN,
@@ -380,6 +372,4 @@ async function afterContentDOMLoaded(): Promise<void> {
     childList: true,
     subtree: true,
   });
-
-  // Content script initialized
 }
