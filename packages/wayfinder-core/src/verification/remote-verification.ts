@@ -27,8 +27,7 @@ export class RemoteVerificationStrategy implements VerificationStrategy {
 
   async verifyData(params: { headers: Record<string, string> }) {
     // we don't use the data at all, just the headers
-    const headers = new Headers(params.headers);
-    const remoteVerified = headers.get('x-ar-io-verified') === 'true';
+    const remoteVerified = params.headers['x-ar-io-verified'] === 'true';
     if (!remoteVerified) {
       throw new Error(`Data was not verified by gateway.`);
     }
