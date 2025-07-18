@@ -16,7 +16,7 @@
  */
 
 import { Wayfinder, WayfinderURLParams } from '@ar.io/wayfinder-core';
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useMemo, useState } from 'react';
 import {
   WayfinderContext,
   type WayfinderContextValue,
@@ -50,12 +50,13 @@ export const useWayfinderRequest = (): Wayfinder['request'] => {
  */
 export const useWayfinderUrl = (params: WayfinderURLParams) => {
   const { wayfinder } = useWayfinder();
+  const memoizedParams = useMemo(() => params, [params]);
   const [resolvedUrl, setResolvedUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    if (!params) {
+    if (!memoizedParams) {
       setResolvedUrl(null);
       setError(null);
       return;
@@ -66,7 +67,7 @@ export const useWayfinderUrl = (params: WayfinderURLParams) => {
 
     (async () => {
       try {
-        const resolved = await wayfinder.resolveUrl(params);
+        const resolved = await wayfinder.resolveUrl(memoizedParams);
         setResolvedUrl(resolved.toString());
       } catch (err) {
         setError(
@@ -76,7 +77,7 @@ export const useWayfinderUrl = (params: WayfinderURLParams) => {
         setIsLoading(false);
       }
     })();
-  }, [params, wayfinder]);
+  }, [memoizedParams, wayfinder]);
 
   return { resolvedUrl, isLoading, error };
 };
