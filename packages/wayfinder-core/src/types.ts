@@ -200,7 +200,11 @@ export interface RoutingStrategy {
 
 export interface VerificationStrategy {
   trustedGateways: URL[];
-  verifyData(params: { data: DataStream; txId: string }): Promise<void>;
+  verifyData(params: {
+    data: DataStream;
+    headers: Record<string, string>;
+    txId: string;
+  }): Promise<void>;
 }
 
 export interface DataClassifier {
