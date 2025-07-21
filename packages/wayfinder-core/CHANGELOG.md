@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-core
 
+## 1.0.5-alpha.0
+
+### Patch Changes
+
+- 73aa1b9: Adds `RemoteVerificationStrategy` and modifies verifyData interface to support optional response headers to use when verifying data'
+
 ## 1.0.4
 
 ### Patch Changes

@@ -6,5 +6,7 @@
     "@ar.io/wayfinder-extension": "1.0.4",
     "@ar.io/wayfinder-react": "1.0.6"
   },
-  "changesets": []
+  "changesets": [
+    "giant-taxes-fail"
+  ]
 }
