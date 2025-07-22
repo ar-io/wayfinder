@@ -7,6 +7,8 @@
     "@ar.io/wayfinder-react": "1.0.6"
   },
   "changesets": [
-    "giant-taxes-fail"
+    "bright-shirts-search",
+    "giant-taxes-fail",
+    "small-walls-greet"
   ]
 }
