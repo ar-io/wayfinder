@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-core
 
+## 1.0.5-alpha.2
+
+### Patch Changes
+
+- b7299cc: Remove unused parameters from various routing stratgies.
+
 ## 1.0.5-alpha.1
 
 ### Patch Changes
