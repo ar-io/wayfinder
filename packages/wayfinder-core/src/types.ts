@@ -187,12 +187,12 @@ export interface TelemetrySettings {
 export type DataStream = ReadableStream<Uint8Array> | AsyncIterable<Uint8Array>;
 
 export interface GatewaysProvider {
-  getGateways(params?: { path?: string; subdomain?: string }): Promise<URL[]>;
+  getGateways(): Promise<URL[]>;
 }
 
 export interface RoutingStrategy {
   selectGateway(params: {
-    gateways: URL[];
+    gateways?: URL[];
     path?: string;
     subdomain?: string;
   }): Promise<URL>;

@@ -47,21 +47,6 @@ describe('StaticRoutingStrategy', () => {
     );
   });
 
-  it('logs a warning when gateways are provided', async () => {
-    const staticGateway = 'https://static-example.com/';
-
-    const strategy = new StaticRoutingStrategy({
-      gateway: staticGateway,
-    });
-
-    const providedGateways = [
-      new URL('https://example1.com'),
-      new URL('https://example2.com'),
-    ];
-
-    await strategy.selectGateway({ gateways: providedGateways });
-  });
-
   it('throws an error when an invalid URL is provided', () => {
     assert.throws(
       () =>
