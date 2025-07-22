@@ -58,58 +58,20 @@ describe('RoundRobinRoutingStrategy', () => {
     );
   });
 
-  it('uses the internal list even when a different list is provided', async () => {
-    const initialGateways = [
-      new URL('https://example1.com'),
-      new URL('https://example2.com'),
-    ];
-
-    const newGateways = [
-      new URL('https://example3.com'),
-      new URL('https://example4.com'),
-    ];
-
-    const strategy = new RoundRobinRoutingStrategy({
-      gateways: initialGateways,
-    });
-
-    const selection1 = await strategy.selectGateway({
-      gateways: newGateways,
-    });
-    assert.equal(
-      selection1.toString(),
-      initialGateways[0].toString(),
-      'Should use the internal list even when a different list is provided',
-    );
-
-    const selection2 = await strategy.selectGateway({
-      gateways: newGateways,
-    });
-    assert.equal(
-      selection2.toString(),
-      initialGateways[1].toString(),
-      'Should use the internal list even when a different list is provided',
-    );
-  });
-
   it('handles a single gateway by returning it repeatedly', async () => {
     const gateways = [new URL('https://example1.com')];
     const strategy = new RoundRobinRoutingStrategy({
       gateways,
     });
 
-    const selection1 = await strategy.selectGateway({
-      gateways: [new URL('https://example2.com')],
-    });
+    const selection1 = await strategy.selectGateway();
     assert.equal(
       selection1.toString(),
       gateways[0].toString(),
       'Should return the single gateway',
     );
 
-    const selection2 = await strategy.selectGateway({
-      gateways: [new URL('https://example2.com')],
-    });
+    const selection2 = await strategy.selectGateway();
     assert.equal(
       selection2.toString(),
       gateways[0].toString(),

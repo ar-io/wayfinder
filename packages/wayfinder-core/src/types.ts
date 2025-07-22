@@ -114,8 +114,9 @@ export interface WayfinderOptions {
 
   /**
    * The gateways provider to use for routing requests.
+   * @deprecated The gateways provider is no longer used, but is kept for backwards compatibility.
    */
-  gatewaysProvider: GatewaysProvider;
+  gatewaysProvider?: GatewaysProvider;
 
   /**
    * The verification settings to use for verifying data

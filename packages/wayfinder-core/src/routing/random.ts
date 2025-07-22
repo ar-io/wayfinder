@@ -14,15 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import type { RoutingStrategy } from '../types.js';
+import { StaticGatewaysProvider } from '../gateways/static.js';
+import type { GatewaysProvider, RoutingStrategy } from '../types.js';
 import { randomInt } from '../utils/random.js';
 
 export class RandomRoutingStrategy implements RoutingStrategy {
-  async selectGateway({
-    gateways,
+  private gatewaysProvider: GatewaysProvider;
+
+  constructor({
+    gatewaysProvider = new StaticGatewaysProvider({
+      gateways: [
+        'https://arweave.net',
+        'https://permagate.io',
+        'https://ardrive.net',
+      ],
+    }),
   }: {
-    gateways: URL[];
-  }): Promise<URL> {
+    gatewaysProvider?: GatewaysProvider;
+  } = {}) {
+    this.gatewaysProvider = gatewaysProvider;
+  }
+
+  async selectGateway(): Promise<URL> {
+    const gateways = await this.gatewaysProvider.getGateways();
     if (gateways.length === 0) {
       throw new Error('No gateways available');
     }

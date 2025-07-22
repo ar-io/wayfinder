@@ -15,37 +15,47 @@
  * limitations under the License.
  */
 import { pLimit } from 'plimit-lit';
+import { StaticGatewaysProvider } from '../gateways/static.js';
 import { defaultLogger } from '../logger.js';
-import type { Logger, RoutingStrategy } from '../types.js';
+import type { GatewaysProvider, Logger, RoutingStrategy } from '../types.js';
 
 export class FastestPingRoutingStrategy implements RoutingStrategy {
+  private gatewaysProvider: GatewaysProvider;
   private timeoutMs: number;
   private logger: Logger;
   private maxConcurrency: number;
 
   constructor({
+    gatewaysProvider = new StaticGatewaysProvider({
+      gateways: [
+        'https://arweave.net',
+        'https://permagate.io',
+        'https://ardrive.net',
+      ],
+    }),
     timeoutMs = 500,
     maxConcurrency = 50,
     logger = defaultLogger,
   }: {
+    gatewaysProvider?: GatewaysProvider;
     timeoutMs?: number;
     maxConcurrency?: number;
     logger?: Logger;
   } = {}) {
+    this.gatewaysProvider = gatewaysProvider;
     this.timeoutMs = timeoutMs;
     this.logger = logger;
     this.maxConcurrency = maxConcurrency;
   }
 
   async selectGateway({
-    gateways,
     path = '',
     subdomain,
   }: {
-    gateways: URL[];
     path?: string;
     subdomain?: string;
-  }): Promise<URL> {
+  } = {}): Promise<URL> {
+    const gateways = await this.gatewaysProvider.getGateways();
     if (gateways.length === 0) {
       const error = new Error('No gateways provided');
       this.logger.error('Failed to select gateway', { error: error.message });

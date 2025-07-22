@@ -17,7 +17,6 @@
 
 import { defaultLogger } from '../logger.js';
 import type { Logger, RoutingStrategy } from '../types.js';
-import { FastestPingRoutingStrategy } from './ping.js';
 
 export class PreferredWithFallbackRoutingStrategy implements RoutingStrategy {
   public readonly name = 'preferred-with-fallback';
@@ -27,11 +26,11 @@ export class PreferredWithFallbackRoutingStrategy implements RoutingStrategy {
 
   constructor({
     preferredGateway,
-    fallbackStrategy = new FastestPingRoutingStrategy(),
+    fallbackStrategy,
     logger = defaultLogger,
   }: {
     preferredGateway: string;
-    fallbackStrategy?: RoutingStrategy;
+    fallbackStrategy: RoutingStrategy;
     logger?: Logger;
   }) {
     this.logger = logger;
@@ -40,11 +39,9 @@ export class PreferredWithFallbackRoutingStrategy implements RoutingStrategy {
   }
 
   async selectGateway({
-    gateways,
     path = '',
     subdomain,
   }: {
-    gateways?: URL[];
     path?: string;
     subdomain?: string;
   }): Promise<URL> {
@@ -86,7 +83,6 @@ export class PreferredWithFallbackRoutingStrategy implements RoutingStrategy {
 
       // Fall back to the provided routing strategy
       return this.fallbackStrategy.selectGateway({
-        gateways,
         path,
         subdomain,
       });

@@ -40,9 +40,10 @@ describe('Wayfinder', () => {
     before(() => {
       wayfinder = new Wayfinder({
         routingSettings: {
-          strategy: new RandomRoutingStrategy(),
+          strategy: new RandomRoutingStrategy({
+            gatewaysProvider: stubbedGatewaysProvider,
+          }),
         },
-        gatewaysProvider: stubbedGatewaysProvider,
       });
     });
 
@@ -161,10 +162,9 @@ describe('Wayfinder', () => {
     describe('selectGateway is called with correct parameters', () => {
       it('should call selectGateway with correct subdomain and path for ArNS names', async () => {
         let capturedParams: {
-          gateways: URL[];
           path?: string;
           subdomain?: string;
-        } = { gateways: [] };
+        } = {};
 
         const mockRoutingStrategy: RoutingStrategy = {
           selectGateway: async (params) => {
@@ -173,12 +173,7 @@ describe('Wayfinder', () => {
           },
         };
 
-        const mockGatewaysProvider: GatewaysProvider = {
-          getGateways: async () => [new URL(`http://${gatewayUrl}`)],
-        };
-
         const wayfinder = new Wayfinder({
-          gatewaysProvider: mockGatewaysProvider,
           verificationSettings: { enabled: false },
           routingSettings: { strategy: mockRoutingStrategy, events: {} },
         });
@@ -208,7 +203,7 @@ describe('Wayfinder', () => {
 
       it('should call selectGateway with correct subdomain and path for transaction IDs', async () => {
         let capturedParams: {
-          gateways: URL[];
+          gateways?: URL[];
           path?: string;
           subdomain?: string;
         } = { gateways: [] };
@@ -220,12 +215,7 @@ describe('Wayfinder', () => {
           },
         };
 
-        const mockGatewaysProvider: GatewaysProvider = {
-          getGateways: async () => [new URL(`http://${gatewayUrl}`)],
-        };
-
         const wayfinder = new Wayfinder({
-          gatewaysProvider: mockGatewaysProvider,
           verificationSettings: { enabled: false },
           routingSettings: { strategy: mockRoutingStrategy },
         });
@@ -259,7 +249,7 @@ describe('Wayfinder', () => {
 
       it('should call selectGateway with correct parameters for gateway endpoints', async () => {
         let capturedParams: {
-          gateways: URL[];
+          gateways?: URL[];
           path?: string;
           subdomain?: string;
         } = { gateways: [] };
@@ -271,12 +261,7 @@ describe('Wayfinder', () => {
           },
         };
 
-        const mockGatewaysProvider: GatewaysProvider = {
-          getGateways: async () => [new URL(`http://${gatewayUrl}`)],
-        };
-
         const wayfinder = new Wayfinder({
-          gatewaysProvider: mockGatewaysProvider,
           verificationSettings: { enabled: false },
           routingSettings: { strategy: mockRoutingStrategy },
         });
@@ -306,7 +291,7 @@ describe('Wayfinder', () => {
 
       it('should call selectGateway with correct parameters for ArNS names without paths', async () => {
         let capturedParams: {
-          gateways: URL[];
+          gateways?: URL[];
           path?: string;
           subdomain?: string;
         } = { gateways: [] };
@@ -318,12 +303,7 @@ describe('Wayfinder', () => {
           },
         };
 
-        const mockGatewaysProvider: GatewaysProvider = {
-          getGateways: async () => [new URL(`http://${gatewayUrl}`)],
-        };
-
         const wayfinder = new Wayfinder({
-          gatewaysProvider: mockGatewaysProvider,
           verificationSettings: { enabled: false },
           routingSettings: { strategy: mockRoutingStrategy },
         });
@@ -356,6 +336,7 @@ describe('Wayfinder', () => {
   describe('events', () => {
     it('should emit default events on the wayfinder event emitter when request is made', async () => {
       const wayfinder = new Wayfinder({
+        // TODO: remove this once we confirm no backwards compatibility issues with new routing strategies
         gatewaysProvider: stubbedGatewaysProvider,
         routingSettings: {
           strategy: new StaticRoutingStrategy({
@@ -397,6 +378,7 @@ describe('Wayfinder', () => {
 
     it('should emit events and trigger request callbacks when request is made with custom events, and not emit global events', async () => {
       const wayfinder = new Wayfinder({
+        // TODO: remove this once we confirm no backwards compatibility issues with new routing strategies
         gatewaysProvider: stubbedGatewaysProvider,
         routingSettings: {
           strategy: new StaticRoutingStrategy({
@@ -494,6 +476,7 @@ describe('Wayfinder', () => {
       let verificationProgress = false;
       let verificationSucceeded = false;
       const wayfinder = new Wayfinder({
+        // TODO: remove this once we confirm no backwards compatibility issues with new routing strategies
         gatewaysProvider: stubbedGatewaysProvider,
         routingSettings: {
           strategy: new StaticRoutingStrategy({

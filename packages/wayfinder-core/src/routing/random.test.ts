@@ -27,8 +27,12 @@ describe('RandomRoutingStrategy', () => {
       new URL('https://example2.com'),
       new URL('https://example3.com'),
     ];
-    const strategy = new RandomRoutingStrategy();
-    const selectedGateway = await strategy.selectGateway({ gateways });
+    const strategy = new RandomRoutingStrategy({
+      gatewaysProvider: {
+        getGateways: async () => gateways,
+      },
+    });
+    const selectedGateway = await strategy.selectGateway();
     assert.ok(
       gateways.includes(selectedGateway),
       'The selected gateway should be one of the gateways provided',
@@ -37,9 +41,13 @@ describe('RandomRoutingStrategy', () => {
 
   it('throws error when no gateways are provided', async () => {
     const gateways: URL[] = [];
-    const strategy = new RandomRoutingStrategy();
+    const strategy = new RandomRoutingStrategy({
+      gatewaysProvider: {
+        getGateways: async () => gateways,
+      },
+    });
     await assert.rejects(
-      async () => await strategy.selectGateway({ gateways }),
+      async () => await strategy.selectGateway(),
       /No gateways available/,
       'Should throw an error when no gateways are provided',
     );
@@ -53,13 +61,17 @@ describe('RandomRoutingStrategy', () => {
       new URL('https://example4.com'),
       new URL('https://example5.com'),
     ];
-    const strategy = new RandomRoutingStrategy();
+    const strategy = new RandomRoutingStrategy({
+      gatewaysProvider: {
+        getGateways: async () => gateways,
+      },
+    });
     const selections = new Map<string, number>();
 
     // select gateways multiple times
     const iterations = 100;
     for (let i = 0; i < iterations; i++) {
-      const gateway = await strategy.selectGateway({ gateways });
+      const gateway = await strategy.selectGateway();
       const key = gateway.toString();
       selections.set(key, (selections.get(key) || 0) + 1);
     }

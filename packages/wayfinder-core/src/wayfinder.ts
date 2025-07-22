@@ -179,17 +179,17 @@ export const constructGatewayUrl = ({
 export function tapAndVerifyReadableStream({
   originalStream,
   contentLength,
-  headers,
   verifyData,
   txId,
   emitter,
+  headers = {},
   strict = false,
 }: {
   originalStream: ReadableStream;
   contentLength: number;
-  headers: Record<string, string>;
   verifyData: VerificationStrategy['verifyData'];
   txId: string;
+  headers?: Record<string, string>;
   emitter?: WayfinderEmitter;
   strict?: boolean;
 }): ReadableStream {
@@ -289,18 +289,21 @@ export function tapAndVerifyReadableStream({
  */
 export const wayfinderFetch = ({
   logger = defaultLogger,
-  gatewaysProvider,
   verificationSettings,
   routingSettings,
   emitter,
   tracer,
 }: {
   logger?: Logger;
-  gatewaysProvider: GatewaysProvider;
   verificationSettings: NonNullable<WayfinderOptions['verificationSettings']>;
   routingSettings: NonNullable<WayfinderOptions['routingSettings']>;
   emitter?: WayfinderEmitter;
   tracer?: Tracer;
+  /**
+   * @deprecated The gateways provider is no longer used, but is kept for backwards compatibility.
+   * If provided, it will be set on the routing strategy as the gateways provider.
+   */
+  gatewaysProvider?: GatewaysProvider;
 }) => {
   return async (
     input: URL | RequestInfo,
@@ -329,7 +332,6 @@ export const wayfinderFetch = ({
       originalUrl: url,
       verificationSettings: requestVerificationSettings ?? verificationSettings,
       routingSettings: requestRoutingSettings ?? routingSettings,
-      gatewaysProvider,
       emitter: requestEmitter,
       tracer,
     });
@@ -359,7 +361,6 @@ export const wayfinderFetch = ({
 
         // select the target gateway
         const selectedGateway = await routingSettings.strategy?.selectGateway({
-          gateways: await gatewaysProvider.getGateways(),
           path,
           subdomain,
         });
@@ -555,15 +556,10 @@ export class Wayfinder {
   /**
    * The gateways provider is responsible for providing the list of gateways to use for routing requests.
    *
-   * @example
-   * const wayfinder = new Wayfinder({
-   *   gatewaysProvider: new SimpleCacheGatewaysProvider({
-   *     gatewaysProvider: new NetworkGatewaysProvider({ ario: ARIO.mainnet() }),
-   *     ttlSeconds: 60 * 60 * 24, // 1 day
-   *   }),
-   * });
+   * @deprecated The gateways provider is no longer used, but is kept for backwards compatibility.
+   * If provided, it will be set on the routing strategy as the gateways provider.
    */
-  public readonly gatewaysProvider: GatewaysProvider;
+  public readonly gatewaysProvider?: GatewaysProvider;
 
   /**
    * The routing settings to use when routing requests.
@@ -730,13 +726,13 @@ export class Wayfinder {
    */
   constructor({
     logger = defaultLogger,
-    gatewaysProvider, // forcing it to be required to avoid making ar-io-sdk a dependency
     verificationSettings,
     routingSettings,
     telemetrySettings,
+    gatewaysProvider,
   }: WayfinderOptions) {
     this.logger = logger;
-    this.gatewaysProvider = gatewaysProvider;
+    this.gatewaysProvider = gatewaysProvider; // forcing it to be required to avoid making ar-io-sdk a dependency
 
     // default verification settings
     this.verificationSettings = {
@@ -753,7 +749,9 @@ export class Wayfinder {
     // default routing settings
     this.routingSettings = {
       events: {},
-      strategy: new RandomRoutingStrategy(),
+      strategy: new RandomRoutingStrategy({
+        gatewaysProvider: gatewaysProvider,
+      }),
       // overwrite the default settings with the provided ones
       ...routingSettings,
     };
@@ -780,7 +778,6 @@ export class Wayfinder {
     this.request = wayfinderFetch({
       logger: this.logger,
       emitter: this.emitter,
-      gatewaysProvider: this.gatewaysProvider,
       routingSettings: this.routingSettings,
       verificationSettings: this.verificationSettings,
       tracer: this.tracer,
@@ -794,7 +791,6 @@ export class Wayfinder {
             (acc, [key, value]) => ({
               ...acc,
               [`params.${key}`]: value,
-              gatewaysProvider: this.gatewaysProvider.constructor.name,
               'routing.strategy':
                 this.routingSettings.strategy?.constructor.name,
             }),
@@ -814,12 +810,8 @@ export class Wayfinder {
       resolveUrlSpan?.setAttribute('subdomain', subdomain);
       resolveUrlSpan?.setAttribute('path', path);
 
-      const gateways = await this.gatewaysProvider.getGateways();
-      resolveUrlSpan?.setAttribute('gatewaysCount', gateways.length);
-
       const selectedGateway = await this.routingSettings.strategy.selectGateway(
         {
-          gateways,
           path,
           subdomain,
         },
@@ -850,7 +842,6 @@ export class Wayfinder {
     this.tracer
       ?.startSpan('wayfinder.initialized', {
         attributes: {
-          gatewaysProvider: this.gatewaysProvider.constructor.name,
           'verification.strategy':
             this.verificationSettings.strategy?.constructor.name,
           'verification.enabled': this.verificationSettings.enabled,

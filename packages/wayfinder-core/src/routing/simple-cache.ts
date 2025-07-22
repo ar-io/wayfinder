@@ -42,7 +42,6 @@ export class SimpleCacheRoutingStrategy implements RoutingStrategy {
   }
 
   async selectGateway(params: {
-    gateways?: URL[];
     path?: string;
     subdomain?: string;
   }): Promise<URL> {

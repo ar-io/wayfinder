@@ -85,12 +85,15 @@ describe('FastestPingRoutingStrategy', () => {
     mockResponses.set('https://fast.com', { status: 200, delayMs: 50 });
     mockResponses.set('https://medium.com', { status: 200, delayMs: 150 });
 
-    const strategy = new FastestPingRoutingStrategy({ timeoutMs: 500 });
+    const strategy = new FastestPingRoutingStrategy({
+      gatewaysProvider: {
+        getGateways: async () => gateways,
+      },
+      timeoutMs: 500,
+    });
 
     // select the gateway with the lowest latency
-    const selectedGateway = await strategy.selectGateway({
-      gateways,
-    });
+    const selectedGateway = await strategy.selectGateway();
 
     assert.equal(
       selectedGateway.toString(),
@@ -121,11 +124,15 @@ describe('FastestPingRoutingStrategy', () => {
       delayMs: 150,
     });
 
-    const strategy = new FastestPingRoutingStrategy({ timeoutMs: 500 });
+    const strategy = new FastestPingRoutingStrategy({
+      gatewaysProvider: {
+        getGateways: async () => gateways,
+      },
+      timeoutMs: 500,
+    });
 
     // select the gateway with the lowest latency
     const selectedGateway = await strategy.selectGateway({
-      gateways,
       subdomain: 'subdomain',
     });
 
@@ -148,11 +155,15 @@ describe('FastestPingRoutingStrategy', () => {
     mockResponses.set('https://fast.com/path', { status: 200, delayMs: 50 });
     mockResponses.set('https://medium.com/path', { status: 200, delayMs: 150 });
 
-    const strategy = new FastestPingRoutingStrategy({ timeoutMs: 500 });
+    const strategy = new FastestPingRoutingStrategy({
+      gatewaysProvider: {
+        getGateways: async () => gateways,
+      },
+      timeoutMs: 500,
+    });
 
     // select the gateway with the lowest latency
     const selectedGateway = await strategy.selectGateway({
-      gateways,
       path: '/path',
     });
 
@@ -178,12 +189,15 @@ describe('FastestPingRoutingStrategy', () => {
       delayMs: 75,
     });
 
-    const strategy = new FastestPingRoutingStrategy({ timeoutMs: 500 });
+    const strategy = new FastestPingRoutingStrategy({
+      gatewaysProvider: {
+        getGateways: async () => gateways,
+      },
+      timeoutMs: 500,
+    });
 
     // select the gateway with the lowest latency
-    const selectedGateway = await strategy.selectGateway({
-      gateways,
-    });
+    const selectedGateway = await strategy.selectGateway();
 
     assert.equal(
       selectedGateway.toString(),
@@ -202,13 +216,18 @@ describe('FastestPingRoutingStrategy', () => {
     mockResponses.set('https://error1.com', { status: 404, delayMs: 50 });
     mockResponses.set('https://error2.com', { status: 500, delayMs: 75 });
 
-    const strategy = new FastestPingRoutingStrategy({ timeoutMs: 500 });
+    const strategy = new FastestPingRoutingStrategy({
+      gatewaysProvider: {
+        getGateways: async () => gateways,
+      },
+      timeoutMs: 500,
+    });
 
     // console.log(await strategy.selectGateway({ gateways }), 'test');
 
     // select the gateway with the lowest latency
     await assert.rejects(
-      async () => await strategy.selectGateway({ gateways }),
+      async () => await strategy.selectGateway(),
       'Should throw an error when all gateways fail',
     );
   });
@@ -232,12 +251,15 @@ describe('FastestPingRoutingStrategy', () => {
       return originalFetchMock(url);
     };
 
-    const strategy = new FastestPingRoutingStrategy({ timeoutMs: 500 });
+    const strategy = new FastestPingRoutingStrategy({
+      gatewaysProvider: {
+        getGateways: async () => gateways,
+      },
+      timeoutMs: 500,
+    });
 
     // select the gateway with the lowest latency
-    const selectedGateway = await strategy.selectGateway({
-      gateways,
-    });
+    const selectedGateway = await strategy.selectGateway();
 
     assert.equal(
       selectedGateway.toString(),
@@ -257,11 +279,14 @@ describe('FastestPingRoutingStrategy', () => {
     mockResponses.set('https://fast.com', { status: 200, delayMs: 50 });
 
     // set a short timeout
-    const strategy = new FastestPingRoutingStrategy({ timeoutMs: 100 });
-
-    const selectedGateway = await strategy.selectGateway({
-      gateways,
+    const strategy = new FastestPingRoutingStrategy({
+      gatewaysProvider: {
+        getGateways: async () => gateways,
+      },
+      timeoutMs: 100,
     });
+
+    const selectedGateway = await strategy.selectGateway();
 
     assert.equal(
       selectedGateway.toString(),
@@ -272,11 +297,15 @@ describe('FastestPingRoutingStrategy', () => {
 
   it('throws an error when no gateways are provided', async () => {
     const gateways: URL[] = [];
-    const strategy = new FastestPingRoutingStrategy();
+    const strategy = new FastestPingRoutingStrategy({
+      gatewaysProvider: {
+        getGateways: async () => gateways,
+      },
+    });
 
     // select the gateway with the lowest latency
     await assert.rejects(
-      async () => await strategy.selectGateway({ gateways }),
+      async () => await strategy.selectGateway(),
       /No gateways provided/,
       'Should throw an error when no gateways are provided',
     );
