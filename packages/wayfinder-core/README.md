@@ -19,14 +19,18 @@ yarn add @ar.io/wayfinder-core
 ```javascript
 import { Wayfinder } from '@ar.io/wayfinder-core';
 
-// create a new Wayfinder instance that uses the top 10 gateways by operator stake from the ARIO Network
+// create a new Wayfinder instance that randomly selects a gateway from the top 10 gateways by operator stake from the ARIO Network
 const wayfinder = new Wayfinder({
-  gatewaysProvider: new NetworkGatewaysProvider({
-    ario: ARIO.mainnet(),
-    sortBy: 'operatorStake',
-    sortOrder: 'desc',
-    limit: 10,
-  }),
+  routingSettings: {
+    strategy: new RandomRoutingStrategy({
+      gatewaysProvider: new NetworkGatewaysProvider({
+        ario: ARIO.mainnet(),
+        sortBy: 'operatorStake',
+        sortOrder: 'desc',
+        limit: 10,
+      }),
+    }),
+  },
 });
 
 // use Wayfinder to fetch and verify data using ar:// protocol
@@ -93,7 +97,7 @@ const redirectUrl = await wayfinder.resolveUrl({
 
 ## Gateway Providers
 
-Gateway providers are responsible for providing a list of gateways to Wayfinder to choose from when routing requests. By default, Wayfinder will use the `NetworkGatewaysProvider` to get a list of gateways from the ARIO Network.
+Gateway providers are responsible for providing a list of gateways to routing strategies to choose from when routing requests.
 
 ### NetworkGatewaysProvider
 
@@ -136,11 +140,16 @@ Wayfinder supports multiple routing strategies to select target gateways for you
 Selects a random gateway from a list of gateways.
 
 ```javascript
-const routingStrategy = new RandomRoutingStrategy();
-
-const gateway = await routingStrategy.selectGateway({
-  gateways: ['https://arweave.net', 'https://permagate.io'],
+const routingStrategy = new RandomRoutingStrategy({
+  gatewaysProvider: new NetworkGatewaysProvider({
+    ario: ARIO.mainnet(),
+    sortBy: 'operatorStake',
+    sortOrder: 'desc',
+    limit: 10,
+  }),
 });
+
+const gateway = await routingStrategy.selectGateway();
 ```
 
 ### StaticRoutingStrategy
@@ -157,7 +166,7 @@ const gateway = await routingStrategy.selectGateway(); // always returns the sam
 
 ### RoundRobinRoutingStrategy
 
-Selects gateways in round-robin order. The gateway list is stored in memory and is not persisted across instances.
+Selects gateways in round-robin order from a static list of gateways. The gateway list is stored in memory and is not persisted across instances.
 
 ```javascript
 import { Wayfinder, NetworkGatewaysProvider, RoundRobinRoutingStrategy } from '@ar.io/wayfinder-core';
@@ -170,8 +179,7 @@ const gatewayProvider = new NetworkGatewaysProvider({
   limit: 10,
 });
 
-// provide the gateways to the routing strategy on initialization to track the request count per gateway.
-// Any additional gateways provided to the selectGateway method will be ignored.
+// creates an in memory list of gateways to select from, and will select the next gateway in the list on each request
 const routingStrategy = new RoundRobinRoutingStrategy({
   gateways: await gatewayProvider.getGateways(),
 });
@@ -181,19 +189,23 @@ const gateway = await routingStrategy.selectGateway(); // returns the next gatew
 
 ### FastestPingRoutingStrategy
 
-Selects the fastest gateway based simple HEAD request to the specified route.
+Selects the fastest gateway based on a simple HEAD request to the specified route.
 
 ```javascript
 import { Wayfinder, FastestPingRoutingStrategy } from '@ar.io/wayfinder-core';
 
 const routingStrategy = new FastestPingRoutingStrategy({
   timeoutMs: 1000,
+  gatewaysProvider: new NetworkGatewaysProvider({
+    ario: ARIO.mainnet(),
+    sortBy: 'operatorStake',
+    sortOrder: 'desc',
+    limit: 10,
+  }),
 });
 
 // will select the fastest gateway from the list based on the ping time of the /ar-io/info route
-const gateway = await routingStrategy.selectGateway({
-  gateways: ['https://slow.net', 'https://medium.net', 'https://fast.net'],
-});
+const gateway = await routingStrategy.selectGateway();
 ```
 
 ### PreferredWithFallbackRoutingStrategy
@@ -207,6 +219,12 @@ const routingStrategy = new PreferredWithFallbackRoutingStrategy({
   preferredGateway: 'https://permagate.io',
   fallbackStrategy: new FastestPingRoutingStrategy({
     timeoutMs: 500,
+    gatewaysProvider: new NetworkGatewaysProvider({
+      ario: ARIO.mainnet(),
+      sortBy: 'operatorStake',
+      sortOrder: 'desc',
+      limit: 10,
+    }),
   }),
 });
 ```
@@ -233,6 +251,7 @@ This strategy is used to verify data by checking the `x-ar-io-verified` header f
 import { Wayfinder, RemoteVerificationStrategy } from '@ar.io/wayfinder-core';
 
 const wayfinder = new Wayfinder({
+  // ... other wayfinder settings
   verificationSettings: {
     // no trusted gateways are required for this strategy
     enabled: true,
@@ -249,6 +268,7 @@ Verifies data integrity using SHA-256 hash comparison. This is the default verif
 import { Wayfinder, HashVerificationStrategy } from '@ar.io/wayfinder-core';
 
 const wayfinder = new Wayfinder({
+  // ... other wayfinder settings
   verificationSettings: {
     enabled: true,
     strategy: new HashVerificationStrategy({
@@ -266,6 +286,7 @@ Verifies data integrity using Arweave by computing the data root for the transac
 import { Wayfinder, DataRootVerificationStrategy } from '@ar.io/wayfinder-core';
 
 const wayfinder = new Wayfinder({
+  // ... other wayfinder settings
   verificationSettings: {
     enabled: true,
     strategy: new DataRootVerificationStrategy({
@@ -283,6 +304,7 @@ Verifies signatures of Arweave transactions and data items. Headers are retrieve
 import { Wayfinder, SignatureVerificationStrategy } from '@ar-io/sdk';
 
 const wayfinder = new Wayfinder({
+  // ... other wayfinder settings
   verificationSettings: {
     enabled: true,
     strategy: new SignatureVerificationStrategy({
@@ -412,21 +434,21 @@ import { Wayfinder, NetworkGatewaysProvider, SimpleCacheGatewaysProvider, Fastes
 import { ARIO } from '@ar.io/sdk';
 
 const wayfinder = new Wayfinder({
-  // cache the top 10 gateways by operator stake from the ARIO Network for 1 hour
-  gatewaysProvider: new SimpleCacheGatewaysProvider({
-    ttlSeconds: 60 * 60, // cache the gateways for 1 hour
-    gatewaysProvider: new NetworkGatewaysProvider({
-      ario: ARIO.mainnet(),
-      sortBy: 'operatorStake',
-      sortOrder: 'desc',
-      limit: 10,
-    }),
-  }),
   // routing settings
   routingSettings: {
     // use the fastest pinging strategy to select the fastest gateway for requests
     strategy: new FastestPingRoutingStrategy({
       timeoutMs: 1000,
+      // cache the top 10 staked gateways from the ARIO Network for 1 hour in memory
+      gatewaysProvider: new SimpleCacheGatewaysProvider({
+        ttlSeconds: 60 * 60, // cache the gateways for 1 hour
+        gatewaysProvider: new NetworkGatewaysProvider({
+          ario: ARIO.mainnet(),
+          sortBy: 'operatorStake',
+          sortOrder: 'desc',  
+          limit: 10,
+        }),
+      }),
     }),
     // events
     events: {
@@ -474,12 +496,7 @@ Wayfinder can optionally emit OpenTelemetry spans for every request. **By defaul
 ```javascript
 
 const wayfinder = new Wayfinder({
-  gatewaysProvider: new NetworkGatewaysProvider({
-    ario: ARIO.mainnet(),
-    sortBy: 'operatorStake',
-    sortOrder: 'desc',
-    limit: 10,
-  }),
+  // ... other wayfinder settings
   telemetrySettings: {
     enabled: true, // disabled by default (must be explicitly enabled)
     sampleRate: 0.1, // 10% sample rate by default
