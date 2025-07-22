@@ -51,24 +51,9 @@ export class RoundRobinRoutingStrategy implements RoutingStrategy {
     this.logger = logger;
   }
 
-  // provided gateways are ignored
-  async selectGateway({
-    gateways = [],
-  }: {
-    gateways?: URL[];
-    path?: string;
-    subdomain?: string;
-  } = {}): Promise<URL> {
-    if (gateways.length > 0) {
-      this.logger.warn(
-        'RoundRobinRoutingStrategy does not accept provided gateways. Ignoring provided gateways...',
-        {
-          providedGateways: gateways.length,
-          internalGateways: this.gateways,
-        },
-      );
-    }
+  async selectGateway(): Promise<URL> {
     const gateway = this.gateways[this.currentIndex];
+    this.logger.info('Selecting gateway', { gateway });
     this.currentIndex = (this.currentIndex + 1) % this.gateways.length;
     return gateway;
   }
