@@ -46,27 +46,11 @@ export class StaticRoutingStrategy implements RoutingStrategy {
     logger?: Logger;
   }) {
     this.logger = logger;
-
     this.gateway = new URL(gateway);
   }
 
-  // provided gateways are ignored
-  async selectGateway({
-    gateways = [],
-  }: {
-    gateways?: URL[];
-    path?: string;
-    subdomain?: string;
-  } = {}): Promise<URL> {
-    if (gateways.length > 0) {
-      this.logger.warn(
-        'StaticRoutingStrategy does not accept provided gateways. Ignoring provided gateways...',
-        {
-          providedGateways: gateways.length,
-          internalGateway: this.gateway,
-        },
-      );
-    }
+  async selectGateway(): Promise<URL> {
+    this.logger.debug('Selecting static gateway', { gateway: this.gateway });
     return this.gateway;
   }
 }

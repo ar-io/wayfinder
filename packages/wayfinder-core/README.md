@@ -217,9 +217,29 @@ Wayfinder includes verification mechanisms to ensure the integrity of retrieved 
 
 | Verifier                        | Complexity | Performance | Security | Description                                                                                                  |
 | ------------------------------- | ---------- | ----------- | -------- | ------------------------------------------------------------------------------------------------------------ |
-| `HashVerificationStrategy`      | Low        | High        | Low      | Verifies data integrity using SHA-256 hash comparison of the returned data                                   |
-| `DataRootVerificationStrategy`  | Medium     | Medium      | Low      | Verifies data using Arweave by computing the data root for the transaction (most useful for L1 transactions) |
-| `SignatureVerificationStrategy` | Medium     | Medium      | Medium   | Verifies signature of an Arweave transaction or data item using signature data provided by the Arweave network (L1 transactions), or trusted gateways (ANS-104 data items)|
+| `RemoteVerificationStrategy`    | Low        | Low         | Low      | Checks the `x-ar-io-verified` header from the gateway that returned the data. If `true`, the data is considered verified and trusted. |
+| `HashVerificationStrategy`      | Low        | High        | Low      | Computes the SHA-256 hash of the returned data and comparing it to the hash of a **trusted gateway** (_**recommended for most users**_).                                   |
+| `DataRootVerificationStrategy`  | Medium     | Medium      | Low      | Computes the data root for the transaction (most useful for L1 transactions) and compares it to the data root provided by a **trusted gateway**. |
+| `SignatureVerificationStrategy` | Medium     | Medium      | Medium   | - **ANS-104 Data Items**: Fetches signature components (owner, signature type, tags, etc.) from trusted gateways using range requests, then verifies signatures against the data payload using deep hash calculations following the ANS-104 standard.<br/>- **L1 Transactions**: Retrieves transaction metadata from gateway /tx/<tx-id> endpoints, computes the data root from the provided data stream, and verifies the signature using Arweave's cryptographic verification. |
+
+### RemoteVerificationStrategy
+
+This strategy is used to verify data by checking the `x-ar-io-verified` header from the gateway that returned the data. If the header is set to `true`, the data is considered verified and trusted.
+
+> [!IMPORTANT]
+> This strategy is only recommended for users fetching data from their own gateways and want to avoid the overhead of the other verification strategies.
+
+```javascript
+import { Wayfinder, RemoteVerificationStrategy } from '@ar.io/wayfinder-core';
+
+const wayfinder = new Wayfinder({
+  verificationSettings: {
+    // no trusted gateways are required for this strategy
+    enabled: true,
+    strategy: new RemoteVerificationStrategy(),
+  },
+});
+```
 
 ### HashVerificationStrategy
 
@@ -230,6 +250,7 @@ import { Wayfinder, HashVerificationStrategy } from '@ar.io/wayfinder-core';
 
 const wayfinder = new Wayfinder({
   verificationSettings: {
+    enabled: true,
     strategy: new HashVerificationStrategy({
       trustedGateways: ['https://permagate.io'],
     }),
@@ -246,6 +267,7 @@ import { Wayfinder, DataRootVerificationStrategy } from '@ar.io/wayfinder-core';
 
 const wayfinder = new Wayfinder({
   verificationSettings: {
+    enabled: true,
     strategy: new DataRootVerificationStrategy({
       trustedGateways: ['https://permagate.io'],
     }),
@@ -262,6 +284,7 @@ import { Wayfinder, SignatureVerificationStrategy } from '@ar-io/sdk';
 
 const wayfinder = new Wayfinder({
   verificationSettings: {
+    enabled: true,
     strategy: new SignatureVerificationStrategy({
       trustedGateways: ['https://permagate.io'],
     }),
@@ -334,7 +357,7 @@ wayfinder.emitter.on('verification-failed', (event) => {
 });
 ```
 
-#### Request-specific events
+### Request-specific events
 
 You can also provide events to the `request` function to track a single request. These events are called for each request and are not updated for subsequent requests.
 

@@ -40,11 +40,11 @@ export class PreferredWithFallbackRoutingStrategy implements RoutingStrategy {
   }
 
   async selectGateway({
-    gateways = [],
+    gateways,
     path = '',
     subdomain,
   }: {
-    gateways: URL[];
+    gateways?: URL[];
     path?: string;
     subdomain?: string;
   }): Promise<URL> {

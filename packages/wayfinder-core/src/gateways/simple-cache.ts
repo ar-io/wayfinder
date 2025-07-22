@@ -65,9 +65,7 @@ export class SimpleCacheGatewaysProvider implements GatewaysProvider {
     this.logger = logger;
   }
 
-  async getGateways(params?: { path?: string; subdomain?: string }): Promise<
-    URL[]
-  > {
+  async getGateways(): Promise<URL[]> {
     if (this.isCacheValid()) {
       this.logger.debug('Using cached gateways', {
         expiresAt: this.expiresAt,
@@ -89,7 +87,7 @@ export class SimpleCacheGatewaysProvider implements GatewaysProvider {
       });
 
       // set the promise to prevent multiple requests to the gatewaysProvider
-      this.gatewaysPromise = this.gatewaysProvider.getGateways(params);
+      this.gatewaysPromise = this.gatewaysProvider.getGateways();
       const allGateways = await this.gatewaysPromise;
 
       // update the cache

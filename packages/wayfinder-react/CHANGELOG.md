@@ -1,5 +1,27 @@
 # @ar.io/wayfinder-react
 
+## 1.0.7-alpha.2
+
+### Patch Changes
+
+- Updated dependencies [b7299cc]
+  - @ar.io/wayfinder-core@1.0.5-alpha.2
+
+## 1.0.7-alpha.1
+
+### Patch Changes
+
+- 3f4d41e: Use `LocalStorageGatewaysProvider` by default to avoid rate limits
+- Updated dependencies [b81b54e]
+  - @ar.io/wayfinder-core@1.0.5-alpha.1
+
+## 1.0.7-alpha.0
+
+### Patch Changes
+
+- Updated dependencies [73aa1b9]
+  - @ar.io/wayfinder-core@1.0.5-alpha.0
+
 ## 1.0.6
 
 ### Patch Changes
