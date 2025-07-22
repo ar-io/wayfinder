@@ -699,8 +699,6 @@ export class Wayfinder {
       strategy: new HashVerificationStrategy({
         trustedGateways: [new URL('https://permagate.io')],
       }),
-      events: {},
-      strict: false,
       // overwrite the default settings with the provided ones
       ...verificationSettings,
     };
@@ -751,18 +749,71 @@ export class Wayfinder {
       .end();
   }
 
+  /**
+   * Sets the routing strategy to use for routing requests.
+   *
+   * @example
+   * const wayfinder = new Wayfinder();
+   * wayfinder.setRoutingStrategy(new RandomRoutingStrategy());
+   *
+   * @param strategy - The routing strategy to use
+   */
   setRoutingStrategy(strategy: RoutingStrategy) {
     this.routingSettings.strategy = strategy;
   }
 
+  /**
+   * Sets the verification strategy to use for verifying requests.
+   *
+   * @example
+   * const wayfinder = new Wayfinder();
+   * wayfinder.setVerificationStrategy(new HashVerificationStrategy({
+   *   trustedGateways: [new URL('https://permagate.io')],
+   * }));
+   *
+   * @param strategy - The verification strategy to use
+   */
   setVerificationStrategy(strategy: VerificationStrategy) {
     this.verificationSettings.strategy = strategy;
   }
 
+  /**
+   * Disables verification for requests.
+   *
+   * @example
+   * const wayfinder = new Wayfinder({
+   *   verificationSettings: {
+   *     enabled: true,
+   *   },
+   * });
+   *
+   * // disable verification
+   * wayfinder.disableVerification();
+   *
+   * // enable verification with strict mode
+   * wayfinder.enableVerification({ strict: true });
+   */
   disableVerification() {
     this.verificationSettings.enabled = false;
   }
 
+  /**
+   * Enables verification for requests.
+   *
+   * @example
+   * const wayfinder = new Wayfinder({
+   *   verificationSettings: {
+   *     enabled: false,
+   *   },
+   * });
+   *
+   * // enable verification with strict mode
+   * wayfinder.enableVerification({ strict: true });
+   *
+   * // enable verification without strict mode
+   * wayfinder.enableVerification();
+   * @param strict - Whether to make verification strict
+   */
   enableVerification({
     strict = false,
   }: {
