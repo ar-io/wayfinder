@@ -14,7 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Wayfinder, type WayfinderOptions } from '@ar.io/wayfinder-core';
+import {
+  LocalStorageGatewaysProvider,
+  Wayfinder,
+  type WayfinderOptions,
+} from '@ar.io/wayfinder-core';
 import React, { createContext, useMemo } from 'react';
 import { WAYFINDER_REACT_VERSION } from '../version.js';
 
@@ -34,10 +38,24 @@ export const WayfinderProvider: React.FC<WayfinderProviderProps> = ({
   children,
   ...options
 }) => {
+  // wrap the gateways provider in a local storage provider if it is not already
+  const gatewaysProvider = useMemo(() => {
+    if (
+      options.gatewaysProvider &&
+      !(options.gatewaysProvider instanceof LocalStorageGatewaysProvider)
+    ) {
+      return new LocalStorageGatewaysProvider({
+        gatewaysProvider: options.gatewaysProvider,
+      });
+    }
+    return options.gatewaysProvider;
+  }, [options.gatewaysProvider]);
+
   const wayfinder = useMemo(
     () =>
       new Wayfinder({
         ...options,
+        gatewaysProvider,
         telemetrySettings: {
           enabled: false,
           clientName: 'wayfinder-react',
