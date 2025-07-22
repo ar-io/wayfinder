@@ -27,9 +27,9 @@ import { initTelemetry, startRequestSpans } from './telemetry.js';
 import type {
   GatewaysProvider,
   Logger,
+  RoutingStrategy,
   TelemetrySettings,
   VerificationStrategy,
-  WayfinderFetch,
   WayfinderOptions,
   WayfinderURL,
   WayfinderURLParams,
@@ -597,72 +597,6 @@ export class Wayfinder {
   protected tracer?: Tracer;
 
   /**
-   * A helper function that resolves a provided url to a target gateway.
-   *
-   * Note: no verification is done when calling this function.
-   * It just generates the redirect url based on the routing strategy.
-   * In order to verify the data, you must use the `request` function or request the data and
-   * verify it yourself via the `verifyData` function.
-   *
-   * @example
-   * const { resolveUrl } = new Wayfinder();
-   *
-   * // returns the redirected URL based on the routing strategy and the original url
-   * const redirectUrl = await resolveUrl({
-   *   originalUrl: 'https://arweave.net/<txId>',
-   * });
-   *
-   * // returns the redirected URL based on the routing strategy and the provided arns name
-   * const redirectUrl = await resolveUrl({
-   *   arnsName: 'ardrive',
-   * });
-   *
-   * // returns the redirected URL based on the routing strategy and the provided wayfinder url
-   * const redirectUrl = await resolveUrl({
-   *   wayfinderUrl: 'ar://1234567890',
-   * });
-   *
-   * // returns the redirected URL based on the routing strategy and the provided txId
-   * const redirectUrl = await resolveUrl({
-   *   txId: '1234567890',
-   * });
-   *
-   * window.open(redirectUrl.toString(), '_blank');
-   */
-  public readonly resolveUrl: (params: WayfinderURLParams) => Promise<URL>;
-
-  /**
-   * A wrapped fetch function that supports ar:// protocol. If a verification strategy is provided,
-   * the request will be verified and events will be emitted as the request is processed.
-   *
-   * @example
-   * const wayfinder = new Wayfinder({
-   *   verificationStrategy: new HashVerificationStrategy({
-   *     trustedGateways: [new URL('https://permagate.io')],
-   *   }),
-   * })
-   *
-   * // request an arns name
-   * const response = await wayfinder.request('ar://ardrive')
-   *
-   * // request a transaction id
-   * const response = await wayfinder.request('ar://1234567890')
-   *
-   * // Set strict mode to true to make verification blocking
-   * const wayfinder = new Wayfinder({
-   *   strict: true,
-   * });
-   *
-   * // This will throw an error if verification fails
-   * try {
-   *   const response = await wayfinder.request('ar://1234567890');
-   * } catch (error) {
-   *   console.error('Verification failed', error);
-   * }
-   */
-  public request: WayfinderFetch;
-
-  /**
    * The logger used by this Wayfinder instance
    */
   protected logger: Logger;
@@ -765,6 +699,8 @@ export class Wayfinder {
       strategy: new HashVerificationStrategy({
         trustedGateways: [new URL('https://permagate.io')],
       }),
+      events: {},
+      strict: false,
       // overwrite the default settings with the provided ones
       ...verificationSettings,
     };
@@ -796,80 +732,10 @@ export class Wayfinder {
     this.tracerProvider = tracerProvider;
     this.tracer = tracer;
 
-    this.request = wayfinderFetch({
-      logger: this.logger,
-      emitter: this.emitter,
-      gatewaysProvider: this.gatewaysProvider,
-      routingSettings: this.routingSettings,
-      verificationSettings: this.verificationSettings,
-      tracer: this.tracer,
-    });
-
-    this.resolveUrl = async (params: WayfinderURLParams) => {
-      // create a span for the resolveUrl function
-      const resolveUrlSpan = this.tracer?.startSpan('wayfinder.resolveUrl', {
-        attributes: {
-          ...Object.entries(params).reduce(
-            (acc, [key, value]) => ({
-              ...acc,
-              [`params.${key}`]: value,
-              gatewaysProvider: this.gatewaysProvider.constructor.name,
-              'routing.strategy':
-                this.routingSettings.strategy?.constructor.name,
-            }),
-            {},
-          ),
-        },
-      });
-
-      // parse url span that uses the resolveUrl as the parent span
-      const wayfinderUrl = createWayfinderUrl(params);
-
-      resolveUrlSpan?.setAttribute('wayfinderUrl', wayfinderUrl);
-
-      // extract routing information from the original URL
-      const { subdomain, path } = extractRoutingInfo(wayfinderUrl);
-
-      resolveUrlSpan?.setAttribute('subdomain', subdomain);
-      resolveUrlSpan?.setAttribute('path', path);
-
-      const gateways = await this.gatewaysProvider.getGateways();
-      resolveUrlSpan?.setAttribute('gatewaysCount', gateways.length);
-
-      const selectedGateway = await this.routingSettings.strategy.selectGateway(
-        {
-          gateways,
-          path,
-          subdomain,
-        },
-      );
-
-      resolveUrlSpan?.setAttribute(
-        'selectedGateway',
-        selectedGateway.toString(),
-      );
-
-      const constructedGatewayUrl = constructGatewayUrl({
-        selectedGateway,
-        subdomain,
-        path,
-      });
-
-      resolveUrlSpan?.setAttribute(
-        'constructedGatewayUrl',
-        constructedGatewayUrl.toString(),
-      );
-      resolveUrlSpan?.end();
-
-      // return the constructed gateway url
-      return constructedGatewayUrl;
-    };
-
     // send an event that the wayfinder is initialized
     this.tracer
       ?.startSpan('wayfinder.initialized', {
         attributes: {
-          gatewaysProvider: this.gatewaysProvider.constructor.name,
           'verification.strategy':
             this.verificationSettings.strategy?.constructor.name,
           'verification.enabled': this.verificationSettings.enabled,
@@ -883,5 +749,156 @@ export class Wayfinder {
         },
       })
       .end();
+  }
+
+  setRoutingStrategy(strategy: RoutingStrategy) {
+    this.routingSettings.strategy = strategy;
+  }
+
+  setVerificationStrategy(strategy: VerificationStrategy) {
+    this.verificationSettings.strategy = strategy;
+  }
+
+  disableVerification() {
+    this.verificationSettings.enabled = false;
+  }
+
+  enableVerification({
+    strict = false,
+  }: {
+    strict?: boolean;
+  } = {}) {
+    this.verificationSettings.enabled = true;
+    this.verificationSettings.strict = strict;
+  }
+
+  /**
+   * A wrapped fetch function that supports ar:// protocol. If a verification strategy is provided,
+   * the request will be verified and events will be emitted as the request is processed.
+   *
+   * @example
+   * const wayfinder = new Wayfinder({
+   *   verificationStrategy: new HashVerificationStrategy({
+   *     trustedGateways: [new URL('https://permagate.io')],
+   *   }),
+   * })
+   *
+   * // request an arns name
+   * const response = await wayfinder.request('ar://ardrive')
+   *
+   * // request a transaction id
+   * const response = await wayfinder.request('ar://1234567890')
+   *
+   * // Set strict mode to true to make verification blocking
+   * const wayfinder = new Wayfinder({
+   *   strict: true,
+   * });
+   *
+   * // This will throw an error if verification fails
+   * try {
+   *   const response = await wayfinder.request('ar://1234567890');
+   * } catch (error) {
+   *   console.error('Verification failed', error);
+   * }
+   */
+  request(
+    input: URL | RequestInfo,
+    init?: RequestInit & {
+      verificationSettings?: NonNullable<
+        WayfinderOptions['verificationSettings']
+      >;
+      routingSettings?: NonNullable<WayfinderOptions['routingSettings']>;
+    },
+  ): Promise<Response> {
+    return wayfinderFetch({
+      logger: this.logger,
+      gatewaysProvider: this.gatewaysProvider,
+      emitter: this.emitter,
+      routingSettings: this.routingSettings,
+      verificationSettings: this.verificationSettings,
+      tracer: this.tracer,
+    })(input, init);
+  }
+
+  /**
+   * A helper function that resolves a provided url to a target gateway using the current routing strategy.
+   *
+   * Note: no verification is done when calling this function.
+   * It just generates the redirect url based on the routing strategy.
+   * In order to verify the data, you must use the `request` function or request the data and
+   * verify it yourself via the `verifyData` function.
+   *
+   * @example
+   * const { resolveUrl } = new Wayfinder();
+   *
+   * // returns the redirected URL based on the routing strategy and the original url
+   * const redirectUrl = await resolveUrl({
+   *   originalUrl: 'https://arweave.net/<txId>',
+   * });
+   *
+   * // returns the redirected URL based on the routing strategy and the provided arns name
+   * const redirectUrl = await resolveUrl({
+   *   arnsName: 'ardrive',
+   * });
+   *
+   * // returns the redirected URL based on the routing strategy and the provided wayfinder url
+   * const redirectUrl = await resolveUrl({
+   *   wayfinderUrl: 'ar://1234567890',
+   * });
+   *
+   * // returns the redirected URL based on the routing strategy and the provided txId
+   * const redirectUrl = await resolveUrl({
+   *   txId: '1234567890',
+   * });
+   *
+   * window.open(redirectUrl.toString(), '_blank');
+   */
+  async resolveUrl(params: WayfinderURLParams): Promise<URL> {
+    // create a span for the resolveUrl function
+    const resolveUrlSpan = this.tracer?.startSpan('wayfinder.resolveUrl', {
+      attributes: {
+        ...Object.entries(params).reduce(
+          (acc, [key, value]) => ({
+            ...acc,
+            [`params.${key}`]: value,
+            'routing.strategy': this.routingSettings.strategy?.constructor.name,
+          }),
+          {},
+        ),
+      },
+    });
+
+    // parse url span that uses the resolveUrl as the parent span
+    const wayfinderUrl = createWayfinderUrl(params);
+
+    resolveUrlSpan?.setAttribute('wayfinderUrl', wayfinderUrl);
+
+    // extract routing information from the original URL
+    const { subdomain, path } = extractRoutingInfo(wayfinderUrl);
+
+    resolveUrlSpan?.setAttribute('subdomain', subdomain);
+    resolveUrlSpan?.setAttribute('path', path);
+
+    const selectedGateway = await this.routingSettings.strategy.selectGateway({
+      path,
+      subdomain,
+    });
+
+    resolveUrlSpan?.setAttribute('selectedGateway', selectedGateway.toString());
+
+    const constructedGatewayUrl = constructGatewayUrl({
+      selectedGateway,
+      subdomain,
+      path,
+    });
+
+    resolveUrlSpan?.setAttribute(
+      'constructedGatewayUrl',
+      constructedGatewayUrl.toString(),
+    );
+    resolveUrlSpan?.end();
+
+    // return the constructed gateway url
+    return constructedGatewayUrl;
   }
 }
