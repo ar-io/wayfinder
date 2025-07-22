@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-core
 
+## 1.0.5-alpha.1
+
+### Patch Changes
+
+- b81b54e: Remove extra `gateways` arg in `RoundRobinRoutingStrategy`
+
 ## 1.0.5-alpha.0
 
 ### Patch Changes
