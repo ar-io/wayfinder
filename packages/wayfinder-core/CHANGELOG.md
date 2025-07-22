@@ -1,5 +1,13 @@
 # @ar.io/wayfinder-core
 
+## 1.0.5
+
+### Patch Changes
+
+- 73aa1b9: Adds `RemoteVerificationStrategy` and modifies verifyData interface to support optional response headers to use when verifying data'
+- b7299cc: Remove unused parameters from various routing stratgies.
+- b81b54e: Remove extra `gateways` arg in `RoundRobinRoutingStrategy`
+
 ## 1.0.5-alpha.2
 
 ### Patch Changes
