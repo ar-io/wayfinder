@@ -65,9 +65,7 @@ export class SimpleCacheGatewaysProvider implements GatewaysProvider {
     this.logger = logger;
   }
 
-  async getGateways(): Promise<
-    URL[]
-  > {
+  async getGateways(): Promise<URL[]> {
     if (this.isCacheValid()) {
       this.logger.debug('Using cached gateways', {
         expiresAt: this.expiresAt,
