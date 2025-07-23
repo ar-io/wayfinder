@@ -140,3 +140,22 @@ npx changeset pre exit
 ```
 
 5. Follow the normal release process for the stable version.
+
+
+## Testing
+
+- `yarn test` - runs all tests in all packages (monorepo)
+
+## Linting & Formatting
+
+- `yarn lint:check` - checks for linting errors
+- `yarn lint:fix` - fixes linting errors
+- `yarn format:check` - checks for formatting errors
+- `yarn format:fix` - fixes formatting errors
+
+## Architecture
+
+- Code to interfaces.
+- Prefer type safety over runtime safety.
+- Prefer composition over inheritance.
+- Prefer integration tests over unit tests.
