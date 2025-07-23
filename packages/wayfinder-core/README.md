@@ -17,6 +17,7 @@ yarn add @ar.io/wayfinder-core
 ### Basic Usage
 
 ```javascript
+import { ARIO } from '@ar.io/sdk';
 import { Wayfinder } from '@ar.io/wayfinder-core';
 
 // create a new Wayfinder instance that uses the top 10 gateways by operator stake from the ARIO Network

@@ -115,7 +115,7 @@ export interface WayfinderOptions {
   /**
    * The gateways provider to use for routing requests.
    */
-  gatewaysProvider: GatewaysProvider;
+  gatewaysProvider?: GatewaysProvider;
 
   /**
    * The verification settings to use for verifying data
