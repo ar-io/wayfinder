@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-core
 
+## 1.0.6-alpha.0
+
+### Patch Changes
+
+- a42d57c: Allow `gatewaysProvider` to be optional, use `StaticGatewaysProvider` by default
+
 ## 1.0.5
 
 ### Patch Changes
