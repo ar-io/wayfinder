@@ -22,12 +22,13 @@ export class SimpleCacheRoutingStrategy implements RoutingStrategy {
   private routingStrategy: RoutingStrategy;
   private ttlSeconds: number;
   private lastUpdated: number;
-  private cachedGateway: URL | null;
+  private cachedGateway: URL | undefined;
   private logger: Logger;
+  private gatewayPromise: Promise<URL> | undefined;
 
   constructor({
     routingStrategy,
-    ttlSeconds = 60 * 60, // 1 hour
+    ttlSeconds = 60 * 5, // 5 minutes
     logger = defaultLogger,
   }: {
     routingStrategy: RoutingStrategy;
@@ -37,8 +38,14 @@ export class SimpleCacheRoutingStrategy implements RoutingStrategy {
     this.routingStrategy = routingStrategy;
     this.ttlSeconds = ttlSeconds;
     this.lastUpdated = 0;
-    this.cachedGateway = null;
     this.logger = logger;
+  }
+
+  private isCacheValid(): boolean {
+    return (
+      Date.now() < this.lastUpdated + this.ttlSeconds * 1000 &&
+      this.cachedGateway !== undefined
+    );
   }
 
   async selectGateway(params: {
@@ -47,46 +54,57 @@ export class SimpleCacheRoutingStrategy implements RoutingStrategy {
     subdomain?: string;
   }): Promise<URL> {
     const now = Date.now();
-    if (
-      this.cachedGateway === null ||
-      now - this.lastUpdated > this.ttlSeconds * 1000
-    ) {
-      try {
-        this.logger.debug('Cache expired, selecting new gateway', {
-          cacheAge: now - this.lastUpdated,
-          ttlSeconds: this.ttlSeconds,
-        });
 
-        // preserve the cache if the selection fails
-        const selectedGateway =
-          await this.routingStrategy.selectGateway(params);
-        this.cachedGateway = selectedGateway;
-        this.lastUpdated = now;
-
-        this.logger.debug('Updated gateway cache', {
-          selectedGateway: selectedGateway.toString(),
-        });
-      } catch (error: any) {
-        this.logger.error('Failed to select gateway', {
-          error: error.message,
-          stack: error.stack,
-        });
-        // If we have a cached gateway, return it even if expired
-        if (this.cachedGateway !== null) {
-          this.logger.warn(
-            'Returning expired cached gateway due to selection failure',
-          );
-          return this.cachedGateway;
-        }
-        throw error;
-      }
-    } else {
+    if (this.isCacheValid()) {
       this.logger.debug('Using cached gateway', {
         cacheAge: now - this.lastUpdated,
         ttlSeconds: this.ttlSeconds,
-        cachedGateway: this.cachedGateway.toString(),
+        cachedGateway: this.cachedGateway?.toString(),
       });
+      return this.cachedGateway!;
     }
-    return this.cachedGateway!;
+
+    if (this.gatewayPromise) {
+      return this.gatewayPromise;
+    }
+
+    try {
+      this.logger.debug('Cache expired, selecting new gateway', {
+        cacheAge: now - this.lastUpdated,
+        ttlSeconds: this.ttlSeconds,
+      });
+
+      // set the promise to prevent multiple requests to the routingStrategy
+      this.gatewayPromise = this.routingStrategy.selectGateway(params);
+      const selectedGateway = await this.gatewayPromise;
+
+      // update the cache
+      this.cachedGateway = selectedGateway;
+      this.lastUpdated = now;
+
+      this.logger.debug('Updated gateway cache', {
+        selectedGateway: selectedGateway.toString(),
+      });
+    } catch (error: any) {
+      this.logger.error('Failed to select gateway', {
+        error: error.message,
+        stack: error.stack,
+      });
+      // If we have a cached gateway, return it even if expired
+      if (this.cachedGateway === undefined) {
+        this.logger.warn(
+          'Returning expired cached gateway due to selection failure',
+        );
+        throw error;
+      }
+      // if we have a cached gateway, return it even if expired
+      this.logger.warn(
+        'Returning expired cached gateway due to selection failure',
+      );
+    } finally {
+      this.gatewayPromise = undefined;
+    }
+
+    return this.cachedGateway;
   }
 }
