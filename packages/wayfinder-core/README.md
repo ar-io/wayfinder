@@ -6,7 +6,7 @@
 
 ### Installation
 
-`@ar.io/wayfinder-core` is currently available as an alpha release. To install the latest version, run:
+To install the latest version, run:
 
 ```bash
 npm install @ar.io/wayfinder-core
@@ -98,19 +98,23 @@ Gateway providers are responsible for providing a list of gateways to Wayfinder 
 
 ### NetworkGatewaysProvider
 
-Returns a list of gateways from the ARIO Network based on on-chain metrics. You can specify on-chain metrics for gateways to prioritize the highest quality gateways. This is the default gateway provider and is recommended for most users.
+Returns a list of gateways from the ARIO Network based on on-chain metrics. You can specify on-chain metrics for gateways to prioritize the highest quality gateways. This requires installing the `@ar.io/sdk` package and importing the `ARIO` object. *It is recommended to use this provider for most use cases to leverage the AR.IO Network.*
 
 ```javascript
 // requests will be routed to one of the top 10 gateways by operator stake
 const gatewayProvider = new NetworkGatewaysProvider({
   ario: ARIO.mainnet(),
-  sortBy: 'operatorStake', // sort by operator stake | 'totalDelegatedStake'
+  sortBy: 'operatorStake', // sort by 'operatorStake' | 'totalDelegatedStake'
   sortOrder: 'desc', // 'asc'
-  limit: 10, // number of gateways to return
+  limit: 10, // number of gateways to use
+  filter: (gateway) => {
+    // use only active gateways that did not fail in the last epoch
+    return gateway.status === 'joined' && gateway.stats.failedConsecutiveEpochs === 0;
+  },
 });
 ```
 
-### Static Gateway Provider
+### StaticGatewaysProvider
 
 The static gateway provider returns a list of gateways that you provide. This is useful for testing or for users who want to use a specific gateway for all requests.
 
