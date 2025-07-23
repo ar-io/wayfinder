@@ -180,15 +180,15 @@ export const constructGatewayUrl = ({
 export function tapAndVerifyReadableStream({
   originalStream,
   contentLength,
-  headers,
   verifyData,
   txId,
   emitter,
+  headers = {},
   strict = false,
 }: {
   originalStream: ReadableStream;
   contentLength: number;
-  headers: Record<string, string>;
+  headers?: Record<string, string>;
   verifyData: VerificationStrategy['verifyData'];
   txId: string;
   emitter?: WayfinderEmitter;
