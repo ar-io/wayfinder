@@ -21,6 +21,7 @@ import { Span, type Tracer, context, trace } from '@opentelemetry/api';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { WebTracerProvider } from '@opentelemetry/sdk-trace-web';
 import { WayfinderEmitter } from './emitter.js';
+import { StaticGatewaysProvider } from './gateways/static.js';
 import { RandomRoutingStrategy } from './routing/random.js';
 import { initTelemetry, startRequestSpans } from './telemetry.js';
 import type {
@@ -179,15 +180,15 @@ export const constructGatewayUrl = ({
 export function tapAndVerifyReadableStream({
   originalStream,
   contentLength,
-  headers,
   verifyData,
   txId,
   emitter,
+  headers = {},
   strict = false,
 }: {
   originalStream: ReadableStream;
   contentLength: number;
-  headers: Record<string, string>;
+  headers?: Record<string, string>;
   verifyData: VerificationStrategy['verifyData'];
   txId: string;
   emitter?: WayfinderEmitter;
@@ -576,7 +577,9 @@ export class Wayfinder {
   /**
    * The verification settings to use when verifying data.
    */
-  public readonly verificationSettings: WayfinderOptions['verificationSettings'];
+  public readonly verificationSettings: Required<
+    NonNullable<WayfinderOptions['verificationSettings']>
+  >;
 
   /**
    * Telemetry configuration used for OpenTelemetry tracing
@@ -729,20 +732,36 @@ export class Wayfinder {
    * @param options - Wayfinder configuration options
    */
   constructor({
-    logger = defaultLogger,
-    gatewaysProvider, // forcing it to be required to avoid making ar-io-sdk a dependency
+    logger,
+    gatewaysProvider,
     verificationSettings,
     routingSettings,
     telemetrySettings,
-  }: WayfinderOptions) {
-    this.logger = logger;
-    this.gatewaysProvider = gatewaysProvider;
+  }: WayfinderOptions = {}) {
+    // default logger to use if no logger is provided
+    this.logger = logger ?? defaultLogger;
+    this.logger.info('Initializing Wayfinder', {
+      logger: this.logger,
+    });
+
+    // default gateways provider to use if no provider is provided
+    this.gatewaysProvider =
+      gatewaysProvider ??
+      new StaticGatewaysProvider({
+        gateways: [
+          'https://permagate.io',
+          'https://arweave.net',
+          'https://ardrive.net',
+        ],
+      });
 
     // default verification settings
     this.verificationSettings = {
       enabled:
         verificationSettings?.enabled ??
         verificationSettings?.strategy !== undefined,
+      events: {},
+      strict: false,
       strategy: new HashVerificationStrategy({
         trustedGateways: [new URL('https://permagate.io')],
       }),
