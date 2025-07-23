@@ -6,5 +6,7 @@
     "@ar.io/wayfinder-extension": "1.0.6",
     "@ar.io/wayfinder-react": "1.0.8"
   },
-  "changesets": []
+  "changesets": [
+    "eager-boxes-visit"
+  ]
 }
