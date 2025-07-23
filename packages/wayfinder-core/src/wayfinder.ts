@@ -577,7 +577,9 @@ export class Wayfinder {
   /**
    * The verification settings to use when verifying data.
    */
-  public readonly verificationSettings: WayfinderOptions['verificationSettings'];
+  public readonly verificationSettings: Required<
+    NonNullable<WayfinderOptions['verificationSettings']>
+  >;
 
   /**
    * Telemetry configuration used for OpenTelemetry tracing
@@ -735,7 +737,7 @@ export class Wayfinder {
     verificationSettings,
     routingSettings,
     telemetrySettings,
-  }: WayfinderOptions) {
+  }: WayfinderOptions = {}) {
     // default logger to use if no logger is provided
     this.logger = logger ?? defaultLogger;
     this.logger.info('Initializing Wayfinder', {
@@ -758,6 +760,8 @@ export class Wayfinder {
       enabled:
         verificationSettings?.enabled ??
         verificationSettings?.strategy !== undefined,
+      events: {},
+      strict: false,
       strategy: new HashVerificationStrategy({
         trustedGateways: [new URL('https://permagate.io')],
       }),

@@ -18,6 +18,7 @@ import assert from 'node:assert';
 import { before, describe, it } from 'node:test';
 
 import { WayfinderEmitter } from './emitter.js';
+import { StaticGatewaysProvider } from './gateways/static.js';
 import { RandomRoutingStrategy } from './routing/random.js';
 import { StaticRoutingStrategy } from './routing/static.js';
 import { GatewaysProvider, RoutingStrategy, WayfinderEvent } from './types.js';
@@ -35,6 +36,48 @@ const stubbedGatewaysProvider: GatewaysProvider = {
 } as unknown as GatewaysProvider;
 
 describe('Wayfinder', () => {
+  describe('default configuration', () => {
+    it('should use the default gateways provider', () => {
+      const wayfinder = new Wayfinder();
+
+      // assert the gateways provider is a StaticGatewaysProvider
+      assert.deepStrictEqual(
+        wayfinder.gatewaysProvider,
+        new StaticGatewaysProvider({
+          gateways: [
+            'https://permagate.io',
+            'https://arweave.net',
+            'https://ardrive.net',
+          ],
+        }),
+      );
+
+      // check the routing settings
+      assert.deepStrictEqual(wayfinder.routingSettings, {
+        strategy: new RandomRoutingStrategy(),
+        events: {},
+      });
+      // check the verification settings
+      assert.deepStrictEqual(wayfinder.verificationSettings, {
+        strategy: new HashVerificationStrategy({
+          trustedGateways: [new URL('https://permagate.io')],
+        }),
+        enabled: false,
+        strict: false,
+        events: {},
+      });
+      // check the telemetry settings
+      assert.deepStrictEqual(wayfinder.telemetrySettings, {
+        enabled: false,
+        sampleRate: undefined,
+        apiKey: undefined,
+        exporterUrl: undefined,
+        clientName: undefined,
+        clientVersion: undefined,
+      });
+    });
+  });
+
   describe('request', () => {
     let wayfinder: Wayfinder;
     before(() => {
@@ -161,7 +204,7 @@ describe('Wayfinder', () => {
     describe('selectGateway is called with correct parameters', () => {
       it('should call selectGateway with correct subdomain and path for ArNS names', async () => {
         let capturedParams: {
-          gateways: URL[];
+          gateways?: URL[];
           path?: string;
           subdomain?: string;
         } = { gateways: [] };
@@ -208,7 +251,7 @@ describe('Wayfinder', () => {
 
       it('should call selectGateway with correct subdomain and path for transaction IDs', async () => {
         let capturedParams: {
-          gateways: URL[];
+          gateways?: URL[];
           path?: string;
           subdomain?: string;
         } = { gateways: [] };
@@ -259,7 +302,7 @@ describe('Wayfinder', () => {
 
       it('should call selectGateway with correct parameters for gateway endpoints', async () => {
         let capturedParams: {
-          gateways: URL[];
+          gateways?: URL[];
           path?: string;
           subdomain?: string;
         } = { gateways: [] };
@@ -306,7 +349,7 @@ describe('Wayfinder', () => {
 
       it('should call selectGateway with correct parameters for ArNS names without paths', async () => {
         let capturedParams: {
-          gateways: URL[];
+          gateways?: URL[];
           path?: string;
           subdomain?: string;
         } = { gateways: [] };
