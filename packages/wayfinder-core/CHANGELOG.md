@@ -1,5 +1,17 @@
 # @ar.io/wayfinder-core
 
+## 1.1.0
+
+### Minor Changes
+
+- 69ddbfb: Add runtime configuration methods for routing and verification strategies
+
+## 1.1.0-alpha.0
+
+### Minor Changes
+
+- 69ddbfb: Add runtime configuration methods for routing and verification strategies
+
 ## 1.0.7
 
 ### Patch Changes

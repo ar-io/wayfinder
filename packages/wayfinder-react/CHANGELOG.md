@@ -4,6 +4,13 @@
 
 ### Patch Changes
 
+- Updated dependencies [69ddbfb]
+  - @ar.io/wayfinder-core@1.1.0
+
+## 1.0.9
+
+### Patch Changes
+
 - Updated dependencies [658c5f6]
   - @ar.io/wayfinder-core@1.0.7
 
