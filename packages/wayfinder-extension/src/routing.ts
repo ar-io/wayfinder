@@ -18,7 +18,7 @@
 import {
   FastestPingRoutingStrategy,
   RandomRoutingStrategy,
-  SimpleCacheRoutingStrategy,
+  RemoteVerificationStrategy,
   StaticRoutingStrategy,
   Wayfinder,
 } from '@ar.io/wayfinder-core';
@@ -88,7 +88,6 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
     'gatewaySortBy',
     'gatewaySortOrder',
     'telemetryEnabled',
-    'verificationEnabled',
   ]);
 
   // Create the base gateway provider with configurable sorting
@@ -97,70 +96,38 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
     sortOrder: gatewaySortOrder,
   });
 
-  // Single consolidated log for routing strategy
   let routingStrategy;
+  switch (routingMethod) {
+    case 'static':
+      if (!staticGateway) {
+        throw new Error('Static gateway is not configured');
+      }
+      new StaticRoutingStrategy({
+        gateway: staticGateway,
+      });
+      break;
+    case 'fastestPing':
+      routingStrategy = new FastestPingRoutingStrategy({
+        timeoutMs: ROUTING_STRATEGY_DEFAULTS.fastestPing.timeoutMs,
+        maxConcurrency: ROUTING_STRATEGY_DEFAULTS.fastestPing.maxConcurrency,
+        logger,
+      });
+      break;
 
-  // Helper function to create a cached FastestPing strategy
-  const createCachedFastestPingStrategy = () => {
-    const fastestPing = new FastestPingRoutingStrategy({
-      timeoutMs: ROUTING_STRATEGY_DEFAULTS.fastestPing.timeoutMs,
-      maxConcurrency: ROUTING_STRATEGY_DEFAULTS.fastestPing.maxConcurrency,
-      logger,
-    });
+    case 'random':
+      routingStrategy = new RandomRoutingStrategy();
+      // Log handled at end of function
+      break;
 
-    // Wrap with cache strategy (15 minutes TTL)
-    return new SimpleCacheRoutingStrategy({
-      routingStrategy: fastestPing,
-      ttlSeconds: 15 * 60, // 15 minutes
-      logger,
-    });
-  };
-
-  // Select routing strategy based on configuration
-  if (routingMethod === 'static' && staticGateway) {
-    // Use static routing only if explicitly selected AND a static gateway is configured
-    const { protocol, fqdn, port } = staticGateway.settings;
-    const portSuffix =
-      port && port !== (protocol === 'https' ? 443 : 80) ? `:${port}` : '';
-    const staticUrl = new URL(`${protocol}://${fqdn}${portSuffix}`);
-
-    routingStrategy = new StaticRoutingStrategy({
-      gateway: staticUrl.toString(),
-    });
-    // Static routing details included in summary log
-  } else {
-    // Use dynamic routing based on method
-    switch (routingMethod) {
-      case 'fastestPing':
-        routingStrategy = createCachedFastestPingStrategy();
-        break;
-
-      case 'random':
-        routingStrategy = new RandomRoutingStrategy();
-        // Log handled at end of function
-        break;
-
-      case 'roundRobin':
-        // Round Robin removed - fallback to random (balanced) strategy
-        routingStrategy = new RandomRoutingStrategy();
-        logger.info(
-          '[ROUTING] Round Robin deprecated, using Balanced strategy',
-        );
-        break;
-
-      case 'static':
-        // If we get here, either no static gateway is configured or method mismatch
-        // Static routing fallback to fastest ping
-        // Intentionally fall through to default
-        routingStrategy = createCachedFastestPingStrategy();
-        break;
-      default:
-        // default to random (balanced) strategy
-        routingStrategy = new RandomRoutingStrategy();
-        break;
-    }
-
-    // Log handled at end of function
+    case 'roundRobin':
+      // Round Robin removed - fallback to random (balanced) strategy
+      routingStrategy = new RandomRoutingStrategy();
+      logger.info('[ROUTING] Round Robin deprecated, using Balanced strategy');
+      break;
+    default:
+      // default to random (balanced) strategy
+      routingStrategy = new RandomRoutingStrategy();
+      break;
   }
 
   // Create Wayfinder instance
@@ -170,10 +137,16 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
     routingSettings: {
       strategy: routingStrategy,
       events: {
-        onRoutingSucceeded: () => {
-          // Gateway selected
+        onRoutingSucceeded: (event: any) => {
+          console.log('Routing succeeded', event);
+        },
+        onRoutingFailed: (error: any) => {
+          console.error('Failed to route request', error);
         },
       },
+    },
+    verificationSettings: {
+      strategy: new RemoteVerificationStrategy(),
     },
     /**
      * NOTE: because we don't get access to the first bytes of the response, we can't verify the data directly here.
@@ -200,7 +173,6 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
 export function resetWayfinderInstance(): void {
   wayfinderInstance = null;
   wayfinderPromise = null;
-  // Instance reset
 }
 
 /**

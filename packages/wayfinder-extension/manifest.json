@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "AR.IO Wayfinder",
-  "version": "1.0.2",
+  "version": "1.0.7",
   "description": "Fast, verifiable, decentralized access to ar:// links via AR.IO’s Permanent Cloud.",
   "permissions": ["storage", "webNavigation", "webRequest", "scripting"],
   "host_permissions": ["<all_urls>"],
