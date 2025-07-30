@@ -10,12 +10,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "files": [
-    "dist",
-    "package.json",
-    "README.md",
-    "LICENSE"
-  ],
+  "files": ["dist", "package.json", "README.md", "LICENSE"],
   "author": {
     "name": "Permanent Data Solutions Inc",
     "email": "info@ar.io",
