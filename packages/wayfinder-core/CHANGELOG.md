@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-core
 
+## 1.1.1
+
+### Patch Changes
+
+- b246f78: Provide gateways when calling `selectGateway` in `resolveUrl`
+
 ## 1.1.0
 
 ### Minor Changes
