@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 import { AOProcess, ARIO, AoGateway, WalletAddress } from '@ar.io/sdk/web';
-import { RemoteVerificationStrategy } from '@ar.io/wayfinder-core';
 import { connect } from '@permaweb/aoconnect';
 import { LRUCache } from 'lru-cache';
 import pDebounce from 'p-debounce';
@@ -29,11 +28,6 @@ import {
   resetWayfinderInstance,
 } from './routing';
 import { RedirectedTabInfo, VerificationCacheEntry } from './types';
-import {
-  createErrorResponse,
-  createSuccessResponse,
-  handleAsyncOperation,
-} from './utils/error-handler';
 import { logger } from './utils/logger';
 
 // Enhanced tab state management
@@ -81,7 +75,6 @@ class TabStateManager {
 
 // Global variables
 const tabStateManager = new TabStateManager();
-const verificationStrategy = new RemoteVerificationStrategy();
 const requestTimings = new LRUCache<string, number>({
   max: 10_000,
   ttl: 60 * 60 * 1000 * 24, // 1 day in milliseconds
@@ -94,7 +87,14 @@ const verificationCache = new LRUCache<string, VerificationCacheEntry>({
 // Message queue for content scripts that aren't ready yet
 const messageQueue = new Map<number, Record<string, { id: string } & any>>();
 const readyTabs = new Set<number>();
+
+// holds verification status in memory
 let showVerificationToasts: boolean = EXTENSION_DEFAULTS.showVerificationToasts;
+
+// on chrome storage ready, initialize wayfinder with debounce
+const debouncedInitializeWayfinder = pDebounce(initializeWayfinder, 1000, {
+  before: true,
+});
 
 /**
  * Send message to tab with queuing support
@@ -215,6 +215,8 @@ async function updateWebRequestListeners() {
     );
   }
 
+  // TODO: show error message if no gateways are found
+
   // Add new listeners with updated patterns
   setupWebRequestListeners({ urls: newPatterns });
 }
@@ -329,7 +331,8 @@ let arIO = ARIO.init({
     updates.showVerificationToasts = EXTENSION_DEFAULTS.showVerificationToasts;
 
   await chrome.storage.local.set(updates);
-  // Storage initialized
+
+  debouncedInitializeWayfinder();
 })();
 
 // Initialize performance data structure if needed
@@ -352,8 +355,6 @@ const gatewayProvider = new ChromeStorageGatewayProvider();
  * Initialize Wayfinder with gateway sync and core library setup
  */
 async function initializeWayfinder() {
-  // Initializing Wayfinder
-
   try {
     // Sync gateway registry first
     await syncGatewayAddressRegistry();
@@ -646,33 +647,40 @@ async function handleHeadersReceived(details: any) {
     );
 
     // TODO: we can only verify data requests - either arns.<gatewayURL> or /<txId>
-    // verify if we have an x-ar-io-data-id or x-ar-io-resolvde-id (for older gateways), otherwise it's not verifiable data
+    // verify if we have an x-ar-io-data-id or x-ar-io-resolved-id (for older gateways), otherwise it's not verifiable data
     const dataId = headers['x-ar-io-data-id'] || headers['x-ar-io-resolve-id'];
 
-    console.debug(`Verifying data for ${details.url} with dataId: ${dataId} for request ${details.requestId}`);
+    console.debug(
+      `Verifying data for ${details.url} with dataId: ${dataId} for request ${details.requestId}`,
+    );
 
     // show verification toast if the verification cache entry is for the same url
-      const remotelyVerified = await verificationStrategy
-        .verifyData({
-          headers,
-        })
-        .then(()=> {
-          return true;
-        })
-        .catch(() => {
-          return false;
-        })
-
-      const message: Record<string, { id: string } & any> = {
-        id: details.requestId,
-        type: 'showVerificationToast',
-        verified: remotelyVerified,
-        gateway: hostname,
-        url: details.url,
+    const remotelyVerified = await (
+      await getWayfinderInstance()
+    ).verificationSettings.strategy
+      .verifyData({
+        // note: this response just returns the header data, use it as a stub
+        data: details.responseBody,
+        headers,
         txId: dataId,
-      };
+      })
+      .then(() => {
+        return true;
+      })
+      .catch(() => {
+        return false;
+      });
 
-      await sendMessageToTab(details.tabId, message);
+    const message: Record<string, { id: string } & any> = {
+      id: details.requestId,
+      type: 'showVerificationToast',
+      verified: remotelyVerified,
+      gateway: hostname,
+      url: details.url,
+      txId: dataId,
+    };
+
+    await sendMessageToTab(details.tabId, message);
   }
 }
 
@@ -729,16 +737,7 @@ function handleBeforeRequest(details: any) {
 /**
  * Handle messages from content scripts and popup
  */
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  // Handle content script ready signal
-  if (request.type === 'contentScriptReady' && sender.tab?.id) {
-    const tabId = sender.tab.id;
-    readyTabs.add(tabId);
-    flushMessageQueue(tabId);
-    sendResponse({ success: true });
-    return;
-  }
-
+chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
   // Validate message types
   const validMessages = [
     'syncGatewayAddressRegistry',
@@ -749,14 +748,36 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     'updateVerificationMode',
     'updateAdvancedSettings',
     'resetAdvancedSettings',
+    'updateShowVerificationToasts',
   ];
-  const validTypes = ['convertArUrlToHttpUrl', 'openSettings'];
+
+  const validTypes = [
+    'convertArUrlToHttpUrl',
+    'openSettings',
+    'contentScriptReady',
+  ];
 
   if (
     !validMessages.includes(request.message) &&
     !validTypes.includes(request.type)
   ) {
     logger.warn('Unauthorized message:', request);
+    sendResponse({ error: 'Unauthorized message' });
+    return;
+  }
+
+  // handle content script ready signal
+  if (request.type === 'contentScriptReady' && sender.tab?.id) {
+    try {
+      const tabId = sender.tab.id;
+      readyTabs.add(tabId);
+      // flush any verification messages that were queued on page load while waiting for the content script to be ready
+      await flushMessageQueue(tabId);
+      sendResponse({ success: true });
+    } catch (error: any) {
+      logger.error('Error handling content script ready signal:', error);
+      sendResponse({ error: error?.message || 'Unknown error' });
+    }
     return;
   }
 
@@ -768,33 +789,29 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   // Sync gateway registry
   if (request.message === 'syncGatewayAddressRegistry') {
-    handleAsyncOperation(async () => {
+    try {
       await syncGatewayAddressRegistry();
       resetWayfinderInstance();
-      return createSuccessResponse();
-    }, 'sync gateway address registry').then((result) => {
-      sendResponse(
-        result || createErrorResponse(new Error('Unknown error'), 'sync GAR'),
-      );
-    });
-    return true;
+      sendResponse({ success: true });
+    } catch (error: any) {
+      logger.error('Error syncing gateway address registry:', error);
+      sendResponse({ error: error?.message || 'Unknown error' });
+    }
+    return;
   }
 
   // Set AO CU URL
   if (request.message === 'setAoCuUrl') {
-    reinitializeArIO()
-      .then(() => syncGatewayAddressRegistry())
-      .then(() => {
-        resetWayfinderInstance();
-        sendResponse({ success: true });
-      })
-      .catch((error) => {
-        logger.error('Failed to set new AO CU URL:', error);
-        sendResponse({
-          error: 'Failed to set new AO CU URL and reinitialize AR.IO.',
-        });
-      });
-    return true;
+    try {
+      await reinitializeArIO();
+      await syncGatewayAddressRegistry();
+      resetWayfinderInstance();
+      sendResponse({ success: true });
+    } catch (error: any) {
+      logger.error('Error setting AO CU URL:', error);
+      sendResponse({ error: error?.message || 'Unknown error' });
+    }
+    return;
   }
 
   // Reset Wayfinder instance (for configuration changes)
@@ -806,90 +823,92 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   // Convert ar:// URL to HTTP URL
   if (request.type === 'convertArUrlToHttpUrl') {
-    const arUrl = request.arUrl;
-    getRoutableGatewayUrl(arUrl)
-      .then((response) => {
-        if (!response || !response.url) {
-          throw new Error('URL resolution failed, response is invalid');
-        }
-        sendResponse({ url: response.url });
-      })
-      .catch((error) => {
-        logger.error('Error converting ar:// URL:', error);
-        sendResponse({ error: error.message });
-      });
-    return true;
+    try {
+      const arUrl = request.arUrl;
+      const url = await getRoutableGatewayUrl(arUrl);
+      if (!url) {
+        throw new Error('URL resolution failed, response is invalid');
+      }
+      sendResponse({ url: url.url });
+    } catch (error: any) {
+      logger.error('Error converting ar:// URL:', error);
+      sendResponse({ error: error?.message || 'Unknown error' });
+    }
+    return;
   }
 
   // Handle routing strategy updates
   if (request.message === 'updateRoutingStrategy') {
-    logger.info(`[SETTINGS] Updating routing strategy to: ${request.strategy}`);
-    (async () => {
-      try {
-        await chrome.storage.local.set({ routingMethod: request.strategy });
-        logger.info(
-          `[SETTINGS] Routing strategy saved to storage: ${request.strategy}`,
-        );
+    try {
+      logger.info(
+        `[SETTINGS] Updating routing strategy to: ${request.strategy}`,
+      );
+      await chrome.storage.local.set({ routingMethod: request.strategy });
+      logger.info(
+        `[SETTINGS] Routing strategy saved to storage: ${request.strategy}`,
+      );
+      resetWayfinderInstance();
 
-        // Reset Wayfinder instance to use new strategy
-        resetWayfinderInstance();
-
-        // Confirm the setting was saved
-        const { routingMethod } =
-          await chrome.storage.local.get('routingMethod');
-        logger.info(
-          `[SETTINGS] Wayfinder will reinitialize with routing: ${routingMethod}`,
-        );
-
-        sendResponse({ success: true });
-      } catch (error: any) {
-        logger.error('Error updating routing strategy:', error);
-        sendResponse({ error: error?.message || 'Unknown error' });
-      }
-    })();
-    return true; // Keep message channel open for async response
+      // Confirm the setting was saved
+      const { routingMethod } = await chrome.storage.local.get('routingMethod');
+      logger.info(
+        `[SETTINGS] Wayfinder will reinitialize with routing: ${routingMethod}`,
+      );
+      sendResponse({ success: true });
+    } catch (error: any) {
+      logger.error('Error updating routing strategy:', error);
+      sendResponse({ error: error?.message || 'Unknown error' });
+    }
+    return;
   }
 
   // Handle advanced settings updates
   if (request.message === 'updateAdvancedSettings') {
-    (async () => {
-      try {
-        await chrome.storage.local.set(request.settings);
-        // Reset Wayfinder instance to use new settings
-        resetWayfinderInstance();
+    try {
+      await chrome.storage.local.set(request.settings);
+      // Reset Wayfinder instance to use new settings
+      resetWayfinderInstance();
+      // Log what changed
+      const changedSettings = Object.keys(request.settings).join(', ');
+      logger.info(
+        `[SETTINGS] Wayfinder will reinitialize with updated: ${changedSettings}`,
+      );
 
-        // Log what changed
-        const changedSettings = Object.keys(request.settings).join(', ');
-        logger.info(
-          `[SETTINGS] Wayfinder will reinitialize with updated: ${changedSettings}`,
-        );
-
-        sendResponse({ success: true });
-      } catch (error: any) {
-        logger.error('Error updating advanced settings:', error);
-        sendResponse({ error: error?.message || 'Unknown error' });
-      }
-    })();
-    return true;
+      sendResponse({ success: true });
+    } catch (error: any) {
+      logger.error('Error updating advanced settings:', error);
+      sendResponse({ error: error?.message || 'Unknown error' });
+    }
+    return;
   }
 
   // Handle advanced settings reset
   if (request.message === 'resetAdvancedSettings') {
-    (async () => {
-      try {
-        await chrome.storage.local.remove(['processId', 'aoCuUrl']);
-        // Reset Wayfinder instance to use defaults
-        resetWayfinderInstance();
-        sendResponse({ success: true });
-      } catch (error: any) {
-        logger.error('Error resetting advanced settings:', error);
-        sendResponse({ error: error?.message || 'Unknown error' });
-      }
-    })();
-    return true;
+    try {
+      await chrome.storage.local.remove(['processId', 'aoCuUrl']);
+      // Reset Wayfinder instance to use defaults
+      resetWayfinderInstance();
+      sendResponse({ success: true });
+    } catch (error: any) {
+      logger.error('Error resetting advanced settings:', error);
+      sendResponse({ error: error?.message || 'Unknown error' });
+    }
+    return;
   }
 
-  // Removed: getCacheStats handler - verification cache removed
+  if (request.message === 'updateShowVerificationToasts') {
+    try {
+      await chrome.storage.local.set({
+        showVerificationToasts: request.enabled,
+      });
+      showVerificationToasts = request.enabled;
+      sendResponse({ success: true });
+    } catch (error: any) {
+      logger.error('Error updating verification mode:', error);
+      sendResponse({ error: error?.message || 'Unknown error' });
+    }
+    return;
+  }
 });
 
 /**
@@ -1036,22 +1055,5 @@ updateWebRequestListeners()
 chrome.storage.onChanged.addListener(async (changes, namespace) => {
   if (namespace === 'local' && changes.localGatewayAddressRegistry) {
     await updateWebRequestListeners();
-    // check if the showVerificationToasts setting is true
-    const { showVerificationToasts: savedShowVerificationToasts } = await chrome.storage.local.get('showVerificationToasts');
-    showVerificationToasts = savedShowVerificationToasts === 'true';
   }
 });
-
-// on chrome storage ready, initialize wayfinder with debounce
-const debouncedInitializeWayfinder = pDebounce(initializeWayfinder, 1000, {
-  before: true,
-});
-chrome.storage.local
-  .get(['processId', 'aoCuUrl', 'showVerificationToasts'])
-  .then(async ({ showVerificationToasts: savedShowVerificationToasts }) => {
-    debouncedInitializeWayfinder();
-    showVerificationToasts = savedShowVerificationToasts === 'true';
-  })
-  .catch((error) => {
-    logger.error('Error initializing Wayfinder:', error);
-  });
