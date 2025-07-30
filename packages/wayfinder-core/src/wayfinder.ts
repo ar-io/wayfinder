@@ -931,6 +931,7 @@ export class Wayfinder {
     resolveUrlSpan?.setAttribute('path', path);
 
     const selectedGateway = await this.routingSettings.strategy.selectGateway({
+      gateways: await this.gatewaysProvider.getGateways(),
       path,
       subdomain,
     });
