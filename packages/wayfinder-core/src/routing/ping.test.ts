@@ -17,7 +17,8 @@
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 
-import { FastestPingRoutingStrategy } from './ping.js';
+import { FastestPingRoutingStrategy, PingRoutingStrategy } from './ping.js';
+import { StaticRoutingStrategy } from './static.js';
 
 describe('FastestPingRoutingStrategy', () => {
   // Original fetch function
@@ -57,15 +58,6 @@ describe('FastestPingRoutingStrategy', () => {
 
       return new Response(null, { status });
     };
-
-    // mock AbortSignal.timeout
-    if (!AbortSignal.timeout) {
-      (AbortSignal as any).timeout = (ms: number) => {
-        const controller = new AbortController();
-        setTimeout(() => controller.abort(), ms);
-        return controller.signal;
-      };
-    }
   });
 
   // restore original fetch after tests
@@ -204,8 +196,6 @@ describe('FastestPingRoutingStrategy', () => {
 
     const strategy = new FastestPingRoutingStrategy({ timeoutMs: 500 });
 
-    // console.log(await strategy.selectGateway({ gateways }), 'test');
-
     // select the gateway with the lowest latency
     await assert.rejects(
       async () => await strategy.selectGateway({ gateways }),
@@ -279,6 +269,200 @@ describe('FastestPingRoutingStrategy', () => {
       async () => await strategy.selectGateway({ gateways }),
       /No gateways provided/,
       'Should throw an error when no gateways are provided',
+    );
+  });
+});
+
+describe('PingRoutingStrategy', () => {
+  const originalFetch = global.fetch;
+  const mockResponses = new Map<string, { status: number; delayMs: number }>();
+
+  beforeEach(() => {
+    mockResponses.clear();
+
+    // @ts-expect-error - we're mocking the fetch function
+    global.fetch = async (url: string | URL, init?: RequestInit) => {
+      const urlString = url.toString();
+
+      let matchingGateway = '';
+      for (const gateway of mockResponses.keys()) {
+        if (urlString.startsWith(gateway)) {
+          matchingGateway = gateway;
+          break;
+        }
+      }
+
+      if (!matchingGateway) {
+        return Promise.reject(
+          new Error(`No mock response for URL: ${urlString}`),
+        );
+      }
+
+      const { status, delayMs } = mockResponses.get(matchingGateway)!;
+      await new Promise((resolve, reject) =>
+        setTimeout(() => {
+          if (init?.signal?.aborted) {
+            reject(new Error('Request timed out'));
+          }
+          resolve(null);
+        }, delayMs),
+      );
+      return new Response(null, { status });
+    };
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
+
+  it('returns first gateway when HEAD check succeeds', async () => {
+    const gateways = [new URL('https://good.com'), new URL('https://bad.com')];
+
+    mockResponses.set('https://good.com', { status: 200, delayMs: 50 });
+    mockResponses.set('https://bad.com', { status: 404, delayMs: 50 });
+
+    const baseStrategy = new StaticRoutingStrategy({
+      gateway: 'https://good.com',
+    });
+    const strategy = new PingRoutingStrategy({ routingStrategy: baseStrategy });
+
+    const result = await strategy.selectGateway({ gateways });
+    assert.equal(result.toString(), 'https://good.com/');
+  });
+
+  it('retries with different gateway when HEAD check fails', async () => {
+    const gateways = [new URL('https://bad.com'), new URL('https://good.com')];
+
+    mockResponses.set('https://bad.com', { status: 404, delayMs: 50 });
+    mockResponses.set('https://good.com', { status: 200, delayMs: 50 });
+
+    let callCount = 0;
+    const mockBaseStrategy = {
+      async selectGateway() {
+        return gateways[callCount++ % gateways.length];
+      },
+    };
+
+    const strategy = new PingRoutingStrategy({
+      routingStrategy: mockBaseStrategy,
+    });
+
+    const result = await strategy.selectGateway({ gateways });
+    assert.equal(result.toString(), 'https://good.com/');
+  });
+
+  it('throws error after all retries fail', async () => {
+    const gateways = [new URL('https://bad1.com'), new URL('https://bad2.com')];
+
+    mockResponses.set('https://bad1.com', { status: 404, delayMs: 50 });
+    mockResponses.set('https://bad2.com', { status: 500, delayMs: 50 });
+
+    let callCount = 0;
+    const mockBaseStrategy = {
+      async selectGateway() {
+        return gateways[callCount++ % gateways.length];
+      },
+    };
+
+    const strategy = new PingRoutingStrategy({
+      routingStrategy: mockBaseStrategy,
+      retries: 2,
+    });
+
+    await assert.rejects(
+      () => strategy.selectGateway({ gateways }),
+      /Failed to find working gateway after HEAD checks/,
+    );
+  });
+
+  it('handles network errors and retries', async () => {
+    const gateways = [
+      new URL('https://error.com'),
+      new URL('https://good.com'),
+    ];
+
+    mockResponses.set('https://good.com', { status: 200, delayMs: 50 });
+
+    let callCount = 0;
+    const mockBaseStrategy = {
+      async selectGateway() {
+        return gateways[callCount++ % gateways.length];
+      },
+    };
+
+    // Override fetch for network error case
+    const originalFetchMock = global.fetch;
+    // @ts-expect-error - we're mocking the fetch function
+    global.fetch = async (url: string | URL) => {
+      if (url.toString().includes('error.com')) {
+        throw new Error('Network error');
+      }
+      return originalFetchMock(url);
+    };
+
+    const strategy = new PingRoutingStrategy({
+      routingStrategy: mockBaseStrategy,
+    });
+
+    const result = await strategy.selectGateway({ gateways });
+    assert.equal(result.toString(), 'https://good.com/');
+  });
+
+  it('constructs proper URL with subdomain and path', async () => {
+    const gateways = [new URL('https://gateway.com')];
+
+    mockResponses.set('https://sub.gateway.com/test/path', {
+      status: 200,
+      delayMs: 50,
+    });
+
+    const baseStrategy = new StaticRoutingStrategy({
+      gateway: 'https://gateway.com',
+    });
+    const strategy = new PingRoutingStrategy({
+      routingStrategy: baseStrategy,
+    });
+
+    const result = await strategy.selectGateway({
+      gateways,
+      subdomain: 'sub',
+      path: '/test/path',
+    });
+
+    assert.equal(result.toString(), 'https://gateway.com/');
+  });
+
+  it('respects custom timeout and retries', async () => {
+    const gateways = [new URL('https://slow.com')];
+
+    mockResponses.set('https://slow.com', { status: 200, delayMs: 200 });
+
+    const baseStrategy = new StaticRoutingStrategy({
+      gateway: 'https://slow.com',
+    });
+    const strategy = new PingRoutingStrategy({
+      routingStrategy: baseStrategy,
+      timeoutMs: 100,
+      retries: 1,
+    });
+
+    await assert.rejects(
+      () => strategy.selectGateway({ gateways }),
+      /Failed to find working gateway after HEAD checks/,
+    );
+  });
+
+  it('throws error when no gateways provided', async () => {
+    const baseStrategy = new StaticRoutingStrategy({
+      gateway: 'https://test.com',
+    });
+    const strategy = new PingRoutingStrategy({
+      routingStrategy: baseStrategy,
+    });
+
+    await assert.rejects(
+      () => strategy.selectGateway({ gateways: [] }),
+      /No gateways available/,
     );
   });
 });

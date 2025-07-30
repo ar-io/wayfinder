@@ -22,6 +22,7 @@ import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { WebTracerProvider } from '@opentelemetry/sdk-trace-web';
 import { WayfinderEmitter } from './emitter.js';
 import { StaticGatewaysProvider } from './gateways/static.js';
+import { PingRoutingStrategy } from './routing/ping.js';
 import { RandomRoutingStrategy } from './routing/random.js';
 import { initTelemetry, startRequestSpans } from './telemetry.js';
 import type {
@@ -674,9 +675,6 @@ export class Wayfinder {
   }: WayfinderOptions = {}) {
     // default logger to use if no logger is provided
     this.logger = logger ?? defaultLogger;
-    this.logger.info('Initializing Wayfinder', {
-      logger: this.logger,
-    });
 
     // default gateways provider to use if no provider is provided
     this.gatewaysProvider =
@@ -706,7 +704,9 @@ export class Wayfinder {
     // default routing settings
     this.routingSettings = {
       events: {},
-      strategy: new RandomRoutingStrategy(),
+      strategy: new PingRoutingStrategy({
+        routingStrategy: new RandomRoutingStrategy(),
+      }),
       // overwrite the default settings with the provided ones
       ...routingSettings,
     };
@@ -747,7 +747,16 @@ export class Wayfinder {
         },
       })
       .end();
+
+    this.logger.debug('Initialized Wayfinder', {
+      logger: this.logger,
+      verificationSettings: this.verificationSettings,
+      routingSettings: this.routingSettings,
+      telemetrySettings: this.telemetrySettings,
+    });
   }
+
+  // TODO: consider property getters and setters for strategies and settings
 
   /**
    * Sets the routing strategy to use for routing requests.
