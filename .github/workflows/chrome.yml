@@ -39,6 +39,8 @@ jobs:
             --refresh-token ${{ secrets.CHROME_WEBSTORE_REFRESH_TOKEN }}
 
       - name: Update GitHub Releases
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release upload \
             @ar.io/wayfinder-extension@${{ steps.extension.outputs.VERSION }} \
