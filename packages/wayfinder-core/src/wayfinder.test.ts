@@ -19,6 +19,7 @@ import { before, describe, it } from 'node:test';
 
 import { WayfinderEmitter } from './emitter.js';
 import { StaticGatewaysProvider } from './gateways/static.js';
+import { PingRoutingStrategy } from './routing/ping.js';
 import { RandomRoutingStrategy } from './routing/random.js';
 import { StaticRoutingStrategy } from './routing/static.js';
 import { GatewaysProvider, RoutingStrategy, WayfinderEvent } from './types.js';
@@ -54,7 +55,9 @@ describe('Wayfinder', () => {
 
       // check the routing settings
       assert.deepStrictEqual(wayfinder.routingSettings, {
-        strategy: new RandomRoutingStrategy(),
+        strategy: new PingRoutingStrategy({
+          routingStrategy: new RandomRoutingStrategy(),
+        }),
         events: {},
       });
       // check the verification settings
