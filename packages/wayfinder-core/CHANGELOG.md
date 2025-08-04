@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-core
 
+## 1.2.0
+
+### Minor Changes
+
+- 2d5970f: Add `PingRoutingStrategy` that performs a HEAD check on gateway returned from provided routing strategy
+
 ## 1.2.0-alpha.0
 
 ### Minor Changes

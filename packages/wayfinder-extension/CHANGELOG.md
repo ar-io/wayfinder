@@ -1,5 +1,13 @@
 # @ar.io/wayfinder-extension
 
+## 1.0.8
+
+### Patch Changes
+
+- 2d19291: Fix rendering race condition with verification toasts
+- Updated dependencies [2d5970f]
+  - @ar.io/wayfinder-core@1.2.0
+
 ## 1.0.8-alpha.0
 
 ### Patch Changes
