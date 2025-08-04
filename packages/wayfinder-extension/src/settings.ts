@@ -784,7 +784,10 @@ async function validateStaticGateway() {
 // Save verification toasts preference
 async function saveVerificationToasts(event: any) {
   const enabled = event.target.checked;
-  await chrome.storage.local.set({ showVerificationToasts: enabled });
+  chrome.runtime.sendMessage({
+    message: 'updateShowVerificationToasts',
+    enabled,
+  });
   showToast(
     `Verification notifications ${enabled ? 'enabled' : 'disabled'}`,
     'success',

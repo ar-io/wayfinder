@@ -29,11 +29,13 @@ export const EXTENSION_DEFAULTS = {
   processId: ARIO_MAINNET_PROCESS_ID,
   aoCuUrl: DEFAULT_AO_CU_URL,
 
+  // Verification Configuration
+  showVerificationToasts: true,
+
   // Basic Extension Settings
   routingMethod: 'random',
   blacklistedGateways: [],
   ensResolutionEnabled: true,
-  showVerificationToasts: true,
 
   // Storage & Registry
   localGatewayAddressRegistry: {},
