@@ -6,5 +6,8 @@
     "@ar.io/wayfinder-extension": "1.0.7",
     "@ar.io/wayfinder-react": "1.0.10"
   },
-  "changesets": []
+  "changesets": [
+    "ripe-snakes-rest",
+    "wide-jars-nail"
+  ]
 }
