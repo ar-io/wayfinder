@@ -20,7 +20,9 @@ yarn add @ar.io/wayfinder-react @ar.io/wayfinder-core
 
 ## Usage
 
-```jsx
+### Initial Setup
+
+```tsx
 import {
   WayfinderProvider,
   useWayfinderRequest,
@@ -32,7 +34,7 @@ import {
 } from '@ar.io/wayfinder-core';
 import { ARIO } from '@ar.io/sdk';
 
-// Wrap your app with the provider
+// Wrap your app with the WayfinderProvider
 function App() {
   return (
     <WayfinderProvider
@@ -49,16 +51,54 @@ function App() {
     </WayfinderProvider>
   );
 }
+```
 
-// Use components
-function YourComponent() {
-  const txId = 'your-transaction-id'; // Replace with actual txId
-  
-  // Use custom hooks for URL resolution and data fetching
+### Hooks
+
+### useWayfinderUrl
+
+Get a dynamic URL for an existing `ar://` URL or legacy `arweave.net`/`arweave.dev` URL.
+
+Example:
+
+```tsx
+import { useWayfinderUrl } from '@ar.io/wayfinder-react';
+
+function WayfinderImage({ txId }: { txId: string }) {
+  const { resolvedUrl, isLoading, error } = useWayfinderUrl({ txId });
+
+  if (error) {
+    return <p>Error resolving URL: {error.message}</p>;
+  }
+
+  if (isLoading) {
+    return <p>Resolving URL...</p>;
+  }
+
+  return (
+    <img src={resolvedUrl} alt={txId} />
+  );
+}
+```
+
+#### useWayfinderRequest
+
+Fetch the data via wayfinder, and optionally verify the data.
+
+```tsx
+import {
+  WayfinderProvider,
+  useWayfinderRequest,
+  useWayfinderUrl,
+} from '@ar.io/wayfinder-react';
+import {
+  NetworkGatewaysProvider,
+  LocalStorageGatewaysProvider,
+} from '@ar.io/wayfinder-core';
+import { ARIO } from '@ar.io/sdk';
+
+function WayfinderData({ txId }: { txId: string }) {
   const request = useWayfinderRequest();
-  const { resolvedUrl, isLoading: urlLoading, error: urlError } = useWayfinderUrl({ txId });
-
-  // Use custom hooks for data fetching
   const [data, setData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(false);
   const [dataError, setDataError] = useState<Error | null>(null);
@@ -85,14 +125,20 @@ function YourComponent() {
     })();
   }, [request, txId]);
 
+  if (dataError) {
+    return <p>Error loading data: {dataError.message}</p>;
+  }
+
+  if (dataLoading) {
+    return <p>Loading data...</p>;
+  }
+
+  if (!data) {
+    return <p>No data</p>;
+  }
+
   return (
     <div>
-      {urlLoading && <p>Resolving URL...</p>}
-      {urlError && <p>Error resolving URL: {urlError.message}</p>}
-      {resolvedUrl && <a href={resolvedUrl}>View on WayFinder</a>}
-      <br />
-      {dataLoading && <p>Loading data...</p>}
-      {dataError && <p>Error loading data: {dataError.message}</p>}
       <pre>{data}</pre>
     </div>
   );
