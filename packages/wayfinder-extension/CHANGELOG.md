@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-extension
 
+## 1.0.9
+
+### Patch Changes
+
+- 96e99d2: Wrap routing strategies in PingRoutingStrategy to avoid being directed to gateways that do not work.'
+
 ## 1.0.8
 
 ### Patch Changes
