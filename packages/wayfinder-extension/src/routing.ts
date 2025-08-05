@@ -17,6 +17,7 @@
 
 import {
   FastestPingRoutingStrategy,
+  PingRoutingStrategy,
   RandomRoutingStrategy,
   RemoteVerificationStrategy,
   StaticRoutingStrategy,
@@ -113,20 +114,17 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
         logger,
       });
       break;
-
     case 'random':
-      routingStrategy = new RandomRoutingStrategy();
+      routingStrategy = new PingRoutingStrategy({
+        routingStrategy: new RandomRoutingStrategy(),
+      });
       // Log handled at end of function
-      break;
-
-    case 'roundRobin':
-      // Round Robin removed - fallback to random (balanced) strategy
-      routingStrategy = new RandomRoutingStrategy();
-      logger.info('[ROUTING] Round Robin deprecated, using Balanced strategy');
       break;
     default:
       // default to random (balanced) strategy
-      routingStrategy = new RandomRoutingStrategy();
+      routingStrategy = new PingRoutingStrategy({
+        routingStrategy: new RandomRoutingStrategy(),
+      });
       break;
   }
 
