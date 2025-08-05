@@ -117,6 +117,8 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
     case 'random':
       routingStrategy = new PingRoutingStrategy({
         routingStrategy: new RandomRoutingStrategy(),
+        timeoutMs: ROUTING_STRATEGY_DEFAULTS.random.timeoutMs,
+        logger,
       });
       // Log handled at end of function
       break;
@@ -124,6 +126,8 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
       // default to random (balanced) strategy
       routingStrategy = new PingRoutingStrategy({
         routingStrategy: new RandomRoutingStrategy(),
+        timeoutMs: ROUTING_STRATEGY_DEFAULTS.random.timeoutMs,
+        logger,
       });
       break;
   }
