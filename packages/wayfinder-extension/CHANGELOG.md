@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-extension
 
+## 1.0.10
+
+### Patch Changes
+
+- 736b5e3: Default `showVerificationToasts` to false
+
 ## 1.0.9
 
 ### Patch Changes
