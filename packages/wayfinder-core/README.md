@@ -597,6 +597,8 @@ const wayfinder = new Wayfinder({
     enabled: true, // disabled by default (must be explicitly enabled)
     sampleRate: 0.1, // 10% sample rate by default
     exporterUrl: 'https://your-custom-otel-exporter', // optional, defaults to https://api.honeycomb.io/v1/traces
+    clientName: 'my-custom-client-name', // optional, defaults to wayfinder-core
+    clientVersion: '1.0.0', // optional, defaults to empty
   },
 });
 ```
