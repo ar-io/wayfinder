@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-core
 
+## 1.2.1
+
+### Patch Changes
+
+- d5693fd: Set `timeoutMs` to 1 second for `PingRoutingStrategy`, add `url` to `requestSpan` on fetch'
+
 ## 1.2.0
 
 ### Minor Changes
