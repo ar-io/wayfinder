@@ -159,3 +159,111 @@ npx changeset pre exit
 - Prefer type safety over runtime safety.
 - Prefer composition over inheritance.
 - Prefer integration tests over unit tests.
+
+## Advanced Configuration
+
+Here are a few “lego-style” examples showing how existing routing strategies can
+be composed to suit different use cases. Each strategy implements
+`RoutingStrategy`, so they can be wrapped and combined freely.
+
+### Random + Ping health checks
+
+Pick a random gateway, then verify it responds with a `HEAD` request before
+returning it.
+
+```ts
+import {
+  RandomRoutingStrategy,
+  PingRoutingStrategy,
+} from "@ar.io/wayfinder-core";
+
+const strategy = new PingRoutingStrategy({
+  routingStrategy: new RandomRoutingStrategy(),
+  retries: 2,
+  timeoutMs: 500,
+});
+```
+
+### Fastest ping wrapped with a simple cache
+
+Find the lowest-latency gateway and cache the result for five minutes to avoid
+constant pings.
+
+```ts
+import {
+  FastestPingRoutingStrategy,
+  SimpleCacheRoutingStrategy,
+} from "@ar.io/wayfinder-core";
+
+const strategy = new SimpleCacheRoutingStrategy({
+  routingStrategy: new FastestPingRoutingStrategy({ timeoutMs: 500 }),
+  ttlSeconds: 300,
+});
+```
+
+### Preferred gateway with fallback to ping-random
+
+Attempt to use a favorite gateway, but fall back to a ping-checked random choice
+if it fails.
+
+```ts
+import {
+  PreferredWithFallbackRoutingStrategy,
+  RandomRoutingStrategy,
+  PingRoutingStrategy,
+} from "@ar.io/wayfinder-core";
+
+const strategy = new PreferredWithFallbackRoutingStrategy({
+  preferredGateway: "https://my-gateway.example",
+  fallbackStrategy: new PingRoutingStrategy({
+    routingStrategy: new RandomRoutingStrategy(),
+  }),
+});
+```
+
+### Round-robin + ping verification
+
+Cycle through gateways sequentially, checking each one’s health before use.
+
+```ts
+import {
+  RoundRobinRoutingStrategy,
+  PingRoutingStrategy,
+} from "@ar.io/wayfinder-core";
+
+const strategy = new PingRoutingStrategy({
+  routingStrategy: new RoundRobinRoutingStrategy({
+    gateways: [new URL("https://gw1"), new URL("https://gw2")],
+  }),
+});
+```
+
+### Cache around any composed strategy
+
+Because `SimpleCacheRoutingStrategy` accepts any `RoutingStrategy`, you can
+cache more complex compositions too.
+
+```ts
+const pingRandom = new PingRoutingStrategy({
+  routingStrategy: new RandomRoutingStrategy(),
+});
+
+const cachedStrategy = new SimpleCacheRoutingStrategy({
+  routingStrategy: pingRandom,
+  ttlSeconds: 600,
+});
+```
+
+In all cases, you can supply the composed strategy to `Wayfinder` (or whatever
+router factory you use) and pass in a gateways provider:
+
+```ts
+import { Wayfinder, StaticGatewaysProvider } from "@ar.io/wayfinder-core";
+
+const router = new Wayfinder({
+  gatewaysProvider: new StaticGatewaysProvider({
+    gateways: [new URL("https://gw1"), new URL("https://gw2")],
+  }),
+  routingStrategy: strategy, // any of the compositions above
+});
+```
