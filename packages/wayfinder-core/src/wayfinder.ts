@@ -417,6 +417,7 @@ export const wayfinderFetch = ({
         });
 
         // add response attributes to the span
+        requestSpan?.setAttribute('response.url', redirectUrl.toString());
         requestSpan?.setAttribute('response.status', response.status);
         requestSpan?.setAttribute('response.statusText', response.statusText);
         response.headers.forEach((value, key) => {

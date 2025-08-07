@@ -140,8 +140,8 @@ export class PingRoutingStrategy implements RoutingStrategy {
   constructor({
     routingStrategy,
     logger = defaultLogger,
-    retries = 3,
-    timeoutMs = 500,
+    retries = 5,
+    timeoutMs = 1000,
   }: {
     routingStrategy: RoutingStrategy;
     logger?: Logger;
