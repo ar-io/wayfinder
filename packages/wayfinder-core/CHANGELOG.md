@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-core
 
+## 1.3.0-alpha.0
+
+### Minor Changes
+
+- 2779d52: Add `TrustedPeersGatewaysProvider` as optional gateway provider
+
 ## 1.2.1
 
 ### Patch Changes
