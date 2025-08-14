@@ -39,11 +39,14 @@ jobs:
             --refresh-token ${{ secrets.CHROME_WEBSTORE_REFRESH_TOKEN }}
 
       - name: Update GitHub Releases
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release upload \
-            @ar.io/wayfinder-extension@${{ steps.extension.outputs.VERSION }} \
-            packages/wayfinder-extension/wayfinder-extension-v${{ steps.extension.outputs.VERSION }}.zip \
-            --clobber
+          if ! gh release view @ar.io/wayfinder-extension@${{ steps.extension.outputs.VERSION }}; then
+            gh release create @ar.io/wayfinder-extension@${{ steps.extension.outputs.VERSION }} packages/wayfinder-extension/wayfinder-extension-v${{ steps.extension.outputs.VERSION }}.zip --generate-notes packages/wayfinder-extension/CHANGELOG.md
+          else
+            gh release upload @ar.io/wayfinder-extension@${{ steps.extension.outputs.VERSION }} packages/wayfinder-extension/wayfinder-extension-v${{ steps.extension.outputs.VERSION }}.zip --clobber
+          fi 
 
       - name: Notify Slack
         if: always()

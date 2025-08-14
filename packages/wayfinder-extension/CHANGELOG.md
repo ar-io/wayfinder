@@ -1,5 +1,25 @@
 # @ar.io/wayfinder-extension
 
+## 1.0.10
+
+### Patch Changes
+
+- 736b5e3: Default `showVerificationToasts` to false
+
+## 1.0.9
+
+### Patch Changes
+
+- 96e99d2: Wrap routing strategies in PingRoutingStrategy to avoid being directed to gateways that do not work.'
+
+## 1.0.8
+
+### Patch Changes
+
+- 2d19291: Fix rendering race condition with verification toasts
+- Updated dependencies [2d5970f]
+  - @ar.io/wayfinder-core@1.2.0
+
 ## 1.0.8-alpha.0
 
 ### Patch Changes

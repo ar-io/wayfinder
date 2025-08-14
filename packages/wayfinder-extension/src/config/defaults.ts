@@ -30,7 +30,7 @@ export const EXTENSION_DEFAULTS = {
   aoCuUrl: DEFAULT_AO_CU_URL,
 
   // Verification Configuration
-  showVerificationToasts: true,
+  showVerificationToasts: false,
 
   // Basic Extension Settings
   routingMethod: 'random',
@@ -78,7 +78,7 @@ export const ROUTING_STRATEGY_DEFAULTS = {
 
   // Random Strategy (now called Balanced)
   random: {
-    // No specific configuration
+    timeoutMs: 2000,
   },
 
   // Static Strategy

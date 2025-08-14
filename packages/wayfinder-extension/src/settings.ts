@@ -283,7 +283,7 @@ async function loadCurrentSettings() {
     }
 
     // Load verification toast setting
-    const showToasts = settings.showVerificationToasts !== false; // Default to true
+    const showToasts = settings.showVerificationToasts !== false; // Default to false
     const toastsEl = document.getElementById(
       'showVerificationToasts',
     ) as HTMLInputElement;
