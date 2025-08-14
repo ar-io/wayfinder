@@ -1,0 +1,12 @@
+{
+  "mode": "pre",
+  "tag": "alpha",
+  "initialVersions": {
+    "@ar.io/wayfinder-core": "1.2.1",
+    "@ar.io/wayfinder-extension": "1.0.10",
+    "@ar.io/wayfinder-react": "1.0.12"
+  },
+  "changesets": [
+    "busy-cases-fix"
+  ]
+}
