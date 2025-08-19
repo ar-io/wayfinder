@@ -185,28 +185,36 @@ export class PingRoutingStrategy implements RoutingStrategy {
           timeoutMs: this.timeoutMs,
         });
 
-        const response = await fetch(pingUrl, {
+        const response = await fetch(pingUrl.toString(), {
           method: 'HEAD',
           signal: AbortSignal.timeout(this.timeoutMs),
         });
 
-        if (response.ok) {
-          this.logger.debug('HEAD check successful', {
+        if (!response.ok) {
+          this.logger.debug('Failed to ping gateway', {
             gateway: selectedGateway.toString(),
+            pingUrl: pingUrl.toString(),
             status: response.status,
           });
-          return selectedGateway;
+          throw new Error(
+            `Failed to ping gateway for ${pingUrl.toString()}: ${response.statusText} (status: ${response.status})`,
+            {
+              cause: {
+                gateway: selectedGateway.toString(),
+                pingUrl: pingUrl.toString(),
+                status: response.status,
+              },
+            },
+          );
         }
 
-        this.logger.debug(
-          'HEAD check failed, retrying with different gateway',
-          {
-            gateway: selectedGateway.toString(),
-            status: response.status,
-            attempt: i + 1,
-            retriesLeft: this.retries - i - 1,
-          },
-        );
+        this.logger.debug('HEAD check successful', {
+          gateway: selectedGateway.toString(),
+          pingUrl: pingUrl.toString(),
+          status: response.status,
+        });
+
+        return selectedGateway;
       } catch (error) {
         this.logger.debug('HEAD check error, retrying with different gateway', {
           gateway: selectedGateway?.toString(),
