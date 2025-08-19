@@ -1,5 +1,12 @@
 # @ar.io/wayfinder-extension
 
+## 1.0.12-alpha.0
+
+### Patch Changes
+
+- Updated dependencies [e3990c3]
+  - @ar.io/wayfinder-core@1.3.1-alpha.0
+
 ## 1.0.11
 
 ### Patch Changes
