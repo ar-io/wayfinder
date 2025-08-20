@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-core
 
+## 1.3.1
+
+### Patch Changes
+
+- e3990c3: Added debug logs to `PingRoutingStrategy`
+
 ## 1.3.1-alpha.0
 
 ### Patch Changes
