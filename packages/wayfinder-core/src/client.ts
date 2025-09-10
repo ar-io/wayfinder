@@ -41,7 +41,7 @@ export type RoutingOption = 'random' | 'fastest' | 'round-robin' | 'preferred';
 
 export type VerificationOption = 'hash' | 'data-root' | 'remote' | 'disabled';
 
-export type GatewaySelectionOption =
+export type GatewaysOption =
   | 'highest-performing'
   | 'longest-tenure'
   | 'highest-staked'
@@ -67,10 +67,10 @@ export interface CreateWayfinderClientOptions {
   verification?: VerificationOption;
 
   /**
-   * The gateway selection criteria
+   * The gateways criteria
    * @default 'highest-performing'
    */
-  gatewaySelection?: GatewaySelectionOption;
+  gateways?: GatewaysOption;
 
   /**
    * The trusted gateways to use
@@ -119,7 +119,7 @@ export function createWayfinderClient(
     verification = 'disabled',
     trustedGateways = [],
     cache = false,
-    gatewaySelection = 'highest-performing',
+    gateways = 'highest-performing',
     logger,
     ario,
     gatewaysProvider: customGatewaysProvider,
@@ -147,7 +147,7 @@ export function createWayfinderClient(
       | 'stats.passedConsecutiveEpochs'
       | 'weights.normalizedCompositeWeight' = 'totalDelegatedStake';
     let sortOrder: 'asc' | 'desc' = 'desc';
-    switch (gatewaySelection) {
+    switch (gateways) {
       case 'highest-performing':
         sortBy = 'weights.gatewayPerformanceRatio';
         sortOrder = 'desc';

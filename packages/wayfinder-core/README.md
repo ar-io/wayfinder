@@ -37,7 +37,7 @@ import { ARIO } from '@ar.io/sdk';
 // Create a Wayfinder client with AR.IO network gateways
 const wayfinder = createWayfinderClient({
   ario: ARIO.mainnet(), // Uses top 10 gateways by default
-  gatewaySelection: 'highest-performing', // Default selection criteria
+  gateways: 'highest-performing', // Default selection criteria
 });
 
 // Use Wayfinder to fetch and verify data
@@ -82,7 +82,7 @@ const wayfinder = createWayfinderClient({
   ario: ARIO.mainnet(),
   
   // Gateway selection criteria (only works with ARIO instance)
-  gatewaySelection: 'highest-performing', // Options:
+  gateways: 'highest-performing', // Options:
   // 'highest-performing' - Gateways with best performance metrics
   // 'longest-tenure' - Gateways with longest service history  
   // 'highest-staked' - Gateways with most stake
@@ -620,7 +620,7 @@ const wayfinder = createWayfinderClient({
   trustedGateways: ['https://permagate.io'],
   
   // Gateway selection criteria
-  gatewaySelection: 'highest-staked',
+  gateways: 'highest-staked',
   
   // Enable caching with custom TTL
   cache: { ttlSeconds: 3600 }, // 1 hour
