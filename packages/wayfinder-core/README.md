@@ -17,21 +17,81 @@ yarn add @ar.io/wayfinder-core
 ### Basic Usage
 
 ```javascript
-import { ARIO } from '@ar.io/sdk';
-import { Wayfinder } from '@ar.io/wayfinder-core';
+import { createWayfinderClient } from '@ar.io/wayfinder-core';
 
-// create a new Wayfinder instance that uses the top 10 gateways by operator stake from the ARIO Network
-const wayfinder = new Wayfinder({
-  gatewaysProvider: new NetworkGatewaysProvider({
-    ario: ARIO.mainnet(),
-    sortBy: 'operatorStake',
-    sortOrder: 'desc',
-    limit: 10,
-  }),
+// Create a Wayfinder client with default settings (uses static gateways)
+const wayfinder = createWayfinderClient();
+
+// Use Wayfinder to fetch and verify data using ar:// protocol
+const response = await wayfinder.request('ar://example-name');
+```
+
+### Using with AR.IO Network (Recommended)
+
+For the best gateway selection from the AR.IO network, provide an ARIO instance:
+
+```javascript
+import { createWayfinderClient } from '@ar.io/wayfinder-core';
+import { ARIO } from '@ar.io/sdk';
+
+// Create a Wayfinder client with AR.IO network gateways
+const wayfinder = createWayfinderClient({
+  ario: ARIO.mainnet(), // Uses top 10 gateways by default
+  gatewaySelection: 'highest-performing', // Default selection criteria
 });
 
-// use Wayfinder to fetch and verify data using ar:// protocol
+// Use Wayfinder to fetch and verify data
 const response = await wayfinder.request('ar://example-name');
+```
+
+### Configuration Options
+
+```javascript
+import { createWayfinderClient } from '@ar.io/wayfinder-core';
+
+// Create a Wayfinder client with custom settings
+const wayfinder = createWayfinderClient({
+  // Routing strategy
+  routing: 'fastest', // 'random' | 'fastest' | 'round-robin' | 'preferred'
+  
+  // Verification strategy  
+  verification: 'hash', // 'hash' | 'data-root' | 'remote' | 'disabled' (default: 'disabled')
+  
+  // Enable caching for routing and gateway providers
+  cache: true, // Uses default 5-minute TTL
+  // OR specify custom TTL:
+  // cache: { ttlSeconds: 3600 }, // 1 hour
+  
+  // List of trusted gateways for verification
+  trustedGateways: ['https://arweave.net', 'https://permagate.io'],
+});
+
+// Use Wayfinder to fetch and verify data
+const response = await wayfinder.request('ar://example-name');
+```
+
+### Gateway Selection Options (with AR.IO Network)
+
+When using the AR.IO Network provider, you can specify how gateways are selected:
+
+```javascript
+import { createWayfinderClient } from '@ar.io/wayfinder-core';
+import { ARIO } from '@ar.io/sdk';
+
+const wayfinder = createWayfinderClient({
+  ario: ARIO.mainnet(),
+  
+  // Gateway selection criteria (only works with ARIO instance)
+  gatewaySelection: 'highest-performing', // Options:
+  // 'highest-performing' - Gateways with best performance metrics
+  // 'longest-tenure' - Gateways with longest service history  
+  // 'highest-staked' - Gateways with most stake
+  // 'highest-weight' - Gateways with highest composite weight
+  // 'longest-streak' - Gateways with longest uptime streak
+  
+  routing: 'random', // How to select from the filtered gateways
+  cache: { ttlSeconds: 600 }, // Cache for 10 minutes
+});
 ```
 
 ## ar:// Protocol
@@ -510,13 +570,66 @@ const response = await wayfinder.request('ar://example-name', {
 });
 ```
 
+## Installation Notes
+
+### Optional Dependencies
+
+The `@ar.io/sdk` package is an optional peer dependency. If you want to use the AR.IO Network gateways provider (recommended), install it separately:
+
+```bash
+npm install @ar.io/wayfinder-core @ar.io/sdk
+# or
+yarn add @ar.io/wayfinder-core @ar.io/sdk
+```
+
+Without `@ar.io/sdk`, Wayfinder will use a default set of static gateways.
+
+### Caching
+
+Wayfinder supports intelligent caching:
+
+- **In browsers**: Uses localStorage for persistent caching across page reloads
+- **In Node.js**: Uses in-memory caching
+- **What's cached**: Gateway lists, routing decisions, and more
+- **Cache configuration**:
+  - `cache: true` - Enable with default 5-minute TTL
+  - `cache: { ttlSeconds: 3600 }` - Enable with custom TTL (in seconds)
+  - `cache: false` - Disable caching (default)
+
 ## Advanced Usage
 
-### Custom Configuration
+### Using createWayfinderClient with Custom Providers
 
-You can customize the wayfinder instance with different gateways, verification strategies, and routing strategies based on your use case.
+For advanced use cases, you can provide custom providers and strategies to `createWayfinderClient`:
 
-Example:
+```javascript
+import { createWayfinderClient, NetworkGatewaysProvider } from '@ar.io/wayfinder-core';
+import { ARIO } from '@ar.io/sdk';
+
+const wayfinder = createWayfinderClient({
+  // Use custom gateways provider
+  gatewaysProvider: new NetworkGatewaysProvider({
+    ario: ARIO.mainnet(),
+    sortBy: 'operatorStake',
+    sortOrder: 'desc',
+    limit: 10,
+  }),
+  
+  // Override with custom verification strategy
+  verification: 'hash',
+  trustedGateways: ['https://permagate.io'],
+  
+  // Gateway selection criteria
+  gatewaySelection: 'highest-staked',
+  
+  // Enable caching with custom TTL
+  cache: { ttlSeconds: 3600 }, // 1 hour
+});
+```
+
+### Direct Constructor Usage
+
+For complete control, you can use the Wayfinder constructor directly. This is useful when you need fine-grained control over the configuration:
 
 > _Wayfinder client that caches the top 10 gateways by operator stake from the ARIO Network for 1 hour and uses the fastest pinging routing strategy to select the fastest gateway for requests._
 

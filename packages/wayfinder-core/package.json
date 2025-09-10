@@ -57,6 +57,11 @@
   "peerDependencies": {
     "@ar.io/sdk": ">=3.12.0"
   },
+  "peerDependenciesMeta": {
+    "@ar.io/sdk": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@ar.io/sdk": "^3.13.0",
     "@types/node": "^24.0.0",
