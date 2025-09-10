@@ -22,7 +22,7 @@ const wayfinder = createWayfinderClient();
 // With AR.IO network integration
 const wayfinder = createWayfinderClient({
   ario: ARIO.mainnet(),
-  gateways: 'highest-performing',
+  gatewaySelection: 'highest-performing',
   routing: 'fastest',
   verification: 'hash',
   cache: { ttlSeconds: 600 }
