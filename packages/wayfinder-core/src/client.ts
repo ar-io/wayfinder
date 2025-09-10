@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { AoARIORead } from '@ar.io/sdk';
+import type { AoARIORead } from '@ar.io/sdk';
 import { LocalStorageGatewaysProvider } from './gateways/local-storage-cache.js';
 import { NetworkGatewaysProvider } from './gateways/network.js';
 import { SimpleCacheGatewaysProvider } from './gateways/simple-cache.js';
@@ -47,6 +47,22 @@ export type GatewaysOption =
   | 'highest-staked'
   | 'highest-weight'
   | 'longest-streak';
+
+/**
+ * Attempts to load the AR.IO SDK and create an ARIO instance
+ * Returns null if the SDK is not available, allowing fallback to static gateways
+ */
+function tryCreateDefaultARIO(): AoARIORead | null {
+  try {
+    // Try to require the SDK - this works in Node.js environments
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { ARIO } = require('@ar.io/sdk');
+    return ARIO.mainnet();
+  } catch {
+    // SDK not available, will fall back to static gateways
+    return null;
+  }
+}
 
 export interface CreateWayfinderClientOptions {
   /**
@@ -110,6 +126,7 @@ export interface CreateWayfinderClientOptions {
 
 /**
  * Creates a Wayfinder client with the specified configuration
+ * Defaults to using NetworkGatewaysProvider with AR.IO mainnet
  */
 export function createWayfinderClient(
   options: CreateWayfinderClientOptions = {},
@@ -135,62 +152,67 @@ export function createWayfinderClient(
   let gatewaysProvider: GatewaysProvider;
   if (customGatewaysProvider) {
     gatewaysProvider = customGatewaysProvider;
-  } else if (ario) {
-    let sortBy:
-      | 'totalDelegatedStake'
-      | 'operatorStake'
-      | 'startTimestamp'
-      | 'weights.gatewayPerformanceRatio'
-      | 'weights.tenureWeight'
-      | 'weights.stakeWeight'
-      | 'weights.compositeWeight'
-      | 'stats.passedConsecutiveEpochs'
-      | 'weights.normalizedCompositeWeight' = 'totalDelegatedStake';
-    let sortOrder: 'asc' | 'desc' = 'desc';
-    switch (gateways) {
-      case 'highest-performing':
-        sortBy = 'weights.gatewayPerformanceRatio';
-        sortOrder = 'desc';
-        break;
-      case 'longest-tenure':
-        sortBy = 'weights.tenureWeight';
-        sortOrder = 'desc';
-        break;
-      case 'highest-staked':
-        sortBy = 'weights.stakeWeight';
-        sortOrder = 'desc';
-        break;
-      case 'highest-weight':
-        sortBy = 'weights.normalizedCompositeWeight';
-        sortOrder = 'desc';
-        break;
-      case 'longest-streak':
-        sortBy = 'stats.passedConsecutiveEpochs';
-        sortOrder = 'desc';
-        break;
-      default:
-        sortBy = 'weights.normalizedCompositeWeight';
-        sortOrder = 'desc';
-        break;
-    }
-    // Use NetworkGatewaysProvider if ARIO instance is provided
-    gatewaysProvider = new NetworkGatewaysProvider({
-      ario,
-      sortBy,
-      sortOrder,
-      limit: 10,
-    });
   } else {
-    // Fall back to static gateways
-    gatewaysProvider = new StaticGatewaysProvider({
-      gateways: trustedGateways.length
-        ? trustedGateways
-        : [
-            'https://permagate.io',
-            'https://arweave.net',
-            'https://ardrive.net',
-          ],
-    });
+    // Try to use NetworkGatewaysProvider with AR.IO mainnet, fall back to static gateways
+    const arIOInstance = ario || tryCreateDefaultARIO();
+
+    if (arIOInstance) {
+      // Use NetworkGatewaysProvider when AR.IO SDK is available
+      let sortBy:
+        | 'totalDelegatedStake'
+        | 'operatorStake'
+        | 'startTimestamp'
+        | 'weights.gatewayPerformanceRatio'
+        | 'weights.tenureWeight'
+        | 'weights.stakeWeight'
+        | 'weights.compositeWeight'
+        | 'stats.passedConsecutiveEpochs'
+        | 'weights.normalizedCompositeWeight' = 'totalDelegatedStake';
+      let sortOrder: 'asc' | 'desc' = 'desc';
+      switch (gateways) {
+        case 'highest-performing':
+          sortBy = 'weights.gatewayPerformanceRatio';
+          sortOrder = 'desc';
+          break;
+        case 'longest-tenure':
+          sortBy = 'weights.tenureWeight';
+          sortOrder = 'desc';
+          break;
+        case 'highest-staked':
+          sortBy = 'weights.stakeWeight';
+          sortOrder = 'desc';
+          break;
+        case 'highest-weight':
+          sortBy = 'weights.normalizedCompositeWeight';
+          sortOrder = 'desc';
+          break;
+        case 'longest-streak':
+          sortBy = 'stats.passedConsecutiveEpochs';
+          sortOrder = 'desc';
+          break;
+        default:
+          sortBy = 'weights.normalizedCompositeWeight';
+          sortOrder = 'desc';
+          break;
+      }
+      gatewaysProvider = new NetworkGatewaysProvider({
+        ario: arIOInstance,
+        sortBy,
+        sortOrder,
+        limit: 10,
+      });
+    } else {
+      // Fall back to static gateways when AR.IO SDK is not available
+      gatewaysProvider = new StaticGatewaysProvider({
+        gateways: trustedGateways.length
+          ? trustedGateways
+          : [
+              'https://permagate.io',
+              'https://arweave.net',
+              'https://ardrive.net',
+            ],
+      });
+    }
 
     // Wrap with cache if enabled
     if (cacheEnabled) {

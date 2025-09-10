@@ -19,29 +19,34 @@ yarn add @ar.io/wayfinder-core
 ```javascript
 import { createWayfinderClient } from '@ar.io/wayfinder-core';
 
-// Create a Wayfinder client with default settings (uses static gateways)
+// Create a Wayfinder client with default settings
+// Automatically uses AR.IO network if @ar.io/sdk is installed, 
+// otherwise falls back to static gateways
 const wayfinder = createWayfinderClient();
 
 // Use Wayfinder to fetch and verify data using ar:// protocol
 const response = await wayfinder.request('ar://example-name');
 ```
 
-### Using with AR.IO Network (Recommended)
+### Optimal Usage with AR.IO Network
 
-For the best gateway selection from the AR.IO network, provide an ARIO instance:
+The function automatically detects and uses the AR.IO network when `@ar.io/sdk` is installed:
 
 ```javascript
 import { createWayfinderClient } from '@ar.io/wayfinder-core';
-import { ARIO } from '@ar.io/sdk';
 
-// Create a Wayfinder client with AR.IO network gateways
+// Automatically uses AR.IO mainnet if SDK is available
 const wayfinder = createWayfinderClient({
-  ario: ARIO.mainnet(), // Uses top 10 gateways by default
-  gateways: 'highest-performing', // Default selection criteria
+  gateways: 'highest-performing', // Selection criteria for AR.IO network
 });
 
-// Use Wayfinder to fetch and verify data
-const response = await wayfinder.request('ar://example-name');
+// Or provide explicit ARIO instance for custom configuration
+import { ARIO } from '@ar.io/sdk';
+
+const wayfinder = createWayfinderClient({
+  ario: ARIO.mainnet(), // Explicit ARIO instance
+  gateways: 'highest-performing',
+});
 ```
 
 ### Configuration Options
@@ -574,15 +579,25 @@ const response = await wayfinder.request('ar://example-name', {
 
 ### Optional Dependencies
 
-The `@ar.io/sdk` package is an optional peer dependency. If you want to use the AR.IO Network gateways provider (recommended), install it separately:
+The `@ar.io/sdk` package is an optional peer dependency. `createWayfinderClient` automatically detects and uses it when available:
 
+**With AR.IO SDK (Recommended):**
 ```bash
 npm install @ar.io/wayfinder-core @ar.io/sdk
 # or
 yarn add @ar.io/wayfinder-core @ar.io/sdk
 ```
+- Uses dynamic AR.IO network gateways
+- Supports intelligent gateway selection criteria
+- Automatically updates with network changes
 
-Without `@ar.io/sdk`, Wayfinder will use a default set of static gateways.
+**Without AR.IO SDK:**
+```bash
+npm install @ar.io/wayfinder-core
+```
+- Falls back to a curated set of static gateways
+- Still provides routing and verification functionality
+- No network gateway selection options
 
 ### Caching
 
