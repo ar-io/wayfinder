@@ -20,7 +20,16 @@ import type { GatewaysProvider, Logger } from '../types.js';
 
 export class NetworkGatewaysProvider implements GatewaysProvider {
   private ario: AoARIORead;
-  private sortBy: 'totalDelegatedStake' | 'operatorStake' | 'startTimestamp';
+  private sortBy:
+    | 'totalDelegatedStake'
+    | 'operatorStake'
+    | 'startTimestamp'
+    | 'weights.gatewayPerformanceRatio'
+    | 'weights.tenureWeight'
+    | 'weights.stakeWeight'
+    | 'weights.compositeWeight'
+    | 'stats.passedConsecutiveEpochs'
+    | 'weights.normalizedCompositeWeight';
   private sortOrder: 'asc' | 'desc';
   private limit: number;
   private filter: (gateway: any) => boolean;
@@ -35,7 +44,16 @@ export class NetworkGatewaysProvider implements GatewaysProvider {
     logger = defaultLogger,
   }: {
     ario: AoARIORead;
-    sortBy?: 'totalDelegatedStake' | 'operatorStake' | 'startTimestamp';
+    sortBy?:
+      | 'totalDelegatedStake'
+      | 'operatorStake'
+      | 'startTimestamp'
+      | 'weights.gatewayPerformanceRatio'
+      | 'weights.tenureWeight'
+      | 'weights.stakeWeight'
+      | 'weights.compositeWeight'
+      | 'stats.passedConsecutiveEpochs'
+      | 'weights.normalizedCompositeWeight';
     sortOrder?: 'asc' | 'desc';
     limit?: number;
     blocklist?: string[];
@@ -71,6 +89,7 @@ export class NetworkGatewaysProvider implements GatewaysProvider {
             cursor,
             sortBy: this.sortBy,
             sortOrder: this.sortOrder,
+            // TODO: support filters on gateways
           });
 
         gateways.push(...newGateways);
