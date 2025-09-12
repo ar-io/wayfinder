@@ -6,5 +6,8 @@
     "@ar.io/wayfinder-extension": "1.0.12",
     "@ar.io/wayfinder-react": "1.0.14"
   },
-  "changesets": []
+  "changesets": [
+    "create-wayfinder-client-utility",
+    "tame-coins-smoke"
+  ]
 }
