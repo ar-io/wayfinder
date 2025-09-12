@@ -75,14 +75,6 @@ const wayfinder = createWayfinderClient({
   // List of trusted gateways for verification
   trustedGateways: ['https://arweave.net', 'https://permagate.io'],
 });
-
-// Sync version with static gateways (when no ario instance provided)
-const wayfinderSync = createWayfinderClientSync({
-  // Same options as above, but uses static gateways by default
-  routing: 'random',
-  verification: 'disabled',
-  trustedGateways: ['https://permagate.io', 'https://arweave.net'],
-});
 ```
 
 ### Gateway Selection Options (with AR.IO Network)
@@ -638,15 +630,6 @@ yarn add @ar.io/wayfinder-core @ar.io/sdk
 - `createWayfinderClient({ ario: ARIO.mainnet() })` uses AR.IO network gateways
 - Supports intelligent gateway selection criteria
 - Dynamic gateway discovery and updates
-
-**Without AR.IO SDK:**
-```bash
-npm install @ar.io/wayfinder-core
-```
-- `createWayfinderClient()` falls back to curated static gateways
-- `createWayfinderClientSync()` uses only static gateways
-- Full routing and verification functionality available
-- No network gateway selection options
 
 ### Caching
 
