@@ -34,11 +34,15 @@ import { isBrowser } from '../utils/browser.js';
  * const cachedProvider = new LocalStorageGatewaysProvider({
  *   gatewaysProvider: networkProvider,
  *   ttlSeconds: 3600, // cache for 1 hour
+ *   cacheKey: 'my-gateways', // optional, defaults to 'gateways'
  * });
  *
  * // Use cachedProvider to get gateways
  * const gateways = await cachedProvider.getGateways();
  * ```
+ *
+ * The cacheKey will be automatically prefixed with 'wayfinder|' to avoid conflicts.
+ * For example, cacheKey: 'my-gateways' will be stored as 'wayfinder|my-gateways'.
  */
 interface CachedGateways {
   gateways: string[];
@@ -48,7 +52,7 @@ interface CachedGateways {
 }
 
 export class LocalStorageGatewaysProvider implements GatewaysProvider {
-  private readonly storageKey = 'wayfinder-gateways-cache';
+  private readonly storageKey: string;
   private readonly defaultTtlSeconds = 3600; // 1 hour default
   private readonly gatewaysProvider: GatewaysProvider;
   private readonly ttlSeconds: number;
@@ -59,10 +63,12 @@ export class LocalStorageGatewaysProvider implements GatewaysProvider {
     ttlSeconds,
     gatewaysProvider,
     logger = defaultLogger,
+    cacheKey = 'gateways',
   }: {
     ttlSeconds?: number;
     gatewaysProvider: GatewaysProvider;
     logger?: Logger;
+    cacheKey?: string;
   }) {
     if (!isBrowser()) {
       throw new Error(
@@ -70,6 +76,7 @@ export class LocalStorageGatewaysProvider implements GatewaysProvider {
       );
     }
 
+    this.storageKey = `wayfinder|${cacheKey}`;
     this.ttlSeconds = ttlSeconds ?? this.defaultTtlSeconds;
     this.gatewaysProvider = gatewaysProvider;
     this.logger = logger;
@@ -80,6 +87,7 @@ export class LocalStorageGatewaysProvider implements GatewaysProvider {
 
     if (cached && this.isCacheValid(cached)) {
       this.logger?.debug('Using cached gateways', {
+        storageKey: this.storageKey,
         ttlSeconds: this.ttlSeconds,
         timestamp: cached.timestamp,
         expiresAt: cached.expiresAt,
