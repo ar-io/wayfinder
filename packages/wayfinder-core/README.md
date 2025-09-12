@@ -334,21 +334,34 @@ const strategy = new SimpleCacheRoutingStrategy({
 
 #### Preferred gateway with fallback to ping-random
 
-Attempt to use a favorite gateway, but fall back to a ping-checked random choice
-if it fails.
+Attempt to use a favorite gateway, but fallback to a fastest pinging strategy using the ARIO Network if it fails.
 
 ```ts
 import {
   PreferredWithFallbackRoutingStrategy,
   RandomRoutingStrategy,
   PingRoutingStrategy,
+  NetworkGatewaysProvider,
 } from "@ar.io/wayfinder-core";
+import { ARIO } from '@ar.io/sdk';
 
+// these will be our fallback gateways
+const gatewayProvider = new NetworkGatewaysProvider({
+  ario: ARIO.mainnet(),
+  sortBy: 'operatorStake',
+  limit: 5,
+});
+
+// this is our fallback strategy if our preferred gateway fails
+const fastestPingStrategy = new FastestPingRoutingStrategy({
+  timeoutMs: 500,
+  gatewaysProvider: gatewayProvider,
+});
+
+// compose the strategies together, the preferred gateway will be used first, and if it fails, the fallback strategy will be used.
 const strategy = new PreferredWithFallbackRoutingStrategy({
   preferredGateway: "https://my-gateway.example",
-  fallbackStrategy: new PingRoutingStrategy({
-    routingStrategy: new RandomRoutingStrategy(),
-  }),
+  fallbackStrategy: fastestPingStrategy,
 });
 ```
 
@@ -360,11 +373,25 @@ Cycle through gateways sequentially, checking each one’s health before use.
 import {
   RoundRobinRoutingStrategy,
   PingRoutingStrategy,
+  NetworkGatewaysProvider,
 } from "@ar.io/wayfinder-core";
+import { ARIO } from '@ar.io/sdk';
 
+// use static gateways
 const strategy = new PingRoutingStrategy({
   routingStrategy: new RoundRobinRoutingStrategy({
     gateways: [new URL("https://gw1"), new URL("https://gw2")],
+  }),
+});
+
+// use a dynamic list of gateways from the ARIO Network
+const strategy2 = new PingRoutingStrategy({
+  routingStrategy: new RoundRobinRoutingStrategy({
+    gatewaysProvider: new NetworkGatewaysProvider({
+      ario: ARIO.mainnet(),
+      sortBy: 'operatorStake',
+      limit: 5,
+    }),
   }),
 });
 ```
@@ -375,10 +402,21 @@ Because `SimpleCacheRoutingStrategy` accepts any `RoutingStrategy`, you can
 cache more complex compositions too.
 
 ```ts
-const pingRandom = new PingRoutingStrategy({
-  routingStrategy: new RandomRoutingStrategy(),
+// use a dynamic list of gateways from the ARIO Network
+const randomStrategy = new RandomRoutingStrategy({
+  gatewaysProvider: new NetworkGatewaysProvider({
+    ario: ARIO.mainnet(),
+    sortBy: 'operatorStake',
+    limit: 20,
+  }),
 });
 
+// wrap the random strategy with a ping strategy
+const pingRandom = new PingRoutingStrategy({
+  routingStrategy: randomStrategy,
+});
+
+// wrap the ping random strategy with a cache strategy, caching the selected gateway for 10 minutes
 const cachedStrategy = new SimpleCacheRoutingStrategy({
   routingStrategy: pingRandom,
   ttlSeconds: 600,

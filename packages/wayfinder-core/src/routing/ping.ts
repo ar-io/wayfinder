@@ -16,25 +16,29 @@
  */
 import { pLimit } from 'plimit-lit';
 import { defaultLogger } from '../logger.js';
-import type { Logger, RoutingStrategy } from '../types.js';
+import type { GatewaysProvider, Logger, RoutingStrategy } from '../types.js';
 
 export class FastestPingRoutingStrategy implements RoutingStrategy {
   private timeoutMs: number;
   private logger: Logger;
   private maxConcurrency: number;
+  private gatewaysProvider?: GatewaysProvider;
 
   constructor({
     timeoutMs = 500,
     maxConcurrency = 50,
     logger = defaultLogger,
+    gatewaysProvider,
   }: {
     timeoutMs?: number;
     maxConcurrency?: number;
     logger?: Logger;
+    gatewaysProvider?: GatewaysProvider;
   } = {}) {
     this.timeoutMs = timeoutMs;
     this.logger = logger;
     this.maxConcurrency = maxConcurrency;
+    this.gatewaysProvider = gatewaysProvider;
   }
 
   async selectGateway({
@@ -42,11 +46,15 @@ export class FastestPingRoutingStrategy implements RoutingStrategy {
     path = '',
     subdomain,
   }: {
-    gateways: URL[];
+    gateways?: URL[];
     path?: string;
     subdomain?: string;
   }): Promise<URL> {
-    if (gateways.length === 0) {
+    const resolvedGateways =
+      gateways ??
+      (this.gatewaysProvider ? await this.gatewaysProvider.getGateways() : []);
+
+    if (resolvedGateways.length === 0) {
       const error = new Error('No gateways provided');
       this.logger.error('Failed to select gateway', { error: error.message });
       throw error;
@@ -54,16 +62,18 @@ export class FastestPingRoutingStrategy implements RoutingStrategy {
 
     try {
       this.logger.debug(
-        `Pinging ${gateways.length} gateways with timeout ${this.timeoutMs}ms`,
+        `Pinging ${resolvedGateways.length} gateways with timeout ${this.timeoutMs}ms`,
         {
-          gateways: gateways.map((g) => g.toString()),
+          gateways: resolvedGateways.map((g) => g.toString()),
           timeoutMs: this.timeoutMs,
           probePath: path,
         },
       );
 
-      const throttle = pLimit(Math.min(this.maxConcurrency, gateways.length));
-      const pingPromises = gateways.map(
+      const throttle = pLimit(
+        Math.min(this.maxConcurrency, resolvedGateways.length),
+      );
+      const pingPromises = resolvedGateways.map(
         async (gateway): Promise<{ gateway: URL; durationMs: number }> => {
           return throttle(async () => {
             const url = new URL(gateway.toString());
@@ -112,11 +122,11 @@ export class FastestPingRoutingStrategy implements RoutingStrategy {
       this.logger.error('All gateways failed to respond', {
         subdomain,
         path,
-        gateways: gateways.map((g) => g.toString()),
+        gateways: resolvedGateways.map((g) => g.toString()),
       });
       throw new Error('All gateways failed to respond', {
         cause: {
-          gateways: gateways.map((g) => g.toString()),
+          gateways: resolvedGateways.map((g) => g.toString()),
           path,
           subdomain,
         },
@@ -136,22 +146,26 @@ export class PingRoutingStrategy implements RoutingStrategy {
   private logger: Logger;
   private retries: number;
   private timeoutMs: number;
+  private gatewaysProvider?: GatewaysProvider;
 
   constructor({
     routingStrategy,
     logger = defaultLogger,
     retries = 5,
     timeoutMs = 1000,
+    gatewaysProvider,
   }: {
     routingStrategy: RoutingStrategy;
     logger?: Logger;
     retries?: number;
     timeoutMs?: number;
+    gatewaysProvider?: GatewaysProvider;
   }) {
     this.routingStrategy = routingStrategy;
     this.logger = logger;
     this.retries = retries;
     this.timeoutMs = timeoutMs;
+    this.gatewaysProvider = gatewaysProvider;
   }
 
   async selectGateway(params: {
@@ -159,16 +173,22 @@ export class PingRoutingStrategy implements RoutingStrategy {
     path?: string;
     subdomain?: string;
   }): Promise<URL> {
-    const { gateways = [], path, subdomain } = params;
+    const { gateways, path, subdomain } = params;
+    const resolvedGateways =
+      gateways ??
+      (this.gatewaysProvider ? await this.gatewaysProvider.getGateways() : []);
 
-    if (gateways.length === 0) {
+    if (resolvedGateways.length === 0) {
       throw new Error('No gateways available');
     }
+
+    const paramsWithGateways = { ...params, gateways: resolvedGateways };
 
     for (let i = 0; i < this.retries; i++) {
       let selectedGateway: URL | undefined = undefined;
       try {
-        selectedGateway = await this.routingStrategy.selectGateway(params);
+        selectedGateway =
+          await this.routingStrategy.selectGateway(paramsWithGateways);
 
         const pingUrl = new URL(selectedGateway.toString());
         if (subdomain) {
@@ -227,7 +247,7 @@ export class PingRoutingStrategy implements RoutingStrategy {
 
     throw new Error('Failed to find working gateway after HEAD checks', {
       cause: {
-        gateways: gateways.map((g) => g.toString()),
+        gateways: resolvedGateways.map((g) => g.toString()),
         path,
         subdomain,
         retries: this.retries,

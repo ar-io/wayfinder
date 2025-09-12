@@ -15,29 +15,55 @@
  * limitations under the License.
  */
 import { defaultLogger } from '../logger.js';
-import type { Logger, RoutingStrategy } from '../types.js';
+import type { GatewaysProvider, Logger, RoutingStrategy } from '../types.js';
 
 export class RoundRobinRoutingStrategy implements RoutingStrategy {
   public readonly name = 'round-robin';
   private gateways: URL[];
   private currentIndex: number;
   private logger: Logger;
+  private gatewaysProvider?: GatewaysProvider;
 
   constructor({
     gateways,
     logger = defaultLogger,
+    gatewaysProvider,
   }: {
-    gateways: URL[];
+    gateways?: URL[];
     logger?: Logger;
-  }) {
-    this.gateways = gateways;
+    gatewaysProvider?: GatewaysProvider;
+  } = {}) {
+    if (gateways && gatewaysProvider) {
+      throw new Error('Cannot provide both gateways and gatewaysProvider');
+    }
+    if (!gateways && !gatewaysProvider) {
+      throw new Error('Must provide either gateways or gatewaysProvider');
+    }
+
+    this.gateways = gateways || [];
     this.currentIndex = 0;
     this.logger = logger;
+    this.gatewaysProvider = gatewaysProvider;
   }
 
   async selectGateway(): Promise<URL> {
+    // Lazy load gateways from provider if not already loaded
+    if (this.gateways.length === 0 && this.gatewaysProvider) {
+      this.logger.debug('Loading gateways from provider');
+      this.gateways = await this.gatewaysProvider.getGateways();
+      this.currentIndex = 0;
+    }
+
+    if (this.gateways.length === 0) {
+      throw new Error('No gateways available');
+    }
+
     const gateway = this.gateways[this.currentIndex];
-    this.logger.info('Selecting gateway', { gateway });
+    this.logger.debug('Selecting gateway', {
+      gateway: gateway.toString(),
+      currentIndex: this.currentIndex,
+      totalGateways: this.gateways.length,
+    });
     this.currentIndex = (this.currentIndex + 1) % this.gateways.length;
     return gateway;
   }
