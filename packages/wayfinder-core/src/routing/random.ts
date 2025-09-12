@@ -14,18 +14,40 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import type { RoutingStrategy } from '../types.js';
+import { defaultLogger } from '../logger.js';
+import type { GatewaysProvider, Logger, RoutingStrategy } from '../types.js';
 import { randomInt } from '../utils/random.js';
 
 export class RandomRoutingStrategy implements RoutingStrategy {
+  private gatewaysProvider?: GatewaysProvider;
+  private logger: Logger;
+
+  constructor({
+    gatewaysProvider,
+    logger = defaultLogger,
+  }: {
+    gatewaysProvider?: GatewaysProvider;
+    logger?: Logger;
+  } = {}) {
+    this.gatewaysProvider = gatewaysProvider;
+    this.logger = logger;
+  }
+
   async selectGateway({
     gateways,
   }: {
-    gateways: URL[];
-  }): Promise<URL> {
-    if (gateways.length === 0) {
+    gateways?: URL[];
+  } = {}): Promise<URL> {
+    const resolvedGateways =
+      gateways ??
+      (this.gatewaysProvider ? await this.gatewaysProvider.getGateways() : []);
+    if (resolvedGateways.length === 0) {
+      this.logger.error('No gateways available');
       throw new Error('No gateways available');
     }
-    return gateways[randomInt(0, gateways.length)];
+    this.logger.debug('Selecting random gateway', {
+      gateways: resolvedGateways.map((g) => g.toString()),
+    });
+    return resolvedGateways[randomInt(0, resolvedGateways.length)];
   }
 }
