@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-core
 
+## 1.4.0-alpha.1
+
+### Minor Changes
+
+- 98d47cd: Add support for providing `cacheKey` to local storage gateways provider'
+
 ## 1.4.0-alpha.0
 
 ### Minor Changes
