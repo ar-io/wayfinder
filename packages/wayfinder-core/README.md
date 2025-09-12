@@ -332,7 +332,7 @@ const strategy = new SimpleCacheRoutingStrategy({
 });
 ```
 
-#### Preferred gateway with fallback to ping-random
+#### Preferred gateway + network fallback strategy
 
 Attempt to use a favorite gateway, but fallback to a fastest pinging strategy using the ARIO Network if it fails.
 
