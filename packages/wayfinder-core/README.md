@@ -208,10 +208,28 @@ Wayfinder supports multiple routing strategies to select target gateways for you
 Selects a random gateway from a list of gateways.
 
 ```javascript
-const routingStrategy = new RandomRoutingStrategy();
+import { RandomRoutingStrategy, NetworkGatewaysProvider } from '@ar.io/wayfinder-core';
+import { ARIO } from '@ar.io/sdk';
 
+// Option 1: Use with static gateways (override gatewaysProvider if provided)
+const routingStrategy = new RandomRoutingStrategy();
 const gateway = await routingStrategy.selectGateway({
-  gateways: ['https://arweave.net', 'https://permagate.io'],
+  gateways: [new URL('https://arweave.net'), new URL('https://permagate.io')],
+});
+
+// Option 2: Use with gatewaysProvider (fetches dynamically)
+const routingStrategy2 = new RandomRoutingStrategy({
+  gatewaysProvider: new NetworkGatewaysProvider({
+    ario: ARIO.mainnet(),
+    sortBy: 'operatorStake',
+    limit: 10,
+  }),
+});
+const gateway2 = await routingStrategy2.selectGateway(); // uses gatewaysProvider
+
+// Option 3: Override gatewaysProvider with static gateways
+const gateway3 = await routingStrategy2.selectGateway({
+  gateways: [new URL('https://custom-gateway.net')], // overrides gatewaysProvider
 });
 ```
 
@@ -229,42 +247,61 @@ const gateway = await routingStrategy.selectGateway(); // always returns the sam
 
 ### RoundRobinRoutingStrategy
 
-Selects gateways in round-robin order. The gateway list is stored in memory and is not persisted across instances.
+Selects gateways in round-robin order. The gateway list is stored in memory and is not persisted across instances. You must provide either `gateways` OR `gatewaysProvider` (not both).
 
 ```javascript
-import { Wayfinder, NetworkGatewaysProvider, RoundRobinRoutingStrategy } from '@ar.io/wayfinder-core';
+import { RoundRobinRoutingStrategy, NetworkGatewaysProvider } from '@ar.io/wayfinder-core';
 import { ARIO } from '@ar.io/sdk';
 
-const gatewayProvider = new NetworkGatewaysProvider({
-  ario: ARIO.mainnet(),
-  sortBy: 'operatorStake',
-  sortOrder: 'desc',
-  limit: 10,
-});
-
-// provide the gateways to the routing strategy on initialization to track the request count per gateway.
-// Any additional gateways provided to the selectGateway method will be ignored.
+// use with a static list of gateways
 const routingStrategy = new RoundRobinRoutingStrategy({
-  gateways: await gatewayProvider.getGateways(),
+  gateways: [new URL('https://arweave.net'), new URL('https://permagate.io')],
 });
 
-const gateway = await routingStrategy.selectGateway(); // returns the next gateway in the list
+// use with gatewaysProvider (loaded once and memoized)
+const routingStrategy2 = new RoundRobinRoutingStrategy({
+  gatewaysProvider: new NetworkGatewaysProvider({
+    ario: ARIO.mainnet(),
+    sortBy: 'operatorStake',
+    sortOrder: 'desc',
+    limit: 10,
+  }),
+});
+
+const gateway = await routingStrategy.selectGateway(); // returns the next gateway in round-robin order
 ```
 
 ### FastestPingRoutingStrategy
 
-Selects the fastest gateway based simple HEAD request to the specified route.
+Selects the fastest gateway based on simple HEAD request to the specified route.
 
 ```javascript
-import { Wayfinder, FastestPingRoutingStrategy } from '@ar.io/wayfinder-core';
+import { FastestPingRoutingStrategy, NetworkGatewaysProvider } from '@ar.io/wayfinder-core';
+import { ARIO } from '@ar.io/sdk';
 
+// use with static gateways (override gatewaysProvider if provided)
 const routingStrategy = new FastestPingRoutingStrategy({
   timeoutMs: 1000,
 });
-
-// will select the fastest gateway from the list based on the ping time of the /ar-io/info route
 const gateway = await routingStrategy.selectGateway({
-  gateways: ['https://slow.net', 'https://medium.net', 'https://fast.net'],
+  gateways: [new URL('https://slow.net'), new URL('https://medium.net'), new URL('https://fast.net')],
+});
+
+// use with gatewaysProvider (fetches dynamically)
+const routingStrategy2 = new FastestPingRoutingStrategy({
+  timeoutMs: 1000,
+  gatewaysProvider: new NetworkGatewaysProvider({
+    ario: ARIO.mainnet(),
+    sortBy: 'operatorStake',
+    limit: 20,
+  }),
+});
+const gateway2 = await routingStrategy2.selectGateway({ path: '/ar-io/info' }); // uses gatewaysProvider
+
+// override the gatewaysProvider with a static list of gateways
+const gateway3 = await routingStrategy2.selectGateway({
+  gateways: [new URL('https://priority-gateway.net')], // overrides gatewaysProvider
+  path: '/ar-io/info'
 });
 ```
 
