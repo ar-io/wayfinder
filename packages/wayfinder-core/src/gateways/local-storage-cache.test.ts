@@ -312,10 +312,7 @@ describe('LocalStorageGatewaysProvider', () => {
 
       provider.clearCache();
 
-      assert.strictEqual(
-        mockLocalStorage.getItem('wayfinder|gateways'),
-        null,
-      );
+      assert.strictEqual(mockLocalStorage.getItem('wayfinder|gateways'), null);
     });
 
     it('should handle localStorage removeItem errors gracefully', () => {
@@ -369,10 +366,7 @@ describe('LocalStorageGatewaysProvider', () => {
         ttlSeconds: 300,
       };
 
-      mockLocalStorage.setItem(
-        'wayfinder|gateways',
-        JSON.stringify(oldCache),
-      );
+      mockLocalStorage.setItem('wayfinder|gateways', JSON.stringify(oldCache));
 
       const result = await provider.getGateways();
 
