@@ -135,7 +135,7 @@ export interface WayfinderOptions {
     /**
      * The verification strategy to use for verifying data
      */
-    strategy?: VerificationStrategy;
+    strategy?: VerificationStrategy | undefined;
 
     /**
      * Whether verification should be strict (blocking)

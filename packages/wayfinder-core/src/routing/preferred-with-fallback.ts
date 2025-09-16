@@ -21,8 +21,8 @@ import { FastestPingRoutingStrategy } from './ping.js';
 
 export class PreferredWithFallbackRoutingStrategy implements RoutingStrategy {
   public readonly name = 'preferred-with-fallback';
-  private preferredGateway: URL;
-  private fallbackStrategy: RoutingStrategy;
+  public readonly preferredGateway: URL;
+  public readonly fallbackStrategy: RoutingStrategy;
   private logger: Logger;
 
   constructor({
