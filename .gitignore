@@ -40,6 +40,9 @@ chrome-profile/
 # coverage files
 coverage/
 
+# generated documentation
+docs/
+
 # claude
 .claude/
 

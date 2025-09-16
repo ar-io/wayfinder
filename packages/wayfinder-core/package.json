@@ -38,7 +38,10 @@
     "lint:fix": "biome check --write --unsafe --config-path=../../biome.json",
     "lint:check": "biome check --unsafe --config-path=../../biome.json",
     "format:fix": "biome format --write --config-path=../../biome.json",
-    "format:check": "biome format --config-path=../../biome.json"
+    "format:check": "biome format --config-path=../../biome.json",
+    "docs:generate": "typedoc",
+    "docs:clean": "rimraf docs",
+    "docs:watch": "typedoc --watch"
   },
   "dependencies": {
     "@dha-team/arbundles": "^1.0.3",
@@ -65,6 +68,8 @@
   "devDependencies": {
     "@ar.io/sdk": "^3.13.0",
     "@types/node": "^24.0.0",
-    "tsx": "^4.20.3"
+    "tsx": "^4.20.3",
+    "typedoc": "^0.28.13",
+    "typedoc-plugin-markdown": "^4.8.1"
   }
 }
