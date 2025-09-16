@@ -27,11 +27,5 @@
   "outputFileStrategy": "members",
   "flattenOutputFiles": true,
   "entryModule": "index",
-  "membersWithOwnFile": [
-    "Class",
-    "Interface",
-    "Enum",
-    "Function",
-    "TypeAlias"
-  ]
+  "membersWithOwnFile": ["Class", "Interface", "Enum", "Function", "TypeAlias"]
 }
