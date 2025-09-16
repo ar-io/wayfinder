@@ -26,9 +26,14 @@ import { RandomRoutingStrategy } from './routing/random.js';
 import { RoundRobinRoutingStrategy } from './routing/round-robin.js';
 import { SimpleCacheRoutingStrategy } from './routing/simple-cache.js';
 import type {
+  GatewaySelection,
   GatewaysProvider,
   Logger,
+  RoutingOption,
   RoutingStrategy,
+  SortOrder,
+  SortBy,
+  VerificationOption,
   VerificationStrategy,
   WayfinderOptions,
 } from './types.js';
@@ -37,30 +42,6 @@ import { DataRootVerificationStrategy } from './verification/data-root-verificat
 import { HashVerificationStrategy } from './verification/hash-verification.js';
 import { RemoteVerificationStrategy } from './verification/remote-verification.js';
 import { Wayfinder } from './wayfinder.js';
-
-export type RoutingOption = 'random' | 'fastest' | 'round-robin' | 'preferred';
-
-export type VerificationOption = 'hash' | 'data-root' | 'remote' | 'disabled';
-
-export type GatewaySelection =
-  | 'best-performance'
-  | 'most-tenured'
-  | 'highest-staked'
-  | 'top-ranked'
-  | 'longest-streak';
-
-export type SortBy =
-  | 'totalDelegatedStake'
-  | 'operatorStake'
-  | 'startTimestamp'
-  | 'weights.gatewayPerformanceRatio'
-  | 'weights.tenureWeight'
-  | 'weights.stakeWeight'
-  | 'weights.compositeWeight'
-  | 'stats.passedConsecutiveEpochs'
-  | 'weights.normalizedCompositeWeight';
-
-export type SortOrder = 'asc' | 'desc';
 
 const selectionSortMap: Record<
   GatewaySelection,

@@ -89,11 +89,12 @@ const wayfinder = createWayfinderClient({
   ario: ARIO.mainnet(),
   
   // Gateway selection (only works with ARIO instance)
-  gatewaySelection: 'highest-performing', // Options:
-  // 'highest-performing' - Gateways with best performance metrics
-  // 'longest-tenure' - Gateways with longest service history  
+  gatewaySelection: 'top-ranked', // Options:
+  // 'top-ranked' - Gateways with highest composite weight
+  // 'most-tenured' - Gateways with longest service history  
   // 'highest-staked' - Gateways with most stake
-  // 'highest-weight' - Gateways with highest composite weight
+  // 'top-ranked' - Gateways with highest composite weight
+  // 'best-performance' - Gateways with best performance metrics
   // 'longest-streak' - Gateways with longest uptime streak
   
   routing: 'random', // How to select from the filtered gateways
@@ -691,23 +692,23 @@ import { createWayfinderClient, NetworkGatewaysProvider } from '@ar.io/wayfinder
 import { ARIO } from '@ar.io/sdk';
 
 const wayfinder = createWayfinderClient({
-  // Use custom gateways provider
-  gatewaysProvider: new NetworkGatewaysProvider({
-    ario: ARIO.mainnet(),
-    sortBy: 'operatorStake',
-    sortOrder: 'desc',
-    limit: 10,
-  }),
-  
-  // Override with custom verification strategy
-  verification: 'hash',
-  trustedGateways: ['https://permagate.io'],
+  ario: ARIO.mainnet()
   
   // Gateway selection
-  gatewaySelection: 'highest-staked',
+  gatewaySelection: 'top-ranked',
   
   // Enable caching with custom TTL
   cache: { ttlSeconds: 3600 }, // 1 hour
+
+  // Override 'routing' with custom routing strategy
+  routingStrategy: new FastestPingRoutingStrategy({
+    timeoutMs: 1000,
+  }),
+
+  // Override 'verification' with custom verification strategy
+  verificationStrategy: new HashVerificationStrategy({
+    trustedGateways: ['https://permagate.io'],
+  }),
 });
 ```
 

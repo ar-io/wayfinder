@@ -16,21 +16,12 @@
  */
 import type { AoARIORead } from '@ar.io/sdk';
 import { defaultLogger } from '../logger.js';
-import type { GatewaysProvider, Logger } from '../types.js';
+import type { GatewaysProvider, Logger, SortBy, SortOrder } from '../types.js';
 
 export class NetworkGatewaysProvider implements GatewaysProvider {
   private ario: AoARIORead;
-  private sortBy:
-    | 'totalDelegatedStake'
-    | 'operatorStake'
-    | 'startTimestamp'
-    | 'weights.gatewayPerformanceRatio'
-    | 'weights.tenureWeight'
-    | 'weights.stakeWeight'
-    | 'weights.compositeWeight'
-    | 'stats.passedConsecutiveEpochs'
-    | 'weights.normalizedCompositeWeight';
-  private sortOrder: 'asc' | 'desc';
+  private sortBy: SortBy;
+  private sortOrder: SortOrder;
   private limit: number;
   private filter: (gateway: any) => boolean;
   private logger: Logger;
@@ -44,17 +35,8 @@ export class NetworkGatewaysProvider implements GatewaysProvider {
     logger = defaultLogger,
   }: {
     ario: AoARIORead;
-    sortBy?:
-      | 'totalDelegatedStake'
-      | 'operatorStake'
-      | 'startTimestamp'
-      | 'weights.gatewayPerformanceRatio'
-      | 'weights.tenureWeight'
-      | 'weights.stakeWeight'
-      | 'weights.compositeWeight'
-      | 'stats.passedConsecutiveEpochs'
-      | 'weights.normalizedCompositeWeight';
-    sortOrder?: 'asc' | 'desc';
+    sortBy?: SortBy;
+    sortOrder?: SortOrder;
     limit?: number;
     blocklist?: string[];
     filter?: (gateway: any) => boolean;
