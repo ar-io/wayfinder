@@ -2,6 +2,18 @@
 
 `@ar.io/wayfinder-core` is the core library for the Wayfinder project. It provides the core functionality for routing and verifying data through the ar.io network.
 
+### `ar://` Protocol
+
+Wayfinder leverages the decentralized AR.IO Network to provide robust, censorship-resistant access to data stored on Arweave, removing reliance on centralized gateways like arweave.net. By routing requests through a distributed set of community-operated gateways, Wayfinder ensures high availability, redundancy, and improved performance for users and applications.
+
+The `ar://` protocol enables decentralized resolution and access to Arweave data using several flexible URL formats:
+
+- `ar://TRANSACTION_ID` &mdash; Direct access to a specific Arweave transaction
+- `ar://NAME` &mdash; Resolution of ArNS names (with optional path support)
+- `ar:///info` &mdash; Direct access to gateway endpoints (e.g., `/info`)
+
+Wayfinder dynamically selects the gateway for each request based on the chosen routing strategy, and optionally verifies the data before returning it to the client. The protocol supports both transaction IDs and human-readable ArNS names, and is open for feedback and suggestions for additional features or URL formats—let us know what you'd like to see supported!
+
 ## Quick Start
 
 ### Installation
@@ -50,16 +62,6 @@ const wayfinder = createWayfinderClient({
   routing: 'fastest',
   verification: 'hash',
 });
-```
-
-### ar:// Protocol
-
-Wayfinder supports several ar:// URL formats:
-
-```bash
-ar://TRANSACTION_ID              // Direct transaction ID
-ar://NAME                        // ArNS name (paths supported)
-ar:///info                       // Gateway endpoint (/info)
 ```
 
 ## Dynamic Wayfinder URLs

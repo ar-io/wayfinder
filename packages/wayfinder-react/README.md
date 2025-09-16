@@ -78,7 +78,7 @@ function WayfinderImage({ txId }: { txId: string }) {
 }
 ```
 
-#### useWayfinderRequest
+### useWayfinderRequest
 
 Fetch the data via wayfinder, and optionally verify the data.
 
