@@ -52,57 +52,7 @@ const wayfinder = createWayfinderClient({
 });
 ```
 
-### Configuration Options
-
-`createWayfinderClient` accepts the following options:
-
-```javascript
-const wayfinder = createWayfinderClient({
-  // Routing strategy
-  routing: 'fastest', // 'random' | 'fastest' | 'round-robin' | 'preferred'
-  
-  // Verification strategy  
-  verification: 'hash', // 'hash' | 'data-root' | 'remote' | 'disabled' (default: 'disabled')
-  
-  // Gateway selection (only applies when ario instance is provided)
-  gatewaySelection: 'highest-performing', // 'highest-performing' | 'longest-tenure' | etc.
-  
-  // Enable caching for routing and gateway providers
-  cache: true, // Uses default 5-minute TTL
-  // OR specify custom TTL:
-  // cache: { ttlSeconds: 3600 }, // 1 hour
-  
-  // List of trusted gateways for verification
-  trustedGateways: ['https://arweave.net', 'https://permagate.io'],
-});
-```
-
-### Gateway Selection Options (with AR.IO Network)
-
-When using the AR.IO Network provider, you can specify how gateways are selected:
-
-```javascript
-import { createWayfinderClient } from '@ar.io/wayfinder-core';
-import { ARIO } from '@ar.io/sdk';
-
-const wayfinder = createWayfinderClient({
-  ario: ARIO.mainnet(),
-  
-  // Gateway selection (only works with ARIO instance)
-  gatewaySelection: 'top-ranked', // Options:
-  // 'top-ranked' - Gateways with highest composite weight
-  // 'most-tenured' - Gateways with longest service history  
-  // 'highest-staked' - Gateways with most stake
-  // 'top-ranked' - Gateways with highest composite weight
-  // 'best-performance' - Gateways with best performance metrics
-  // 'longest-streak' - Gateways with longest uptime streak
-  
-  routing: 'random', // How to select from the filtered gateways
-  cache: { ttlSeconds: 600 }, // Cache for 10 minutes
-});
-```
-
-## ar:// Protocol
+### ar:// Protocol
 
 Wayfinder supports several ar:// URL formats:
 
@@ -778,7 +728,7 @@ const wayfinder = new Wayfinder({
 });
 ```
 
-### Telemetry
+## Telemetry
 
 Wayfinder can optionally emit OpenTelemetry spans for every request. **By default, telemetry is disabled**. You can control this behavior with the `telemetrySettings` option.
 

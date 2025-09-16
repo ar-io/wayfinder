@@ -50,7 +50,7 @@ function App() {
 }
 ```
 
-### Hooks
+## Hooks
 
 ### useWayfinderUrl
 
