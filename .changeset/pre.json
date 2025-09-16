@@ -8,6 +8,7 @@
   },
   "changesets": [
     "create-wayfinder-client-utility",
+    "great-nights-turn",
     "spicy-trains-sin",
     "tame-coins-smoke"
   ]
