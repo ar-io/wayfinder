@@ -23,6 +23,7 @@ import { StaticGatewaysProvider } from './gateways/static.js';
 import { FastestPingRoutingStrategy } from './routing/ping.js';
 import { PreferredWithFallbackRoutingStrategy } from './routing/preferred-with-fallback.js';
 import { RandomRoutingStrategy } from './routing/random.js';
+import { RoundRobinRoutingStrategy } from './routing/round-robin.js';
 import { SimpleCacheRoutingStrategy } from './routing/simple-cache.js';
 import type {
   GatewaysProvider,
@@ -36,7 +37,6 @@ import { DataRootVerificationStrategy } from './verification/data-root-verificat
 import { HashVerificationStrategy } from './verification/hash-verification.js';
 import { RemoteVerificationStrategy } from './verification/remote-verification.js';
 import { Wayfinder } from './wayfinder.js';
-import { RoundRobinRoutingStrategy } from './routing/round-robin.js';
 
 export type RoutingOption = 'random' | 'fastest' | 'round-robin' | 'preferred';
 
