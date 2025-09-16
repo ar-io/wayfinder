@@ -301,4 +301,8 @@ export function createWayfinderClient(
   return new Wayfinder(wayfinderOptions);
 }
 
+/**
+ * @internal
+ * @deprecated Use createWayfinderClient instead
+ */
 export const createWayfinder = createWayfinderClient;

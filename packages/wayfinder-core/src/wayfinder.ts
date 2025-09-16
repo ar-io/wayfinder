@@ -38,7 +38,10 @@ import type {
 import { sandboxFromId } from './utils/base64.js';
 import { HashVerificationStrategy } from './verification/hash-verification.js';
 
-// headers
+/**
+ * Headers for wayfinder requests
+ * @internal
+ */
 export const wayfinderRequestHeaders = ({
   traceId,
 }: {
@@ -51,8 +54,15 @@ export const wayfinderRequestHeaders = ({
   };
 };
 
-// known regexes for wayfinder urls
+/**
+ * Known regexes for wayfinder urls
+ * @internal
+ */
 export const arnsRegex = /^[a-z0-9_-]{1,51}$/;
+/**
+ * Regex for transaction ids
+ * @internal
+ */
 export const txIdRegex = /^[A-Za-z0-9_-]{43}$/;
 
 /**
@@ -104,6 +114,7 @@ export const createWayfinderUrl = (
  * Extracts subdomain and path information from an ar:// URL for routing purposes
  * @param arUrl - the ar:// URL to parse
  * @returns object containing subdomain and path for gateway routing
+ * @internal
  */
 export const extractRoutingInfo = (
   arUrl: string,
@@ -178,6 +189,10 @@ export const constructGatewayUrl = ({
   return gatewayUrl;
 };
 
+/**
+ * Taps a readable stream and verifies the data as it is read.
+ * @internal
+ */
 export function tapAndVerifyReadableStream({
   originalStream,
   contentLength,
