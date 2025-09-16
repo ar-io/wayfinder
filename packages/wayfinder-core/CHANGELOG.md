@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-core
 
+## 1.4.0-alpha.2
+
+### Patch Changes
+
+- eb839e4: Relax verification strategy type on Wayfinder client when verification disabled
+
 ## 1.4.0-alpha.1
 
 ### Minor Changes
