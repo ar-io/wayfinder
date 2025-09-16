@@ -28,25 +28,22 @@ import {
   useWayfinderRequest,
   useWayfinderUrl,
 } from '@ar.io/wayfinder-react';
-import {
-  NetworkGatewaysProvider,
-  LocalStorageGatewaysProvider,
-} from '@ar.io/wayfinder-core';
+import { createWayfinderClient } from '@ar.io/wayfinder-core';
 import { ARIO } from '@ar.io/sdk';
 
 // Wrap your app with the WayfinderProvider
 function App() {
+  // Create a wayfinder client using the utility function
+  const wayfinderClient = createWayfinderClient({
+    ario: ARIO.mainnet(),
+    gatewaySelection: 'top-ranked',
+    routing: 'fastest',
+    verification: 'hash',
+    cache: { ttlSeconds: 3600 }, // cache for 1 hour
+  });
+
   return (
-    <WayfinderProvider
-      // pass in the wayfinder options
-      // https://github.com/ar-io/wayfinder/tree/alpha/packages/wayfinder-core#custom-configuration
-      // by default, the provider will cache the gateways in local storage for 1 hour to avoid unnecessary network requests
-      gatewaysProvider={new NetworkGatewaysProvider({
-        ario: ARIO.mainnet(),
-        limit: 10,
-        sortBy: 'operatorStake',
-      })}
-    >
+    <WayfinderProvider wayfinder={wayfinderClient}>
       <YourApp />
     </WayfinderProvider>
   );
@@ -91,10 +88,7 @@ import {
   useWayfinderRequest,
   useWayfinderUrl,
 } from '@ar.io/wayfinder-react';
-import {
-  NetworkGatewaysProvider,
-  LocalStorageGatewaysProvider,
-} from '@ar.io/wayfinder-core';
+import { createWayfinderClient } from '@ar.io/wayfinder-core';
 import { ARIO } from '@ar.io/sdk';
 
 function WayfinderData({ txId }: { txId: string }) {
