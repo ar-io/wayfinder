@@ -103,13 +103,13 @@ export interface CreateWayfinderClientOptions {
   /**
    * The gateway selection when using NetworkGatewaysProvider (requires ario instance)
    * Only applies when using AR.IO network - ignored for static gateways
-   * @default 'highest-performing'
+   * @default 'top-ranked'
    */
   gatewaySelection?: GatewaySelection;
 
   /**
    * The trusted gateways to use
-   * @default ['https://arweave.net']
+   * @default ['https://permagate.io']
    */
   trustedGateways?: string[];
 
@@ -124,27 +124,32 @@ export interface CreateWayfinderClientOptions {
 
   /**
    * Custom logger implementation
+   * @default undefined
    */
   logger?: Logger;
 
   /**
    * Custom gateways provider (overrides gatewaySelection)
+   * @default undefined
    */
   gatewaysProvider?: GatewaysProvider;
 
   /**
    * Custom routing strategy (overrides routing option)
+   * @default undefined
    */
   routingStrategy?: RoutingStrategy;
 
   /**
    * Custom verification strategy (overrides verification option)
+   * @default undefined
    */
   verificationStrategy?: VerificationStrategy;
 
   /**
    * The preferred gateway to use when routing is 'preferred'
    * Defaults to the first trusted gateway if not specified
+   * @default 'arweave.net'
    */
   preferredGateway?: string;
 
