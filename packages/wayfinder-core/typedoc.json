@@ -1,6 +1,6 @@
 {
   "$schema": "https://typedoc.org/schema.json",
-  "entryPoints": ["src/index.ts"],
+  "entryPoints": ["src/client.ts", "src/wayfinder.ts"],
   "out": "docs",
   "plugin": ["typedoc-plugin-markdown"],
   "tsconfig": "tsconfig.json",
@@ -13,16 +13,6 @@
   "excludeInternal": true,
   "hideGenerator": true,
   "sort": ["source-order"],
-  "categorizeByGroup": true,
-  "categoryOrder": [
-    "WayFinder",
-    "Types",
-    "Routing Strategies",
-    "Gateway Providers",
-    "Verification Strategies",
-    "Utilities",
-    "*"
-  ],
   "exclude": ["**/*.test.ts", "**/*.spec.ts", "**/node_modules/**"],
   "validation": {
     "notExported": true,
@@ -34,10 +24,8 @@
   "gitRevision": "develop",
   "sourceLinkTemplate": "https://github.com/ar-io/wayfinder/blob/{gitRevision}/packages/wayfinder-core/{path}#L{line}",
   "titleLink": "https://github.com/ar-io/wayfinder",
-  "navigation": {
-    "includeCategories": true,
-    "includeGroups": true
-  },
-  "searchInComments": true,
-  "searchInDocuments": true
+  "outputFileStrategy": "members",
+  "flattenOutputFiles": true,
+  "entryModule": "index",
+  "membersWithOwnFile": ["Class", "Interface", "Enum", "Function", "Variable", "TypeAlias"]
 }
