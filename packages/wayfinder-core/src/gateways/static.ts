@@ -17,7 +17,7 @@
 import type { GatewaysProvider } from '../types.js';
 
 export class StaticGatewaysProvider implements GatewaysProvider {
-  private gateways: URL[];
+  public readonly gateways: URL[];
   constructor({ gateways }: { gateways: string[] }) {
     this.gateways = gateways.map((g) => new URL(g));
   }

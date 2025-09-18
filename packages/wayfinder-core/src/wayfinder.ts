@@ -580,8 +580,10 @@ export class Wayfinder {
    * The verification settings to use when verifying data.
    */
   public readonly verificationSettings: Required<
-    NonNullable<WayfinderOptions['verificationSettings']>
-  >;
+    Omit<NonNullable<WayfinderOptions['verificationSettings']>, 'strategy'>
+  > & {
+    strategy: VerificationStrategy | undefined;
+  };
 
   /**
    * Telemetry configuration used for OpenTelemetry tracing
@@ -695,9 +697,12 @@ export class Wayfinder {
         verificationSettings?.strategy !== undefined,
       events: {},
       strict: false,
-      strategy: new HashVerificationStrategy({
-        trustedGateways: [new URL('https://permagate.io')],
-      }),
+      strategy:
+        (verificationSettings?.strategy ?? verificationSettings?.enabled)
+          ? new HashVerificationStrategy({
+              trustedGateways: [new URL('https://permagate.io')],
+            })
+          : undefined,
       // overwrite the default settings with the provided ones
       ...verificationSettings,
     };
@@ -826,11 +831,19 @@ export class Wayfinder {
    */
   enableVerification({
     strict = false,
+    strategy,
   }: {
     strict?: boolean;
+    strategy?: VerificationStrategy;
   } = {}) {
     this.verificationSettings.enabled = true;
     this.verificationSettings.strict = strict;
+    this.verificationSettings.strategy =
+      strategy ??
+      this.verificationSettings.strategy ??
+      new HashVerificationStrategy({
+        trustedGateways: [new URL('https://permagate.io')],
+      });
   }
 
   /**

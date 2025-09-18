@@ -49,6 +49,30 @@ export type WayfinderEvent = {
   };
 };
 
+export type RoutingOption = 'random' | 'fastest' | 'round-robin' | 'preferred';
+
+export type VerificationOption = 'hash' | 'data-root' | 'remote' | 'disabled';
+
+export type GatewaySelection =
+  | 'best-performance'
+  | 'most-tenured'
+  | 'highest-staked'
+  | 'top-ranked'
+  | 'longest-streak';
+
+export type SortBy =
+  | 'totalDelegatedStake'
+  | 'operatorStake'
+  | 'startTimestamp'
+  | 'weights.gatewayPerformanceRatio'
+  | 'weights.tenureWeight'
+  | 'weights.stakeWeight'
+  | 'weights.compositeWeight'
+  | 'stats.passedConsecutiveEpochs'
+  | 'weights.normalizedCompositeWeight';
+
+export type SortOrder = 'asc' | 'desc';
+
 // Interfaces
 
 /**
@@ -135,7 +159,7 @@ export interface WayfinderOptions {
     /**
      * The verification strategy to use for verifying data
      */
-    strategy?: VerificationStrategy;
+    strategy?: VerificationStrategy | undefined;
 
     /**
      * Whether verification should be strict (blocking)

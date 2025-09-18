@@ -139,7 +139,7 @@ describe('LocalStorageGatewaysProvider', () => {
         };
 
         mockLocalStorage.setItem(
-          'wayfinder-gateways-cache',
+          'wayfinder|gateways',
           JSON.stringify(cachedGateways),
         );
 
@@ -163,7 +163,7 @@ describe('LocalStorageGatewaysProvider', () => {
         };
 
         mockLocalStorage.setItem(
-          'wayfinder-gateways-cache',
+          'wayfinder|gateways',
           JSON.stringify(cachedGateways),
         );
 
@@ -187,7 +187,7 @@ describe('LocalStorageGatewaysProvider', () => {
         assert.strictEqual(result[0].toString(), 'https://gateway1.com/');
         assert.strictEqual(result[1].toString(), 'https://gateway2.com/');
 
-        const cached = mockLocalStorage.getItem('wayfinder-gateways-cache');
+        const cached = mockLocalStorage.getItem('wayfinder|gateways');
         assert.ok(cached);
         const parsedCache = JSON.parse(cached);
         assert.strictEqual(parsedCache.gateways.length, 2);
@@ -207,7 +207,7 @@ describe('LocalStorageGatewaysProvider', () => {
         };
 
         mockLocalStorage.setItem(
-          'wayfinder-gateways-cache',
+          'wayfinder|gateways',
           JSON.stringify(expiredCache),
         );
 
@@ -230,7 +230,7 @@ describe('LocalStorageGatewaysProvider', () => {
         };
 
         mockLocalStorage.setItem(
-          'wayfinder-gateways-cache',
+          'wayfinder|gateways',
           JSON.stringify(cacheWithoutTTL),
         );
 
@@ -248,7 +248,7 @@ describe('LocalStorageGatewaysProvider', () => {
           gatewaysProvider: mockGatewaysProvider,
         });
 
-        mockLocalStorage.setItem('wayfinder-gateways-cache', 'invalid-json');
+        mockLocalStorage.setItem('wayfinder|gateways', 'invalid-json');
 
         const result = await provider.getGateways();
 
@@ -304,18 +304,15 @@ describe('LocalStorageGatewaysProvider', () => {
       };
 
       mockLocalStorage.setItem(
-        'wayfinder-gateways-cache',
+        'wayfinder|gateways',
         JSON.stringify(cachedGateways),
       );
 
-      assert.ok(mockLocalStorage.getItem('wayfinder-gateways-cache'));
+      assert.ok(mockLocalStorage.getItem('wayfinder|gateways'));
 
       provider.clearCache();
 
-      assert.strictEqual(
-        mockLocalStorage.getItem('wayfinder-gateways-cache'),
-        null,
-      );
+      assert.strictEqual(mockLocalStorage.getItem('wayfinder|gateways'), null);
     });
 
     it('should handle localStorage removeItem errors gracefully', () => {
@@ -348,7 +345,7 @@ describe('LocalStorageGatewaysProvider', () => {
       };
 
       mockLocalStorage.setItem(
-        'wayfinder-gateways-cache',
+        'wayfinder|gateways',
         JSON.stringify(recentCache),
       );
 
@@ -369,10 +366,7 @@ describe('LocalStorageGatewaysProvider', () => {
         ttlSeconds: 300,
       };
 
-      mockLocalStorage.setItem(
-        'wayfinder-gateways-cache',
-        JSON.stringify(oldCache),
-      );
+      mockLocalStorage.setItem('wayfinder|gateways', JSON.stringify(oldCache));
 
       const result = await provider.getGateways();
 
@@ -393,7 +387,7 @@ describe('LocalStorageGatewaysProvider', () => {
       };
 
       mockLocalStorage.setItem(
-        'wayfinder-gateways-cache',
+        'wayfinder|gateways',
         JSON.stringify(exactCache),
       );
 
@@ -412,7 +406,7 @@ describe('LocalStorageGatewaysProvider', () => {
 
       await provider.getGateways();
 
-      const cached = mockLocalStorage.getItem('wayfinder-gateways-cache');
+      const cached = mockLocalStorage.getItem('wayfinder|gateways');
       assert.ok(cached);
 
       const parsedCache = JSON.parse(cached);

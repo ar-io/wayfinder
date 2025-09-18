@@ -60,11 +60,9 @@ describe('Wayfinder', () => {
         }),
         events: {},
       });
-      // check the verification settings
+      // check the verification settings is disabled and has a stubbed out verification strategy
       assert.deepStrictEqual(wayfinder.verificationSettings, {
-        strategy: new HashVerificationStrategy({
-          trustedGateways: [new URL('https://permagate.io')],
-        }),
+        strategy: undefined,
         enabled: false,
         strict: false,
         events: {},

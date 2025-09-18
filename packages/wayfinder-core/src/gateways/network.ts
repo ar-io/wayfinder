@@ -16,12 +16,12 @@
  */
 import type { AoARIORead } from '@ar.io/sdk';
 import { defaultLogger } from '../logger.js';
-import type { GatewaysProvider, Logger } from '../types.js';
+import type { GatewaysProvider, Logger, SortBy, SortOrder } from '../types.js';
 
 export class NetworkGatewaysProvider implements GatewaysProvider {
   private ario: AoARIORead;
-  private sortBy: 'totalDelegatedStake' | 'operatorStake' | 'startTimestamp';
-  private sortOrder: 'asc' | 'desc';
+  private sortBy: SortBy;
+  private sortOrder: SortOrder;
   private limit: number;
   private filter: (gateway: any) => boolean;
   private logger: Logger;
@@ -35,8 +35,8 @@ export class NetworkGatewaysProvider implements GatewaysProvider {
     logger = defaultLogger,
   }: {
     ario: AoARIORead;
-    sortBy?: 'totalDelegatedStake' | 'operatorStake' | 'startTimestamp';
-    sortOrder?: 'asc' | 'desc';
+    sortBy?: SortBy;
+    sortOrder?: SortOrder;
     limit?: number;
     blocklist?: string[];
     filter?: (gateway: any) => boolean;
@@ -71,6 +71,7 @@ export class NetworkGatewaysProvider implements GatewaysProvider {
             cursor,
             sortBy: this.sortBy,
             sortOrder: this.sortOrder,
+            // TODO: support filters on gateways
           });
 
         gateways.push(...newGateways);

@@ -43,3 +43,6 @@ export * from './emitter.js';
 
 // wayfinder
 export * from './wayfinder.js';
+
+// utility functions
+export * from './client.js';
