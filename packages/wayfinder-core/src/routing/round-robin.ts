@@ -25,10 +25,7 @@ export class RoundRobinRoutingStrategy implements RoutingStrategy {
   private gatewaysProvider?: GatewaysProvider;
 
   constructor({
-    gateways = [
-      new URL('https://arweave.net'),
-      new URL('https://permagate.io'),
-    ],
+    gateways,
     logger = defaultLogger,
     gatewaysProvider,
   }: {
@@ -40,7 +37,10 @@ export class RoundRobinRoutingStrategy implements RoutingStrategy {
       throw new Error('Cannot provide both gateways and gatewaysProvider');
     }
     if (!gateways && !gatewaysProvider) {
-      throw new Error('Must provide either gateways or gatewaysProvider');
+      gateways = [
+        new URL('https://arweave.net'),
+        new URL('https://permagate.io'),
+      ]
     }
 
     this.gateways = gateways || [];
