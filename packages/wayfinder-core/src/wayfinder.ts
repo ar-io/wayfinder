@@ -713,7 +713,7 @@ export class Wayfinder {
       events: {},
       strategy: new PingRoutingStrategy({
         logger,
-        routingStrategy: new RandomRoutingStrategy({logger}),
+        routingStrategy: new RandomRoutingStrategy({ logger }),
       }),
       // overwrite the default settings with the provided ones
       ...routingSettings,
