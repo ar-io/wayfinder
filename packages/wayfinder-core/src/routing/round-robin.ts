@@ -25,7 +25,10 @@ export class RoundRobinRoutingStrategy implements RoutingStrategy {
   private gatewaysProvider?: GatewaysProvider;
 
   constructor({
-    gateways,
+    gateways = [
+      new URL('https://arweave.net'),
+      new URL('https://permagate.io')
+    ],
     logger = defaultLogger,
     gatewaysProvider,
   }: {

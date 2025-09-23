@@ -197,7 +197,7 @@ export function createWayfinderClient(
     gatewaysProvider: customGatewaysProvider,
     routingStrategy: customRoutingStrategy,
     verificationStrategy: customVerificationStrategy,
-    preferredGateway = 'arweave.net',
+    preferredGateway = 'https://arweave.net',
     fallbackStrategy = 'random',
   } = options;
 
