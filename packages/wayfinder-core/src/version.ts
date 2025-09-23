@@ -14,4 +14,4 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-export const WAYFINDER_CORE_VERSION = 'v1.3.1';
+export const WAYFINDER_CORE_VERSION = 'v1.4.0-alpha.2';
