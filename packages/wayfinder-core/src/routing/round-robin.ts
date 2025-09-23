@@ -40,7 +40,7 @@ export class RoundRobinRoutingStrategy implements RoutingStrategy {
       gateways = [
         new URL('https://arweave.net'),
         new URL('https://permagate.io'),
-      ]
+      ];
     }
 
     this.gateways = gateways || [];
