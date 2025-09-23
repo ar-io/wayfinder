@@ -42,6 +42,7 @@ export default [
   ),
   {
     files: ['**/*.ts', '**/*.tsx'],
+    ignores: ['experimental/**/*'],
 
     plugins: {
       '@typescript-eslint': typescriptEslint,
@@ -53,6 +54,7 @@ export default [
       sourceType: 'module',
       parserOptions: {
         project: './tsconfig.json',
+        tsconfigRootDir: __dirname,
       },
     },
     rules: {

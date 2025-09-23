@@ -700,6 +700,7 @@ export class Wayfinder {
       strategy:
         (verificationSettings?.strategy ?? verificationSettings?.enabled)
           ? new HashVerificationStrategy({
+              logger,
               trustedGateways: [new URL('https://permagate.io')],
             })
           : undefined,
@@ -711,7 +712,8 @@ export class Wayfinder {
     this.routingSettings = {
       events: {},
       strategy: new PingRoutingStrategy({
-        routingStrategy: new RandomRoutingStrategy(),
+        logger,
+        routingStrategy: new RandomRoutingStrategy({ logger }),
       }),
       // overwrite the default settings with the provided ones
       ...routingSettings,
@@ -842,6 +844,7 @@ export class Wayfinder {
       strategy ??
       this.verificationSettings.strategy ??
       new HashVerificationStrategy({
+        logger: this.logger,
         trustedGateways: [new URL('https://permagate.io')],
       });
   }
