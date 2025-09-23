@@ -1,5 +1,12 @@
 # @ar.io/wayfinder-core
 
+## 1.4.1
+
+### Patch Changes
+
+- e57bfb6: Pass custom logger to routing and verification strategies
+- cd1719d: fix: allow createWayfinderClient to initialize with default configuration when no arguments are provided
+
 ## 1.4.0
 
 ### Minor Changes
