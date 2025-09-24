@@ -23,6 +23,8 @@
     "test": "npm run test --workspaces",
     "clean": "rimraf packages/*/dist",
     "build": "npm run build --workspaces",
+    "version": "npm run build && npx changeset version",
+    "publish": "npm run build && npx changeset publish",
     "lint:fix": "biome check --write --unsafe && eslint --fix packages/*/src",
     "lint:check": "biome check --unsafe && eslint packages/*/src",
     "format:fix": "biome format --write",
