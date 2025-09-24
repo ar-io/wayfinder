@@ -57,14 +57,11 @@ jobs:
               echo "Not in pre-release mode"
             fi
           fi
-          
-      - name: Build all packages
-        run: npm run build --workspaces
 
       - name: Create the updated version of the packages
         uses: changesets/action@v1
         with:
-          version: npx changeset version
+          version: npm run version
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
@@ -72,7 +69,7 @@ jobs:
         id: changesets
         uses: changesets/action@v1
         with:
-          publish: npx changeset publish
+          publish: npm run publish
           commit: "chore(release): version packages"
           title: "chore(release): version packages"
         env:
