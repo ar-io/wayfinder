@@ -57,19 +57,13 @@ jobs:
               echo "Not in pre-release mode"
             fi
           fi
-
-      - name: Create the updated version of the packages
-        uses: changesets/action@v1
-        with:
-          version: npm run version
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
-      - name: Create Release Pull Request or Publish to npm
+      - name: Create Release Pull Request
         id: changesets
         uses: changesets/action@v1
         with:
-          publish: npm run publish
+          version: npm run version
+          publish: npm run publish:${{ github.ref_name }}
           commit: "chore(release): version packages"
           title: "chore(release): version packages"
         env:
