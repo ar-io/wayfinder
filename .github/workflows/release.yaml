@@ -40,23 +40,6 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Manage Prerelease Mode
-        run: |
-          if [[ "${GITHUB_REF}" == "refs/heads/alpha" ]]; then
-            if [ ! -f ".changeset/pre.json" ]; then
-              npx changeset pre enter alpha
-            else
-              echo "Already in pre-release mode"
-            fi
-          elif [[ "${GITHUB_REF}" == "refs/heads/main" ]]; then
-            if [ -f ".changeset/pre.json" ]; then
-              echo "Exiting pre-release mode"
-              npx changeset pre exit
-            else
-              echo "Not in pre-release mode"
-            fi
-          fi
         
       - name: Create Release Pull Request
         id: changesets
