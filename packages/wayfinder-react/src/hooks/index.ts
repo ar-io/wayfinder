@@ -16,7 +16,7 @@
  */
 
 import { Wayfinder, WayfinderURLParams } from '@ar.io/wayfinder-core';
-import { useContext, useEffect, useMemo, useState } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import {
   WayfinderContext,
   type WayfinderContextValue,
@@ -40,7 +40,10 @@ export const useWayfinder = (): WayfinderContextValue => {
  */
 export const useWayfinderRequest = (): Wayfinder['request'] => {
   const { wayfinder } = useWayfinder();
-  return wayfinder.request;
+  return useCallback(
+    (url: URL | RequestInfo) => wayfinder.request(url),
+    [wayfinder],
+  );
 };
 
 /**
@@ -50,7 +53,7 @@ export const useWayfinderRequest = (): Wayfinder['request'] => {
  */
 export const useWayfinderUrl = (params: WayfinderURLParams) => {
   const { wayfinder } = useWayfinder();
-  const memoizedParams = useMemo(() => params, [params]);
+  const memoizedParams = useMemo(() => params, [JSON.stringify(params)]);
   const [resolvedUrl, setResolvedUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
