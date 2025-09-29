@@ -1,5 +1,12 @@
 # @ar.io/wayfinder-react
 
+## 1.0.19-alpha.0
+
+### Patch Changes
+
+- c28573a: Fix: prevent the usewayfinderUrl from an infinite re-render
+- 3301ce7: Fix context binding in useWayfinderRequest hook
+
 ## 1.0.18
 
 ### Patch Changes
