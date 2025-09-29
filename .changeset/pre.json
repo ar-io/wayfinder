@@ -1,0 +1,12 @@
+{
+  "mode": "pre",
+  "tag": "alpha",
+  "initialVersions": {
+    "@ar.io/wayfinder-core": "1.4.1",
+    "@ar.io/wayfinder-extension": "1.0.13",
+    "@ar.io/wayfinder-react": "1.0.16"
+  },
+  "changesets": [
+    "nasty-tables-shout"
+  ]
+}

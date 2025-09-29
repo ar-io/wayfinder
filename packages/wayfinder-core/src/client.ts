@@ -33,6 +33,7 @@ import type {
   RoutingStrategy,
   SortBy,
   SortOrder,
+  TelemetrySettings,
   VerificationOption,
   VerificationStrategy,
   WayfinderOptions,
@@ -139,6 +140,12 @@ export interface CreateWayfinderClientOptions {
    * @default 'random'
    */
   fallbackStrategy?: RoutingOption;
+
+  /**
+   * Telemetry configuration for OpenTelemetry tracing
+   * @default { enabled: false }
+   */
+  telemetry?: TelemetrySettings;
 }
 
 /**
@@ -199,6 +206,7 @@ export function createWayfinderClient(
     verificationStrategy: customVerificationStrategy,
     preferredGateway = 'https://arweave.net',
     fallbackStrategy = 'random',
+    telemetry,
   } = options;
 
   // Parse cache configuration
@@ -284,6 +292,7 @@ export function createWayfinderClient(
     routingSettings: {
       strategy: routingStrategy,
     },
+    telemetrySettings: telemetry,
   };
 
   // Only add verification settings if not disabled

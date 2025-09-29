@@ -1,5 +1,29 @@
 # @ar.io/wayfinder-core
 
+## 1.4.3
+
+### Patch Changes
+
+- 6a872b5: Allow providing `telemetry` settings to `createWayfinderClient`
+
+## 1.4.3-alpha.0
+
+### Patch Changes
+
+- 6a872b5: Allow providing `telemetry` settings to `createWayfinderClient`
+
+## 1.4.2
+
+### Patch Changes
+
+- 46c3110: fix: adjust check logic on round-robin strategy initialization with gateways provider
+
+## 1.4.2-alpha.0
+
+### Patch Changes
+
+- 46c3110: fix: adjust check logic on round-robin strategy initialization with gateways provider
+
 ## 1.4.1
 
 ### Patch Changes
