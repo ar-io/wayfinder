@@ -50,7 +50,7 @@ export const useWayfinderRequest = (): Wayfinder['request'] => {
  */
 export const useWayfinderUrl = (params: WayfinderURLParams) => {
   const { wayfinder } = useWayfinder();
-  const memoizedParams = useMemo(() => params, [params]);
+  const memoizedParams = useMemo(() => params, [JSON.stringify(params)]);
   const [resolvedUrl, setResolvedUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
