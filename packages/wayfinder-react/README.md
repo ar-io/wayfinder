@@ -2,12 +2,6 @@
 
 React components and hooks for the WayFinder project, making it easy to integrate AR.IO gateway routing in React applications.
 
-## Features
-
-- React components for displaying and interacting with AR.IO gateways
-- Hooks for gateway selection and routing
-- Integration with the WayFinder core library
-
 ## Installation
 
 ```bash
@@ -53,7 +47,7 @@ function App() {
 }
 ```
 
-### Hooks
+## Hooks
 
 ### useWayfinderUrl
 
