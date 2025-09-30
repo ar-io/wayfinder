@@ -17,15 +17,8 @@ yarn add @ar.io/wayfinder-react @ar.io/wayfinder-core
 ### Initial Setup
 
 ```tsx
-import {
-  WayfinderProvider,
-  useWayfinderRequest,
-  useWayfinderUrl,
-} from '@ar.io/wayfinder-react';
-import {
-  NetworkGatewaysProvider,
-  LocalStorageGatewaysProvider,
-} from '@ar.io/wayfinder-core';
+import { WayfinderProvider } from '@ar.io/wayfinder-react';
+import { NetworkGatewaysProvider } from '@ar.io/wayfinder-core';
 import { ARIO } from '@ar.io/sdk';
 
 // Wrap your app with the WayfinderProvider
@@ -80,16 +73,7 @@ function WayfinderImage({ txId }: { txId: string }) {
 Fetch the data via wayfinder, and optionally verify the data.
 
 ```tsx
-import {
-  WayfinderProvider,
-  useWayfinderRequest,
-  useWayfinderUrl,
-} from '@ar.io/wayfinder-react';
-import {
-  NetworkGatewaysProvider,
-  LocalStorageGatewaysProvider,
-} from '@ar.io/wayfinder-core';
-import { ARIO } from '@ar.io/sdk';
+import { useWayfinderRequest } from '@ar.io/wayfinder-react';
 
 function WayfinderData({ txId }: { txId: string }) {
   const request = useWayfinderRequest();
