@@ -683,7 +683,7 @@ Wayfinder supports intelligent caching:
 
 ## Advanced Usage
 
-### Using createWayfinderClient with Custom Providers
+### Custom Providers and Strategies
 
 For advanced use cases, you can provide custom providers and strategies to `createWayfinderClient`:
 
@@ -778,19 +778,18 @@ const wayfinder = new Wayfinder({
 });
 ```
 
-### Telemetry
+## Telemetry
 
 Wayfinder can optionally emit OpenTelemetry spans for every request. **By default, telemetry is disabled**. You can control this behavior with the `telemetrySettings` option.
 
 ```javascript
 
-const wayfinder = new Wayfinder({
-  gatewaysProvider: new NetworkGatewaysProvider({
-    ario: ARIO.mainnet(),
-    sortBy: 'operatorStake',
-    sortOrder: 'desc',
-    limit: 10,
-  }),
+import { createWayfinderClient } from '@ar.io/wayfinder-core';
+import { ARIO } from '@ar.io/sdk';
+
+const wayfinder = createWayfinderClient({
+  ario: ARIO.mainnet(),
+  // other settings...
   telemetrySettings: {
     enabled: true, // disabled by default (must be explicitly enabled)
     sampleRate: 0.1, // 10% sample rate by default
