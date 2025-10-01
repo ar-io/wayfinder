@@ -21,7 +21,7 @@ import { Span, type Tracer, context, trace } from '@opentelemetry/api';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { WebTracerProvider } from '@opentelemetry/sdk-trace-web';
 import { WayfinderEmitter } from './emitter.js';
-import { StaticGatewaysProvider } from './gateways/static.js';
+import { TrustedPeersGatewaysProvider } from './gateways/trusted-peers.js';
 import { PingRoutingStrategy } from './routing/ping.js';
 import { RandomRoutingStrategy } from './routing/random.js';
 import { initTelemetry, startRequestSpans } from './telemetry.js';
@@ -682,12 +682,9 @@ export class Wayfinder {
     // default gateways provider to use if no provider is provided
     this.gatewaysProvider =
       gatewaysProvider ??
-      new StaticGatewaysProvider({
-        gateways: [
-          'https://permagate.io',
-          'https://arweave.net',
-          'https://ardrive.net',
-        ],
+      new TrustedPeersGatewaysProvider({
+        trustedGateway: 'https://arweave.net',
+        logger: this.logger,
       });
 
     // default verification settings
