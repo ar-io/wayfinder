@@ -166,8 +166,8 @@ Gateway providers are responsible for providing a list of gateways to Wayfinder 
 
 | Provider                       | Description                                    | Use Case                                |
 | ------------------------------ | ---------------------------------------------- | --------------------------------------- |
-| `TrustedPeersGatewaysProvider` | Fetches gateway list from a trusted gateway's `/ar-io/peers` endpoint | Dynamic gateway discovery from network peers |
 | `NetworkGatewaysProvider`      | Returns gateways from AR.IO Network based on on-chain metrics | Leverage AR.IO Network with quality filtering |
+| `TrustedPeersGatewaysProvider` | Fetches gateway list from a trusted gateway's `/ar-io/peers` endpoint | Dynamic gateway discovery from network peers |
 | `StaticGatewaysProvider`       | Returns a static list of gateways you provide  | Testing or when specific gateways are required |
 | `SimpleCacheGatewaysProvider`  | Wraps another provider with in-memory caching  | Reduce API calls and improve performance |
 | `LocalStorageGatewaysProvider` | Wraps another provider with browser localStorage caching | Persistent caching across page reloads |
@@ -262,7 +262,7 @@ const gateway3 = await routingStrategy2.selectGateway({
 ### StaticRoutingStrategy
 
 ```javascript
-import { Wayfinder, StaticRoutingStrategy } from '@ar.io/wayfinder-core';
+import { StaticRoutingStrategy } from '@ar.io/wayfinder-core';
 
 const routingStrategy = new StaticRoutingStrategy({
   gateway: 'https://arweave.net',
