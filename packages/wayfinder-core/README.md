@@ -164,6 +164,14 @@ const redirectUrl = await wayfinder.resolveUrl({
 
 Gateway providers are responsible for providing a list of gateways to Wayfinder to choose from when routing requests. By default, Wayfinder will use the `TrustedPeersGatewaysProvider` to fetch available gateways from a trusted gateway's peer list.
 
+| Provider                       | Description                                    | Use Case                                |
+| ------------------------------ | ---------------------------------------------- | --------------------------------------- |
+| `TrustedPeersGatewaysProvider` | Fetches gateway list from a trusted gateway's `/ar-io/peers` endpoint | Dynamic gateway discovery from network peers |
+| `NetworkGatewaysProvider`      | Returns gateways from AR.IO Network based on on-chain metrics | Leverage AR.IO Network with quality filtering |
+| `StaticGatewaysProvider`       | Returns a static list of gateways you provide  | Testing or when specific gateways are required |
+| `SimpleCacheGatewaysProvider`  | Wraps another provider with in-memory caching  | Reduce API calls and improve performance |
+| `LocalStorageGatewaysProvider` | Wraps another provider with browser localStorage caching | Persistent caching across page reloads |
+
 ### NetworkGatewaysProvider
 
 Returns a list of gateways from the ARIO Network based on on-chain metrics. You can specify on-chain metrics for gateways to prioritize the highest quality gateways. This requires installing the `@ar.io/sdk` package and importing the `ARIO` object. *It is recommended to use this provider for most use cases to leverage the AR.IO Network.*
@@ -202,6 +210,8 @@ const gatewayProvider = new TrustedPeersGatewaysProvider({
 The static gateway provider returns a list of gateways that you provide. This is useful for testing or for users who want to use a specific gateway for all requests.
 
 ```javascript
+import { StaticGatewaysProvider } from '@ar.io/wayfinder-core';
+
 const gatewayProvider = new StaticGatewaysProvider({
   gateways: ['https://arweave.net'],
 });
@@ -326,7 +336,7 @@ const gateway3 = await routingStrategy2.selectGateway({
 Uses a preferred gateway, with a fallback strategy if the preferred gateway is not available. This is useful for builders who run their own gateways and want to use their own gateway as the preferred gateway, but also want to have a fallback strategy in case their gateway is not available.
 
 ```javascript
-import { Wayfinder, PreferredWithFallbackRoutingStrategy } from '@ar.io/wayfinder-core';
+import { PreferredWithFallbackRoutingStrategy, FastestPingRoutingStrategy } from '@ar.io/wayfinder-core';
 
 const routingStrategy = new PreferredWithFallbackRoutingStrategy({
   preferredGateway: 'https://permagate.io',
@@ -447,6 +457,14 @@ Because `SimpleCacheRoutingStrategy` accepts any `RoutingStrategy`, you can
 cache more complex compositions too.
 
 ```ts
+import {
+  RandomRoutingStrategy,
+  PingRoutingStrategy,
+  SimpleCacheRoutingStrategy,
+  NetworkGatewaysProvider,
+} from "@ar.io/wayfinder-core";
+import { ARIO } from '@ar.io/sdk';
+
 // use a dynamic list of gateways from the ARIO Network
 const randomStrategy = new RandomRoutingStrategy({
   gatewaysProvider: new NetworkGatewaysProvider({
@@ -551,7 +569,7 @@ const wayfinder = new Wayfinder({
 Verifies signatures of Arweave transactions and data items. Headers are retrieved from trusted gateways for use during verification. For a transaction, its data root is computed while streaming its data and then utilized alongside its headers for verification. For data items, the ANS-104 deep hash method of signature verification is used.
 
 ```javascript
-import { Wayfinder, SignatureVerificationStrategy } from '@ar-io/sdk';
+import { Wayfinder, SignatureVerificationStrategy } from '@ar.io/wayfinder-core';
 
 const wayfinder = new Wayfinder({
   verificationSettings: {
