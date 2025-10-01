@@ -19,7 +19,7 @@ import type { AoARIORead } from '@ar.io/sdk';
 import { LocalStorageGatewaysProvider } from './gateways/local-storage-cache.js';
 import { NetworkGatewaysProvider } from './gateways/network.js';
 import { SimpleCacheGatewaysProvider } from './gateways/simple-cache.js';
-import { StaticGatewaysProvider } from './gateways/static.js';
+import { TrustedPeersGatewaysProvider } from './gateways/trusted-peers.js';
 import { FastestPingRoutingStrategy } from './routing/ping.js';
 import { PreferredWithFallbackRoutingStrategy } from './routing/preferred-with-fallback.js';
 import { RandomRoutingStrategy } from './routing/random.js';
@@ -226,15 +226,10 @@ export function createWayfinderClient(
       limit: 10,
     });
   } else {
-    // Fall back to static gateways when no ARIO instance is provided
-    gatewaysProvider = new StaticGatewaysProvider({
-      gateways: trustedGateways.length
-        ? trustedGateways
-        : [
-            'https://permagate.io',
-            'https://arweave.net',
-            'https://ardrive.net',
-          ],
+    // Fall back to trusted peers gateway provider when no ARIO instance is provided
+    gatewaysProvider = new TrustedPeersGatewaysProvider({
+      trustedGateway: trustedGateways[0] || 'https://arweave.net',
+      logger,
     });
   }
 

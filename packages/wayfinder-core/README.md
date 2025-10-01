@@ -19,7 +19,7 @@ yarn add @ar.io/wayfinder-core
 ```javascript
 import { createWayfinderClient } from '@ar.io/wayfinder-core';
 
-// Uses static gateways by default
+// Uses trusted peers gateway provider by default
 const wayfinder = createWayfinderClient();
 
 // Use Wayfinder to fetch and verify data using ar:// protocol
@@ -39,14 +39,14 @@ const wayfinder = createWayfinderClient({
 });
 ```
 
-### Static Gateways with Custom Options
+### Custom Trusted Gateway
 
 ```javascript
 import { createWayfinderClient } from '@ar.io/wayfinder-core';
 
-// Use custom static gateways
+// Use a specific trusted gateway for fetching peers
 const wayfinder = createWayfinderClient({
-  trustedGateways: ['https://permagate.io', 'https://arweave.net'],
+  trustedGateways: ['https://permagate.io'], // First gateway is used for TrustedPeersGatewaysProvider
   routing: 'fastest',
   verification: 'hash',
 });
@@ -162,7 +162,7 @@ const redirectUrl = await wayfinder.resolveUrl({
 
 ## Gateway Providers
 
-Gateway providers are responsible for providing a list of gateways to Wayfinder to choose from when routing requests. By default, Wayfinder will use the `NetworkGatewaysProvider` to get a list of gateways from the ARIO Network.
+Gateway providers are responsible for providing a list of gateways to Wayfinder to choose from when routing requests. By default, Wayfinder will use the `TrustedPeersGatewaysProvider` to fetch available gateways from a trusted gateway's peer list.
 
 ### NetworkGatewaysProvider
 
@@ -180,6 +180,21 @@ const gatewayProvider = new NetworkGatewaysProvider({
     return gateway.status === 'joined' && gateway.stats.failedConsecutiveEpochs === 0;
   },
 });
+```
+
+### TrustedPeersGatewaysProvider
+
+Fetches a dynamic list of trusted peer gateways from an AR.IO gateway's `/ar-io/peers` endpoint. This provider is useful for discovering available gateways from a trusted source.
+
+```javascript
+import { TrustedPeersGatewaysProvider } from '@ar.io/wayfinder-core';
+
+const gatewayProvider = new TrustedPeersGatewaysProvider({
+  trustedGateway: 'https://arweave.net', // Gateway to fetch peers from
+});
+
+// The provider will fetch the peer list from https://arweave.net/ar-io/peers
+// and return an array of gateway URLs from the response
 ```
 
 ### StaticGatewaysProvider
