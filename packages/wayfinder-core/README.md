@@ -583,9 +583,9 @@ const wayfinder = new Wayfinder({
 
 ## Monitoring and Events
 
-Wayfinder emits events during the routing and verification process for all requests, allowing you to monitor its operation. All events are emitted on the `wayfinder.emitter` event emitter, and are updated for each request.
-
 ### Global request events
+
+Wayfinder emits events during the routing and verification process for all requests, allowing you to monitor its operation. All events are emitted on the `wayfinder.emitter` event emitter, and are updated for each request.
 
 ```javascript
 // Provide events to the Wayfinder constructor for tracking all requests
@@ -650,7 +650,8 @@ wayfinder.emitter.on('verification-failed', (event) => {
 
 You can also provide events to the `request` function to track a single request. These events are called for each request and are not updated for subsequent requests.
 
-> Note: events are still emitted to the global event emitter for all requests. It is recommended to use the global event emitter for tracking all requests, and the request-specific events for tracking a single request.
+> [!INFO]
+> Events are still emitted to the global event emitter for all requests. It is recommended to use the global event emitter for tracking all requests, and the request-specific events for tracking a single request.
 
 ```javascript
 // create a wayfinder instance with verification enabled
