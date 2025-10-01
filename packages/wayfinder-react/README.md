@@ -2,12 +2,6 @@
 
 React components and hooks for the WayFinder project, making it easy to integrate AR.IO gateway routing in React applications.
 
-## Features
-
-- React components for displaying and interacting with AR.IO gateways
-- Hooks for gateway selection and routing
-- Integration with the WayFinder core library
-
 ## Installation
 
 ```bash
@@ -23,15 +17,8 @@ yarn add @ar.io/wayfinder-react @ar.io/wayfinder-core
 ### Initial Setup
 
 ```tsx
-import {
-  WayfinderProvider,
-  useWayfinderRequest,
-  useWayfinderUrl,
-} from '@ar.io/wayfinder-react';
-import {
-  NetworkGatewaysProvider,
-  LocalStorageGatewaysProvider,
-} from '@ar.io/wayfinder-core';
+import { WayfinderProvider } from '@ar.io/wayfinder-react';
+import { NetworkGatewaysProvider } from '@ar.io/wayfinder-core';
 import { ARIO } from '@ar.io/sdk';
 
 // Wrap your app with the WayfinderProvider
@@ -53,7 +40,7 @@ function App() {
 }
 ```
 
-### Hooks
+## Hooks
 
 ### useWayfinderUrl
 
@@ -81,21 +68,12 @@ function WayfinderImage({ txId }: { txId: string }) {
 }
 ```
 
-#### useWayfinderRequest
+### useWayfinderRequest
 
 Fetch the data via wayfinder, and optionally verify the data.
 
 ```tsx
-import {
-  WayfinderProvider,
-  useWayfinderRequest,
-  useWayfinderUrl,
-} from '@ar.io/wayfinder-react';
-import {
-  NetworkGatewaysProvider,
-  LocalStorageGatewaysProvider,
-} from '@ar.io/wayfinder-core';
-import { ARIO } from '@ar.io/sdk';
+import { useWayfinderRequest } from '@ar.io/wayfinder-react';
 
 function WayfinderData({ txId }: { txId: string }) {
   const request = useWayfinderRequest();

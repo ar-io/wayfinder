@@ -112,11 +112,11 @@ ar://NAME                        // ArNS name (paths supported)
 ar:///info                       // Gateway endpoint (/info)
 ```
 
-## Dynamic Wayfinder URLs
+## Dynamic Routing
 
 Wayfinder supports a `resolveUrl` method which generates dynamic redirect URLs to a target gateway based on the provided routing strategy. This function can be used to directly replace any hard-coded gateway URLs, and instead use Wayfinder's routing logic to select a gateway for the request.
 
-### Dynamic routing for ArNS names
+#### ArNS names
 
 Given an ArNS name, the redirect URL will be the same as the original URL, but with the gateway selected by Wayfinder's routing strategy.
 
@@ -127,7 +127,7 @@ const redirectUrl = await wayfinder.resolveUrl({
 // results in https://ardrive.<selected-gateway>
 ```
 
-### Dynamic routing for txIds
+#### Transaction Ids
 
 Given a txId, the redirect URL will be the same as the original URL, but with the gateway selected by Wayfinder's routing strategy.
 
@@ -138,7 +138,7 @@ const redirectUrl = await wayfinder.resolveUrl({
 // results in https://<selected-gateway>/example-tx-id
 ```
 
-### Dynamic routing for legacy arweave.net or arweave.dev URLs
+#### Legacy arweave.net or arweave.dev URLs
 
 Given a legacy arweave.net or arweave.dev URL, the redirect URL will be the same as the original URL, but with the gateway selected by Wayfinder's routing strategy.
 
@@ -149,7 +149,7 @@ const redirectUrl = await wayfinder.resolveUrl({
 // results in https://<selected-gateway>/example-tx-id
 ```
 
-### Dynamic routing for ar:// URLs
+#### ar:// URLs
 
 Given an ar:// URL, the redirect URL will be the same as the original URL, but with the gateway selected by Wayfinder's routing strategy.
 
@@ -683,7 +683,7 @@ Wayfinder supports intelligent caching:
 
 ## Advanced Usage
 
-### Using createWayfinderClient with Custom Providers
+### Custom Providers and Strategies
 
 For advanced use cases, you can provide custom providers and strategies to `createWayfinderClient`:
 
@@ -778,19 +778,18 @@ const wayfinder = new Wayfinder({
 });
 ```
 
-### Telemetry
+## Telemetry
 
 Wayfinder can optionally emit OpenTelemetry spans for every request. **By default, telemetry is disabled**. You can control this behavior with the `telemetrySettings` option.
 
 ```javascript
 
-const wayfinder = new Wayfinder({
-  gatewaysProvider: new NetworkGatewaysProvider({
-    ario: ARIO.mainnet(),
-    sortBy: 'operatorStake',
-    sortOrder: 'desc',
-    limit: 10,
-  }),
+import { createWayfinderClient } from '@ar.io/wayfinder-core';
+import { ARIO } from '@ar.io/sdk';
+
+const wayfinder = createWayfinderClient({
+  ario: ARIO.mainnet(),
+  // other settings...
   telemetrySettings: {
     enabled: true, // disabled by default (must be explicitly enabled)
     sampleRate: 0.1, // 10% sample rate by default
