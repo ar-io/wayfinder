@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-core
 
+## 1.5.0
+
+### Minor Changes
+
+- 93b02c5: Change default gateway provider to TrustedPeersGatewaysProvider for dynamic gateway discovery
+
 ## 1.4.3
 
 ### Patch Changes
