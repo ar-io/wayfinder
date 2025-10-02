@@ -19,7 +19,7 @@ yarn add @ar.io/wayfinder-core
 ```javascript
 import { createWayfinderClient } from '@ar.io/wayfinder-core';
 
-// Uses static gateways by default
+// Uses trusted peers gateway provider by default
 const wayfinder = createWayfinderClient();
 
 // Use Wayfinder to fetch and verify data using ar:// protocol
@@ -39,14 +39,14 @@ const wayfinder = createWayfinderClient({
 });
 ```
 
-### Static Gateways with Custom Options
+### Custom Trusted Gateway
 
 ```javascript
 import { createWayfinderClient } from '@ar.io/wayfinder-core';
 
-// Use custom static gateways
+// Use a specific trusted gateway for fetching peers
 const wayfinder = createWayfinderClient({
-  trustedGateways: ['https://permagate.io', 'https://arweave.net'],
+  trustedGateways: ['https://permagate.io'], // First gateway is used for TrustedPeersGatewaysProvider
   routing: 'fastest',
   verification: 'hash',
 });
@@ -162,7 +162,15 @@ const redirectUrl = await wayfinder.resolveUrl({
 
 ## Gateway Providers
 
-Gateway providers are responsible for providing a list of gateways to Wayfinder to choose from when routing requests. By default, Wayfinder will use the `NetworkGatewaysProvider` to get a list of gateways from the ARIO Network.
+Gateway providers are responsible for providing a list of gateways to Wayfinder to choose from when routing requests. By default, Wayfinder will use the `TrustedPeersGatewaysProvider` to fetch available gateways from a trusted gateway's peer list.
+
+| Provider                       | Description                                    | Use Case                                |
+| ------------------------------ | ---------------------------------------------- | --------------------------------------- |
+| `NetworkGatewaysProvider`      | Returns gateways from AR.IO Network based on on-chain metrics | Leverage AR.IO Network with quality filtering |
+| `TrustedPeersGatewaysProvider` | Fetches gateway list from a trusted gateway's `/ar-io/peers` endpoint | Dynamic gateway discovery from network peers |
+| `StaticGatewaysProvider`       | Returns a static list of gateways you provide  | Testing or when specific gateways are required |
+| `SimpleCacheGatewaysProvider`  | Wraps another provider with in-memory caching  | Reduce API calls and improve performance |
+| `LocalStorageGatewaysProvider` | Wraps another provider with browser localStorage caching | Persistent caching across page reloads |
 
 ### NetworkGatewaysProvider
 
@@ -182,11 +190,28 @@ const gatewayProvider = new NetworkGatewaysProvider({
 });
 ```
 
+### TrustedPeersGatewaysProvider
+
+Fetches a dynamic list of trusted peer gateways from an AR.IO gateway's `/ar-io/peers` endpoint. This provider is useful for discovering available gateways from a trusted source.
+
+```javascript
+import { TrustedPeersGatewaysProvider } from '@ar.io/wayfinder-core';
+
+const gatewayProvider = new TrustedPeersGatewaysProvider({
+  trustedGateway: 'https://arweave.net', // Gateway to fetch peers from
+});
+
+// The provider will fetch the peer list from https://arweave.net/ar-io/peers
+// and return an array of gateway URLs from the response
+```
+
 ### StaticGatewaysProvider
 
 The static gateway provider returns a list of gateways that you provide. This is useful for testing or for users who want to use a specific gateway for all requests.
 
 ```javascript
+import { StaticGatewaysProvider } from '@ar.io/wayfinder-core';
+
 const gatewayProvider = new StaticGatewaysProvider({
   gateways: ['https://arweave.net'],
 });
@@ -237,7 +262,7 @@ const gateway3 = await routingStrategy2.selectGateway({
 ### StaticRoutingStrategy
 
 ```javascript
-import { Wayfinder, StaticRoutingStrategy } from '@ar.io/wayfinder-core';
+import { StaticRoutingStrategy } from '@ar.io/wayfinder-core';
 
 const routingStrategy = new StaticRoutingStrategy({
   gateway: 'https://arweave.net',
@@ -311,7 +336,7 @@ const gateway3 = await routingStrategy2.selectGateway({
 Uses a preferred gateway, with a fallback strategy if the preferred gateway is not available. This is useful for builders who run their own gateways and want to use their own gateway as the preferred gateway, but also want to have a fallback strategy in case their gateway is not available.
 
 ```javascript
-import { Wayfinder, PreferredWithFallbackRoutingStrategy } from '@ar.io/wayfinder-core';
+import { PreferredWithFallbackRoutingStrategy, FastestPingRoutingStrategy } from '@ar.io/wayfinder-core';
 
 const routingStrategy = new PreferredWithFallbackRoutingStrategy({
   preferredGateway: 'https://permagate.io',
@@ -432,6 +457,14 @@ Because `SimpleCacheRoutingStrategy` accepts any `RoutingStrategy`, you can
 cache more complex compositions too.
 
 ```ts
+import {
+  RandomRoutingStrategy,
+  PingRoutingStrategy,
+  SimpleCacheRoutingStrategy,
+  NetworkGatewaysProvider,
+} from "@ar.io/wayfinder-core";
+import { ARIO } from '@ar.io/sdk';
+
 // use a dynamic list of gateways from the ARIO Network
 const randomStrategy = new RandomRoutingStrategy({
   gatewaysProvider: new NetworkGatewaysProvider({
@@ -536,7 +569,7 @@ const wayfinder = new Wayfinder({
 Verifies signatures of Arweave transactions and data items. Headers are retrieved from trusted gateways for use during verification. For a transaction, its data root is computed while streaming its data and then utilized alongside its headers for verification. For data items, the ANS-104 deep hash method of signature verification is used.
 
 ```javascript
-import { Wayfinder, SignatureVerificationStrategy } from '@ar-io/sdk';
+import { Wayfinder, SignatureVerificationStrategy } from '@ar.io/wayfinder-core';
 
 const wayfinder = new Wayfinder({
   verificationSettings: {
@@ -550,9 +583,9 @@ const wayfinder = new Wayfinder({
 
 ## Monitoring and Events
 
-Wayfinder emits events during the routing and verification process for all requests, allowing you to monitor its operation. All events are emitted on the `wayfinder.emitter` event emitter, and are updated for each request.
-
 ### Global request events
+
+Wayfinder emits events during the routing and verification process for all requests, allowing you to monitor its operation. All events are emitted on the `wayfinder.emitter` event emitter, and are updated for each request.
 
 ```javascript
 // Provide events to the Wayfinder constructor for tracking all requests
@@ -617,7 +650,8 @@ wayfinder.emitter.on('verification-failed', (event) => {
 
 You can also provide events to the `request` function to track a single request. These events are called for each request and are not updated for subsequent requests.
 
-> Note: events are still emitted to the global event emitter for all requests. It is recommended to use the global event emitter for tracking all requests, and the request-specific events for tracking a single request.
+> [!INFO]
+> Events are still emitted to the global event emitter for all requests. It is recommended to use the global event emitter for tracking all requests, and the request-specific events for tracking a single request.
 
 ```javascript
 // create a wayfinder instance with verification enabled

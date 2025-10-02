@@ -18,7 +18,7 @@ import assert from 'node:assert';
 import { before, describe, it } from 'node:test';
 
 import { WayfinderEmitter } from './emitter.js';
-import { StaticGatewaysProvider } from './gateways/static.js';
+import { TrustedPeersGatewaysProvider } from './gateways/trusted-peers.js';
 import { PingRoutingStrategy } from './routing/ping.js';
 import { RandomRoutingStrategy } from './routing/random.js';
 import { StaticRoutingStrategy } from './routing/static.js';
@@ -44,12 +44,8 @@ describe('Wayfinder', () => {
       // assert the gateways provider is a StaticGatewaysProvider
       assert.deepStrictEqual(
         wayfinder.gatewaysProvider,
-        new StaticGatewaysProvider({
-          gateways: [
-            'https://permagate.io',
-            'https://arweave.net',
-            'https://ardrive.net',
-          ],
+        new TrustedPeersGatewaysProvider({
+          trustedGateway: 'https://arweave.net',
         }),
       );
 
