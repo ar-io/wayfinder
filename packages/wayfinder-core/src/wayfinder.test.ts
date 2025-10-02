@@ -18,6 +18,7 @@ import assert from 'node:assert';
 import { before, describe, it } from 'node:test';
 
 import { WayfinderEmitter } from './emitter.js';
+import { TrustedPeersGatewaysProvider } from './gateways/trusted-peers.js';
 import { PingRoutingStrategy } from './routing/ping.js';
 import { RandomRoutingStrategy } from './routing/random.js';
 import { StaticRoutingStrategy } from './routing/static.js';
@@ -28,7 +29,6 @@ import {
   createWayfinderUrl,
   tapAndVerifyReadableStream,
 } from './wayfinder.js';
-import { TrustedPeersGatewaysProvider } from './gateways/trusted-peers.js';
 
 // TODO: replace with locally running gateway
 const gatewayUrl = 'permagate.io';
