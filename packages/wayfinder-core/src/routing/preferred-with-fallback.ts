@@ -17,13 +17,16 @@
 
 import { defaultLogger } from '../logger.js';
 import type { Logger, RoutingStrategy } from '../types.js';
+import { CompositeRoutingStrategy } from './composite.js';
 import { FastestPingRoutingStrategy } from './ping.js';
+import { PingRoutingStrategy } from './ping.js';
+import { StaticRoutingStrategy } from './static.js';
 
 export class PreferredWithFallbackRoutingStrategy implements RoutingStrategy {
   public readonly name = 'preferred-with-fallback';
   public readonly preferredGateway: URL;
   public readonly fallbackStrategy: RoutingStrategy;
-  private logger: Logger;
+  private compositeStrategy: CompositeRoutingStrategy;
 
   constructor({
     preferredGateway,
@@ -34,62 +37,40 @@ export class PreferredWithFallbackRoutingStrategy implements RoutingStrategy {
     fallbackStrategy?: RoutingStrategy;
     logger?: Logger;
   }) {
-    this.logger = logger;
     this.fallbackStrategy = fallbackStrategy;
     this.preferredGateway = new URL(preferredGateway);
+
+    // create a composite strategy that tries the preferred gateway first, then falls back
+    this.compositeStrategy = new CompositeRoutingStrategy({
+      strategies: [
+        new PingRoutingStrategy({
+          routingStrategy: new StaticRoutingStrategy({
+            gateway: preferredGateway,
+            logger,
+          }),
+          retries: 1,
+          timeoutMs: 1000,
+          logger,
+        }),
+        fallbackStrategy,
+      ],
+      logger,
+    });
   }
 
   async selectGateway({
     gateways,
-    path = '',
+    path,
     subdomain,
   }: {
     gateways?: URL[];
     path?: string;
     subdomain?: string;
-  }): Promise<URL> {
-    this.logger.debug('Attempting to connect to preferred gateway', {
-      preferredGateway: this.preferredGateway.toString(),
+  } = {}): Promise<URL> {
+    return this.compositeStrategy.selectGateway({
+      gateways,
+      path,
+      subdomain,
     });
-
-    try {
-      // Check if the preferred gateway is responsive
-      const url = new URL(this.preferredGateway.toString());
-      if (subdomain) {
-        url.hostname = `${subdomain}.${url.hostname}`;
-      }
-      const probeUrl = path ? new URL(path.replace(/^\//, ''), url) : url;
-      const response = await fetch(probeUrl.toString(), {
-        method: 'HEAD',
-        signal: AbortSignal.timeout(1000),
-      });
-
-      if (response.ok) {
-        this.logger.debug('Successfully connected to preferred gateway', {
-          preferredGateway: this.preferredGateway.toString(),
-        });
-        return this.preferredGateway;
-      }
-
-      throw new Error(
-        `Preferred gateway responded with status: ${response.status}`,
-      );
-    } catch (error) {
-      this.logger.warn(
-        'Failed to connect to preferred gateway, falling back to alternative strategy',
-        {
-          preferredGateway: this.preferredGateway.toString(),
-          error: error instanceof Error ? error.message : String(error),
-          fallbackStrategy: this.fallbackStrategy.constructor.name,
-        },
-      );
-
-      // Fall back to the provided routing strategy
-      return this.fallbackStrategy.selectGateway({
-        gateways,
-        path,
-        subdomain,
-      });
-    }
   }
 }

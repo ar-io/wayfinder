@@ -19,6 +19,7 @@ import type { GatewaysProvider, Logger, RoutingStrategy } from '../types.js';
 import { randomInt } from '../utils/random.js';
 
 export class RandomRoutingStrategy implements RoutingStrategy {
+  public readonly name = 'random';
   private gatewaysProvider?: GatewaysProvider;
   private logger: Logger;
 

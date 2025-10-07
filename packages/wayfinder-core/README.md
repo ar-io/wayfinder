@@ -228,6 +228,7 @@ Wayfinder supports multiple routing strategies to select target gateways for you
 | `RoundRobinRoutingStrategy`  | Selects gateways in round-robin order          | Good for load balancing and resilience  |
 | `FastestPingRoutingStrategy` | Selects the fastest gateway based on ping time | Good for performance and latency        |
 | `PreferredWithFallbackRoutingStrategy` | Uses a preferred gateway, with a fallback strategy if the preferred gateway is not available | Good for performance and resilience. Ideal for builders who run their own gateways. |
+| `CompositeRoutingStrategy` | Chains multiple routing strategies together, trying each sequentially until one succeeds | Good for complex fallback scenarios and maximum resilience |
 
 ### RandomRoutingStrategy
 
@@ -335,6 +336,8 @@ const gateway3 = await routingStrategy2.selectGateway({
 
 Uses a preferred gateway, with a fallback strategy if the preferred gateway is not available. This is useful for builders who run their own gateways and want to use their own gateway as the preferred gateway, but also want to have a fallback strategy in case their gateway is not available.
 
+> **Implementation Note:** This strategy is built using `CompositeRoutingStrategy` internally. It first attempts to ping the preferred gateway (using `PingRoutingStrategy` with `StaticRoutingStrategy`), and if that fails, it falls back to the specified fallback strategy.
+
 ```javascript
 import { PreferredWithFallbackRoutingStrategy, FastestPingRoutingStrategy } from '@ar.io/wayfinder-core';
 
@@ -345,6 +348,62 @@ const routingStrategy = new PreferredWithFallbackRoutingStrategy({
   }),
 });
 ```
+
+### CompositeRoutingStrategy
+
+Chains multiple routing strategies together, trying each sequentially until one succeeds. This strategy provides maximum resilience by allowing complex fallback scenarios where you can combine different routing approaches.
+
+```javascript
+import { 
+  CompositeRoutingStrategy, 
+  FastestPingRoutingStrategy, 
+  RandomRoutingStrategy,
+  StaticRoutingStrategy,
+  NetworkGatewaysProvider 
+} from '@ar.io/wayfinder-core';
+import { ARIO } from '@ar.io/sdk';
+
+// Example 1: Try fastest ping first, fallback to random selection
+const strategy = new CompositeRoutingStrategy({
+  strategies: [
+    new FastestPingRoutingStrategy({
+      timeoutMs: 500,
+      gatewaysProvider: new NetworkGatewaysProvider({
+        ario: ARIO.mainnet(),
+        sortBy: 'operatorStake',
+        limit: 10,
+      }),
+    }),
+    new RandomRoutingStrategy(), // fallback if ping strategy fails
+  ],
+});
+
+// Example 2: Try preferred gateway, then fastest ping, then any random gateway
+const complexStrategy = new CompositeRoutingStrategy({
+  strategies: [
+    new StaticRoutingStrategy({ gateway: 'https://my-preferred-gateway.com' }),
+    new FastestPingRoutingStrategy({ timeoutMs: 1000 }),
+    new RandomRoutingStrategy(), // final fallback
+  ],
+});
+
+const gateway = await strategy.selectGateway({
+  gateways: [new URL('https://gateway1.com'), new URL('https://gateway2.com')],
+});
+```
+
+**How it works:**
+1. The composite strategy tries each routing strategy in order
+2. If a strategy successfully returns a gateway, that gateway is used
+3. If a strategy throws an error, the next strategy is tried
+4. If all strategies fail, an error is thrown
+5. The first successful strategy short-circuits the process (remaining strategies are not tried)
+
+**Common Use Cases:**
+- **Performance + Resilience**: Try fastest ping first, fallback to random if ping fails
+- **Preferred + Network**: Use your own gateway first, fallback to AR.IO network selection
+- **Multi-tier Fallback**: Try premium gateways, then standard gateways, then any available gateway
+- **Development + Production**: Use local gateway in development, fallback to production gateways
 
 ### Strategy Composition Examples
 
@@ -483,6 +542,42 @@ const pingRandom = new PingRoutingStrategy({
 const cachedStrategy = new SimpleCacheRoutingStrategy({
   routingStrategy: pingRandom,
   ttlSeconds: 600,
+});
+```
+
+#### Complex multi-strategy fallback with CompositeRoutingStrategy
+
+Chain multiple strategies together for maximum resilience - try fastest ping first, then fall back to random selection if ping fails.
+
+```ts
+import {
+  CompositeRoutingStrategy,
+  FastestPingRoutingStrategy,
+  RandomRoutingStrategy,
+  NetworkGatewaysProvider,
+} from "@ar.io/wayfinder-core";
+import { ARIO } from '@ar.io/sdk';
+
+// Define gateway provider for both strategies
+const gatewayProvider = new NetworkGatewaysProvider({
+  ario: ARIO.mainnet(),
+  sortBy: 'operatorStake',
+  limit: 15,
+});
+
+// Create a composite strategy that tries fastest ping first, then random
+const strategy = new CompositeRoutingStrategy({
+  strategies: [
+    // Try fastest ping first (high performance, but may fail if all gateways are slow)
+    new FastestPingRoutingStrategy({
+      timeoutMs: 500,
+      gatewaysProvider: gatewayProvider,
+    }),
+    // Fallback to random selection (guaranteed to work if gateways exist)
+    new RandomRoutingStrategy({
+      gatewaysProvider: gatewayProvider,
+    }),
+  ],
 });
 ```
 
