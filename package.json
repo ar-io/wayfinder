@@ -26,7 +26,7 @@
     "version": "npm run build && npx changeset version",
     "publish": "npm run build && npx changeset publish",
     "publish:alpha": "npx changeset pre enter alpha || echo 'Already in pre mode, skipping' && npm run version && npm run publish",
-    "publish:main": "npx changeset pre exit && npm run version && npm run publish",
+    "publish:main": "npx changeset pre exit || echo 'Not in pre mode, skipping pre exit' && npm run version && npm run publish",
     "lint:fix": "biome check --write --unsafe && eslint --fix packages/*/src",
     "lint:check": "biome check --unsafe && eslint packages/*/src",
     "format:fix": "biome format --write",
