@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-core
 
+## 1.6.0
+
+### Minor Changes
+
+- 53f87a1: Add `CompositeRoutingStrategy` for complex routing composition'
+
 ## 1.5.0
 
 ### Minor Changes
