@@ -215,7 +215,6 @@ export interface GatewaysProvider {
 }
 
 export interface RoutingStrategy {
-  name: string;
   selectGateway(params: {
     gateways?: URL[];
     path?: string;

@@ -207,7 +207,6 @@ describe('Wayfinder', () => {
         } = { gateways: [] };
 
         const mockRoutingStrategy: RoutingStrategy = {
-          name: 'mock',
           selectGateway: async (params) => {
             capturedParams = params;
             return new URL(`http://${gatewayUrl}`);
@@ -255,7 +254,6 @@ describe('Wayfinder', () => {
         } = { gateways: [] };
 
         const mockRoutingStrategy: RoutingStrategy = {
-          name: 'mock',
           selectGateway: async (params) => {
             capturedParams = params;
             return new URL(`http://${gatewayUrl}`);
@@ -307,7 +305,6 @@ describe('Wayfinder', () => {
         } = { gateways: [] };
 
         const mockRoutingStrategy: RoutingStrategy = {
-          name: 'mock',
           selectGateway: async (params) => {
             capturedParams = params;
             return new URL(`http://${gatewayUrl}`);
@@ -355,7 +352,6 @@ describe('Wayfinder', () => {
         } = { gateways: [] };
 
         const mockRoutingStrategy: RoutingStrategy = {
-          name: 'mock',
           selectGateway: async (params) => {
             capturedParams = params;
             return new URL(`http://${gatewayUrl}`);
