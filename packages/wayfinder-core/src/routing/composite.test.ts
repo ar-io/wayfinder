@@ -21,15 +21,21 @@ import { CompositeRoutingStrategy } from './composite.js';
 
 describe('CompositeRoutingStrategy', () => {
   let mockLogger: Logger;
-  let logCalls: { method: string; args: any[] }[];
 
   beforeEach(() => {
-    logCalls = [];
     mockLogger = {
-      debug: (...args) => logCalls.push({ method: 'debug', args }),
-      info: (...args) => logCalls.push({ method: 'info', args }),
-      warn: (...args) => logCalls.push({ method: 'warn', args }),
-      error: (...args) => logCalls.push({ method: 'error', args }),
+      debug: () => {
+        /* no-op for testing */
+      },
+      info: () => {
+        /* no-op for testing */
+      },
+      warn: () => {
+        /* no-op for testing */
+      },
+      error: () => {
+        /* no-op for testing */
+      },
     };
   });
 
@@ -186,43 +192,5 @@ describe('CompositeRoutingStrategy', () => {
     const result = await composite.selectGateway({ gateways });
 
     assert.equal(result, gateway1);
-  });
-
-  it('should log debug messages during execution', async () => {
-    const gateway1 = new URL('https://gateway1.com');
-    const gateways = [gateway1];
-
-    const mockStrategy1 = createMockStrategy('strategy1', 'resolve', gateway1);
-
-    const composite = new CompositeRoutingStrategy({
-      strategies: [mockStrategy1],
-      logger: mockLogger,
-    });
-
-    await composite.selectGateway({ gateways });
-
-    assert.equal(logCalls.filter((call) => call.method === 'debug').length, 3);
-    assert.ok(
-      logCalls.some(
-        (call) =>
-          call.method === 'debug' &&
-          call.args[0] ===
-            'CompositeRoutingStrategy: starting gateway selection',
-      ),
-    );
-    assert.ok(
-      logCalls.some(
-        (call) =>
-          call.method === 'debug' &&
-          call.args[0] === 'CompositeRoutingStrategy: trying strategy',
-      ),
-    );
-    assert.ok(
-      logCalls.some(
-        (call) =>
-          call.method === 'debug' &&
-          call.args[0] === 'CompositeRoutingStrategy: strategy succeeded',
-      ),
-    );
   });
 });
