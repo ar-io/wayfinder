@@ -6,5 +6,7 @@
     "@ar.io/wayfinder-extension": "1.0.15",
     "@ar.io/wayfinder-react": "1.0.20"
   },
-  "changesets": []
+  "changesets": [
+    "busy-loops-bake"
+  ]
 }
