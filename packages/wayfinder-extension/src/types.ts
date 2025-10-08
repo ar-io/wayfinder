@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { AoGatewayWithAddress } from '@ar.io/sdk';
+import { AoGatewayWithAddress } from '@ar.io/sdk/web';
 
 export type RedirectedTabInfo = {
   originalGateway: string; // The original gateway FQDN (e.g., "permagate.io")
