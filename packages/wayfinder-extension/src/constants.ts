@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { AoGatewayWithAddress } from '@ar.io/sdk';
+import { AoGatewayWithAddress } from '@ar.io/sdk/web';
 
 // Last resort fallback gateway - only used when AR.IO network is unreachable
 export const FALLBACK_GATEWAY: AoGatewayWithAddress = {

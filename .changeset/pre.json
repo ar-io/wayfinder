@@ -1,0 +1,10 @@
+{
+  "mode": "pre",
+  "tag": "alpha",
+  "initialVersions": {
+    "@ar.io/wayfinder-core": "1.5.0",
+    "@ar.io/wayfinder-extension": "1.0.15",
+    "@ar.io/wayfinder-react": "1.0.20"
+  },
+  "changesets": []
+}
