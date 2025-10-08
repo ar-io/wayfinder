@@ -1,5 +1,15 @@
 # @ar.io/wayfinder-core
 
+## 1.6.0-alpha.0
+
+### Minor Changes
+
+- 53f87a1: Add `CompositeRoutingStrategy` for complex routing composition'
+
+### Patch Changes
+
+- a10a4d1: Update `@opentelemetry/exporter-trace-otlp-http` to `0.206.0` in `wayfinder-core` to fix `XMLHTTPRequest` errors caused by telemetry in `wayfinder-extension`
+
 ## 1.5.0
 
 ### Minor Changes

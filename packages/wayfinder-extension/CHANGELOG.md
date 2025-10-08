@@ -1,5 +1,14 @@
 # @ar.io/wayfinder-extension
 
+## 1.0.16-alpha.0
+
+### Patch Changes
+
+- a10a4d1: Update `@opentelemetry/exporter-trace-otlp-http` to `0.206.0` in `wayfinder-core` to fix `XMLHTTPRequest` errors caused by telemetry in `wayfinder-extension`
+- Updated dependencies [a10a4d1]
+- Updated dependencies [53f87a1]
+  - @ar.io/wayfinder-core@1.6.0-alpha.0
+
 ## 1.0.15
 
 ### Patch Changes
