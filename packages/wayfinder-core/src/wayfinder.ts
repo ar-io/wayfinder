@@ -18,7 +18,10 @@
 import { defaultLogger } from './logger.js';
 
 import { Span, type Tracer, context, trace } from '@opentelemetry/api';
-import { BasicTracerProvider, NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
+import {
+  BasicTracerProvider,
+  NodeTracerProvider,
+} from '@opentelemetry/sdk-trace-node';
 import { WebTracerProvider } from '@opentelemetry/sdk-trace-web';
 import { WayfinderEmitter } from './emitter.js';
 import { TrustedPeersGatewaysProvider } from './gateways/trusted-peers.js';
@@ -593,7 +596,10 @@ export class Wayfinder {
   /**
    * OpenTelemetry tracer provider instance
    */
-  protected tracerProvider?: WebTracerProvider | NodeTracerProvider | BasicTracerProvider;
+  protected tracerProvider?:
+    | WebTracerProvider
+    | NodeTracerProvider
+    | BasicTracerProvider;
 
   /**
    * OpenTelemetry tracer instance
