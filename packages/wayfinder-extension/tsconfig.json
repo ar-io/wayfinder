@@ -7,7 +7,6 @@
     "strict": true,
     "jsx": "preserve",
     "sourceMap": true,
-    "baseUrl": ".",
     "lib": ["dom", "esnext"],
     "types": ["chrome"]
   },

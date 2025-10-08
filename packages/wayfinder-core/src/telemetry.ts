@@ -27,6 +27,7 @@ import { ZoneContextManager } from '@opentelemetry/context-zone';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import {
+  BasicTracerProvider,
   BatchSpanProcessor,
   SimpleSpanProcessor,
   TraceIdRatioBasedSampler,
@@ -48,7 +49,11 @@ import { assertZoneLoaded, loadZonePolyfill } from './utils/zone.js';
 import { WAYFINDER_CORE_VERSION } from './version.js';
 
 // avoid re-initializing the tracer provider and tracer
-let tracerProvider: WebTracerProvider | NodeTracerProvider | undefined;
+let tracerProvider:
+  | WebTracerProvider
+  | NodeTracerProvider
+  | BasicTracerProvider
+  | undefined;
 let tracer: Tracer | undefined;
 
 // load zone.js polyfill if it's not already loaded
@@ -65,7 +70,10 @@ export const initTelemetry = ({
   clientVersion,
 }: TelemetrySettings):
   | {
-      tracerProvider: WebTracerProvider | NodeTracerProvider;
+      tracerProvider:
+        | WebTracerProvider
+        | NodeTracerProvider
+        | BasicTracerProvider;
       tracer: Tracer;
     }
   | undefined => {
@@ -97,33 +105,40 @@ export const initTelemetry = ({
     'client.version': clientVersion,
   });
 
-  const useWebTracer = isBrowser() || isChromeExtension();
-  const spanProcessor = useWebTracer
-    ? new SimpleSpanProcessor(exporter)
-    : new BatchSpanProcessor(exporter, {
-        scheduledDelayMillis: 500,
-      });
-  const provider = useWebTracer
+  // use web tracer if in browser, basic tracer if in chrome extension, node tracer otherwise
+  const provider = isBrowser()
     ? new WebTracerProvider({
         sampler,
         resource,
-        spanProcessors: [spanProcessor],
+        spanProcessors: [new SimpleSpanProcessor(exporter)],
       })
-    : new NodeTracerProvider({
-        sampler,
-        resource,
-        spanProcessors: [spanProcessor],
-      });
+    : isChromeExtension()
+      ? new BasicTracerProvider({
+          sampler,
+          resource,
+          spanProcessors: [new SimpleSpanProcessor(exporter)],
+        })
+      : new NodeTracerProvider({
+          sampler,
+          resource,
+          spanProcessors: [
+            new BatchSpanProcessor(exporter, {
+              scheduledDelayMillis: 500,
+            }),
+          ],
+        });
 
   // ensure zone.js is loaded before registering the tracer provider if we're using the browser
-  if (useWebTracer) {
+  if (isBrowser()) {
     assertZoneLoaded();
   }
 
-  provider.register({
-    // zone.js is only used in the browser (node/extensions/service workers don't need it)
-    contextManager: useWebTracer ? new ZoneContextManager() : undefined,
-  });
+  if ('register' in provider && typeof provider.register === 'function') {
+    provider.register({
+      // zone.js is only used in the browser (node/extensions/service workers don't need it)
+      contextManager: isBrowser() ? new ZoneContextManager() : undefined,
+    });
+  }
 
   tracerProvider = provider;
   tracer = provider.getTracer('wayfinder-core');
