@@ -20,7 +20,7 @@ import { randomInt } from '../utils/random.js';
 
 export class RandomRoutingStrategy implements RoutingStrategy {
   public readonly name = 'random';
-  private gatewaysProvider?: GatewaysProvider;
+  public gatewaysProvider?: GatewaysProvider;
   private logger: Logger;
 
   constructor({
