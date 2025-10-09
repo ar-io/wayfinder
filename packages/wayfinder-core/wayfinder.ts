@@ -41,7 +41,7 @@ const _strategy = new PreferredWithFallbackRoutingStrategy({
 });
 
 const wayfinder = createWayfinderClient({
-  ario: ARIO.mainnet(),
+  gatewaysProvider: gatewayProvider,
   routingStrategy: new StaticRoutingStrategy({
     gateway: 'https://arweave.net',
   }),
