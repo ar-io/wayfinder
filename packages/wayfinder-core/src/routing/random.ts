@@ -20,7 +20,7 @@ import { randomInt } from '../utils/random.js';
 
 export class RandomRoutingStrategy implements RoutingStrategy {
   public readonly name = 'random';
-  private gatewaysProvider?: GatewaysProvider;
+  public gatewaysProvider?: GatewaysProvider;
   private logger: Logger;
 
   constructor({
@@ -50,9 +50,5 @@ export class RandomRoutingStrategy implements RoutingStrategy {
       gateways: resolvedGateways.map((g) => g.toString()),
     });
     return resolvedGateways[randomInt(0, resolvedGateways.length)];
-  }
-
-  getGatewaysProvider(): GatewaysProvider | undefined {
-    return this.gatewaysProvider;
   }
 }

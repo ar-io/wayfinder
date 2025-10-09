@@ -22,7 +22,7 @@ export class RoundRobinRoutingStrategy implements RoutingStrategy {
   private gateways: URL[];
   private currentIndex: number;
   private logger: Logger;
-  private gatewaysProvider?: GatewaysProvider;
+  public gatewaysProvider?: GatewaysProvider;
 
   constructor({
     gateways,
@@ -69,9 +69,5 @@ export class RoundRobinRoutingStrategy implements RoutingStrategy {
     });
     this.currentIndex = (this.currentIndex + 1) % this.gateways.length;
     return gateway;
-  }
-
-  getGatewaysProvider(): GatewaysProvider | undefined {
-    return this.gatewaysProvider;
   }
 }

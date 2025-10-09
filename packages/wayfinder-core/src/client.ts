@@ -220,9 +220,12 @@ export function createWayfinderClient(
   });
   if (customGatewaysProvider) {
     gatewaysProvider = customGatewaysProvider;
-  } else if (customRoutingStrategy) {
+  } else if (
+    customRoutingStrategy &&
+    'gatewaysProvider' in customRoutingStrategy
+  ) {
     gatewaysProvider =
-      customRoutingStrategy?.getGatewaysProvider?.() || gatewaysProvider;
+      customRoutingStrategy.gatewaysProvider as GatewaysProvider;
   } else if (ario) {
     const { sortBy, sortOrder } = selectionSortMap[gatewaySelection];
     gatewaysProvider = new NetworkGatewaysProvider({

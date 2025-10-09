@@ -22,7 +22,7 @@ export class FastestPingRoutingStrategy implements RoutingStrategy {
   private timeoutMs: number;
   private logger: Logger;
   private maxConcurrency: number;
-  private gatewaysProvider?: GatewaysProvider;
+  gatewaysProvider?: GatewaysProvider;
 
   constructor({
     timeoutMs = 500,
@@ -133,10 +133,6 @@ export class FastestPingRoutingStrategy implements RoutingStrategy {
       });
     }
   }
-
-  getGatewaysProvider(): GatewaysProvider | undefined {
-    return this.gatewaysProvider;
-  }
 }
 
 /**
@@ -150,7 +146,7 @@ export class PingRoutingStrategy implements RoutingStrategy {
   private logger: Logger;
   private retries: number;
   private timeoutMs: number;
-  private gatewaysProvider?: GatewaysProvider;
+  public gatewaysProvider?: GatewaysProvider;
 
   constructor({
     routingStrategy,
@@ -257,9 +253,5 @@ export class PingRoutingStrategy implements RoutingStrategy {
         retries: this.retries,
       },
     });
-  }
-
-  getGatewaysProvider(): GatewaysProvider | undefined {
-    return this.gatewaysProvider;
   }
 }
