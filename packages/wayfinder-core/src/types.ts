@@ -221,6 +221,7 @@ export interface RoutingStrategy {
     path?: string;
     subdomain?: string;
   }): Promise<URL>;
+  getGatewaysProvider?(): GatewaysProvider | undefined;
 }
 
 export interface VerificationStrategy {

@@ -70,4 +70,8 @@ export class RoundRobinRoutingStrategy implements RoutingStrategy {
     this.currentIndex = (this.currentIndex + 1) % this.gateways.length;
     return gateway;
   }
+
+  getGatewaysProvider(): GatewaysProvider | undefined {
+    return this.gatewaysProvider;
+  }
 }

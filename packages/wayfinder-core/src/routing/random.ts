@@ -51,4 +51,8 @@ export class RandomRoutingStrategy implements RoutingStrategy {
     });
     return resolvedGateways[randomInt(0, resolvedGateways.length)];
   }
+
+  getGatewaysProvider(): GatewaysProvider | undefined {
+    return this.gatewaysProvider;
+  }
 }

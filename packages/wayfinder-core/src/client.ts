@@ -214,9 +214,15 @@ export function createWayfinderClient(
   const cacheTTLSeconds = typeof cache === 'object' ? cache.ttlSeconds : 300; // 5 minutes default
 
   // Set up gateways provider
-  let gatewaysProvider: GatewaysProvider;
+  let gatewaysProvider: GatewaysProvider = new TrustedPeersGatewaysProvider({
+    trustedGateway: trustedGateways[0] || 'https://arweave.net',
+    logger,
+  });
   if (customGatewaysProvider) {
     gatewaysProvider = customGatewaysProvider;
+  } else if (customRoutingStrategy) {
+    gatewaysProvider =
+      customRoutingStrategy?.getGatewaysProvider?.() || gatewaysProvider;
   } else if (ario) {
     const { sortBy, sortOrder } = selectionSortMap[gatewaySelection];
     gatewaysProvider = new NetworkGatewaysProvider({
@@ -225,24 +231,18 @@ export function createWayfinderClient(
       sortOrder,
       limit: 10,
     });
-  } else {
-    // Fall back to trusted peers gateway provider when no ARIO instance is provided
-    gatewaysProvider = new TrustedPeersGatewaysProvider({
-      trustedGateway: trustedGateways[0] || 'https://arweave.net',
-      logger,
-    });
   }
 
   // Wrap with cache if enabled
   if (cacheEnabled) {
     if (isBrowser()) {
       gatewaysProvider = new LocalStorageGatewaysProvider({
-        gatewaysProvider: gatewaysProvider,
+        gatewaysProvider: gatewaysProvider!,
         ttlSeconds: cacheTTLSeconds,
       });
     } else {
       gatewaysProvider = new SimpleCacheGatewaysProvider({
-        gatewaysProvider: gatewaysProvider,
+        gatewaysProvider: gatewaysProvider!,
         ttlSeconds: cacheTTLSeconds,
       });
     }
