@@ -23,7 +23,7 @@
     "test": "npm run test --workspaces",
     "clean": "rimraf packages/*/dist",
     "build": "npm run build --workspaces",
-    "version": "npm run build && npx changeset version",
+    "version": "npm run build && npx changeset version && npm run lint:fix",
     "publish": "npm run build && npx changeset publish",
     "publish:alpha": "npx changeset pre enter alpha || echo 'Already in pre mode, skipping' && npm run version && npm run publish",
     "publish:main": "npx changeset pre exit || echo 'Not in pre mode, skipping pre exit' && npm run version && npm run publish",

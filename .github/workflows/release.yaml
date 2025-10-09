@@ -40,12 +40,11 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-        
+
       - name: Create Release Pull Request
         id: changesets
         uses: changesets/action@v1
         with:
-          version: npm run version
           publish: npm run publish:${{ github.ref_name }}
           commit: "chore(release): version packages"
           title: "chore(release): version packages"
