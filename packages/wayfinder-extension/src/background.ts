@@ -737,7 +737,7 @@ function handleBeforeRequest(details: any) {
 /**
  * Handle messages from content scripts and popup
  */
-chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   // Validate message types
   const validMessages = [
     'syncGatewayAddressRegistry',
@@ -768,17 +768,19 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
 
   // handle content script ready signal
   if (request.type === 'contentScriptReady' && sender.tab?.id) {
-    try {
-      const tabId = sender.tab.id;
-      readyTabs.add(tabId);
-      // flush any verification messages that were queued on page load while waiting for the content script to be ready
-      await flushMessageQueue(tabId);
-      sendResponse({ success: true });
-    } catch (error: any) {
-      logger.error('Error handling content script ready signal:', error);
-      sendResponse({ error: error?.message || 'Unknown error' });
-    }
-    return;
+    (async () => {
+      try {
+        const tabId = sender.tab.id;
+        readyTabs.add(tabId);
+        // flush any verification messages that were queued on page load while waiting for the content script to be ready
+        await flushMessageQueue(tabId);
+        sendResponse({ success: true });
+      } catch (error: any) {
+        logger.error('Error handling content script ready signal:', error);
+        sendResponse({ error: error?.message || 'Unknown error' });
+      }
+    })();
+    return true;
   }
 
   // Handle openSettings from error pages
@@ -789,29 +791,33 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
 
   // Sync gateway registry
   if (request.message === 'syncGatewayAddressRegistry') {
-    try {
-      await syncGatewayAddressRegistry();
-      resetWayfinderInstance();
-      sendResponse({ success: true });
-    } catch (error: any) {
-      logger.error('Error syncing gateway address registry:', error);
-      sendResponse({ error: error?.message || 'Unknown error' });
-    }
-    return;
+    (async () => {
+      try {
+        await syncGatewayAddressRegistry();
+        resetWayfinderInstance();
+        sendResponse({ success: true });
+      } catch (error: any) {
+        logger.error('Error syncing gateway address registry:', error);
+        sendResponse({ error: error?.message || 'Unknown error' });
+      }
+    })();
+    return true;
   }
 
   // Set AO CU URL
   if (request.message === 'setAoCuUrl') {
-    try {
-      await reinitializeArIO();
-      await syncGatewayAddressRegistry();
-      resetWayfinderInstance();
-      sendResponse({ success: true });
-    } catch (error: any) {
-      logger.error('Error setting AO CU URL:', error);
-      sendResponse({ error: error?.message || 'Unknown error' });
-    }
-    return;
+    (async () => {
+      try {
+        await reinitializeArIO();
+        await syncGatewayAddressRegistry();
+        resetWayfinderInstance();
+        sendResponse({ success: true });
+      } catch (error: any) {
+        logger.error('Error setting AO CU URL:', error);
+        sendResponse({ error: error?.message || 'Unknown error' });
+      }
+    })();
+    return true;
   }
 
   // Reset Wayfinder instance (for configuration changes)
@@ -823,91 +829,90 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
 
   // Convert ar:// URL to HTTP URL
   if (request.type === 'convertArUrlToHttpUrl') {
-    try {
-      const arUrl = request.arUrl;
-      const url = await getRoutableGatewayUrl(arUrl);
-      if (!url) {
-        throw new Error('URL resolution failed, response is invalid');
+    (async () => {
+      try {
+        const url = await getRoutableGatewayUrl(request.arUrl);
+        if (!url) throw new Error('URL resolution failed');
+        sendResponse({ url: url.url });
+      } catch (error: any) {
+        logger.error('Error converting ar:// URL:', error);
+        sendResponse({ error: error?.message || 'Unknown error' });
       }
-      sendResponse({ url: url.url });
-    } catch (error: any) {
-      logger.error('Error converting ar:// URL:', error);
-      sendResponse({ error: error?.message || 'Unknown error' });
-    }
-    return;
+    })();
+    return true;
   }
 
   // Handle routing strategy updates
   if (request.message === 'updateRoutingStrategy') {
-    try {
-      logger.info(
-        `[SETTINGS] Updating routing strategy to: ${request.strategy}`,
-      );
-      await chrome.storage.local.set({ routingMethod: request.strategy });
-      logger.info(
-        `[SETTINGS] Routing strategy saved to storage: ${request.strategy}`,
-      );
-      resetWayfinderInstance();
-
-      // Confirm the setting was saved
-      const { routingMethod } = await chrome.storage.local.get('routingMethod');
-      logger.info(
-        `[SETTINGS] Wayfinder will reinitialize with routing: ${routingMethod}`,
-      );
-      sendResponse({ success: true });
-    } catch (error: any) {
-      logger.error('Error updating routing strategy:', error);
-      sendResponse({ error: error?.message || 'Unknown error' });
-    }
-    return;
+    (async () => {
+      try {
+        logger.info(
+          `[SETTINGS] Updating routing strategy to: ${request.strategy}`,
+        );
+        await chrome.storage.local.set({ routingMethod: request.strategy });
+        resetWayfinderInstance();
+        const { routingMethod } =
+          await chrome.storage.local.get('routingMethod');
+        logger.info(
+          `[SETTINGS] Wayfinder will reinitialize with routing: ${routingMethod}`,
+        );
+        sendResponse({ success: true });
+      } catch (error: any) {
+        logger.error('Error updating routing strategy:', error);
+        sendResponse({ error: error?.message || 'Unknown error' });
+      }
+    })();
+    return true;
   }
 
   // Handle advanced settings updates
   if (request.message === 'updateAdvancedSettings') {
-    try {
-      await chrome.storage.local.set(request.settings);
-      // Reset Wayfinder instance to use new settings
-      resetWayfinderInstance();
-      // Log what changed
-      const changedSettings = Object.keys(request.settings).join(', ');
-      logger.info(
-        `[SETTINGS] Wayfinder will reinitialize with updated: ${changedSettings}`,
-      );
-
-      sendResponse({ success: true });
-    } catch (error: any) {
-      logger.error('Error updating advanced settings:', error);
-      sendResponse({ error: error?.message || 'Unknown error' });
-    }
-    return;
+    (async () => {
+      try {
+        await chrome.storage.local.set(request.settings);
+        resetWayfinderInstance();
+        const changedSettings = Object.keys(request.settings).join(', ');
+        logger.info(
+          `[SETTINGS] Wayfinder reinitialized with updated: ${changedSettings}`,
+        );
+        sendResponse({ success: true });
+      } catch (error: any) {
+        logger.error('Error updating advanced settings:', error);
+        sendResponse({ error: error?.message || 'Unknown error' });
+      }
+    })();
+    return true;
   }
 
   // Handle advanced settings reset
   if (request.message === 'resetAdvancedSettings') {
-    try {
-      await chrome.storage.local.remove(['processId', 'aoCuUrl']);
-      // Reset Wayfinder instance to use defaults
-      resetWayfinderInstance();
-      sendResponse({ success: true });
-    } catch (error: any) {
-      logger.error('Error resetting advanced settings:', error);
-      sendResponse({ error: error?.message || 'Unknown error' });
-    }
-    return;
+    (async () => {
+      try {
+        await chrome.storage.local.remove(['processId', 'aoCuUrl']);
+        resetWayfinderInstance();
+        sendResponse({ success: true });
+      } catch (error: any) {
+        logger.error('Error resetting advanced settings:', error);
+        sendResponse({ error: error?.message || 'Unknown error' });
+      }
+    })();
+    return true;
   }
 
   if (request.message === 'updateShowVerificationToasts') {
-    try {
-      await chrome.storage.local.set({
-        showVerificationToasts: request.enabled,
-      });
-      showVerificationToasts = request.enabled;
-      sendResponse({ success: true });
-    } catch (error: any) {
-      logger.error('Error updating verification mode:', error);
-      sendResponse({ error: error?.message || 'Unknown error' });
-    }
-    return;
+    (async () => {
+      try {
+        await chrome.storage.local.set({
+          showVerificationToasts: request.enabled,
+        });
+        showVerificationToasts = request.enabled;
+        sendResponse({ success: true });
+      } catch (error: any) {
+        logger.error('Error updating verification mode:', error);
+        sendResponse({ error: error?.message || 'Unknown error' });
+      }
+    })();
+    return true;
   }
 });
 
