@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-extension
 
+## 1.0.17-alpha.0
+
+### Patch Changes
+
+- 19f5d0a: fix(extension): ensure async messages in background return responses
+
 ## 1.0.16
 
 ### Patch Changes
