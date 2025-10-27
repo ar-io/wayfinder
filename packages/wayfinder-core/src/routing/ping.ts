@@ -19,6 +19,7 @@ import { defaultLogger } from '../logger.js';
 import type { GatewaysProvider, Logger, RoutingStrategy } from '../types.js';
 
 export class FastestPingRoutingStrategy implements RoutingStrategy {
+  public readonly name = 'fastest-ping';
   private timeoutMs: number;
   private logger: Logger;
   private maxConcurrency: number;
@@ -142,10 +143,11 @@ export class FastestPingRoutingStrategy implements RoutingStrategy {
  * If the HEAD check fails after all retries, it throws an error.
  */
 export class PingRoutingStrategy implements RoutingStrategy {
-  private routingStrategy: RoutingStrategy;
+  public readonly name = 'ping';
+  public readonly routingStrategy: RoutingStrategy;
   private logger: Logger;
-  private retries: number;
-  private timeoutMs: number;
+  public readonly retries: number;
+  public readonly timeoutMs: number;
   private gatewaysProvider?: GatewaysProvider;
 
   constructor({
