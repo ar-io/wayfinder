@@ -82,15 +82,18 @@ describe('Wayfinder', () => {
     before(() => {
       wayfinder = new Wayfinder({
         routingSettings: {
-          strategy: new RandomRoutingStrategy(),
+          strategy: new RandomRoutingStrategy({
+            gatewaysProvider: stubbedGatewaysProvider,
+          }),
         },
-        gatewaysProvider: stubbedGatewaysProvider,
       });
     });
 
     it('should fetch the data using the selected gateway', async () => {
-      const nativeFetch = await fetch(`https://ao.${gatewayUrl}`);
-      const response = await wayfinder.request('ar://ao');
+      const [nativeFetch, response] = await Promise.all([
+        fetch(`https://ao.${gatewayUrl}`),
+        wayfinder.request('ar://ao'),
+      ]);
       assert.strictEqual(response.status, 200);
       assert.strictEqual(response.status, nativeFetch.status);
       // assert the arns headers are the same
@@ -104,15 +107,14 @@ describe('Wayfinder', () => {
     });
 
     it('should fetch a tx id using the selected gateway', async () => {
-      const nativeFetch = await fetch(
-        `https://${gatewayUrl}/KKmRbIfrc7wiLcG0zvY1etlO0NBx1926dSCksxCIN3A`,
-        // follow redirects
-        { redirect: 'follow' },
-      );
-      // wayfinder redirects by default
-      const response = await wayfinder.request(
-        'ar://KKmRbIfrc7wiLcG0zvY1etlO0NBx1926dSCksxCIN3A',
-      );
+      const [nativeFetch, response] = await Promise.all([
+        fetch(
+          `https://${gatewayUrl}/KKmRbIfrc7wiLcG0zvY1etlO0NBx1926dSCksxCIN3A`,
+          // follow redirects
+          { redirect: 'follow' },
+        ),
+        wayfinder.request('ar://KKmRbIfrc7wiLcG0zvY1etlO0NBx1926dSCksxCIN3A'),
+      ]);
       assert.strictEqual(response.status, 200);
       assert.strictEqual(response.status, nativeFetch.status);
     });
