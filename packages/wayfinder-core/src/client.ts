@@ -17,9 +17,9 @@
 
 import type { AoARIORead } from '@ar.io/sdk';
 import { LocalStorageGatewaysProvider } from './gateways/local-storage-cache.js';
-import { NetworkGatewaysProvider } from './gateways/network.js';
 import { SimpleCacheGatewaysProvider } from './gateways/simple-cache.js';
 import { TrustedPeersGatewaysProvider } from './gateways/trusted-peers.js';
+import { defaultLogger } from './logger.js';
 import { FastestPingRoutingStrategy } from './routing/ping.js';
 import { PreferredWithFallbackRoutingStrategy } from './routing/preferred-with-fallback.js';
 import { RandomRoutingStrategy } from './routing/random.js';
@@ -31,8 +31,6 @@ import type {
   Logger,
   RoutingOption,
   RoutingStrategy,
-  SortBy,
-  SortOrder,
   TelemetrySettings,
   VerificationOption,
   VerificationStrategy,
@@ -44,41 +42,36 @@ import { HashVerificationStrategy } from './verification/hash-verification.js';
 import { RemoteVerificationStrategy } from './verification/remote-verification.js';
 import { Wayfinder } from './wayfinder.js';
 
-const selectionSortMap: Record<
-  GatewaySelection,
-  { sortBy: SortBy; sortOrder: SortOrder }
-> = {
-  'best-performance': {
-    sortBy: 'weights.gatewayPerformanceRatio',
-    sortOrder: 'desc',
-  },
-  'most-tenured': { sortBy: 'weights.tenureWeight', sortOrder: 'desc' },
-  'highest-staked': { sortBy: 'weights.stakeWeight', sortOrder: 'desc' },
-  'top-ranked': {
-    sortBy: 'weights.normalizedCompositeWeight',
-    sortOrder: 'desc',
-  },
-  'longest-streak': {
-    sortBy: 'stats.passedConsecutiveEpochs',
-    sortOrder: 'desc',
-  },
+const DEFAULT_TRUSTED_GATEWAY = 'https://permagate.io';
+
+const warnDeprecatedOption = (
+  logger: Logger,
+  option: string,
+  guidance: string,
+) => {
+  logger.warn(
+    `[wayfinder] The \`${option}\` option for createWayfinderClient() is deprecated. ${guidance}`,
+  );
 };
 
 export interface CreateWayfinderClientOptions {
   /**
    * The ARIO instance to use for network gateways provider
    * If not provided, will fall back to static gateways
+   * @deprecated Provide a custom `gatewaysProvider` instead.
    */
   ario?: AoARIORead;
   /**
    * The routing strategy to use
    * @default 'random'
+   * @deprecated Provide a `routingStrategy` instance instead.
    */
   routing?: RoutingOption;
 
   /**
    * The verification strategy to use
    * @default 'disabled'
+   * @deprecated Provide a `verificationStrategy` instance instead.
    */
   verification?: VerificationOption;
 
@@ -86,12 +79,14 @@ export interface CreateWayfinderClientOptions {
    * The gateway selection when using NetworkGatewaysProvider (requires ario instance)
    * Only applies when using AR.IO network - ignored for static gateways
    * @default 'top-ranked'
+   * @deprecated Configure gateway selection via your custom `gatewaysProvider`.
    */
   gatewaySelection?: GatewaySelection;
 
   /**
    * The trusted gateways to use
    * @default ['https://permagate.io']
+   * @deprecated Configure trusted gateways via your `verificationStrategy`.
    */
   trustedGateways?: string[];
 
@@ -113,6 +108,7 @@ export interface CreateWayfinderClientOptions {
   /**
    * Custom gateways provider (overrides gatewaySelection)
    * @default undefined
+   * @deprecated Instantiate `Wayfinder` directly when providing custom gateways providers.
    */
   gatewaysProvider?: GatewaysProvider;
 
@@ -138,8 +134,9 @@ export interface CreateWayfinderClientOptions {
   /**
    * The fallback routing strategy to use when routing is 'preferred'
    * @default 'random'
+   * @deprecated Compose fallback behavior directly in your `routingStrategy`.
    */
-  fallbackStrategy?: RoutingOption;
+  fallbackStrategy?: RoutingOption | RoutingStrategy;
 
   /**
    * Telemetry configuration for OpenTelemetry tracing
@@ -154,16 +151,33 @@ export interface CreateWayfinderClientOptions {
  * @param config
  * @returns
  */
+type UseRoutingStrategyConfig = {
+  gatewaysProvider?: GatewaysProvider;
+  logger?: Logger;
+  preferredGateway?: string;
+  fallbackStrategy?: RoutingStrategy;
+};
+
 export const useRoutingStrategy = (
   strategy: RoutingOption,
-  config?: any,
+  config: UseRoutingStrategyConfig = {},
 ): RoutingStrategy => {
+  const { fallbackStrategy, preferredGateway, ...baseConfig } = config;
+
+  const resolvedFallbackStrategy =
+    fallbackStrategy ?? new FastestPingRoutingStrategy(baseConfig);
+
   const routingMap: Record<RoutingOption, RoutingStrategy> = {
-    random: new RandomRoutingStrategy(config),
-    fastest: new FastestPingRoutingStrategy(config),
-    preferred: new PreferredWithFallbackRoutingStrategy(config),
-    'round-robin': new RoundRobinRoutingStrategy(config),
+    random: new RandomRoutingStrategy(baseConfig),
+    fastest: new FastestPingRoutingStrategy(baseConfig),
+    preferred: new PreferredWithFallbackRoutingStrategy({
+      preferredGateway: preferredGateway ?? 'https://arweave.net',
+      fallbackStrategy: resolvedFallbackStrategy,
+      logger: config.logger,
+    }),
+    'round-robin': new RoundRobinRoutingStrategy(baseConfig),
   };
+
   return routingMap[strategy];
 };
 
@@ -187,103 +201,114 @@ export const useVerificationStrategy = (
 };
 
 /**
- * Creates a Wayfinder client with the specified configuration
- * Uses static gateways by default. Provide an `ario` instance to use NetworkGatewaysProvider
+ * Creates a Wayfinder client with the specified configuration.
+ * Uses the trusted peers gateways provider and random routing by default.
  */
 export function createWayfinderClient(
   options: CreateWayfinderClientOptions = {},
 ): Wayfinder {
   const {
-    routing = 'random',
-    verification = 'disabled',
-    trustedGateways = ['https://permagate.io'],
     cache = false,
-    gatewaySelection = 'top-ranked',
     logger,
-    ario,
-    gatewaysProvider: customGatewaysProvider,
     routingStrategy: customRoutingStrategy,
     verificationStrategy: customVerificationStrategy,
-    preferredGateway = 'https://arweave.net',
-    fallbackStrategy = 'random',
     telemetry,
   } = options;
+
+  const resolvedLogger = logger ?? defaultLogger;
+  const deprecatedGuidance: Array<
+    [keyof CreateWayfinderClientOptions, string]
+  > = [
+    ['routing', 'Provide a `routingStrategy` instance instead.'],
+    ['verification', 'Provide a `verificationStrategy` instance instead.'],
+    [
+      'gatewaySelection',
+      'Configure gateway selection via your custom `routingStrategy`.',
+    ],
+    [
+      'gatewaysProvider',
+      'Instantiate `Wayfinder` directly when providing custom gateways providers.',
+    ],
+    [
+      'fallbackStrategy',
+      'Compose fallback behavior directly in your `routingStrategy`.',
+    ],
+    [
+      'preferredGateway',
+      'Configure preferred gateways within your `routingStrategy`.',
+    ],
+    [
+      'ario',
+      'Instantiate `Wayfinder` directly and supply your own gateways provider.',
+    ],
+    [
+      'trustedGateways',
+      'Configure trusted gateways via your `verificationStrategy`.',
+    ],
+  ];
+
+  for (const [option, guidance] of deprecatedGuidance) {
+    if (Object.prototype.hasOwnProperty.call(options, option)) {
+      warnDeprecatedOption(resolvedLogger, option, guidance);
+    }
+  }
 
   // Parse cache configuration
   const cacheEnabled = !!cache;
   const cacheTTLSeconds = typeof cache === 'object' ? cache.ttlSeconds : 300; // 5 minutes default
-
-  // Set up gateways provider
-  let gatewaysProvider: GatewaysProvider;
-  if (customGatewaysProvider) {
-    gatewaysProvider = customGatewaysProvider;
-  } else if (ario) {
-    const { sortBy, sortOrder } = selectionSortMap[gatewaySelection];
-    gatewaysProvider = new NetworkGatewaysProvider({
-      ario,
-      sortBy,
-      sortOrder,
-      limit: 10,
-    });
-  } else {
-    // Fall back to trusted peers gateway provider when no ARIO instance is provided
-    gatewaysProvider = new TrustedPeersGatewaysProvider({
-      trustedGateway: trustedGateways[0] || 'https://arweave.net',
-      logger,
-    });
-  }
-
-  // Wrap with cache if enabled
-  if (cacheEnabled) {
-    if (isBrowser()) {
-      gatewaysProvider = new LocalStorageGatewaysProvider({
-        gatewaysProvider: gatewaysProvider,
-        ttlSeconds: cacheTTLSeconds,
-      });
-    } else {
-      gatewaysProvider = new SimpleCacheGatewaysProvider({
-        gatewaysProvider: gatewaysProvider,
-        ttlSeconds: cacheTTLSeconds,
-      });
-    }
-  }
 
   // Set up routing strategy
   let routingStrategy: RoutingStrategy;
   if (customRoutingStrategy) {
     routingStrategy = customRoutingStrategy;
   } else {
-    routingStrategy = useRoutingStrategy(routing, {
-      preferredGateway,
-      fallbackStrategy,
+    // Create base gateways provider
+    let gatewaysProvider: GatewaysProvider = new TrustedPeersGatewaysProvider({
+      trustedGateway: DEFAULT_TRUSTED_GATEWAY,
+      logger: resolvedLogger,
     });
 
-    // Wrap with cache if enabled
+    // Wrap gateways provider with cache if enabled
+    if (cacheEnabled) {
+      if (isBrowser()) {
+        gatewaysProvider = new LocalStorageGatewaysProvider({
+          gatewaysProvider: gatewaysProvider,
+          ttlSeconds: cacheTTLSeconds,
+          logger: resolvedLogger,
+        });
+      } else {
+        gatewaysProvider = new SimpleCacheGatewaysProvider({
+          gatewaysProvider: gatewaysProvider,
+          ttlSeconds: cacheTTLSeconds,
+          logger: resolvedLogger,
+        });
+      }
+    }
+
+    // Create routing strategy with the gateways provider
+    routingStrategy = useRoutingStrategy('random', {
+      gatewaysProvider,
+      logger: resolvedLogger,
+    });
+
+    // Wrap routing strategy with cache if enabled
     if (cacheEnabled) {
       // TODO: add browser cache support for routing strategy
       routingStrategy = new SimpleCacheRoutingStrategy({
         routingStrategy,
         ttlSeconds: cacheTTLSeconds,
+        logger: resolvedLogger,
       });
     }
   }
 
   // Set up verification strategy
-  let verificationStrategy: VerificationStrategy | undefined;
-  const verificationEnabled = true;
-
-  if (customVerificationStrategy) {
-    verificationStrategy = customVerificationStrategy;
-  } else {
-    verificationStrategy = useVerificationStrategy(verification, {
-      trustedGateways: trustedGateways.map((url) => new URL(url)),
-    });
-  }
+  const verificationStrategy: VerificationStrategy | undefined =
+    customVerificationStrategy;
 
   // Create Wayfinder options
   const wayfinderOptions: WayfinderOptions = {
-    logger,
-    gatewaysProvider,
+    logger: resolvedLogger,
     routingSettings: {
       strategy: routingStrategy,
     },
@@ -291,7 +316,7 @@ export function createWayfinderClient(
   };
 
   // Only add verification settings if not disabled
-  if (verificationEnabled && verificationStrategy) {
+  if (verificationStrategy) {
     wayfinderOptions.verificationSettings = {
       enabled: true,
       strategy: verificationStrategy,

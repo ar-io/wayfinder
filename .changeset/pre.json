@@ -6,5 +6,9 @@
     "@ar.io/wayfinder-extension": "1.0.15",
     "@ar.io/wayfinder-react": "1.0.20"
   },
-  "changesets": ["busy-loops-bake"]
+  "changesets": [
+    "deprecate-wayfinder-gateways-provider",
+    "hot-apes-care",
+    "update-extension-wayfinder-api"
+  ]
 }

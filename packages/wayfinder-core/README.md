@@ -29,51 +29,112 @@ const response = await wayfinder.request('ar://example-name');
 ### Using with AR.IO Network
 
 ```javascript
-import { createWayfinderClient } from '@ar.io/wayfinder-core';
+import {
+  createWayfinderClient,
+  FastestPingRoutingStrategy,
+  NetworkGatewaysProvider,
+} from '@ar.io/wayfinder-core';
 import { ARIO } from '@ar.io/sdk';
 
-// Provide ARIO instance to use AR.IO network gateways
-const wayfinder = createWayfinderClient({
+const gatewaysProvider = new NetworkGatewaysProvider({
   ario: ARIO.mainnet(),
-  gatewaySelection: 'highest-performing', // Selection criteria for AR.IO network
+  sortBy: 'operatorStake',
+  sortOrder: 'desc',
+  limit: 10,
+});
+
+const wayfinder = createWayfinderClient({
+  routingStrategy: new FastestPingRoutingStrategy({ gatewaysProvider }),
 });
 ```
 
 ### Custom Trusted Gateway
 
 ```javascript
-import { createWayfinderClient } from '@ar.io/wayfinder-core';
+import {
+  createWayfinderClient,
+  FastestPingRoutingStrategy,
+  HashVerificationStrategy,
+} from '@ar.io/wayfinder-core';
 
-// Use a specific trusted gateway for fetching peers
+const trustedGateways = [new URL('https://permagate.io')];
+
 const wayfinder = createWayfinderClient({
-  trustedGateways: ['https://permagate.io'], // First gateway is used for TrustedPeersGatewaysProvider
-  routing: 'fastest',
-  verification: 'hash',
+  routingStrategy: new FastestPingRoutingStrategy(),
+  verificationStrategy: new HashVerificationStrategy({
+    trustedGateways,
+  }),
 });
 ```
 
+> [!NOTE]
+> The legacy `trustedGateways` option on `createWayfinderClient` is deprecated.
+> Configure trusted gateways on the verification strategy instead, as shown
+> above.
+
 ### Configuration Options
 
-`createWayfinderClient` accepts the following options:
+> [!IMPORTANT]
+> `createWayfinderClient` only honors the `cache`, `routingStrategy`,
+> `verificationStrategy`, and `telemetry` options. All other legacy options are
+> deprecated and ignored. Supply concrete strategy instances or instantiate
+> `Wayfinder` directly for advanced customization.
+
+By default the helper constructs a
+`TrustedPeersGatewaysProvider('https://permagate.io')`, applies a
+`RandomRoutingStrategy`, and disables verification.
 
 ```javascript
+import {
+  createWayfinderClient,
+  FastestPingRoutingStrategy,
+  HashVerificationStrategy,
+} from '@ar.io/wayfinder-core';
+
 const wayfinder = createWayfinderClient({
-  // Routing strategy
-  routing: 'fastest', // 'random' | 'fastest' | 'round-robin' | 'preferred'
-  
-  // Verification strategy  
-  verification: 'hash', // 'hash' | 'data-root' | 'remote' | 'disabled' (default: 'disabled')
-  
-  // Gateway selection (only applies when ario instance is provided)
-  gatewaySelection: 'highest-performing', // 'highest-performing' | 'longest-tenure' | etc.
-  
-  // Enable caching for routing and gateway providers
-  cache: true, // Uses default 5-minute TTL
-  // OR specify custom TTL:
-  // cache: { ttlSeconds: 3600 }, // 1 hour
-  
-  // List of trusted gateways for verification
-  trustedGateways: ['https://arweave.net', 'https://permagate.io'],
+  cache: { ttlSeconds: 600 },
+  routingStrategy: new FastestPingRoutingStrategy(),
+  verificationStrategy: new HashVerificationStrategy({
+    trustedGateways: [new URL('https://permagate.io')],
+  }),
+});
+```
+
+For custom gateway providers or bespoke routing logic, instantiate `Wayfinder`
+directly:
+
+```javascript
+import {
+  FastestPingRoutingStrategy,
+  HashVerificationStrategy,
+  NetworkGatewaysProvider,
+  Wayfinder,
+} from '@ar.io/wayfinder-core';
+import { ARIO } from '@ar.io/sdk';
+
+const gatewaysProvider = new NetworkGatewaysProvider({
+  ario: ARIO.mainnet(),
+  sortBy: 'operatorStake',
+  sortOrder: 'desc',
+  limit: 10,
+});
+
+const trustedGateways = [
+  new URL('https://arweave.net'),
+  new URL('https://permagate.io'),
+];
+
+const wayfinder = new Wayfinder({
+  gatewaysProvider,
+  routingSettings: {
+    strategy: new FastestPingRoutingStrategy({ gatewaysProvider }),
+  },
+  verificationSettings: {
+    strategy: new HashVerificationStrategy({
+      trustedGateways,
+    }),
+  },
+  telemetrySettings: { enabled: true },
 });
 ```
 
@@ -82,23 +143,22 @@ const wayfinder = createWayfinderClient({
 When using the AR.IO Network provider, you can specify how gateways are selected:
 
 ```javascript
-import { createWayfinderClient } from '@ar.io/wayfinder-core';
+import {
+  createWayfinderClient,
+  NetworkGatewaysProvider,
+  RandomRoutingStrategy,
+} from '@ar.io/wayfinder-core';
 import { ARIO } from '@ar.io/sdk';
 
-const wayfinder = createWayfinderClient({
+const gatewaysProvider = new NetworkGatewaysProvider({
   ario: ARIO.mainnet(),
-  
-  // Gateway selection (only works with ARIO instance)
-  gatewaySelection: 'top-ranked', // Options:
-  // 'top-ranked' - Gateways with highest composite weight
-  // 'most-tenured' - Gateways with longest service history  
-  // 'highest-staked' - Gateways with most stake
-  // 'top-ranked' - Gateways with highest composite weight
-  // 'best-performance' - Gateways with best performance metrics
-  // 'longest-streak' - Gateways with longest uptime streak
-  
-  routing: 'random', // How to select from the filtered gateways
-  cache: { ttlSeconds: 600 }, // Cache for 10 minutes
+  sortBy: 'weights.normalizedCompositeWeight',
+  sortOrder: 'desc',
+  limit: 10,
+});
+
+const wayfinder = createWayfinderClient({
+  routingStrategy: new RandomRoutingStrategy({ gatewaysProvider }),
 });
 ```
 
@@ -637,7 +697,7 @@ const wayfinder = new Wayfinder({
   verificationSettings: {
     enabled: true,
     strategy: new HashVerificationStrategy({
-      trustedGateways: ['https://permagate.io'],
+      trustedGateways: [new URL('https://permagate.io')],
     }),
   },
 });
@@ -654,7 +714,7 @@ const wayfinder = new Wayfinder({
   verificationSettings: {
     enabled: true,
     strategy: new DataRootVerificationStrategy({
-      trustedGateways: ['https://permagate.io'],
+      trustedGateways: [new URL('https://permagate.io')],
     }),
   },
 });
@@ -671,7 +731,7 @@ const wayfinder = new Wayfinder({
   verificationSettings: {
     enabled: true,
     strategy: new SignatureVerificationStrategy({
-      trustedGateways: ['https://permagate.io'],
+      trustedGateways: [new URL('https://permagate.io')],
     }),
   },
 });
@@ -787,7 +847,7 @@ const response = await wayfinder.request('ar://example-name', {
 
 ### Optional Dependencies
 
-The `@ar.io/sdk` package is an optional peer dependency. To use AR.IO network gateways, you must explicitly provide an `ario` instance:
+The `@ar.io/sdk` package is an optional peer dependency. To use AR.IO network gateways, instantiate a `NetworkGatewaysProvider` with an `ario` instance and supply it to `Wayfinder` directly:
 
 **With AR.IO SDK (Recommended):**
 ```bash
@@ -795,7 +855,7 @@ npm install @ar.io/wayfinder-core @ar.io/sdk
 # or
 yarn add @ar.io/wayfinder-core @ar.io/sdk
 ```
-- `createWayfinderClient({ ario: ARIO.mainnet() })` uses AR.IO network gateways
+- `new NetworkGatewaysProvider({ ario: ARIO.mainnet() })` exposes AR.IO network gateways
 - Supports intelligent gateway selection criteria
 - Dynamic gateway discovery and updates
 
@@ -815,29 +875,27 @@ Wayfinder supports intelligent caching:
 
 ### Custom Providers and Strategies
 
-For advanced use cases, you can provide custom providers and strategies to `createWayfinderClient`:
+For advanced use cases, provide strategy instances explicitly:
 
 ```javascript
-import { createWayfinderClient, NetworkGatewaysProvider } from '@ar.io/wayfinder-core';
-import { ARIO } from '@ar.io/sdk';
+import {
+  createWayfinderClient,
+  FastestPingRoutingStrategy,
+  HashVerificationStrategy,
+} from '@ar.io/wayfinder-core';
 
 const wayfinder = createWayfinderClient({
-  ario: ARIO.mainnet()
-  
-  // Gateway selection
-  gatewaySelection: 'top-ranked',
-  
   // Enable caching with custom TTL
   cache: { ttlSeconds: 3600 }, // 1 hour
 
-  // Override 'routing' with custom routing strategy
+  // Supply a bespoke routing strategy
   routingStrategy: new FastestPingRoutingStrategy({
     timeoutMs: 1000,
   }),
 
-  // Override 'verification' with custom verification strategy
+  // Configure verification explicitly
   verificationStrategy: new HashVerificationStrategy({
-    trustedGateways: ['https://permagate.io'],
+    trustedGateways: [new URL('https://permagate.io')],
   }),
 });
 ```
@@ -888,7 +946,7 @@ const wayfinder = new Wayfinder({
     enabled: true,
     // verify the data using the hash of the data against a list of trusted gateways
     strategy: new HashVerificationStrategy({
-      trustedGateways: ['https://permagate.io'],
+      trustedGateways: [new URL('https://permagate.io')],
     }),
     // strict verification - if true, verification failures will cause requests to fail
     strict: true,
@@ -910,17 +968,15 @@ const wayfinder = new Wayfinder({
 
 ## Telemetry
 
-Wayfinder can optionally emit OpenTelemetry spans for every request. **By default, telemetry is disabled**. You can control this behavior with the `telemetrySettings` option.
+Wayfinder can optionally emit OpenTelemetry spans for every request. **By default, telemetry is disabled**. You can control this behavior with the `telemetry` option.
 
 ```javascript
 
 import { createWayfinderClient } from '@ar.io/wayfinder-core';
-import { ARIO } from '@ar.io/sdk';
 
 const wayfinder = createWayfinderClient({
-  ario: ARIO.mainnet(),
   // other settings...
-  telemetrySettings: {
+  telemetry: {
     enabled: true, // disabled by default (must be explicitly enabled)
     sampleRate: 0.1, // 10% sample rate by default
     exporterUrl: 'https://your-custom-otel-exporter', // optional, defaults to https://api.honeycomb.io/v1/traces

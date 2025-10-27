@@ -39,11 +39,7 @@ import {
   ATTR_SERVICE_VERSION,
 } from '@opentelemetry/semantic-conventions';
 import { WayfinderEmitter } from './emitter.js';
-import type {
-  GatewaysProvider,
-  TelemetrySettings,
-  WayfinderOptions,
-} from './types.js';
+import type { TelemetrySettings, WayfinderOptions } from './types.js';
 import { isBrowser, isChromeExtension } from './utils/browser.js';
 import { assertZoneLoaded, loadZonePolyfill } from './utils/zone.js';
 import { WAYFINDER_CORE_VERSION } from './version.js';
@@ -155,14 +151,12 @@ export const startRequestSpans = ({
   tracer,
   verificationSettings,
   routingSettings,
-  gatewaysProvider,
 }: {
   originalUrl?: string;
   emitter?: WayfinderEmitter;
   tracer?: Tracer;
   verificationSettings?: WayfinderOptions['verificationSettings'];
   routingSettings?: WayfinderOptions['routingSettings'];
-  gatewaysProvider?: GatewaysProvider;
 } = {}) => {
   const parentSpan = tracer?.startSpan(
     'wayfinder.request',
@@ -179,7 +173,6 @@ export const startRequestSpans = ({
             .join(','),
         'routing.strategy':
           routingSettings?.strategy?.constructor.name ?? 'undefined',
-        gatewaysProvider: gatewaysProvider?.constructor.name,
       },
     },
     context.active(),

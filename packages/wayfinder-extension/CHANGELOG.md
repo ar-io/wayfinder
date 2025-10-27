@@ -1,5 +1,30 @@
 # @ar.io/wayfinder-extension
 
+## 1.0.17-alpha.2
+
+### Patch Changes
+
+- 398dc74: Update extension to use latest Wayfinder class API
+
+  - Fix static routing strategy assignment bug
+  - Remove deprecated gatewaysProvider parameter from Wayfinder constructor
+  - Pass gatewaysProvider directly to routing strategies
+  - Remove invalid onRoutingFailed event handler
+  - Update constructor to use latest API patterns
+
+## 1.0.17-alpha.1
+
+### Patch Changes
+
+- Updated dependencies [1e07a31]
+  - @ar.io/wayfinder-core@1.7.0-alpha.0
+
+## 1.0.17-alpha.0
+
+### Patch Changes
+
+- 19f5d0a: fix(extension): ensure async messages in background return responses
+
 ## 1.0.16
 
 ### Patch Changes

@@ -1,5 +1,12 @@
 # @ar.io/wayfinder-react
 
+## 1.0.23-alpha.0
+
+### Patch Changes
+
+- Updated dependencies [1e07a31]
+  - @ar.io/wayfinder-core@1.7.0-alpha.0
+
 ## 1.0.22
 
 ### Patch Changes
