@@ -19,7 +19,6 @@ import { before, describe, it } from 'node:test';
 
 import { WayfinderEmitter } from './emitter.js';
 import { TrustedPeersGatewaysProvider } from './gateways/trusted-peers.js';
-import { PingRoutingStrategy } from './routing/ping.js';
 import { RandomRoutingStrategy } from './routing/random.js';
 import { StaticRoutingStrategy } from './routing/static.js';
 import { GatewaysProvider, RoutingStrategy, WayfinderEvent } from './types.js';
@@ -38,24 +37,27 @@ const stubbedGatewaysProvider: GatewaysProvider = {
 
 describe('Wayfinder', () => {
   describe('default configuration', () => {
-    it('should use the default gateways provider', () => {
+    it('should use the default configuration', () => {
       const wayfinder = new Wayfinder();
 
-      // assert the gateways provider is a StaticGatewaysProvider
-      assert.deepStrictEqual(
-        wayfinder.gatewaysProvider,
-        new TrustedPeersGatewaysProvider({
-          trustedGateway: 'https://arweave.net',
-        }),
+      // gatewaysProvider is deprecated but maintained for backwards compatibility
+      assert.ok(
+        wayfinder.gatewaysProvider instanceof TrustedPeersGatewaysProvider,
+      );
+      // Check that the nested RandomRoutingStrategy has a gatewaysProvider
+      const pingStrategy = wayfinder.routingSettings.strategy as any;
+      assert.ok(pingStrategy.routingStrategy instanceof RandomRoutingStrategy);
+      assert.ok(
+        pingStrategy.routingStrategy.gatewaysProvider instanceof
+          TrustedPeersGatewaysProvider,
       );
 
-      // check the routing settings
-      assert.deepStrictEqual(wayfinder.routingSettings, {
-        strategy: new PingRoutingStrategy({
-          routingStrategy: new RandomRoutingStrategy(),
-        }),
-        events: {},
-      });
+      // check the routing settings structure (without deep equality due to gatewaysProvider injection)
+      assert.strictEqual(
+        wayfinder.routingSettings.strategy.constructor.name,
+        'PingRoutingStrategy',
+      );
+      assert.deepStrictEqual(wayfinder.routingSettings.events, {});
       // check the verification settings is disabled and has a stubbed out verification strategy
       assert.deepStrictEqual(wayfinder.verificationSettings, {
         strategy: undefined,

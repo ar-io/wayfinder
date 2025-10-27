@@ -138,6 +138,7 @@ export interface WayfinderOptions {
 
   /**
    * The gateways provider to use for routing requests.
+   * @deprecated Use routing strategies with their own gateways providers instead.
    */
   gatewaysProvider?: GatewaysProvider;
 
