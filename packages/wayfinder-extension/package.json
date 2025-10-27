@@ -1,6 +1,6 @@
 {
   "name": "@ar.io/wayfinder-extension",
-  "version": "1.0.17-alpha.1",
+  "version": "1.0.17-alpha.2",
   "description": "Fast, verifiable, decentralized access to ar:// links via AR.IO’s Permanent Cloud.",
   "private": true,
   "type": "module",
