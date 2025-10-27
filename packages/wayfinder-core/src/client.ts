@@ -257,40 +257,41 @@ export function createWayfinderClient(
   const cacheEnabled = !!cache;
   const cacheTTLSeconds = typeof cache === 'object' ? cache.ttlSeconds : 300; // 5 minutes default
 
-  // Set up gateways provider
-  let gatewaysProvider: GatewaysProvider = new TrustedPeersGatewaysProvider({
-    trustedGateway: DEFAULT_TRUSTED_GATEWAY,
-    logger: resolvedLogger,
-  });
-
-  // Wrap with cache if enabled
-  if (cacheEnabled) {
-    if (isBrowser()) {
-      gatewaysProvider = new LocalStorageGatewaysProvider({
-        gatewaysProvider: gatewaysProvider,
-        ttlSeconds: cacheTTLSeconds,
-        logger: resolvedLogger,
-      });
-    } else {
-      gatewaysProvider = new SimpleCacheGatewaysProvider({
-        gatewaysProvider: gatewaysProvider,
-        ttlSeconds: cacheTTLSeconds,
-        logger: resolvedLogger,
-      });
-    }
-  }
-
   // Set up routing strategy
   let routingStrategy: RoutingStrategy;
   if (customRoutingStrategy) {
     routingStrategy = customRoutingStrategy;
   } else {
+    // Create base gateways provider
+    let gatewaysProvider: GatewaysProvider = new TrustedPeersGatewaysProvider({
+      trustedGateway: DEFAULT_TRUSTED_GATEWAY,
+      logger: resolvedLogger,
+    });
+
+    // Wrap gateways provider with cache if enabled
+    if (cacheEnabled) {
+      if (isBrowser()) {
+        gatewaysProvider = new LocalStorageGatewaysProvider({
+          gatewaysProvider: gatewaysProvider,
+          ttlSeconds: cacheTTLSeconds,
+          logger: resolvedLogger,
+        });
+      } else {
+        gatewaysProvider = new SimpleCacheGatewaysProvider({
+          gatewaysProvider: gatewaysProvider,
+          ttlSeconds: cacheTTLSeconds,
+          logger: resolvedLogger,
+        });
+      }
+    }
+
+    // Create routing strategy with the gateways provider
     routingStrategy = useRoutingStrategy('random', {
       gatewaysProvider,
       logger: resolvedLogger,
     });
 
-    // Wrap with cache if enabled
+    // Wrap routing strategy with cache if enabled
     if (cacheEnabled) {
       // TODO: add browser cache support for routing strategy
       routingStrategy = new SimpleCacheRoutingStrategy({
@@ -308,7 +309,6 @@ export function createWayfinderClient(
   // Create Wayfinder options
   const wayfinderOptions: WayfinderOptions = {
     logger: resolvedLogger,
-    gatewaysProvider,
     routingSettings: {
       strategy: routingStrategy,
     },

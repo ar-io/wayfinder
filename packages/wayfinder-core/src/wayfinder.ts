@@ -294,14 +294,12 @@ export function tapAndVerifyReadableStream({
  */
 export const wayfinderFetch = ({
   logger = defaultLogger,
-  gatewaysProvider,
   verificationSettings,
   routingSettings,
   emitter,
   tracer,
 }: {
   logger?: Logger;
-  gatewaysProvider: GatewaysProvider;
   verificationSettings: NonNullable<WayfinderOptions['verificationSettings']>;
   routingSettings: NonNullable<WayfinderOptions['routingSettings']>;
   emitter?: WayfinderEmitter;
@@ -334,7 +332,6 @@ export const wayfinderFetch = ({
       originalUrl: url,
       verificationSettings: requestVerificationSettings ?? verificationSettings,
       routingSettings: requestRoutingSettings ?? routingSettings,
-      gatewaysProvider,
       emitter: requestEmitter,
       tracer,
     });
@@ -364,7 +361,6 @@ export const wayfinderFetch = ({
 
         // select the target gateway
         const selectedGateway = await routingSettings.strategy?.selectGateway({
-          gateways: await gatewaysProvider.getGateways(),
           path,
           subdomain,
         });
@@ -561,13 +557,7 @@ export class Wayfinder {
   /**
    * The gateways provider is responsible for providing the list of gateways to use for routing requests.
    *
-   * @example
-   * const wayfinder = new Wayfinder({
-   *   gatewaysProvider: new SimpleCacheGatewaysProvider({
-   *     gatewaysProvider: new NetworkGatewaysProvider({ ario: ARIO.mainnet() }),
-   *     ttlSeconds: 60 * 60 * 24, // 1 day
-   *   }),
-   * });
+   * Useful if you want to get the list of gateways from a dynamic source.
    */
   public readonly gatewaysProvider: GatewaysProvider;
 
@@ -685,7 +675,7 @@ export class Wayfinder {
     // default logger to use if no logger is provided
     this.logger = logger ?? defaultLogger;
 
-    // default gateways provider to use if no provider is provided
+    // deprecated - kept for backwards compatibility
     this.gatewaysProvider =
       gatewaysProvider ??
       new TrustedPeersGatewaysProvider({
@@ -711,16 +701,28 @@ export class Wayfinder {
       ...verificationSettings,
     };
 
-    // default routing settings
+    // default routing settings with backwards compatibility for gatewaysProvider
     this.routingSettings = {
       events: {},
       strategy: new PingRoutingStrategy({
         logger,
-        routingStrategy: new RandomRoutingStrategy({ logger }),
+        routingStrategy: new RandomRoutingStrategy({
+          logger,
+          // use the gateways provider given, or fallback to the default if non provided
+          gatewaysProvider: this.gatewaysProvider,
+        }),
       }),
       // overwrite the default settings with the provided ones
       ...routingSettings,
     };
+
+    // If a custom routing strategy is provided, inject the gatewaysProvider into it
+    if (routingSettings?.strategy) {
+      this.injectGatewaysProviderIntoStrategy(
+        routingSettings.strategy,
+        this.gatewaysProvider,
+      );
+    }
 
     this.emitter = new WayfinderEmitter({
       verification: this.verificationSettings?.events,
@@ -767,7 +769,37 @@ export class Wayfinder {
     });
   }
 
-  // TODO: consider property getters and setters for strategies and settings
+  /**
+   * Helper method to inject gatewaysProvider into routing strategies that support it
+   * @param strategy - The routing strategy to inject into
+   * @param gatewaysProvider - The gateways provider to inject
+   */
+  private injectGatewaysProviderIntoStrategy(
+    strategy: RoutingStrategy,
+    gatewaysProvider: GatewaysProvider,
+  ): void {
+    // Check if the strategy has a gatewaysProvider property that can be set
+    if (
+      'gatewaysProvider' in strategy &&
+      strategy.gatewaysProvider === undefined
+    ) {
+      (strategy as any).gatewaysProvider = gatewaysProvider;
+    }
+
+    // Handle composite strategies that might have nested strategies
+    if ('routingStrategy' in strategy && strategy.routingStrategy) {
+      this.injectGatewaysProviderIntoStrategy(
+        strategy.routingStrategy as RoutingStrategy,
+        gatewaysProvider,
+      );
+    }
+    if ('fallbackStrategy' in strategy && strategy.fallbackStrategy) {
+      this.injectGatewaysProviderIntoStrategy(
+        strategy.fallbackStrategy as RoutingStrategy,
+        gatewaysProvider,
+      );
+    }
+  }
 
   /**
    * Sets the routing strategy to use for routing requests.
@@ -780,6 +812,11 @@ export class Wayfinder {
    */
   setRoutingStrategy(strategy: RoutingStrategy) {
     this.routingSettings.strategy = strategy;
+
+    // If a deprecated gatewaysProvider is set, inject it into the new strategy
+    if (this.gatewaysProvider) {
+      this.injectGatewaysProviderIntoStrategy(strategy, this.gatewaysProvider);
+    }
   }
 
   /**
@@ -892,7 +929,6 @@ export class Wayfinder {
   ): Promise<Response> {
     return wayfinderFetch({
       logger: this.logger,
-      gatewaysProvider: this.gatewaysProvider,
       emitter: this.emitter,
       routingSettings: this.routingSettings,
       verificationSettings: this.verificationSettings,
@@ -960,7 +996,6 @@ export class Wayfinder {
     resolveUrlSpan?.setAttribute('path', path);
 
     const selectedGateway = await this.routingSettings.strategy.selectGateway({
-      gateways: await this.gatewaysProvider.getGateways(),
       path,
       subdomain,
     });
