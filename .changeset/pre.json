@@ -8,6 +8,7 @@
   },
   "changesets": [
     "deprecate-wayfinder-gateways-provider",
-    "hot-apes-care"
+    "hot-apes-care",
+    "update-extension-wayfinder-api"
   ]
 }
