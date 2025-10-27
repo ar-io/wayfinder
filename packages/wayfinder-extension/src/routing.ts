@@ -103,7 +103,7 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
       if (!staticGateway) {
         throw new Error('Static gateway is not configured');
       }
-      new StaticRoutingStrategy({
+      routingStrategy = new StaticRoutingStrategy({
         gateway: staticGateway,
       });
       break;
@@ -111,12 +111,16 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
       routingStrategy = new FastestPingRoutingStrategy({
         timeoutMs: ROUTING_STRATEGY_DEFAULTS.fastestPing.timeoutMs,
         maxConcurrency: ROUTING_STRATEGY_DEFAULTS.fastestPing.maxConcurrency,
+        gatewaysProvider,
         logger,
       });
       break;
     case 'random':
       routingStrategy = new PingRoutingStrategy({
-        routingStrategy: new RandomRoutingStrategy(),
+        routingStrategy: new RandomRoutingStrategy({
+          gatewaysProvider,
+          logger,
+        }),
         timeoutMs: ROUTING_STRATEGY_DEFAULTS.random.timeoutMs,
         logger,
       });
@@ -125,25 +129,24 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
     default:
       // default to random (balanced) strategy
       routingStrategy = new PingRoutingStrategy({
-        routingStrategy: new RandomRoutingStrategy(),
+        routingStrategy: new RandomRoutingStrategy({
+          gatewaysProvider,
+          logger,
+        }),
         timeoutMs: ROUTING_STRATEGY_DEFAULTS.random.timeoutMs,
         logger,
       });
       break;
   }
 
-  // Create Wayfinder instance
-  const wayfinderConfig = {
+  // Create Wayfinder instance using latest API
+  const instance = new Wayfinder({
     logger,
-    gatewaysProvider,
     routingSettings: {
       strategy: routingStrategy,
       events: {
         onRoutingSucceeded: (event: any) => {
           console.log('Routing succeeded', event);
-        },
-        onRoutingFailed: (error: any) => {
-          console.error('Failed to route request', error);
         },
       },
     },
@@ -161,9 +164,7 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
       clientName: 'wayfinder-extension',
       clientVersion: await getExtensionVersion(),
     },
-  };
-
-  const instance = new Wayfinder(wayfinderConfig);
+  });
 
   return instance;
 }
