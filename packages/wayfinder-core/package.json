@@ -1,6 +1,6 @@
 {
   "name": "@ar.io/wayfinder-core",
-  "version": "1.7.0-alpha.0",
+  "version": "1.7.0-alpha.1",
   "description": "WayFinder core library for intelligently routing to optimal AR.IO gateways",
   "main": "dist/index.js",
   "module": "dist/index.js",

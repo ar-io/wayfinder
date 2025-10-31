@@ -9,6 +9,7 @@
   "changesets": [
     "deprecate-wayfinder-gateways-provider",
     "hot-apes-care",
+    "ripe-actors-win",
     "update-extension-wayfinder-api"
   ]
 }
