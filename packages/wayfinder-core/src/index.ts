@@ -47,3 +47,6 @@ export * from './wayfinder.js';
 
 // utility functions
 export * from './client.js';
+
+// fetch implementations
+export * from './fetch.js';
