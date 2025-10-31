@@ -1,0 +1,44 @@
+{
+  "name": "@ar.io/wayfinder-x402-fetch",
+  "version": "0.0.1",
+  "description": "x402-fetch integration for WayFinder",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "build:package": "pnpm run build && pnpm pack --pack-destination ./dist",
+    "clean": "rimraf dist",
+    "test": "tsx --test 'src/**/*.test.ts'",
+    "test:watch": "tsx --test --watch 'src/**/*.test.ts'"
+  },
+  "dependencies": {
+    "x402-fetch": "^0.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "rimraf": "^6.0.1",
+    "tsup": "^8.3.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "viem": "^2.21.53"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ar-io/wayfinder.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ar-io/wayfinder/issues"
+  },
+  "homepage": "https://github.com/ar-io/wayfinder#readme"
+}
