@@ -7,11 +7,12 @@
   "types": "dist/index.d.ts",
   "files": [
     "dist",
-    "src"
+    "package.json",
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
-    "build": "tsup",
-    "build:package": "pnpm run build && pnpm pack --pack-destination ./dist",
+    "build": "tsc",
     "clean": "rimraf dist",
     "test": "tsx --test 'src/**/*.test.ts'",
     "test:watch": "tsx --test --watch 'src/**/*.test.ts'"
