@@ -5,6 +5,11 @@
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "author": {
+    "name": "Permanent Data Solutions Inc",
+    "email": "info@ar.io",
+    "website": "https://ar.io"
+  },
   "files": [
     "dist",
     "package.json",
@@ -14,8 +19,12 @@
   "scripts": {
     "build": "tsc",
     "clean": "rimraf dist",
-    "test": "tsx --test 'src/**/*.test.ts'",
-    "test:watch": "tsx --test --watch 'src/**/*.test.ts'"
+    "test": "npm run test:unit",
+    "test:unit": "c8 tsx --test 'src/**/*.test.ts'",
+    "lint:fix": "biome check --write --unsafe --config-path=../../biome.json",
+    "lint:check": "biome check --unsafe --config-path=../../biome.json",
+    "format:fix": "biome format --write --config-path=../../biome.json",
+    "format:check": "biome format --config-path=../../biome.json"
   },
   "dependencies": {
     "x402-fetch": "^0.6.0"
@@ -23,7 +32,6 @@
   "devDependencies": {
     "@types/node": "^22.10.2",
     "rimraf": "^6.0.1",
-    "tsup": "^8.3.5",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
     "viem": "^2.21.53"
