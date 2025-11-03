@@ -24,6 +24,7 @@ import {
 } from '@opentelemetry/sdk-trace-node';
 import { WebTracerProvider } from '@opentelemetry/sdk-trace-web';
 import { WayfinderEmitter } from './emitter.js';
+import { createBaseFetch } from './fetch.js';
 import { TrustedPeersGatewaysProvider } from './gateways/trusted-peers.js';
 import { PingRoutingStrategy } from './routing/ping.js';
 import { RandomRoutingStrategy } from './routing/random.js';
@@ -35,6 +36,7 @@ import type {
   TelemetrySettings,
   VerificationStrategy,
   WayfinderOptions,
+  WayfinderRequestInit,
   WayfinderURL,
   WayfinderURLParams,
 } from './types.js';
@@ -42,7 +44,7 @@ import { sandboxFromId } from './utils/base64.js';
 import { HashVerificationStrategy } from './verification/hash-verification.js';
 
 // headers
-export const wayfinderRequestHeaders = ({
+export const createWayfinderRequestHeaders = ({
   traceId,
 }: {
   traceId?: string;
@@ -292,27 +294,24 @@ export function tapAndVerifyReadableStream({
  * @param resolveUrl - the function to construct the redirect url for ar:// requests
  * @returns a wrapped fetch function that supports ar:// protocol and always returns Response
  */
-export const wayfinderFetch = ({
+export const createWayfinderFetch = ({
   logger = defaultLogger,
   verificationSettings,
   routingSettings,
   emitter,
   tracer,
+  fetch = createBaseFetch(),
 }: {
   logger?: Logger;
   verificationSettings: NonNullable<WayfinderOptions['verificationSettings']>;
   routingSettings: NonNullable<WayfinderOptions['routingSettings']>;
   emitter?: WayfinderEmitter;
   tracer?: Tracer;
+  fetch?: typeof globalThis.fetch;
 }) => {
   return async (
     input: URL | RequestInfo,
-    init?: RequestInit & {
-      verificationSettings?: NonNullable<
-        WayfinderOptions['verificationSettings']
-      >;
-      routingSettings?: NonNullable<WayfinderOptions['routingSettings']>;
-    },
+    init?: WayfinderRequestInit,
   ): Promise<Response> => {
     const {
       // allows for overriding the verification and routing settings for a single request
@@ -343,7 +342,7 @@ export const wayfinderFetch = ({
       requestEmitter.emit('routing-skipped', {
         originalUrl: JSON.stringify(input),
       });
-      return fetch(input, init);
+      return fetch(input, restInit);
     }
 
     requestEmitter.emit('routing-started', {
@@ -407,7 +406,7 @@ export const wayfinderFetch = ({
           mode: 'cors',
           headers: {
             // add wayfinder headers, but allow the client to override
-            ...wayfinderRequestHeaders({
+            ...createWayfinderRequestHeaders({
               traceId: requestSpan?.spanContext().traceId,
             }),
             ...restInit.headers,
@@ -665,8 +664,14 @@ export class Wayfinder {
    * The constructor for the wayfinder
    * @param options - Wayfinder configuration options
    */
+  /**
+   * Custom fetch implementation for making HTTP requests
+   */
+  protected fetch: typeof globalThis.fetch;
+
   constructor({
     logger,
+    fetch,
     gatewaysProvider,
     verificationSettings,
     routingSettings,
@@ -761,11 +766,22 @@ export class Wayfinder {
       })
       .end();
 
+    // custom fetch implementation
+    this.fetch = createWayfinderFetch({
+      logger: this.logger,
+      verificationSettings: this.verificationSettings,
+      routingSettings: this.routingSettings,
+      tracer: this.tracer,
+      emitter: this.emitter,
+      fetch: fetch,
+    });
+
     this.logger.debug('Initialized Wayfinder', {
       logger: this.logger,
       verificationSettings: this.verificationSettings,
       routingSettings: this.routingSettings,
       telemetrySettings: this.telemetrySettings,
+      fetch: fetch,
     });
   }
 
@@ -920,20 +936,9 @@ export class Wayfinder {
    */
   request(
     input: URL | RequestInfo,
-    init?: RequestInit & {
-      verificationSettings?: NonNullable<
-        WayfinderOptions['verificationSettings']
-      >;
-      routingSettings?: NonNullable<WayfinderOptions['routingSettings']>;
-    },
+    init?: WayfinderRequestInit,
   ): Promise<Response> {
-    return wayfinderFetch({
-      logger: this.logger,
-      emitter: this.emitter,
-      routingSettings: this.routingSettings,
-      verificationSettings: this.verificationSettings,
-      tracer: this.tracer,
-    })(input, init);
+    return this.fetch(input, init);
   }
 
   /**
