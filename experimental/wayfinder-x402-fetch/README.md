@@ -36,11 +36,13 @@ const response = await wayfinder.request('ar://premium-content-txid');
 ## What This Package Does
 
 This is a thin wrapper around x402-fetch that:
+
 1. Takes x402-fetch configuration
 2. Calls `wrapFetchWithPayment()` from x402-fetch
 3. Returns a fetch function compatible with Wayfinder
 
 The returned function automatically handles:
+
 - 402 Payment Required responses
 - Payment credential generation
 - Request retry with payment headers
@@ -64,6 +66,7 @@ npm test
 ```
 
 This will demonstrate:
+
 - Regular fetch requests (non-402 responses)
 - 402 Payment Required handling with automatic payment
 - Payment rejection when exceeding maxValue limits
