@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-core
 
+## 1.7.0-alpha.1
+
+### Patch Changes
+
+- b1c2c48: Add support for custom `fetch` implementations to be given to Wayfinder. This will pave the way to support fetching via x402, chunk based data retreival, etc.
+
 ## 1.7.0-alpha.0
 
 ### Minor Changes

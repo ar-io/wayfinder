@@ -1,6 +1,6 @@
 {
   "name": "@ar.io/wayfinder-x402-fetch",
-  "version": "0.0.1",
+  "version": "0.0.2-alpha.0",
   "description": "x402-fetch integration for WayFinder",
   "type": "module",
   "main": "dist/index.js",
