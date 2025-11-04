@@ -1,10 +1,6 @@
 {
   "name": "@ar.io/wayfinder-react",
-<<<<<<< HEAD
   "version": "1.0.23-alpha.1",
-=======
-  "version": "1.0.23",
->>>>>>> origin/main
   "description": "React components for WayFinder",
   "main": "dist/index.js",
   "module": "dist/index.js",
