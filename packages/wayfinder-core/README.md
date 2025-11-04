@@ -471,9 +471,9 @@ const response = await wayfinder.request('ar://transaction-id');
 
 **Use cases:**
 
-- Access to faster, more reliable premium gateways
-- High-availability data retrieval with SLA guarantees
-- Priority routing through paid gateway networks
+- Higher rate limits on data requests
+- Access to premium gateway features
+- Supporting gateway operators through payments
 
 To learn more about x402 payments, visit the [x402 documentation](https://docs.ar.io/learn/gateways/x402-payments).
 
