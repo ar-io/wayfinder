@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-core
 
+## 1.7.1-alpha.1
+
+### Patch Changes
+
+- bfea49d: Update npm to use OIDC for publishing
+
 ## 1.7.1-alpha.0
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-x402-fetch
 
+## 0.0.2-alpha.1
+
+### Patch Changes
+
+- bfea49d: Update npm to use OIDC for publishing
+
 ## 0.0.2-alpha.0
 
 ### Patch Changes
