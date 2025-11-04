@@ -220,7 +220,7 @@ Wayfinder supports multiple routing strategies to select target gateways for you
 | `PreferredWithFallbackRoutingStrategy` | Uses a preferred gateway, with a fallback strategy if the preferred gateway is not available | Good for performance and resilience. Ideal for builders who run their own gateways. |
 | `CompositeRoutingStrategy` | Chains multiple routing strategies together, trying each sequentially until one succeeds | Good for complex fallback scenarios and maximum resilience |
 
-### RandomRoutingStrategy
+#### RandomRoutingStrategy
 
 Selects a random gateway from a list of gateways.
 
@@ -232,7 +232,7 @@ const strategy = new RandomRoutingStrategy({
 });
 ```
 
-### FastestPingRoutingStrategy
+#### FastestPingRoutingStrategy
 
 ```javascript
 import { FastestPingRoutingStrategy } from '@ar.io/wayfinder-core';
@@ -259,22 +259,7 @@ const strategy = new PreferredWithFallbackRoutingStrategy({
 });
 ```
 
-### Strategy Composition
-
-Strategies can be composed for advanced scenarios:
-
-#### Fastest Ping with Caching
-
-```javascript
-import { FastestPingRoutingStrategy, SimpleCacheRoutingStrategy } from '@ar.io/wayfinder-core';
-
-const strategy = new SimpleCacheRoutingStrategy({
-  routingStrategy: new FastestPingRoutingStrategy({ timeoutMs: 500 }),
-  ttlSeconds: 300, // Cache for 5 minutes
-});
-```
-
-### CompositeRoutingStrategy
+#### CompositeRoutingStrategy
 
 The `CompositeRoutingStrategy` allows you to chain multiple routing strategies together, providing maximum resilience by trying each strategy in sequence until one succeeds. This is ideal for complex fallback scenarios where you want to combine different routing approaches.
 
@@ -369,7 +354,7 @@ Wayfinder includes verification mechanisms to ensure the integrity of retrieved 
 | `DataRootVerificationStrategy`  | Medium     | Medium      | Low      | Computes the data root for the transaction (most useful for L1 transactions) and compares it to the data root provided by a **trusted gateway**. |
 | `SignatureVerificationStrategy` | Medium     | Medium      | Medium   | - **ANS-104 Data Items**: Fetches signature components (owner, signature type, tags, etc.) from trusted gateways using range requests, then verifies signatures against the data payload using deep hash calculations following the ANS-104 standard.<br/>- **L1 Transactions**: Retrieves transaction metadata from gateway /tx/<tx-id> endpoints, computes the data root from the provided data stream, and verifies the signature using Arweave's cryptographic verification. |
 
-### RemoteVerificationStrategy
+#### RemoteVerificationStrategy
 
 This strategy is used to verify data by checking the `x-ar-io-verified` header from the gateway that returned the data. If the header is set to `true`, the data is considered verified and trusted.
 
@@ -388,7 +373,7 @@ const wayfinder = new Wayfinder({
 });
 ```
 
-### HashVerificationStrategy
+#### HashVerificationStrategy
 
 Verifies data integrity using SHA-256 hash comparison. This is the default verification strategy and is recommended for most users looking for a balance between security and performance.
 
@@ -405,7 +390,7 @@ const wayfinder = new Wayfinder({
 });
 ```
 
-### DataRootVerificationStrategy
+#### DataRootVerificationStrategy
 
 Verifies data integrity using Arweave by computing the data root for the transaction. This is useful for L1 transactions and is recommended for users who want to ensure the integrity of their data.
 
@@ -422,7 +407,7 @@ const wayfinder = new Wayfinder({
 });
 ```
 
-### SignatureVerificationStrategy
+#### SignatureVerificationStrategy
 
 Verifies signatures of Arweave transactions and data items. Headers are retrieved from trusted gateways for use during verification. For a transaction, its data root is computed while streaming its data and then utilized alongside its headers for verification. For data items, the ANS-104 deep hash method of signature verification is used.
 
@@ -532,39 +517,7 @@ const response = await wayfinder.request('ar://example', {
 });
 ```
 
-## Advanced Usage
-
-### Direct Wayfinder Constructor
-
-For complete control, instantiate Wayfinder directly:
-
-```javascript
-import { Wayfinder, NetworkGatewaysProvider, SimpleCacheGatewaysProvider, FastestPingRoutingStrategy } from '@ar.io/wayfinder-core';
-import { ARIO } from '@ar.io/sdk';
-
-const wayfinder = new Wayfinder({
-  routingSettings: {
-    strategy: new FastestPingRoutingStrategy({
-      gatewaysProvider: new SimpleCacheGatewaysProvider({
-        ttlSeconds: 3600,
-        gatewaysProvider: new NetworkGatewaysProvider({
-          ario: ARIO.mainnet(),
-          limit: 10,
-        }),
-      }),
-    }),
-  },
-  verificationSettings: {
-    enabled: true,
-    strict: true,
-    strategy: new HashVerificationStrategy({
-      trustedGateways: [new URL('https://permagate.io')],
-    }),
-  },
-});
-```
-
-### Telemetry
+## Telemetry
 
 Wayfinder can optionally emit OpenTelemetry spans for every request. **By default, telemetry is disabled**. You can control this behavior with the `telemetry` option.
 
