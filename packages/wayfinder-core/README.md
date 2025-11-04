@@ -479,7 +479,7 @@ To learn more about x402 payments, visit the [x402 documentation](https://docs.a
 
 ## Events and Monitoring
 
-### Global Events
+#### Global Events
 
 ```javascript
 const wayfinder = createWayfinderClient({
@@ -501,7 +501,7 @@ const wayfinder = createWayfinderClient({
 });
 ```
 
-### Request-Specific Events
+#### Request-Specific Events
 
 ```javascript
 const response = await wayfinder.request('ar://example', {
