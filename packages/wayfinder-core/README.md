@@ -234,6 +234,8 @@ const strategy = new RandomRoutingStrategy({
 
 #### FastestPingRoutingStrategy
 
+Selects the fastest gateway based on ping time. This strategy pings all available gateways and selects the one with the lowest latency.
+
 ```javascript
 import { FastestPingRoutingStrategy } from '@ar.io/wayfinder-core';
 
@@ -430,10 +432,6 @@ Wayfinder can be configured to work with the [x402 payment protocol](https://doc
 
 > [!IMPORTANT]
 > To use x402 payments, you need to install the `@ar.io/wayfinder-x402-fetch` package.
-
-```npm
-npm install @ar.io/wayfinder-x402-fetch viem
-```
 
 ```javascript
 import { createWayfinderClient } from '@ar.io/wayfinder-core';
