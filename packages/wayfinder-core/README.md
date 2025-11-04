@@ -178,7 +178,7 @@ Gateway providers supply the list of gateways for routing. **By default, `create
 | `SimpleCacheGatewaysProvider`  | In-memory caching wrapper | Reduce API calls (used by default) |
 | `LocalStorageGatewaysProvider` | Browser localStorage caching | Persistent caching (used by default in browsers) |
 
-### NetworkGatewaysProvider
+#### NetworkGatewaysProvider
 
 Returns a list of gateways from the ARIO Network based on on-chain [Gateway Address Registry](https://docs.ar.io/learn/gateways/gateway-registry). You can specify on-chain metrics for gateways to prioritize the highest quality gateways. This requires installing the `@ar.io/sdk` package and importing the `ARIO` object.
 
@@ -195,7 +195,7 @@ const gatewayProvider = new NetworkGatewaysProvider({
 });
 ```
 
-### TrustedPeersGatewaysProvider
+#### TrustedPeersGatewaysProvider
 
 Fetches a dynamic list of trusted peer gateways from an AR.IO gateway's `/ar-io/peers` endpoint. This provider is useful for discovering available gateways from a trusted source.
 
