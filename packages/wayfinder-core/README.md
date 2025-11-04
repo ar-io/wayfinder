@@ -197,7 +197,7 @@ const gatewayProvider = new NetworkGatewaysProvider({
 
 ### TrustedPeersGatewaysProvider
 
-### TrustedPeersGatewaysProviderFetches a dynamic list of trusted peer gateways from an AR.IO gateway's `/ar-io/peers` endpoint. This provider is useful for discovering available gateways from a trusted source.
+Fetches a dynamic list of trusted peer gateways from an AR.IO gateway's `/ar-io/peers` endpoint. This provider is useful for discovering available gateways from a trusted source.
 
 ```javascript
 import { TrustedPeersGatewaysProvider } from '@ar.io/wayfinder-core';
@@ -220,7 +220,7 @@ Wayfinder supports multiple routing strategies to select target gateways for you
 | `PreferredWithFallbackRoutingStrategy` | Uses a preferred gateway, with a fallback strategy if the preferred gateway is not available | Good for performance and resilience. Ideal for builders who run their own gateways. |
 | `CompositeRoutingStrategy` | Chains multiple routing strategies together, trying each sequentially until one succeeds | Good for complex fallback scenarios and maximum resilience |
 
-### Random Strategy (Default)
+### RandomRoutingStrategy
 
 Selects a random gateway from a list of gateways.
 
@@ -232,7 +232,7 @@ const strategy = new RandomRoutingStrategy({
 });
 ```
 
-#### Fastest Ping Strategy
+### FastestPingRoutingStrategy
 
 ```javascript
 import { FastestPingRoutingStrategy } from '@ar.io/wayfinder-core';
@@ -243,7 +243,7 @@ const strategy = new FastestPingRoutingStrategy({
 });
 ```
 
-#### Preferred with Fallback
+#### PreferredWithFallbackRoutingStrategy
 
 Uses a preferred gateway, with a fallback strategy if the preferred gateway is not available. This is useful for builders who run their own gateways and want to use their own gateway as the preferred gateway, but also want to have a fallback strategy in case their gateway is not available.
 
@@ -274,7 +274,7 @@ const strategy = new SimpleCacheRoutingStrategy({
 });
 ```
 
-#### Composing Routing Strategies
+### CompositeRoutingStrategy
 
 The `CompositeRoutingStrategy` allows you to chain multiple routing strategies together, providing maximum resilience by trying each strategy in sequence until one succeeds. This is ideal for complex fallback scenarios where you want to combine different routing approaches.
 
