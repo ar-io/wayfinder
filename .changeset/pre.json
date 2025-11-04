@@ -8,10 +8,8 @@
     "@ar.io/wayfinder-x402-fetch": "0.0.1"
   },
   "changesets": [
-    "deprecate-wayfinder-gateways-provider",
-    "hot-apes-care",
+    "happy-cameras-bathe",
     "mighty-cats-trade",
-    "ripe-actors-win",
-    "update-extension-wayfinder-api"
+    "ripe-actors-win"
   ]
 }
