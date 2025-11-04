@@ -61,7 +61,7 @@ export type WayfinderEvent = {
   };
 };
 
-export type RoutingOption = 'random' | 'fastest' | 'round-robin' | 'preferred';
+export type RoutingOption = 'random' | 'fastest' | 'balanced' | 'preferred';
 
 export type VerificationOption = 'hash' | 'data-root' | 'remote' | 'disabled';
 

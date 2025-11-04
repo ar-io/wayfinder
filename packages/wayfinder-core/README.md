@@ -19,12 +19,93 @@ yarn add @ar.io/wayfinder-core
 ```javascript
 import { createWayfinderClient } from '@ar.io/wayfinder-core';
 
-// Uses trusted peers gateway provider by default
+// Creates a Wayfinder client with sensible defaults:
+// - Trusted peers gateway provider with caching (5 minute TTL)
+// - Random routing strategy
+// - Verification disabled
 const wayfinder = createWayfinderClient();
 
-// Use Wayfinder to fetch and verify data using ar:// protocol
+// Use Wayfinder to fetch data using ar:// protocol
 const response = await wayfinder.request('ar://example-name');
 ```
+
+### Custom Fetch Implementation
+
+You can provide a custom fetch implementation for advanced use cases:
+
+```javascript
+import { createWayfinderClient } from '@ar.io/wayfinder-core';
+
+// Custom fetch that adds authentication headers
+const customFetch = async (input, init) => {
+  const headers = new Headers(init?.headers);
+  headers.set('Authorization', 'Bearer my-token');
+  
+  return fetch(input, {
+    ...init,
+    headers,
+  });
+};
+
+const wayfinder = createWayfinderClient({
+  fetch: customFetch,
+});
+```
+
+### Payment-Enabled Requests with x402
+
+Wayfinder can be configured to work with the [x402 payment protocol](https://docs.ar.io/learn/gateways/x402-payments#what-is-x402) for paid gateway services and higher rate limits. This allows you to seamlessly make requests that may require payment without having to manually handle payment flows.
+
+!>**Note:** To use x402 payments, you need to install the `@ar.io/wayfinder-x402-fetch` package.
+
+```npm
+npm install @ar.io/wayfinder-x402-fetch viem
+```
+
+```javascript
+import { createWayfinderClient } from '@ar.io/wayfinder-core';
+import { createX402Fetch } from '@ar.io/wayfinder-x402-fetch';
+import { privateKeyToAccount } from 'viem/accounts';
+
+// Set up your wallet for x402 payments
+const privateKey = process.env.X402_PRIVATE_KEY; // Your private key
+const account = privateKeyToAccount(privateKey);
+
+// Create x402-enabled fetch implementation
+const x402Fetch = createX402Fetch({
+  walletClient: account,
+});
+
+// Create Wayfinder client with x402 fetch
+const wayfinder = createWayfinderClient({
+  fetch: x402Fetch,
+  routingSettings: {
+    // Configure to use x402-enabled gateways
+    strategy: new StaticRoutingStrategy({
+      gateway: 'https://paid-gateway.example.com',
+    }),
+  },
+});
+
+// Requests will now automatically handle x402 payments
+const response = await wayfinder.request('ar://transaction-id');
+```
+
+**How it works:**
+
+1. When a gateway returns a `402 Payment Required` status
+2. The x402 fetch automatically handles the payment flow
+3. The request is retried with payment credentials
+4. You get access to premium gateway services
+
+**Use cases:**
+
+- Access to faster, more reliable premium gateways
+- High-availability data retrieval with SLA guarantees
+- Priority routing through paid gateway networks
+
+To learn more about x402 payments, visit the [x402 documentation](https://docs.ar.io/learn/gateways/x402-payments).
+
 
 ### Using with AR.IO Network
 
@@ -44,122 +125,67 @@ const gatewaysProvider = new NetworkGatewaysProvider({
 });
 
 const wayfinder = createWayfinderClient({
-  routingStrategy: new FastestPingRoutingStrategy({ gatewaysProvider }),
-});
-```
-
-### Custom Trusted Gateway
-
-```javascript
-import {
-  createWayfinderClient,
-  FastestPingRoutingStrategy,
-  HashVerificationStrategy,
-} from '@ar.io/wayfinder-core';
-
-const trustedGateways = [new URL('https://permagate.io')];
-
-const wayfinder = createWayfinderClient({
-  routingStrategy: new FastestPingRoutingStrategy(),
-  verificationStrategy: new HashVerificationStrategy({
-    trustedGateways,
-  }),
-});
-```
-
-> [!NOTE]
-> The legacy `trustedGateways` option on `createWayfinderClient` is deprecated.
-> Configure trusted gateways on the verification strategy instead, as shown
-> above.
-
-### Configuration Options
-
-> [!IMPORTANT]
-> `createWayfinderClient` only honors the `cache`, `routingStrategy`,
-> `verificationStrategy`, and `telemetry` options. All other legacy options are
-> deprecated and ignored. Supply concrete strategy instances or instantiate
-> `Wayfinder` directly for advanced customization.
-
-By default the helper constructs a
-`TrustedPeersGatewaysProvider('https://permagate.io')`, applies a
-`RandomRoutingStrategy`, and disables verification.
-
-```javascript
-import {
-  createWayfinderClient,
-  FastestPingRoutingStrategy,
-  HashVerificationStrategy,
-} from '@ar.io/wayfinder-core';
-
-const wayfinder = createWayfinderClient({
-  cache: { ttlSeconds: 600 },
-  routingStrategy: new FastestPingRoutingStrategy(),
-  verificationStrategy: new HashVerificationStrategy({
-    trustedGateways: [new URL('https://permagate.io')],
-  }),
-});
-```
-
-For custom gateway providers or bespoke routing logic, instantiate `Wayfinder`
-directly:
-
-```javascript
-import {
-  FastestPingRoutingStrategy,
-  HashVerificationStrategy,
-  NetworkGatewaysProvider,
-  Wayfinder,
-} from '@ar.io/wayfinder-core';
-import { ARIO } from '@ar.io/sdk';
-
-const gatewaysProvider = new NetworkGatewaysProvider({
-  ario: ARIO.mainnet(),
-  sortBy: 'operatorStake',
-  sortOrder: 'desc',
-  limit: 10,
-});
-
-const trustedGateways = [
-  new URL('https://arweave.net'),
-  new URL('https://permagate.io'),
-];
-
-const wayfinder = new Wayfinder({
-  gatewaysProvider,
   routingSettings: {
     strategy: new FastestPingRoutingStrategy({ gatewaysProvider }),
   },
-  verificationSettings: {
-    strategy: new HashVerificationStrategy({
-      trustedGateways,
-    }),
-  },
-  telemetrySettings: { enabled: true },
 });
 ```
 
-### Gateway Selection Options (with AR.IO Network)
-
-When using the AR.IO Network provider, you can specify how gateways are selected:
+### Enable Verification
 
 ```javascript
 import {
   createWayfinderClient,
-  NetworkGatewaysProvider,
-  RandomRoutingStrategy,
+  HashVerificationStrategy,
 } from '@ar.io/wayfinder-core';
-import { ARIO } from '@ar.io/sdk';
-
-const gatewaysProvider = new NetworkGatewaysProvider({
-  ario: ARIO.mainnet(),
-  sortBy: 'weights.normalizedCompositeWeight',
-  sortOrder: 'desc',
-  limit: 10,
-});
 
 const wayfinder = createWayfinderClient({
-  routingStrategy: new RandomRoutingStrategy({ gatewaysProvider }),
+  verificationSettings: {
+    enabled: true,
+    strategy: new HashVerificationStrategy({
+      trustedGateways: [new URL('https://permagate.io')],
+    }),
+    strict: true, // Fail requests on verification errors
+  },
 });
+```
+
+## Helper Functions
+
+Wayfinder Core provides helper functions to construct routing and verification strategies:
+
+### createRoutingStrategy
+
+Create routing strategies with a simple string identifier:
+
+```javascript
+import { createRoutingStrategy } from '@ar.io/wayfinder-core';
+
+// Create a random routing strategy
+const randomStrategy = createRoutingStrategy({
+  strategy: 'random',
+  gatewaysProvider: myGatewaysProvider,
+  logger: myLogger,
+});
+
+// Available strategies: 'random', 'fastest', 'balanced', 'preferred'
+```
+
+### createVerificationStrategy
+
+Create verification strategies with a simple string identifier:
+
+```javascript
+import { createVerificationStrategy } from '@ar.io/wayfinder-core';
+
+// Create a hash verification strategy
+const hashStrategy = createVerificationStrategy({
+  strategy: 'hash',
+  trustedGateways: [new URL('https://permagate.io')],
+  logger: myLogger,
+});
+
+// Available strategies: 'hash', 'data-root', 'remote', 'disabled'
 ```
 
 ## ar:// Protocol
@@ -167,14 +193,14 @@ const wayfinder = createWayfinderClient({
 Wayfinder supports several ar:// URL formats:
 
 ```bash
-ar://TRANSACTION_ID              // Direct transaction ID
-ar://NAME                        // ArNS name (paths supported)
-ar:///info                       // Gateway endpoint (/info)
+ar://TRANSACTION_ID              # Direct transaction ID
+ar://NAME                        # ArNS name (paths supported)
+ar:///info                       # Gateway endpoint (/info)
 ```
 
 ## Dynamic Routing
 
-Wayfinder supports a `resolveUrl` method which generates dynamic redirect URLs to a target gateway based on the provided routing strategy. This function can be used to directly replace any hard-coded gateway URLs, and instead use Wayfinder's routing logic to select a gateway for the request.
+Wayfinder supports a `resolveUrl` method which generates dynamic redirect URLs to a target gateway based on the provided routing strategy.  This function can be used to directly replace any hard-coded gateway URLs, and instead use Wayfinder's routing logic to select a gateway for the request.
 
 #### ArNS names
 
@@ -198,7 +224,7 @@ const redirectUrl = await wayfinder.resolveUrl({
 // results in https://<selected-gateway>/example-tx-id
 ```
 
-#### Legacy arweave.net or arweave.dev URLs
+#### Legacy URLs
 
 Given a legacy arweave.net or arweave.dev URL, the redirect URL will be the same as the original URL, but with the gateway selected by Wayfinder's routing strategy.
 
@@ -222,58 +248,42 @@ const redirectUrl = await wayfinder.resolveUrl({
 
 ## Gateway Providers
 
-Gateway providers are responsible for providing a list of gateways to Wayfinder to choose from when routing requests. By default, Wayfinder will use the `TrustedPeersGatewaysProvider` to fetch available gateways from a trusted gateway's peer list.
+Gateway providers supply the list of gateways for routing. **By default, `createWayfinderClient` uses a cached `TrustedPeersGatewaysProvider`**.
 
 | Provider                       | Description                                    | Use Case                                |
 | ------------------------------ | ---------------------------------------------- | --------------------------------------- |
-| `NetworkGatewaysProvider`      | Returns gateways from AR.IO Network based on on-chain metrics | Leverage AR.IO Network with quality filtering |
-| `TrustedPeersGatewaysProvider` | Fetches gateway list from a trusted gateway's `/ar-io/peers` endpoint | Dynamic gateway discovery from network peers |
-| `StaticGatewaysProvider`       | Returns a static list of gateways you provide  | Testing or when specific gateways are required |
-| `SimpleCacheGatewaysProvider`  | Wraps another provider with in-memory caching  | Reduce API calls and improve performance |
-| `LocalStorageGatewaysProvider` | Wraps another provider with browser localStorage caching | Persistent caching across page reloads |
+| `NetworkGatewaysProvider`      | Returns gateways from AR.IO Network | Leverage AR.IO Network with quality filtering |
+| `TrustedPeersGatewaysProvider` | Fetches from trusted gateway's peers | Dynamic gateway discovery (default) |
+| `StaticGatewaysProvider`       | Returns a static list of gateways | Testing or specific gateways |
+| `SimpleCacheGatewaysProvider`  | In-memory caching wrapper | Reduce API calls (used by default) |
+| `LocalStorageGatewaysProvider` | Browser localStorage caching | Persistent caching (used by default in browsers) |
 
 ### NetworkGatewaysProvider
 
-Returns a list of gateways from the ARIO Network based on on-chain metrics. You can specify on-chain metrics for gateways to prioritize the highest quality gateways. This requires installing the `@ar.io/sdk` package and importing the `ARIO` object. *It is recommended to use this provider for most use cases to leverage the AR.IO Network.*
+Returns a list of gateways from the ARIO Network based on on-chain [Gateway Address Registry](https://docs.ar.io/learn/gateways/gateway-registry). You can specify on-chain metrics for gateways to prioritize the highest quality gateways. This requires installing the `@ar.io/sdk` package and importing the `ARIO` object.
 
 ```javascript
-// requests will be routed to one of the top 10 gateways by operator stake
+import { NetworkGatewaysProvider } from '@ar.io/wayfinder-core';
+import { ARIO } from '@ar.io/sdk';
+
 const gatewayProvider = new NetworkGatewaysProvider({
   ario: ARIO.mainnet(),
-  sortBy: 'operatorStake', // sort by 'operatorStake' | 'totalDelegatedStake'
-  sortOrder: 'desc', // 'asc'
-  limit: 10, // number of gateways to use
-  filter: (gateway) => {
-    // use only active gateways that did not fail in the last epoch
-    return gateway.status === 'joined' && gateway.stats.failedConsecutiveEpochs === 0;
-  },
+  sortBy: 'operatorStake',
+  sortOrder: 'desc',
+  limit: 10,
+  filter: (gateway) => gateway.status === 'joined',
 });
 ```
 
 ### TrustedPeersGatewaysProvider
 
-Fetches a dynamic list of trusted peer gateways from an AR.IO gateway's `/ar-io/peers` endpoint. This provider is useful for discovering available gateways from a trusted source.
+### TrustedPeersGatewaysProviderFetches a dynamic list of trusted peer gateways from an AR.IO gateway's `/ar-io/peers` endpoint. This provider is useful for discovering available gateways from a trusted source.
 
 ```javascript
 import { TrustedPeersGatewaysProvider } from '@ar.io/wayfinder-core';
 
 const gatewayProvider = new TrustedPeersGatewaysProvider({
-  trustedGateway: 'https://arweave.net', // Gateway to fetch peers from
-});
-
-// The provider will fetch the peer list from https://arweave.net/ar-io/peers
-// and return an array of gateway URLs from the response
-```
-
-### StaticGatewaysProvider
-
-The static gateway provider returns a list of gateways that you provide. This is useful for testing or for users who want to use a specific gateway for all requests.
-
-```javascript
-import { StaticGatewaysProvider } from '@ar.io/wayfinder-core';
-
-const gatewayProvider = new StaticGatewaysProvider({
-  gateways: ['https://arweave.net'],
+  trustedGateway: 'https://arweave.net',
 });
 ```
 
@@ -290,109 +300,30 @@ Wayfinder supports multiple routing strategies to select target gateways for you
 | `PreferredWithFallbackRoutingStrategy` | Uses a preferred gateway, with a fallback strategy if the preferred gateway is not available | Good for performance and resilience. Ideal for builders who run their own gateways. |
 | `CompositeRoutingStrategy` | Chains multiple routing strategies together, trying each sequentially until one succeeds | Good for complex fallback scenarios and maximum resilience |
 
-### RandomRoutingStrategy
+### Random Strategy (Default)
 
 Selects a random gateway from a list of gateways.
 
 ```javascript
-import { RandomRoutingStrategy, NetworkGatewaysProvider } from '@ar.io/wayfinder-core';
-import { ARIO } from '@ar.io/sdk';
+import { RandomRoutingStrategy } from '@ar.io/wayfinder-core';
 
-// Option 1: Use with static gateways (override gatewaysProvider if provided)
-const routingStrategy = new RandomRoutingStrategy();
-const gateway = await routingStrategy.selectGateway({
-  gateways: [new URL('https://arweave.net'), new URL('https://permagate.io')],
-});
-
-// Option 2: Use with gatewaysProvider (fetches dynamically)
-const routingStrategy2 = new RandomRoutingStrategy({
-  gatewaysProvider: new NetworkGatewaysProvider({
-    ario: ARIO.mainnet(),
-    sortBy: 'operatorStake',
-    limit: 10,
-  }),
-});
-const gateway2 = await routingStrategy2.selectGateway(); // uses gatewaysProvider
-
-// Option 3: Override gatewaysProvider with static gateways
-const gateway3 = await routingStrategy2.selectGateway({
-  gateways: [new URL('https://custom-gateway.net')], // overrides gatewaysProvider
+const strategy = new RandomRoutingStrategy({
+  gatewaysProvider: myGatewaysProvider,
 });
 ```
 
-### StaticRoutingStrategy
+#### Fastest Ping Strategy
 
 ```javascript
-import { StaticRoutingStrategy } from '@ar.io/wayfinder-core';
+import { FastestPingRoutingStrategy } from '@ar.io/wayfinder-core';
 
-const routingStrategy = new StaticRoutingStrategy({
-  gateway: 'https://arweave.net',
-});
-
-const gateway = await routingStrategy.selectGateway(); // always returns the same gateway
-```
-
-### RoundRobinRoutingStrategy
-
-Selects gateways in round-robin order. The gateway list is stored in memory and is not persisted across instances. You must provide either `gateways` OR `gatewaysProvider` (not both).
-
-```javascript
-import { RoundRobinRoutingStrategy, NetworkGatewaysProvider } from '@ar.io/wayfinder-core';
-import { ARIO } from '@ar.io/sdk';
-
-// use with a static list of gateways
-const routingStrategy = new RoundRobinRoutingStrategy({
-  gateways: [new URL('https://arweave.net'), new URL('https://permagate.io')],
-});
-
-// use with gatewaysProvider (loaded once and memoized)
-const routingStrategy2 = new RoundRobinRoutingStrategy({
-  gatewaysProvider: new NetworkGatewaysProvider({
-    ario: ARIO.mainnet(),
-    sortBy: 'operatorStake',
-    sortOrder: 'desc',
-    limit: 10,
-  }),
-});
-
-const gateway = await routingStrategy.selectGateway(); // returns the next gateway in round-robin order
-```
-
-### FastestPingRoutingStrategy
-
-Selects the fastest gateway based on simple HEAD request to the specified route.
-
-```javascript
-import { FastestPingRoutingStrategy, NetworkGatewaysProvider } from '@ar.io/wayfinder-core';
-import { ARIO } from '@ar.io/sdk';
-
-// use with static gateways (override gatewaysProvider if provided)
-const routingStrategy = new FastestPingRoutingStrategy({
+const strategy = new FastestPingRoutingStrategy({
   timeoutMs: 1000,
-});
-const gateway = await routingStrategy.selectGateway({
-  gateways: [new URL('https://slow.net'), new URL('https://medium.net'), new URL('https://fast.net')],
-});
-
-// use with gatewaysProvider (fetches dynamically)
-const routingStrategy2 = new FastestPingRoutingStrategy({
-  timeoutMs: 1000,
-  gatewaysProvider: new NetworkGatewaysProvider({
-    ario: ARIO.mainnet(),
-    sortBy: 'operatorStake',
-    limit: 20,
-  }),
-});
-const gateway2 = await routingStrategy2.selectGateway({ path: '/ar-io/info' }); // uses gatewaysProvider
-
-// override the gatewaysProvider with a static list of gateways
-const gateway3 = await routingStrategy2.selectGateway({
-  gateways: [new URL('https://priority-gateway.net')], // overrides gatewaysProvider
-  path: '/ar-io/info'
+  gatewaysProvider: myGatewaysProvider,
 });
 ```
 
-### PreferredWithFallbackRoutingStrategy
+#### Preferred with Fallback
 
 Uses a preferred gateway, with a fallback strategy if the preferred gateway is not available. This is useful for builders who run their own gateways and want to use their own gateway as the preferred gateway, but also want to have a fallback strategy in case their gateway is not available.
 
@@ -402,17 +333,43 @@ Uses a preferred gateway, with a fallback strategy if the preferred gateway is n
 ```javascript
 import { PreferredWithFallbackRoutingStrategy, FastestPingRoutingStrategy } from '@ar.io/wayfinder-core';
 
-const routingStrategy = new PreferredWithFallbackRoutingStrategy({
-  preferredGateway: 'https://permagate.io',
-  fallbackStrategy: new FastestPingRoutingStrategy({
-    timeoutMs: 500,
-  }),
+const strategy = new PreferredWithFallbackRoutingStrategy({
+  preferredGateway: 'https://my-gateway.com',
+  fallbackStrategy: new FastestPingRoutingStrategy({ timeoutMs: 500 }),
 });
 ```
 
-### CompositeRoutingStrategy
+### Strategy Composition
 
-Chains multiple routing strategies together, trying each sequentially until one succeeds. This strategy provides maximum resilience by allowing complex fallback scenarios where you can combine different routing approaches.
+Strategies can be composed for advanced scenarios:
+
+#### Fastest Ping with Caching
+
+```javascript
+import { FastestPingRoutingStrategy, SimpleCacheRoutingStrategy } from '@ar.io/wayfinder-core';
+
+const strategy = new SimpleCacheRoutingStrategy({
+  routingStrategy: new FastestPingRoutingStrategy({ timeoutMs: 500 }),
+  ttlSeconds: 300, // Cache for 5 minutes
+});
+```
+
+#### Composing Routing Strategies
+
+The `CompositeRoutingStrategy` allows you to chain multiple routing strategies together, providing maximum resilience by trying each strategy in sequence until one succeeds. This is ideal for complex fallback scenarios where you want to combine different routing approaches.
+
+**How it works:**
+
+1. Tries each strategy in the order they're provided
+2. If a strategy successfully returns a gateway, that gateway is used (remaining strategies are skipped)
+3. If a strategy throws an error, moves to the next strategy
+4. If all strategies fail, throws an error
+
+**Common use cases:**
+
+- **Performance + Resilience**: Try fastest ping first, fallback to random if ping fails
+- **Preferred + Network**: Use your own gateway first, fallback to AR.IO network selection
+- **Multi-tier Fallback**: Try premium gateways, then standard gateways, then any available gateway
 
 ```javascript
 import { 
@@ -424,9 +381,10 @@ import {
 } from '@ar.io/wayfinder-core';
 import { ARIO } from '@ar.io/sdk';
 
-// Example 1: Try fastest ping first, fallback to random selection
-const strategy = new CompositeRoutingStrategy({
+// Example 1: Performance-first with resilience fallback
+const performanceStrategy = new CompositeRoutingStrategy({
   strategies: [
+    // Try fastest ping first (high performance, but may fail if all gateways are slow)
     new FastestPingRoutingStrategy({
       timeoutMs: 500,
       gatewaysProvider: new NetworkGatewaysProvider({
@@ -435,224 +393,48 @@ const strategy = new CompositeRoutingStrategy({
         limit: 10,
       }),
     }),
-    new RandomRoutingStrategy(), // fallback if ping strategy fails
-  ],
-});
-
-// Example 2: Try preferred gateway, then fastest ping, then any random gateway
-const complexStrategy = new CompositeRoutingStrategy({
-  strategies: [
-    new StaticRoutingStrategy({ gateway: 'https://my-preferred-gateway.com' }),
-    new FastestPingRoutingStrategy({ timeoutMs: 1000 }),
-    new RandomRoutingStrategy(), // final fallback
-  ],
-});
-
-const gateway = await strategy.selectGateway({
-  gateways: [new URL('https://gateway1.com'), new URL('https://gateway2.com')],
-});
-```
-
-**How it works:**
-1. The composite strategy tries each routing strategy in order
-2. If a strategy successfully returns a gateway, that gateway is used
-3. If a strategy throws an error, the next strategy is tried
-4. If all strategies fail, an error is thrown
-5. The first successful strategy short-circuits the process (remaining strategies are not tried)
-
-**Common Use Cases:**
-- **Performance + Resilience**: Try fastest ping first, fallback to random if ping fails
-- **Preferred + Network**: Use your own gateway first, fallback to AR.IO network selection
-- **Multi-tier Fallback**: Try premium gateways, then standard gateways, then any available gateway
-- **Development + Production**: Use local gateway in development, fallback to production gateways
-
-### Strategy Composition Examples
-
-Here are a few “lego-style” examples showing how existing routing strategies can
-be composed to suit different use cases. Each strategy implements
-`RoutingStrategy`, so they can be wrapped and combined freely.
-
-#### Random + Ping health checks
-
-Pick a random gateway, then verify it responds with a `HEAD` request before
-returning it.
-
-```ts
-import {
-  RandomRoutingStrategy,
-  PingRoutingStrategy,
-} from "@ar.io/wayfinder-core";
-
-const strategy = new PingRoutingStrategy({
-  routingStrategy: new RandomRoutingStrategy(),
-  retries: 2,
-  timeoutMs: 500,
-});
-```
-
-#### Fastest ping wrapped with a simple cache
-
-Find the lowest-latency gateway and cache the result for five minutes to avoid
-constant pings.
-
-```ts
-import {
-  FastestPingRoutingStrategy,
-  SimpleCacheRoutingStrategy,
-} from "@ar.io/wayfinder-core";
-
-const strategy = new SimpleCacheRoutingStrategy({
-  routingStrategy: new FastestPingRoutingStrategy({ timeoutMs: 500 }),
-  ttlSeconds: 300,
-});
-```
-
-#### Preferred gateway + network fallback strategy
-
-Attempt to use a favorite gateway, but fallback to a fastest pinging strategy using the ARIO Network if it fails.
-
-```ts
-import {
-  PreferredWithFallbackRoutingStrategy,
-  RandomRoutingStrategy,
-  PingRoutingStrategy,
-  NetworkGatewaysProvider,
-} from "@ar.io/wayfinder-core";
-import { ARIO } from '@ar.io/sdk';
-
-// these will be our fallback gateways
-const gatewayProvider = new NetworkGatewaysProvider({
-  ario: ARIO.mainnet(),
-  sortBy: 'operatorStake',
-  limit: 5,
-});
-
-// this is our fallback strategy if our preferred gateway fails
-const fastestPingStrategy = new FastestPingRoutingStrategy({
-  timeoutMs: 500,
-  gatewaysProvider: gatewayProvider,
-});
-
-// compose the strategies together, the preferred gateway will be used first, and if it fails, the fallback strategy will be used.
-const strategy = new PreferredWithFallbackRoutingStrategy({
-  preferredGateway: "https://my-gateway.example",
-  fallbackStrategy: fastestPingStrategy,
-});
-```
-
-#### Round-robin + ping verification
-
-Cycle through gateways sequentially, checking each one’s health before use.
-
-```ts
-import {
-  RoundRobinRoutingStrategy,
-  PingRoutingStrategy,
-  NetworkGatewaysProvider,
-} from "@ar.io/wayfinder-core";
-import { ARIO } from '@ar.io/sdk';
-
-// use static gateways
-const strategy = new PingRoutingStrategy({
-  routingStrategy: new RoundRobinRoutingStrategy({
-    gateways: [new URL("https://gw1"), new URL("https://gw2")],
-  }),
-});
-
-// use a dynamic list of gateways from the ARIO Network
-const strategy2 = new PingRoutingStrategy({
-  routingStrategy: new RoundRobinRoutingStrategy({
-    gatewaysProvider: new NetworkGatewaysProvider({
-      ario: ARIO.mainnet(),
-      sortBy: 'operatorStake',
-      limit: 5,
-    }),
-  }),
-});
-```
-
-#### Cache around any composed strategy
-
-Because `SimpleCacheRoutingStrategy` accepts any `RoutingStrategy`, you can
-cache more complex compositions too.
-
-```ts
-import {
-  RandomRoutingStrategy,
-  PingRoutingStrategy,
-  SimpleCacheRoutingStrategy,
-  NetworkGatewaysProvider,
-} from "@ar.io/wayfinder-core";
-import { ARIO } from '@ar.io/sdk';
-
-// use a dynamic list of gateways from the ARIO Network
-const randomStrategy = new RandomRoutingStrategy({
-  gatewaysProvider: new NetworkGatewaysProvider({
-    ario: ARIO.mainnet(),
-    sortBy: 'operatorStake',
-    limit: 20,
-  }),
-});
-
-// wrap the random strategy with a ping strategy
-const pingRandom = new PingRoutingStrategy({
-  routingStrategy: randomStrategy,
-});
-
-// wrap the ping random strategy with a cache strategy, caching the selected gateway for 10 minutes
-const cachedStrategy = new SimpleCacheRoutingStrategy({
-  routingStrategy: pingRandom,
-  ttlSeconds: 600,
-});
-```
-
-#### Complex multi-strategy fallback with CompositeRoutingStrategy
-
-Chain multiple strategies together for maximum resilience - try fastest ping first, then fall back to random selection if ping fails.
-
-```ts
-import {
-  CompositeRoutingStrategy,
-  FastestPingRoutingStrategy,
-  RandomRoutingStrategy,
-  NetworkGatewaysProvider,
-} from "@ar.io/wayfinder-core";
-import { ARIO } from '@ar.io/sdk';
-
-// Define gateway provider for both strategies
-const gatewayProvider = new NetworkGatewaysProvider({
-  ario: ARIO.mainnet(),
-  sortBy: 'operatorStake',
-  limit: 15,
-});
-
-// Create a composite strategy that tries fastest ping first, then random
-const strategy = new CompositeRoutingStrategy({
-  strategies: [
-    // Try fastest ping first (high performance, but may fail if all gateways are slow)
-    new FastestPingRoutingStrategy({
-      timeoutMs: 500,
-      gatewaysProvider: gatewayProvider,
-    }),
     // Fallback to random selection (guaranteed to work if gateways exist)
     new RandomRoutingStrategy({
-      gatewaysProvider: gatewayProvider,
+      gatewaysProvider: new NetworkGatewaysProvider({
+        ario: ARIO.mainnet(),
+        sortBy: 'operatorStake', 
+        limit: 20, // Use more gateways for fallback
+      }),
     }),
   ],
 });
-```
 
-In all cases, you can supply the composed strategy to `Wayfinder` (or whatever
-router factory you use) and pass in a gateways provider:
+// Example 2: Preferred gateway with multi-tier fallback
+const preferredStrategy = new CompositeRoutingStrategy({
+  strategies: [
+    // First, try your preferred gateway
+    new StaticRoutingStrategy({ 
+      gateway: 'https://my-preferred-gateway.com' 
+    }),
+    // If that fails, try fastest ping from top-tier gateways
+    new FastestPingRoutingStrategy({
+      timeoutMs: 1000,
+      gatewaysProvider: new NetworkGatewaysProvider({
+        ario: ARIO.mainnet(),
+        sortBy: 'operatorStake',
+        limit: 5, // Only top 5 gateways
+      }),
+    }),
+    // Final fallback: any random gateway from a larger pool
+    new RandomRoutingStrategy({
+      gatewaysProvider: new NetworkGatewaysProvider({
+        ario: ARIO.mainnet(),
+        limit: 50, // Larger pool for maximum availability
+      }),
+    }),
+  ],
+});
 
-```ts
-import { Wayfinder, StaticGatewaysProvider } from "@ar.io/wayfinder-core";
-
-const router = new Wayfinder({
-  gatewaysProvider: new StaticGatewaysProvider({
-    gateways: [new URL("https://gw1"), new URL("https://gw2")],
-  }),
-  routingStrategy: strategy, // any of the compositions above
+// Use with createWayfinderClient
+const wayfinder = createWayfinderClient({
+  routingSettings: {
+    strategy: performanceStrategy,
+  },
 });
 ```
 
@@ -737,258 +519,96 @@ const wayfinder = new Wayfinder({
 });
 ```
 
-## Monitoring and Events
+## Events and Monitoring
 
-### Global request events
-
-Wayfinder emits events during the routing and verification process for all requests, allowing you to monitor its operation. All events are emitted on the `wayfinder.emitter` event emitter, and are updated for each request.
+### Global Events
 
 ```javascript
-// Provide events to the Wayfinder constructor for tracking all requests
-const wayfinder = new Wayfinder({
+const wayfinder = createWayfinderClient({
   routingSettings: {
     events: {
-      onRoutingStarted: (event) => {
-        console.log('Routing started!', event);
-      },
-      onRoutingSkipped: (event) => {
-        console.log('Routing skipped!', event);
-      },
-      onRoutingSucceeded: (event) => {
-        console.log('Routing succeeded!', event);
-      },
+      onRoutingStarted: (event) => console.log('Routing started:', event),
+      onRoutingSucceeded: (event) => console.log('Gateway selected:', event),
     },
   },
   verificationSettings: {
     events: {
-      onVerificationSucceeded: (event) => {
-        console.log(`Verification passed for transaction: ${event.txId}`);
-      },
-      onVerificationFailed: (event) => {
-        console.error(
-          `Verification failed for transaction: ${event.txId}`,
-          event.error,
-        );
-      },
       onVerificationProgress: (event) => {
         const percentage = (event.processedBytes / event.totalBytes) * 100;
-        console.log(
-          `Verification progress for ${event.txId}: ${percentage.toFixed(2)}%`,
-        );
+        console.log(`Verification: ${percentage.toFixed(2)}%`);
       },
+      onVerificationSucceeded: (event) => console.log('Verified:', event.txId),
     },
   },
 });
-
-// listen to the global wayfinder event emitter for all requests
-wayfinder.emitter.on('routing-succeeded', (event) => {
-  console.log(`Request routed to: ${event.targetGateway}`);
-});
-
-wayfinder.emitter.on('routing-failed', (event) => {
-  console.error(`Routing failed: ${event.error.message}`);
-});
-
-wayfinder.emitter.on('verification-progress', (event) => {
-  console.log(`Verification progress: ${event.progress}%`);
-});
-
-wayfinder.emitter.on('verification-succeeded', (event) => {
-  console.log(`Verification succeeded: ${event.txId}`);
-});
-
-wayfinder.emitter.on('verification-failed', (event) => {
-  console.error(`Verification failed: ${event.error.message}`);
-});
 ```
 
-### Request-specific events
-
-You can also provide events to the `request` function to track a single request. These events are called for each request and are not updated for subsequent requests.
-
-> [!INFO]
-> Events are still emitted to the global event emitter for all requests. It is recommended to use the global event emitter for tracking all requests, and the request-specific events for tracking a single request.
+### Request-Specific Events
 
 ```javascript
-// create a wayfinder instance with verification enabled
-const wayfinder = new Wayfinder({
+const response = await wayfinder.request('ar://example', {
   verificationSettings: {
-    enabled: true,
-    strategy: new HashVerificationStrategy({
-      trustedGateways: ['https://permagate.io'],
-    }),
     events: {
       onVerificationProgress: (event) => {
-        console.log(`Global callback handler called for: ${event.txId}`);
-      },
-      onVerificationSucceeded: (event) => {
-        console.log(`Global callback handler called for: ${event.txId}`);
-      },
-    },
-  },
-});
-
-const response = await wayfinder.request('ar://example-name', {
-  verificationSettings: {
-    // these callbacks will be triggered for this request only, the global callback handlers are still called
-    events: {
-      onVerificationProgress: (event) => {
-        console.log(`Request-specific callback handler called for: ${event.txId}`);
-      },
-      onVerificationSucceeded: (event) => {
-        console.log(`Request-specific callback handler called for: ${event.txId}`);
+        console.log(`This request: ${event.txId}`);
       },
     },
   },
 });
 ```
-
-## Installation Notes
-
-### Optional Dependencies
-
-The `@ar.io/sdk` package is an optional peer dependency. To use AR.IO network gateways, instantiate a `NetworkGatewaysProvider` with an `ario` instance and supply it to `Wayfinder` directly:
-
-**With AR.IO SDK (Recommended):**
-```bash
-npm install @ar.io/wayfinder-core @ar.io/sdk
-# or
-yarn add @ar.io/wayfinder-core @ar.io/sdk
-```
-- `new NetworkGatewaysProvider({ ario: ARIO.mainnet() })` exposes AR.IO network gateways
-- Supports intelligent gateway selection criteria
-- Dynamic gateway discovery and updates
-
-### Caching
-
-Wayfinder supports intelligent caching:
-
-- **In browsers**: Uses localStorage for persistent caching across page reloads
-- **In Node.js**: Uses in-memory caching
-- **What's cached**: Gateway lists, routing decisions, and more
-- **Cache configuration**:
-  - `cache: true` - Enable with default 5-minute TTL
-  - `cache: { ttlSeconds: 3600 }` - Enable with custom TTL (in seconds)
-  - `cache: false` - Disable caching (default)
 
 ## Advanced Usage
 
-### Custom Providers and Strategies
+### Direct Wayfinder Constructor
 
-For advanced use cases, provide strategy instances explicitly:
-
-```javascript
-import {
-  createWayfinderClient,
-  FastestPingRoutingStrategy,
-  HashVerificationStrategy,
-} from '@ar.io/wayfinder-core';
-
-const wayfinder = createWayfinderClient({
-  // Enable caching with custom TTL
-  cache: { ttlSeconds: 3600 }, // 1 hour
-
-  // Supply a bespoke routing strategy
-  routingStrategy: new FastestPingRoutingStrategy({
-    timeoutMs: 1000,
-  }),
-
-  // Configure verification explicitly
-  verificationStrategy: new HashVerificationStrategy({
-    trustedGateways: [new URL('https://permagate.io')],
-  }),
-});
-```
-
-### Direct Constructor Usage
-
-For complete control, you can use the Wayfinder constructor directly. This is useful when you need fine-grained control over the configuration:
-
-> _Wayfinder client that caches the top 10 gateways by operator stake from the ARIO Network for 1 hour and uses the fastest pinging routing strategy to select the fastest gateway for requests._
+For complete control, instantiate Wayfinder directly:
 
 ```javascript
-import { Wayfinder, NetworkGatewaysProvider, SimpleCacheGatewaysProvider, FastestPingRoutingStrategy, HashVerificationStrategy } from '@ar.io/wayfinder-core';
+import { Wayfinder, NetworkGatewaysProvider, SimpleCacheGatewaysProvider, FastestPingRoutingStrategy } from '@ar.io/wayfinder-core';
 import { ARIO } from '@ar.io/sdk';
 
 const wayfinder = new Wayfinder({
-  // cache the top 10 gateways by operator stake from the ARIO Network for 1 hour
-  gatewaysProvider: new SimpleCacheGatewaysProvider({
-    ttlSeconds: 60 * 60, // cache the gateways for 1 hour
-    gatewaysProvider: new NetworkGatewaysProvider({
-      ario: ARIO.mainnet(),
-      sortBy: 'operatorStake',
-      sortOrder: 'desc',
-      limit: 10,
-    }),
-  }),
-  // routing settings
   routingSettings: {
-    // use the fastest pinging strategy to select the fastest gateway for requests
     strategy: new FastestPingRoutingStrategy({
-      timeoutMs: 1000,
+      gatewaysProvider: new SimpleCacheGatewaysProvider({
+        ttlSeconds: 3600,
+        gatewaysProvider: new NetworkGatewaysProvider({
+          ario: ARIO.mainnet(),
+          limit: 10,
+        }),
+      }),
     }),
-    // events
-    events: {
-      onRoutingStarted: (event) => {
-        console.log('Routing started!', event);
-      },
-      onRoutingSkipped: (event) => {
-        console.log('Routing skipped!', event);
-      },
-      onRoutingSucceeded: (event) => {
-        console.log('Routing succeeded!', event);
-      },
-    },
   },
-  // verification settings
   verificationSettings: {
-    // enable verification - if false, verification will be skipped for all requests
     enabled: true,
-    // verify the data using the hash of the data against a list of trusted gateways
+    strict: true,
     strategy: new HashVerificationStrategy({
       trustedGateways: [new URL('https://permagate.io')],
     }),
-    // strict verification - if true, verification failures will cause requests to fail
-    strict: true,
-    // events
-    events: {
-      onVerificationProgress: (event) => {
-        console.log('Verification progress!', event);
-      },
-      onVerificationSucceeded: (event) => {
-        console.log('Verification succeeded!', event);
-      },
-      onVerificationFailed: (event) => {
-        console.log('Verification failed!', event);
-      },
-    },
   },
 });
 ```
 
-## Telemetry
+### Telemetry
 
 Wayfinder can optionally emit OpenTelemetry spans for every request. **By default, telemetry is disabled**. You can control this behavior with the `telemetry` option.
 
-```javascript
-
+```typescript
 import { createWayfinderClient } from '@ar.io/wayfinder-core';
 
 const wayfinder = createWayfinderClient({
   // other settings...
-  telemetry: {
-    enabled: true, // disabled by default (must be explicitly enabled)
-    sampleRate: 0.1, // 10% sample rate by default
-    exporterUrl: 'https://your-custom-otel-exporter', // optional, defaults to https://api.honeycomb.io/v1/traces
-    clientName: 'my-custom-client-name', // optional, defaults to wayfinder-core
-    clientVersion: '1.0.0', // optional, defaults to empty
+  telemetrySettings: {
+    enabled: true,
+    sampleRate: 0.1, // 10% sampling
+    exporterUrl: 'https://your-otel-exporter',
+    clientName: 'my-app',
+    clientVersion: '1.0.0',
   },
 });
 ```
 
 ## Request Flow
-
-The following sequence diagram illustrates how Wayfinder processes requests:
 
 ```mermaid
 sequenceDiagram
@@ -1006,27 +626,19 @@ sequenceDiagram
     Wayfinder->>+Gateways Provider: getGateways()
     Gateways Provider-->>-Wayfinder: List of gateway URLs
 
-    Wayfinder->>+Routing Strategy: selectGateway() from list of gateways
-    Routing Strategy-->>-Wayfinder: Select gateway for request
+    Wayfinder->>+Routing Strategy: selectGateway()
+    Routing Strategy-->>-Wayfinder: Selected gateway
 
-    Wayfinder->>+Selected Gateway: Send HTTP request to target gateway
-    Selected Gateway-->>-Wayfinder: Response with data & txId
+    Wayfinder->>+Selected Gateway: HTTP request
+    Selected Gateway-->>-Wayfinder: Response data
 
-    activate Verification Strategy
-    Wayfinder->>+Verification Strategy: verifyData(responseData, txId)
-    Verification Strategy->>Wayfinder: Emit 'verification-progress' events
-    Verification Strategy->>Trusted Gateways: Request verification headers
-    Trusted Gateways-->>Verification Strategy: Return verification headers
-    Verification Strategy->>Verification Strategy: Compare computed vs trusted data
-    Verification Strategy-->>-Wayfinder: Return request data with verification result
-
-    alt Verification passed
-        Wayfinder->>Wayfinder: Emit 'verification-passed' event
-        Wayfinder-->>Client: Return verified response
-    else Verification failed
-        Wayfinder->>Wayfinder: Emit 'verification-failed' event
-        Wayfinder-->>Client: Throw verification error
+    opt Verification enabled
+        Wayfinder->>+Verification Strategy: verifyData()
+        Verification Strategy->>Trusted Gateways: Get verification data
+        Trusted Gateways-->>Verification Strategy: Verification headers
+        Verification Strategy-->>-Wayfinder: Verification result
     end
 
+    Wayfinder-->>Client: Response or error
     deactivate Wayfinder
 ```
