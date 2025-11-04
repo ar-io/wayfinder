@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-core
 
+## 1.7.1-alpha.0
+
+### Patch Changes
+
+- 75915fd: Update README.md to include x402 support
+
 ## 1.7.0
 
 ### Minor Changes
