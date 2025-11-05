@@ -32,6 +32,7 @@ export * from './gateways/network.js';
 export * from './gateways/simple-cache.js';
 export * from './gateways/static.js';
 export * from './gateways/local-storage-cache.js';
+export * from './gateways/trusted-peers.js';
 
 // verification strategies
 export * from './verification/data-root-verification.js';
