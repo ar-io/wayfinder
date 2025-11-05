@@ -6,10 +6,10 @@ React components and hooks for the WayFinder project, making it easy to integrat
 
 ```bash
 # Using npm
-npm install @ar.io/wayfinder-react @ar.io/wayfinder-core
+npm install @ar.io/wayfinder-react
 
 # Using yarn
-yarn add @ar.io/wayfinder-react @ar.io/wayfinder-core
+yarn add @ar.io/wayfinder-react
 ```
 
 ## Usage
@@ -18,22 +18,11 @@ yarn add @ar.io/wayfinder-react @ar.io/wayfinder-core
 
 ```tsx
 import { WayfinderProvider } from '@ar.io/wayfinder-react';
-import { NetworkGatewaysProvider } from '@ar.io/wayfinder-core';
-import { ARIO } from '@ar.io/sdk';
 
-// Wrap your app with the WayfinderProvider
 function App() {
   return (
-    <WayfinderProvider
-      // pass in the wayfinder options
-      // https://github.com/ar-io/wayfinder/tree/alpha/packages/wayfinder-core#custom-configuration
-      // by default, the provider will cache the gateways in local storage for 1 hour to avoid unnecessary network requests
-      gatewaysProvider={new NetworkGatewaysProvider({
-        ario: ARIO.mainnet(),
-        limit: 10,
-        sortBy: 'operatorStake',
-      })}
-    >
+    // Provide custom configuration if needed - https://github.com/ar-io/wayfinder/tree/alpha/packages/wayfinder-core#custom-configuration
+    <WayfinderProvider>
       <YourApp />
     </WayfinderProvider>
   );

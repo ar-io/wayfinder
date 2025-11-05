@@ -1,0 +1,53 @@
+{
+  "name": "@ar.io/wayfinder-x402-fetch",
+  "version": "0.0.2-alpha.1",
+  "description": "x402-fetch integration for WayFinder",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "author": {
+    "name": "Permanent Data Solutions Inc",
+    "email": "info@ar.io",
+    "website": "https://ar.io"
+  },
+  "files": [
+    "dist",
+    "package.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rimraf dist",
+    "test": "npm run test:unit",
+    "test:unit": "c8 tsx --test 'src/**/*.test.ts'",
+    "lint:fix": "biome check --write --unsafe --config-path=../../biome.json",
+    "lint:check": "biome check --unsafe --config-path=../../biome.json",
+    "format:fix": "biome format --write --config-path=../../biome.json",
+    "format:check": "biome format --config-path=../../biome.json"
+  },
+  "dependencies": {
+    "x402-fetch": "^0.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "rimraf": "^6.0.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "viem": "^2.21.53"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ar-io/wayfinder.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ar-io/wayfinder/issues"
+  },
+  "homepage": "https://github.com/ar-io/wayfinder#readme"
+}

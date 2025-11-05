@@ -22,12 +22,24 @@ import type { WayfinderEmitter } from './emitter.js';
 /**
  * This is an extension of the fetch function that allows for overriding the verification and routing settings for a single request.
  */
+/**
+ * Extension of RequestInit that includes Wayfinder-specific settings
+ */
+export type WayfinderRequestInit = RequestInit & {
+  verificationSettings?: WayfinderOptions['verificationSettings'];
+  routingSettings?: WayfinderOptions['routingSettings'];
+};
+
+/**
+ * Interface that all WayfinderFetch implementations must provide.
+ * This allows for custom fetch behavior like payment handling, caching, etc.
+ */
+/**
+ * This is an extension of the fetch function that allows for overriding the verification and routing settings for a single request.
+ */
 export type WayfinderFetch = (
   input: URL | RequestInfo,
-  init?: RequestInit & {
-    verificationSettings?: WayfinderOptions['verificationSettings'];
-    routingSettings?: WayfinderOptions['routingSettings'];
-  },
+  init?: WayfinderRequestInit,
 ) => Promise<Response>;
 
 export type WayfinderEvent = {
@@ -49,7 +61,7 @@ export type WayfinderEvent = {
   };
 };
 
-export type RoutingOption = 'random' | 'fastest' | 'round-robin' | 'preferred';
+export type RoutingOption = 'random' | 'fastest' | 'balanced' | 'preferred';
 
 export type VerificationOption = 'hash' | 'data-root' | 'remote' | 'disabled';
 
@@ -135,6 +147,13 @@ export interface WayfinderOptions {
    * @default defaultLogger (standard console logger)
    */
   logger?: Logger;
+
+  /**
+   * Custom fetch implementation to use for making HTTP requests.
+   * This allows for custom behavior like payment handling, caching, etc.
+   * @default native fetch
+   */
+  fetch?: typeof globalThis.fetch;
 
   /**
    * The gateways provider to use for routing requests.

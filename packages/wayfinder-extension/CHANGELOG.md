@@ -1,5 +1,12 @@
 # @ar.io/wayfinder-extension
 
+## 1.0.18-alpha.0
+
+### Patch Changes
+
+- Updated dependencies [75915fd]
+  - @ar.io/wayfinder-core@1.7.1-alpha.0
+
 ## 1.0.17
 
 ### Patch Changes

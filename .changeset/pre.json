@@ -4,11 +4,14 @@
   "initialVersions": {
     "@ar.io/wayfinder-core": "1.5.0",
     "@ar.io/wayfinder-extension": "1.0.15",
-    "@ar.io/wayfinder-react": "1.0.20"
+    "@ar.io/wayfinder-react": "1.0.20",
+    "@ar.io/wayfinder-x402-fetch": "0.0.1"
   },
   "changesets": [
-    "deprecate-wayfinder-gateways-provider",
-    "hot-apes-care",
-    "update-extension-wayfinder-api"
+    "happy-cameras-bathe",
+    "mighty-cats-trade",
+    "petite-seals-clean",
+    "ripe-actors-win",
+    "six-beans-beam"
   ]
 }

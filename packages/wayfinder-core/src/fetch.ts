@@ -14,4 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-export const WAYFINDER_REACT_VERSION = 'v1.0.23-alpha.0';
+
+/**
+ * Basic fetch function that wraps the native fetch API.
+ * This is the simplest implementation with no additional features.
+ * @returns The native fetch function
+ */
+export const createBaseFetch = (): typeof globalThis.fetch => {
+  return globalThis.fetch;
+};
