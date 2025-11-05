@@ -1,5 +1,14 @@
 # @ar.io/wayfinder-core
 
+## 1.7.1
+
+### Patch Changes
+
+- 75915fd: Update README.md to include x402 support
+- 3c3c598: Expose `TrustedPeersGatewaysProvider` from index.tsx for top level imports
+- b1c2c48: Add support for custom `fetch` implementations to be given to Wayfinder. This will pave the way to support fetching via x402, chunk based data retreival, etc.
+- 4619cad: Update npm to use OIDC for publishing
+
 ## 1.7.1-alpha.2
 
 ### Patch Changes
