@@ -431,10 +431,12 @@ const wayfinder = new Wayfinder({
 Wayfinder can be configured to work with the [x402 payment protocol](https://docs.ar.io/learn/gateways/x402-payments#what-is-x402) for paid gateway services and higher rate limits. This allows you to seamlessly make requests that may require payment without having to manually handle payment flows.
 
 > [!IMPORTANT]
-> To use x402 payments, you need to install the `@ar.io/wayfinder-x402-fetch` package.
+> To get started, install the `@ar.io/wayfinder-x402-fetch` package.
+
+The `@ar.io/wayfinder-x402-fetch` package is a simple wrapper of the [x402-fetch](https://github.com/coinbase/x402/tree/1d4c253aef959b73b46d42e7f0ccf30c7ce64955/typescript/packages/x402-fetch)  library, which creates a fetch implementation to automatically handles x402 payment flows. You can use this fetch implementation with Wayfinder to enable x402 payments for your requests.
 
 ```javascript
-import { createWayfinderClient } from '@ar.io/wayfinder-core';
+import { createWayfinderClient, StaticRoutingStrategy } from '@ar.io/wayfinder-core';
 import { createX402Fetch } from '@ar.io/wayfinder-x402-fetch';
 import { privateKeyToAccount } from 'viem/accounts';
 
@@ -447,7 +449,7 @@ const x402Fetch = createX402Fetch({
   walletClient: account,
 });
 
-// Create Wayfinder client with x402 fetch
+// Create Wayfinder client with x402 fetch to handle payments
 const wayfinder = createWayfinderClient({
   fetch: x402Fetch,
   routingSettings: {
