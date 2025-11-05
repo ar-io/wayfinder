@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-core
 
+## 1.7.1-alpha.2
+
+### Patch Changes
+
+- 3c3c598: Expose `TrustedPeersGatewaysProvider` from index.tsx for top level imports
+
 ## 1.7.1-alpha.1
 
 ### Patch Changes
