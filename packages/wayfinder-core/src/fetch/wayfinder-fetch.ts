@@ -35,67 +35,60 @@ import {
   createWayfinderRequestHeaders,
   extractRoutingInfo,
 } from '../wayfinder.js';
+import { createBaseFetch } from './base-fetch.js';
 
 /**
- * Core data fetcher that orchestrates routing, data retrieval, and verification.
+ * Creates a wrapped fetch function that supports ar:// protocol
+ *
+ * This function leverages a Proxy to intercept calls to fetch
+ * and redirects them to the target gateway using the resolveUrl function.
+ *
+ * Any URLs provided that are not wayfinder urls will be passed directly to fetch.
+ *
+ * @param resolveUrl - the function to construct the redirect url for ar:// requests
+ * @returns a wrapped fetch function that supports ar:// protocol and always returns Response
  */
-export class WayfinderFetch {
-  public logger: Logger;
-  public dataRetrievalStrategy: DataRetrievalStrategy;
-  public routingStrategy: RoutingStrategy;
-  public verificationStrategy?: VerificationStrategy;
-  public strict: boolean;
-  public emitter?: WayfinderEmitter;
-  public tracer?: Tracer;
-  public fetch: typeof globalThis.fetch;
-  public events?: WayfinderEvents;
-
-  constructor({
-    logger = defaultLogger,
-    dataRetrievalStrategy = new ContiguousDataRetrievalStrategy(),
-    routingStrategy = new RandomRoutingStrategy(),
-    verificationStrategy,
-    strict = false,
-    emitter,
-    tracer,
-    fetch = globalThis.fetch,
-    events,
-  }: {
-    logger?: Logger;
-    dataRetrievalStrategy?: DataRetrievalStrategy;
-    routingStrategy?: RoutingStrategy;
-    verificationStrategy?: VerificationStrategy;
-    strict?: boolean;
-    emitter?: WayfinderEmitter;
-    tracer?: Tracer;
-    fetch?: typeof globalThis.fetch;
-    events?: WayfinderEvents;
-  }) {
-    this.logger = logger;
-    this.dataRetrievalStrategy = dataRetrievalStrategy;
-    this.routingStrategy = routingStrategy;
-    this.verificationStrategy = verificationStrategy;
-    this.strict = strict;
-    this.emitter = emitter;
-    this.tracer = tracer;
-    this.fetch = fetch;
-    this.events = events;
-  }
-
-  async wayfinderFetch(
+export const createWayfinderFetch = ({
+  logger = defaultLogger,
+  strict = false,
+  fetch = createBaseFetch(),
+  routingStrategy = new RandomRoutingStrategy(),
+  dataRetrievalStrategy = new ContiguousDataRetrievalStrategy({
+    fetch,
+  }),
+  verificationStrategy,
+  emitter,
+  tracer,
+  events,
+}: {
+  logger?: Logger;
+  verificationStrategy?: VerificationStrategy;
+  strict?: boolean;
+  routingStrategy?: RoutingStrategy;
+  dataRetrievalStrategy?: DataRetrievalStrategy;
+  emitter?: WayfinderEmitter;
+  tracer?: Tracer;
+  fetch?: typeof globalThis.fetch;
+  events?: WayfinderEvents;
+}): ((
+  input: URL | RequestInfo,
+  init?: WayfinderRequestInit,
+) => Promise<Response>) => {
+  // create our wayfinder data fetcher with state from the wayfinder instance
+  return async (
     input: URL | RequestInfo,
     init?: WayfinderRequestInit,
-  ): Promise<Response> {
+  ): Promise<Response> => {
     // enforce ar:// scheme
     const uri = input instanceof URL ? input.toString() : input.toString();
     if (!uri.startsWith('ar://')) {
-      this.logger?.debug('URL is not a wayfinder url, skipping routing', {
+      logger?.debug('URL is not a wayfinder url, skipping routing', {
         input,
       });
-      this.emitter?.emit('routing-skipped', {
+      emitter?.emit('routing-skipped', {
         originalUrl: JSON.stringify(input),
       });
-      return this.fetch(input, init);
+      return fetch(input, init);
     }
 
     const { subdomain, path, txId, arnsName } = extractRoutingInfo(uri);
@@ -103,22 +96,22 @@ export class WayfinderFetch {
     // Create request-specific emitter
     const requestEmitter = new WayfinderEmitter({
       verification: {
-        ...this.events,
+        ...events,
         ...init?.verificationSettings?.events,
       },
       routing: {
-        ...this.events,
+        ...events,
         ...init?.routingSettings?.events,
       },
-      parentEmitter: this.emitter,
+      parentEmitter: emitter,
     });
 
     // Create parent span for the entire fetch operation
-    const parentSpan = this.tracer?.startSpan('wayfinder.fetch');
+    const parentSpan = tracer?.startSpan('wayfinder.fetch');
 
     // Create request span
     const requestSpan = parentSpan
-      ? this.tracer?.startSpan(
+      ? tracer?.startSpan(
           'wayfinder.fetch.wayfinderDataFetcher',
           undefined,
           trace.setSpan(context.active(), parentSpan),
@@ -135,14 +128,14 @@ export class WayfinderFetch {
     });
 
     try {
-      this.logger.debug('Fetching data', {
+      logger.debug('Fetching data', {
         uri,
         subdomain,
         path,
       });
 
       // Select gateway using routing strategy
-      const selectedGateway = await this.routingStrategy.selectGateway({
+      const selectedGateway = await routingStrategy.selectGateway({
         path,
         subdomain,
       });
@@ -163,13 +156,13 @@ export class WayfinderFetch {
 
       // if its a txId or arnsName use the dataRetrievalStrategy to fetch the data; otherwise just call internal fetch
       if (!txId && !arnsName) {
-        this.logger.debug(
+        logger.debug(
           'No transaction ID or ARNS name found, performing direct fetch',
           {
             uri,
           },
         );
-        return this.fetch(redirectUrl.toString(), init);
+        return fetch(redirectUrl.toString(), init);
       }
 
       const requestHeaders = createWayfinderRequestHeaders({
@@ -177,7 +170,7 @@ export class WayfinderFetch {
       });
 
       // Use data retrieval strategy to fetch the actual data
-      const dataResponse = await this.dataRetrievalStrategy.getData({
+      const dataResponse = await dataRetrievalStrategy.getData({
         gateway: selectedGateway.toString(),
         subdomain,
         path,
@@ -186,7 +179,7 @@ export class WayfinderFetch {
 
       // If the response is not successful (e.g., 404, 500), return it directly
       if (!dataResponse.ok) {
-        this.logger.debug('Gateway returned error response', {
+        logger.debug('Gateway returned error response', {
           uri,
           status: dataResponse.status,
           statusText: dataResponse.statusText,
@@ -194,7 +187,7 @@ export class WayfinderFetch {
         return dataResponse;
       }
 
-      this.logger.debug('Successfully fetched data', {
+      logger.debug('Successfully fetched data', {
         uri,
       });
 
@@ -211,26 +204,27 @@ export class WayfinderFetch {
         headers[key] = value;
       });
 
-      const verificationStrategy = init?.verificationSettings?.enabled
+      const finalVerificationStrategy = init?.verificationSettings?.enabled
         ? init.verificationSettings.strategy
-        : this.verificationStrategy;
+        : verificationStrategy;
 
       // Determine strict mode - check init first, then fall back to instance settings
-      const isStrictMode = init?.verificationSettings?.strict ?? this.strict;
+      const isStrictMode = init?.verificationSettings?.strict ?? strict;
 
       let finalStream = dataResponse.body;
 
       // Apply verification if strategy is provided
-      if (resolvedDataId && dataResponse.body && verificationStrategy) {
-        this.logger.debug('Applying verification to data stream', {
+      if (resolvedDataId && dataResponse.body && finalVerificationStrategy) {
+        logger.debug('Applying verification to data stream', {
           dataId: resolvedDataId,
         });
 
         finalStream = tapAndVerifyReadableStream({
           originalStream: dataResponse.body,
           contentLength: contentLength,
-          verifyData:
-            verificationStrategy.verifyData.bind(verificationStrategy),
+          verifyData: finalVerificationStrategy.verifyData.bind(
+            finalVerificationStrategy,
+          ),
           txId: resolvedDataId,
           headers: headers,
           emitter: requestEmitter,
@@ -243,7 +237,7 @@ export class WayfinderFetch {
       });
     } catch (error: any) {
       requestEmitter.emit('routing-failed', error as Error);
-      this.logger.error('Failed to fetch data', {
+      logger.error('Failed to fetch data', {
         error: error.message,
         stack: error.stack,
         uri,
@@ -253,5 +247,5 @@ export class WayfinderFetch {
       requestSpan?.end();
       parentSpan?.end();
     }
-  }
-}
+  };
+};

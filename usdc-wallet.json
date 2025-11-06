@@ -1,0 +1,18 @@
+{
+  "provider": null,
+  "address": "0x3bbfe640b49eCb09F8e7cEDB36EA8C4d89198cB6",
+  "publicKey": "0x03a1d79ff5eca9e6528d97ba9fe5a3549d893662e6a80e9f11f414879f786e1638",
+  "fingerprint": "0x0657382b",
+  "parentFingerprint": "0x24d6c03c",
+  "privateKey": "0x2b493c2b4acc1dada61c6e10e07f032d00760358bc8394a7ca9ac6d4ac350847",
+  "mnemonic": {
+    "phrase": "bridge cup screen talent inject whale buffalo mushroom purse lion belt ill",
+    "password": "",
+    "wordlist": { "locale": "en" },
+    "entropy": "0x1bc6b7066eb741f3476c8eae904453b8"
+  },
+  "chainCode": "0x95bacb13fd1f7d14a4ee695af91cabc03f93cec07f89db480ed40b0ffca34f20",
+  "path": "m/44'/60'/0'/0/0",
+  "index": 0,
+  "depth": 5
+}
