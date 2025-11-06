@@ -42,6 +42,8 @@ import type {
 } from './types.js';
 import { sandboxFromId } from './utils/base64.js';
 import { HashVerificationStrategy } from './verification/hash-verification.js';
+import { tapAndVerifyReadableStream } from './utils/verify-stream.js';
+import { arnsRegex, txIdRegex } from './constants.js';
 
 // headers
 export const createWayfinderRequestHeaders = ({
@@ -55,10 +57,6 @@ export const createWayfinderRequestHeaders = ({
     ...(traceId ? { 'x-ar-io-trace-id': traceId } : {}),
   };
 };
-
-// known regexes for wayfinder urls
-export const arnsRegex = /^[a-z0-9_-]{1,51}$/;
-export const txIdRegex = /^[A-Za-z0-9_-]{43}$/;
 
 /**
  * Parses the original URL from the params and returns a WayfinderURL (e.g. ar://<txId>)
@@ -182,106 +180,6 @@ export const constructGatewayUrl = ({
   }
   return gatewayUrl;
 };
-
-export function tapAndVerifyReadableStream({
-  originalStream,
-  contentLength,
-  verifyData,
-  txId,
-  emitter,
-  headers = {},
-  strict = false,
-}: {
-  originalStream: ReadableStream;
-  contentLength: number;
-  headers?: Record<string, string>;
-  verifyData: VerificationStrategy['verifyData'];
-  txId: string;
-  emitter?: WayfinderEmitter;
-  strict?: boolean;
-}): ReadableStream {
-  if (
-    originalStream instanceof ReadableStream &&
-    typeof originalStream.tee === 'function'
-  ) {
-    /**
-     * NOTE: tee requires the streams both streams to be consumed, so we need to make sure we consume the client branch
-     * by the caller. This means when `request` is called, the client stream must be consumed by the caller via await request.text()
-     * for verification to complete.
-     *
-     * It is feasible to make the verification stream not to depend on the client branch being consumed, should the DX not be obvious.
-     */
-    const [verifyBranch, clientBranch] = originalStream.tee();
-
-    // setup our promise to verify the data
-    const verificationPromise = verifyData({
-      data: verifyBranch,
-      txId,
-      headers,
-    });
-
-    let bytesProcessed = 0;
-    const reader = clientBranch.getReader();
-    const clientStreamWithVerification = new ReadableStream({
-      async pull(controller) {
-        const { done, value } = await reader.read();
-        if (done) {
-          if (strict) {
-            // in strict mode, we wait for verification to complete before closing the controller
-            try {
-              await verificationPromise;
-              emitter?.emit('verification-succeeded', { txId });
-              controller.close();
-            } catch (err) {
-              // emit the verification failed event
-              emitter?.emit('verification-failed', err);
-
-              // In strict mode, we report the error to the client stream
-              controller.error(
-                new Error('Verification failed', { cause: err }),
-              );
-            }
-          } else {
-            // trigger the verification promise and emit events for the result
-            verificationPromise
-              .then(() => {
-                emitter?.emit('verification-succeeded', { txId });
-              })
-              .catch((error: unknown) => {
-                emitter?.emit('verification-failed', error);
-              });
-            // in non-strict mode, we close the controller immediately and handle verification asynchronously
-            controller.close();
-          }
-        } else {
-          bytesProcessed += value.length;
-          emitter?.emit('verification-progress', {
-            txId,
-            totalBytes: contentLength,
-            processedBytes: bytesProcessed,
-          });
-          controller.enqueue(value);
-        }
-      },
-      cancel(reason) {
-        // cancel the reader regardless of verification status
-        reader.cancel(reason);
-
-        // emit the verification cancellation event
-        emitter?.emit('verification-failed', {
-          txId,
-          error: new Error('Verification cancelled', {
-            cause: {
-              reason,
-            },
-          }),
-        });
-      },
-    });
-    return clientStreamWithVerification;
-  }
-  throw new Error('Unsupported body type for cloning');
-}
 
 /**
  * Creates a wrapped fetch function that supports ar:// protocol
