@@ -213,12 +213,7 @@ describe('Wayfinder', () => {
           },
         };
 
-        const mockGatewaysProvider: GatewaysProvider = {
-          getGateways: async () => [new URL(`http://${gatewayUrl}`)],
-        };
-
         const wayfinder = new Wayfinder({
-          gatewaysProvider: mockGatewaysProvider,
           verificationSettings: { enabled: false },
           routingSettings: { strategy: mockRoutingStrategy, events: {} },
         });
@@ -260,12 +255,7 @@ describe('Wayfinder', () => {
           },
         };
 
-        const mockGatewaysProvider: GatewaysProvider = {
-          getGateways: async () => [new URL(`http://${gatewayUrl}`)],
-        };
-
         const wayfinder = new Wayfinder({
-          gatewaysProvider: mockGatewaysProvider,
           verificationSettings: { enabled: false },
           routingSettings: { strategy: mockRoutingStrategy },
         });
@@ -534,7 +524,6 @@ describe('Wayfinder', () => {
       let verificationProgress = false;
       let verificationSucceeded = false;
       const wayfinder = new Wayfinder({
-        gatewaysProvider: stubbedGatewaysProvider,
         routingSettings: {
           strategy: new StaticRoutingStrategy({
             gateway: `http://${gatewayUrl}`,
@@ -571,6 +560,50 @@ describe('Wayfinder', () => {
       assert.ok(verificationProgress, 'Should emit verification-progress');
       assert.ok(verificationSucceeded, 'Should emit verification-succeeded');
     });
+
+    it('should call verification for ArNS names with resolved transaction ID', async () => {
+      let verifyDataCalled = false;
+      let verifyDataCalledWithTxId: string | undefined;
+
+      const wayfinder = new Wayfinder({
+        routingSettings: {
+          strategy: new StaticRoutingStrategy({
+            gateway: `http://${gatewayUrl}`,
+          }),
+        },
+        verificationSettings: {
+          strategy: {
+            trustedGateways: [new URL(`http://${gatewayUrl}`)],
+            verifyData: async ({ txId }) => {
+              verifyDataCalled = true;
+              verifyDataCalledWithTxId = txId;
+              return;
+            },
+          },
+        },
+      });
+
+      // Request an ArNS name - this should resolve to a txId and call verification
+      const response = await wayfinder.request('ar://ardrive');
+
+      // Read the full response body to ensure verification completes
+      await response.text();
+
+      assert.strictEqual(response.status, 200);
+      assert.ok(
+        verifyDataCalled,
+        'verifyData should have been called for ArNS name',
+      );
+      assert.ok(
+        verifyDataCalledWithTxId,
+        'verifyData should have been called with resolved txId',
+      );
+      assert.match(
+        verifyDataCalledWithTxId!,
+        /^[A-Za-z0-9_-]{43}$/,
+        'Should be called with a valid 43-character transaction ID',
+      );
+    });
   });
 
   describe('resolveUrl', () => {
@@ -582,7 +615,6 @@ describe('Wayfinder', () => {
             gateway: `http://${gatewayUrl}`,
           }),
         },
-        gatewaysProvider: stubbedGatewaysProvider,
       });
     });
 
