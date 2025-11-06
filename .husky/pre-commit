@@ -1,1 +1,2 @@
-npx biome check --write --staged --no-errors-on-unmatched
+npx biome check format --write --staged --no-errors-on-unmatched
+git update-index --again

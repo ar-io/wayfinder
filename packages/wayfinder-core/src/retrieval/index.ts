@@ -16,3 +16,4 @@
  */
 
 export * from './contiguous.js';
+export * from './chunk.js';

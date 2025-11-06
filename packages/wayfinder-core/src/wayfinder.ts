@@ -25,27 +25,23 @@ import {
 import { WebTracerProvider } from '@opentelemetry/sdk-trace-web';
 import { arnsRegex, txIdRegex } from './constants.js';
 import { WayfinderEmitter } from './emitter.js';
-import { createBaseFetch } from './fetch/base-fetch.js';
-import { WayfinderFetch } from './fetch/wayfinder-fetch.js';
+import { createWayfinderFetch } from './fetch/wayfinder-fetch.js';
 import { TrustedPeersGatewaysProvider } from './gateways/trusted-peers.js';
 import { PingRoutingStrategy } from './routing/ping.js';
 import { RandomRoutingStrategy } from './routing/random.js';
 import { initTelemetry } from './telemetry.js';
 import type {
-  DataRetrievalStrategy,
   GatewaysProvider,
   Logger,
   RoutingStrategy,
   TelemetrySettings,
   VerificationStrategy,
-  WayfinderEvents,
   WayfinderOptions,
   WayfinderRequestInit,
   WayfinderURL,
   WayfinderURLParams,
 } from './types.js';
 import { sandboxFromId } from './utils/base64.js';
-import { tapAndVerifyReadableStream } from './utils/verify-stream.js';
 import { HashVerificationStrategy } from './verification/hash-verification.js';
 
 // headers
@@ -194,52 +190,6 @@ export const constructGatewayUrl = ({
 };
 
 /**
- * Creates a wrapped fetch function that supports ar:// protocol
- *
- * This function leverages a Proxy to intercept calls to fetch
- * and redirects them to the target gateway using the resolveUrl function.
- *
- * Any URLs provided that are not wayfinder urls will be passed directly to fetch.
- *
- * @param resolveUrl - the function to construct the redirect url for ar:// requests
- * @returns a wrapped fetch function that supports ar:// protocol and always returns Response
- */
-export const createWayfinderFetch = ({
-  logger = defaultLogger,
-  verificationStrategy,
-  strict = false,
-  routingStrategy,
-  dataRetrievalStrategy,
-  emitter,
-  tracer,
-  fetch = createBaseFetch(),
-  events,
-}: {
-  logger?: Logger;
-  verificationStrategy?: VerificationStrategy;
-  strict?: boolean;
-  routingStrategy?: RoutingStrategy;
-  dataRetrievalStrategy?: DataRetrievalStrategy;
-  emitter?: WayfinderEmitter;
-  tracer?: Tracer;
-  fetch?: typeof globalThis.fetch;
-  events?: WayfinderEvents;
-}): WayfinderFetch => {
-  // create our wayfinder data fetcher with state from the wayfinder instance
-  return new WayfinderFetch({
-    logger,
-    dataRetrievalStrategy,
-    routingStrategy,
-    verificationStrategy,
-    strict,
-    emitter,
-    tracer,
-    fetch,
-    events,
-  });
-};
-
-/**
  * The main class for the wayfinder
  */
 export class Wayfinder {
@@ -353,18 +303,16 @@ export class Wayfinder {
   public readonly emitter: WayfinderEmitter;
 
   /**
-   * Stateful fetch class that exposes the wayfinder fetch method
-   */
-  protected wayfinderFetch: WayfinderFetch;
-
-  /**
    * The constructor for the wayfinder
    * @param options - Wayfinder configuration options
    */
   /**
    * Custom fetch implementation for making HTTP requests
    */
-  protected fetch: typeof globalThis.fetch;
+  protected fetch: (
+    input: URL | RequestInfo,
+    init?: WayfinderRequestInit,
+  ) => Promise<Response>;
 
   constructor({
     logger,
@@ -463,7 +411,7 @@ export class Wayfinder {
       })
       .end();
 
-    this.wayfinderFetch = createWayfinderFetch({
+    this.fetch = createWayfinderFetch({
       logger: this.logger,
       fetch: fetch,
       verificationStrategy: this.verificationSettings.strategy,
@@ -476,8 +424,6 @@ export class Wayfinder {
         ...this.routingSettings.events,
       },
     });
-
-    this.fetch = this.wayfinderFetch.wayfinderFetch.bind(this.wayfinderFetch);
   }
 
   /**
