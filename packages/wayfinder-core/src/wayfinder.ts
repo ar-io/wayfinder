@@ -44,8 +44,6 @@ import type {
 import { sandboxFromId } from './utils/base64.js';
 import { tapAndVerifyReadableStream } from './utils/verify-stream.js';
 import { HashVerificationStrategy } from './verification/hash-verification.js';
-import { tapAndVerifyReadableStream } from './utils/verify-stream.js';
-import { arnsRegex, txIdRegex } from './constants.js';
 
 // headers
 export const createWayfinderRequestHeaders = ({
