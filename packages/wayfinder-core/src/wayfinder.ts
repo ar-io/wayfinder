@@ -23,6 +23,7 @@ import {
   NodeTracerProvider,
 } from '@opentelemetry/sdk-trace-node';
 import { WebTracerProvider } from '@opentelemetry/sdk-trace-web';
+import { arnsRegex, txIdRegex } from './constants.js';
 import { WayfinderEmitter } from './emitter.js';
 import { createBaseFetch } from './fetch.js';
 import { TrustedPeersGatewaysProvider } from './gateways/trusted-peers.js';
@@ -41,6 +42,7 @@ import type {
   WayfinderURLParams,
 } from './types.js';
 import { sandboxFromId } from './utils/base64.js';
+import { tapAndVerifyReadableStream } from './utils/verify-stream.js';
 import { HashVerificationStrategy } from './verification/hash-verification.js';
 import { tapAndVerifyReadableStream } from './utils/verify-stream.js';
 import { arnsRegex, txIdRegex } from './constants.js';
