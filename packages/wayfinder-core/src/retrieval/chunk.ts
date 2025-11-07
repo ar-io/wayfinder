@@ -18,7 +18,6 @@
 import { arioHeaderNames } from '../constants.js';
 import { defaultLogger } from '../logger.js';
 import type { DataRetrievalStrategy, Logger } from '../types.js';
-import { constructGatewayUrl } from '../wayfinder.js';
 
 /**
  * Chunk data retrieval strategy that fetches transaction data in chunks
@@ -40,36 +39,21 @@ export class ChunkDataRetrievalStrategy implements DataRetrievalStrategy {
   }
 
   async getData({
-    gateway,
-    subdomain,
-    path,
+    requestUrl,
     headers,
   }: {
-    gateway: string;
-    subdomain: string;
-    path: string;
+    requestUrl: URL;
     headers?: Record<string, string>;
   }): Promise<Response> {
     this.logger.debug('Fetching chunked transaction data', {
-      subdomain,
-      path,
-    });
-
-    // Construct the full URL for HEAD request
-    // Don't use subdomain if hostname is localhost
-    const gatewayUrl = new URL(gateway);
-    const isLocalhost =
-      gatewayUrl.hostname === 'localhost' ||
-      gatewayUrl.hostname === '127.0.0.1';
-    const headUrl = constructGatewayUrl({
-      subdomain: isLocalhost ? '' : subdomain,
-      path,
-      selectedGateway: gatewayUrl,
+      requestUrl: requestUrl.toString(),
     });
 
     // Make HEAD request to get metadata
-    this.logger.debug('Making HEAD request to:', { url: headUrl.toString() });
-    const headResponse = await this.fetch(headUrl.toString(), {
+    this.logger.debug('Making HEAD request to:', {
+      url: requestUrl.toString(),
+    });
+    const headResponse = await this.fetch(requestUrl.toString(), {
       method: 'HEAD',
       headers,
     });
@@ -130,7 +114,10 @@ export class ChunkDataRetrievalStrategy implements DataRetrievalStrategy {
 
         while (bytesRead < totalSize) {
           try {
-            const chunkUrl = new URL(`/chunk/${currentOffset}/data`, gateway);
+            const chunkUrl = new URL(
+              `/chunk/${currentOffset}/data`,
+              requestUrl,
+            );
 
             logger.debug('Fetching chunk', {
               url: chunkUrl.toString(),

@@ -80,8 +80,9 @@ export const createWayfinderFetch = ({
     init?: WayfinderRequestInit,
   ): Promise<Response> => {
     // enforce ar:// scheme
-    const uri = input instanceof URL ? input.toString() : input.toString();
-    if (!uri.startsWith('ar://')) {
+    const requestUri =
+      input instanceof URL ? input.toString() : input.toString();
+    if (!requestUri.startsWith('ar://')) {
       logger?.debug('URL is not a wayfinder url, skipping routing', {
         input,
       });
@@ -91,7 +92,7 @@ export const createWayfinderFetch = ({
       return fetch(input, init);
     }
 
-    const { subdomain, path, txId, arnsName } = extractRoutingInfo(uri);
+    const { subdomain, path, txId, arnsName } = extractRoutingInfo(requestUri);
 
     // Create request-specific emitter
     const requestEmitter = new WayfinderEmitter({
@@ -119,17 +120,17 @@ export const createWayfinderFetch = ({
       : undefined;
 
     // Add request attributes to span
-    requestSpan?.setAttribute('request.url', uri);
+    requestSpan?.setAttribute('request.url', requestUri);
     requestSpan?.setAttribute('request.method', 'GET');
 
     // Emit routing started event
     requestEmitter.emit('routing-started', {
-      originalUrl: uri,
+      originalUrl: requestUri,
     });
 
     try {
       logger.debug('Fetching data', {
-        uri,
+        uri: requestUri,
         subdomain,
         path,
       });
@@ -149,7 +150,7 @@ export const createWayfinderFetch = ({
 
       // Emit routing succeeded event
       requestEmitter.emit('routing-succeeded', {
-        originalUrl: uri,
+        originalUrl: requestUri,
         selectedGateway: selectedGateway.toString(),
         redirectUrl: redirectUrl.toString(),
       });
@@ -159,7 +160,7 @@ export const createWayfinderFetch = ({
         logger.debug(
           'No transaction ID or ARNS name found, performing direct fetch',
           {
-            uri,
+            uri: requestUri,
           },
         );
         return fetch(redirectUrl.toString(), init);
@@ -171,16 +172,14 @@ export const createWayfinderFetch = ({
 
       // Use data retrieval strategy to fetch the actual data
       const dataResponse = await dataRetrievalStrategy.getData({
-        gateway: selectedGateway.toString(),
-        subdomain,
-        path,
+        requestUrl: redirectUrl,
         headers: requestHeaders,
       });
 
       // If the response is not successful (e.g., 404, 500), return it directly
       if (!dataResponse.ok) {
         logger.debug('Gateway returned error response', {
-          uri,
+          uri: requestUri,
           status: dataResponse.status,
           statusText: dataResponse.statusText,
         });
@@ -188,7 +187,7 @@ export const createWayfinderFetch = ({
       }
 
       logger.debug('Successfully fetched data', {
-        uri,
+        uri: requestUri,
       });
 
       // Extract data ID from headers for verification
@@ -240,7 +239,7 @@ export const createWayfinderFetch = ({
       logger.error('Failed to fetch data', {
         error: error.message,
         stack: error.stack,
-        uri,
+        uri: requestUri,
       });
       throw error;
     } finally {

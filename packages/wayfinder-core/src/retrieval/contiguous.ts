@@ -17,7 +17,6 @@
 
 import { defaultLogger } from '../logger.js';
 import type { DataRetrievalStrategy, Logger } from '../types.js';
-import { constructGatewayUrl } from '../wayfinder.js';
 
 /**
  * Contiguous data retrieval strategy that fetches the entire transaction
@@ -39,28 +38,17 @@ export class ContiguousDataRetrievalStrategy implements DataRetrievalStrategy {
   }
 
   async getData({
-    gateway,
-    subdomain,
-    path,
+    requestUrl,
     headers,
   }: {
-    gateway: string;
-    subdomain: string;
-    path: string;
+    requestUrl: URL;
     headers?: Record<string, string>;
   }): Promise<Response> {
     this.logger.debug('Fetching contiguous transaction data', {
-      subdomain,
-      path,
+      requestUrl: requestUrl.toString(),
     });
 
-    const dataUrl = constructGatewayUrl({
-      subdomain,
-      path,
-      selectedGateway: new URL(gateway),
-    });
-
-    return this.fetch(dataUrl.toString(), {
+    return this.fetch(requestUrl.toString(), {
       method: 'GET',
       headers,
     });
