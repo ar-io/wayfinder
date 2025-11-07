@@ -19,6 +19,7 @@ import { type Tracer, context, trace } from '@opentelemetry/api';
 import { arioHeaderNames } from '../constants.js';
 import { WayfinderEmitter } from '../emitter.js';
 import { defaultLogger } from '../logger.js';
+import { ChunkDataRetrievalStrategy } from '../retrieval/chunk.js';
 import { ContiguousDataRetrievalStrategy } from '../retrieval/contiguous.js';
 import { RandomRoutingStrategy } from '../routing/random.js';
 import type {
@@ -39,13 +40,16 @@ import { createBaseFetch } from './base-fetch.js';
 
 /**
  * Creates a wrapped fetch function that supports ar:// protocol
- *
- * This function leverages a Proxy to intercept calls to fetch
- * and redirects them to the target gateway using the resolveUrl function.
- *
- * Any URLs provided that are not wayfinder urls will be passed directly to fetch.
- *
- * @param resolveUrl - the function to construct the redirect url for ar:// requests
+ 
+ * @param logger - Optional logger for logging fetch operations
+ * @param strict - Whether to enforce strict verification
+ * @param fetch - Base fetch function to use for HTTP requests
+ * @param routingStrategy - Strategy for selecting gateways
+ * @param dataRetrievalStrategy - Strategy for retrieving data
+ * @param verificationStrategy - Strategy for verifying data integrity
+ * @param emitter - Optional event emitter for wayfinder events
+ * @param tracer - Optional OpenTelemetry tracer for tracing fetch operations
+ * @param events - Optional event handlers for wayfinder events
  * @returns a wrapped fetch function that supports ar:// protocol and always returns Response
  */
 export const createWayfinderFetch = ({
@@ -53,7 +57,7 @@ export const createWayfinderFetch = ({
   strict = false,
   fetch = createBaseFetch(),
   routingStrategy = new RandomRoutingStrategy(),
-  dataRetrievalStrategy = new ContiguousDataRetrievalStrategy({
+  dataRetrievalStrategy = new ChunkDataRetrievalStrategy({
     fetch,
   }),
   verificationStrategy,
