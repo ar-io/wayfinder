@@ -38,11 +38,9 @@ export class ContiguousDataRetrievalStrategy implements DataRetrievalStrategy {
   }
 
   async getData({
-    gateway: _gateway,
     requestUrl,
     headers,
   }: {
-    gateway: URL;
     requestUrl: URL;
     headers?: Record<string, string>;
   }): Promise<Response> {

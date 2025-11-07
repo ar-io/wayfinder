@@ -52,10 +52,6 @@ export class ChunkDataRetrievalStrategy implements DataRetrievalStrategy {
       requestUrl: requestUrl.toString(),
     });
 
-    // Make HEAD request to get metadata
-    this.logger.debug('Making HEAD request to:', {
-      url: requestUrl.toString(),
-    });
     const headResponse = await this.fetch(requestUrl.toString(), {
       method: 'HEAD',
       headers,
