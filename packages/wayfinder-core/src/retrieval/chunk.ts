@@ -39,13 +39,16 @@ export class ChunkDataRetrievalStrategy implements DataRetrievalStrategy {
   }
 
   async getData({
+    gateway,
     requestUrl,
     headers,
   }: {
+    gateway: URL;
     requestUrl: URL;
     headers?: Record<string, string>;
   }): Promise<Response> {
     this.logger.debug('Fetching chunked transaction data', {
+      gateway: gateway.toString(),
       requestUrl: requestUrl.toString(),
     });
 
@@ -105,6 +108,7 @@ export class ChunkDataRetrievalStrategy implements DataRetrievalStrategy {
     // Store references for use inside the stream
     const logger = this.logger;
     const fetchFn = this.fetch;
+    const chunkGateway = gateway;
 
     // Create a readable stream that fetches chunks on demand
     const stream = new ReadableStream<Uint8Array>({
@@ -116,7 +120,7 @@ export class ChunkDataRetrievalStrategy implements DataRetrievalStrategy {
           try {
             const chunkUrl = new URL(
               `/chunk/${currentOffset}/data`,
-              requestUrl,
+              chunkGateway,
             );
 
             logger.debug('Fetching chunk', {

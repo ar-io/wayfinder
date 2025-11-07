@@ -172,6 +172,7 @@ export const createWayfinderFetch = ({
 
       // Use data retrieval strategy to fetch the actual data
       const dataResponse = await dataRetrievalStrategy.getData({
+        gateway: selectedGateway,
         requestUrl: redirectUrl,
         headers: requestHeaders,
       });
