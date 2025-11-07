@@ -273,9 +273,11 @@ export interface DataRetrievalStrategy {
    * Fetch transaction data using the strategy's implementation
    */
   getData({
+    gateway,
     requestUrl,
     headers,
   }: {
+    gateway: URL;
     requestUrl: URL;
     headers?: Record<string, string>;
   }): Promise<Response>;
