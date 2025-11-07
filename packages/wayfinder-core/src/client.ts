@@ -53,20 +53,27 @@ export const createRoutingStrategy = ({
   logger?: Logger;
 }): RoutingStrategy => {
   const baseConfig = { gatewaysProvider, logger };
-  const routingMap: Record<RoutingOption, RoutingStrategy> = {
-    random: new RandomRoutingStrategy(baseConfig),
-    fastest: new FastestPingRoutingStrategy(baseConfig),
-    balanced: new RoundRobinRoutingStrategy(baseConfig),
-    preferred: new PreferredWithFallbackRoutingStrategy({
-      preferredGateway: 'https://arweave.net',
-      fallbackStrategy: createRoutingStrategy({
-        ...baseConfig,
-        strategy: 'fastest',
-      }),
-    }),
-  };
 
-  return routingMap[strategy];
+  switch (strategy) {
+    case 'random':
+      return new RandomRoutingStrategy(baseConfig);
+
+    case 'fastest':
+      return new FastestPingRoutingStrategy(baseConfig);
+
+    case 'balanced':
+      return new RoundRobinRoutingStrategy(baseConfig);
+
+    case 'preferred':
+      return new PreferredWithFallbackRoutingStrategy({
+        preferredGateway: 'https://arweave.net',
+        fallbackStrategy: createRoutingStrategy({
+          strategy: 'fastest',
+          gatewaysProvider,
+          logger,
+        }),
+      });
+  }
 };
 
 /**
