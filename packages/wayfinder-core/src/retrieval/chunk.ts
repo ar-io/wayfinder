@@ -61,7 +61,6 @@ export class ChunkDataRetrievalStrategy implements DataRetrievalStrategy {
       throw new Error(`HEAD request failed: ${headResponse.status}`);
     }
 
-    // Parse headers - check multiple possible header sources
     const rootTransactionId = headResponse.headers.get(
       arioHeaderNames.rootTransactionId,
     );
@@ -186,10 +185,10 @@ export class ChunkDataRetrievalStrategy implements DataRetrievalStrategy {
       },
     });
 
-    // Create a Response with the streaming body
     const response = new Response(stream, {
       status: 200,
       headers: {
+        // TODO: consider returning the headers from the HEAD request and merge any chunk headers that make sense
         'content-type':
           headResponse.headers.get('content-type') ||
           'application/octet-stream',

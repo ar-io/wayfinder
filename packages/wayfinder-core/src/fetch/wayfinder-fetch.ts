@@ -19,7 +19,6 @@ import { type Tracer, context, trace } from '@opentelemetry/api';
 import { arioHeaderNames } from '../constants.js';
 import { WayfinderEmitter } from '../emitter.js';
 import { defaultLogger } from '../logger.js';
-import { ChunkDataRetrievalStrategy } from '../retrieval/chunk.js';
 import { ContiguousDataRetrievalStrategy } from '../retrieval/contiguous.js';
 import { RandomRoutingStrategy } from '../routing/random.js';
 import type {
@@ -57,7 +56,7 @@ export const createWayfinderFetch = ({
   strict = false,
   fetch = createBaseFetch(),
   routingStrategy = new RandomRoutingStrategy(),
-  dataRetrievalStrategy = new ChunkDataRetrievalStrategy({
+  dataRetrievalStrategy = new ContiguousDataRetrievalStrategy({
     fetch,
   }),
   verificationStrategy,
@@ -78,12 +77,23 @@ export const createWayfinderFetch = ({
   input: URL | RequestInfo,
   init?: WayfinderRequestInit,
 ) => Promise<Response>) => {
-  // create our wayfinder data fetcher with state from the wayfinder instance
   return async (
     input: URL | RequestInfo,
     init?: WayfinderRequestInit,
   ): Promise<Response> => {
-    // enforce ar:// scheme
+    /**
+     * Summary:
+     *
+     * 1. Check if URL is ar:// - if not, call fetch directly
+     * 2. Extract routing info (subdomain, path, txId, arnsName)
+     * 3. Use routing strategy to select gateway
+     * 4. Construct gateway URL given the requested resource
+     * 5. If no txId or arnsName, perform direct fetch to gateway URL
+     * 6. If txId or arnsName present, use data retrieval strategy to fetch data
+     * 7. If verification strategy present, verify data stream
+     * 8. Return a Response object with the (optionally verified) data stream
+     */
+
     const requestUri =
       input instanceof URL ? input.toString() : input.toString();
     if (!requestUri.startsWith('ar://')) {
