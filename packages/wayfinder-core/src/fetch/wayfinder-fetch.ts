@@ -180,9 +180,12 @@ export const createWayfinderFetch = ({
         return fetch(redirectUrl.toString(), init);
       }
 
-      const requestHeaders = createWayfinderRequestHeaders({
-        traceId: requestSpan?.spanContext().traceId,
-      });
+      const requestHeaders = {
+        ...Object.fromEntries(new Headers(init?.headers ?? {})),
+        ...createWayfinderRequestHeaders({
+          traceId: requestSpan?.spanContext().traceId,
+        }),
+      };
 
       // Use data retrieval strategy to fetch the actual data
       const dataResponse = await dataRetrievalStrategy.getData({
