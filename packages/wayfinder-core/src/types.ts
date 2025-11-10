@@ -116,6 +116,10 @@ export interface WayfinderVerificationEventArgs {
   ) => void;
 }
 
+export interface WayfinderEvents
+  extends WayfinderVerificationEventArgs,
+    WayfinderRoutingEventArgs {}
+
 export interface WayfinderEventArgs {
   verification?: WayfinderVerificationEventArgs;
   routing?: WayfinderRoutingEventArgs;
@@ -209,6 +213,11 @@ export interface WayfinderOptions {
    * Telemetry configuration used to initialize OpenTelemetry tracing
    */
   telemetrySettings?: TelemetrySettings;
+
+  /**
+   * The data retrieval strategy to use for fetching transaction data
+   */
+  dataRetrievalStrategy?: DataRetrievalStrategy;
 }
 
 export interface TelemetrySettings {
@@ -254,4 +263,22 @@ export interface VerificationStrategy {
 
 export interface DataClassifier {
   classify(params: { txId: string }): Promise<'ans104' | 'transaction'>;
+}
+
+/**
+ * Strategy for retrieving transaction data from gateways
+ */
+export interface DataRetrievalStrategy {
+  /**
+   * Fetch transaction data using the strategy's implementation
+   */
+  getData({
+    gateway,
+    requestUrl,
+    headers,
+  }: {
+    gateway: URL;
+    requestUrl: URL;
+    headers?: Record<string, string>;
+  }): Promise<Response>;
 }

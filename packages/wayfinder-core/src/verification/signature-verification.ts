@@ -37,6 +37,10 @@ import {
   isAsyncIterable,
   readableStreamToAsyncIterable,
 } from '../utils/hash.js';
+import {
+  constructGatewayUrl,
+  constructVerificationUrl,
+} from '../utils/verification-url.js';
 import { convertDataStreamToDataRoot } from './data-root-verification.js';
 
 /**
@@ -84,9 +88,7 @@ export class Ans104SignatureVerificationStrategy
         gateway: URL;
       }> => {
         return throttle(async () => {
-          // TODO: add sandbox support to the URL - useful to test against localhost with it disabled
-          // const sandbox = sandboxFromId(txId);
-          const url = `${gateway.protocol}//${gateway.hostname}:${gateway.port}/${txId}`;
+          const url = constructVerificationUrl({ gateway, txId });
 
           // Make a HEAD request to get headers without fetching the full data
           const response = await fetch(url, {
@@ -206,7 +208,10 @@ export class Ans104SignatureVerificationStrategy
     // TODO: we are fetching data here via range request - we may not want to do this concurrently and instead shuffle gateways before iterating through each
     for (const gateway of this.trustedGateways) {
       try {
-        const url = `${gateway.toString()}${rootTransactionId}`;
+        const url = constructVerificationUrl({
+          gateway,
+          txId: rootTransactionId,
+        });
         const response = await fetch(url, {
           method: 'GET',
           redirect: 'follow',
@@ -384,7 +389,7 @@ export class TransactionSignatureVerificationStrategy
     // TODO: shuffle gateways before iterating through each and potentially allow for concurrent requests
     for (const gateway of this.trustedGateways) {
       try {
-        const url = `${gateway.toString()}tx/${txId}`;
+        const url = constructGatewayUrl({ gateway, path: `/tx/${txId}` });
         const response = await fetch(url, {
           method: 'GET',
           redirect: 'follow',

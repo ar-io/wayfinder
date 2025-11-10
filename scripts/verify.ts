@@ -1,4 +1,3 @@
-import { createVerificationStrategy } from '../packages/wayfinder-core/src/index.js';
 /**
  * WayFinder
  * Copyright (C) 2022-2025 Permanent Data Solutions, Inc.
@@ -15,6 +14,10 @@ import { createVerificationStrategy } from '../packages/wayfinder-core/src/index
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import { createX402Fetch } from '@ar.io/wayfinder-x402-fetch';
+import { privateKeyToAccount } from 'viem/accounts';
+import { createVerificationStrategy } from '../packages/wayfinder-core/src/index.js';
+import { ChunkDataRetrievalStrategy } from '../packages/wayfinder-core/src/retrieval/chunk.js';
 import { StaticRoutingStrategy } from '../packages/wayfinder-core/src/routing/static.js';
 import {
   VerificationStrategy,
@@ -28,10 +31,15 @@ function parseArgs() {
   const args = process.argv.slice(2);
   const txIdOrArns = args[0];
   const strategyType = args[1] || 'hash';
-  const gateway = args[2] || 'https://permagate.io';
+  const gateway = args[2] || 'http://localhost:3000';
+  const privateKey = process.env.X402_TEST_PRIVATE_KEY as
+    | `0x${string}`
+    | undefined;
 
   if (!txIdOrArns) {
-    console.error('Usage: node verify.js <tx-id|arns> [verification-strategy]');
+    console.error(
+      'Usage: node verify.js <tx-id|arns> [verification-strategy] [gateway] [private-key]',
+    );
     console.error(
       'Verification strategy options: data-root, hash, signature (default: hash)',
     );
@@ -45,17 +53,35 @@ function parseArgs() {
     process.exit(1);
   }
 
-  return { txIdOrArns, strategyType, gateway };
+  if (!privateKey) {
+    console.warn('Private key is required for x402-fetch. Using native fetch.');
+  }
+
+  return { txIdOrArns, strategyType, gateway, privateKey };
 }
 
 async function main() {
-  const { txIdOrArns, strategyType, gateway } = parseArgs();
+  const { txIdOrArns, strategyType, gateway, privateKey } = parseArgs();
 
   console.log(
-    `Verifying transaction ${txIdOrArns} using ${strategyType} verification...`,
+    `Verifying transaction ${txIdOrArns} using ${strategyType} verification with ChunkDataRetrievalStrategy...`,
   );
 
   try {
+    let fetchToUse: typeof globalThis.fetch = globalThis.fetch;
+
+    if (privateKey) {
+      // Create EthereumSigner with the private key
+      const signer = privateKeyToAccount(privateKey);
+
+      // Create x402-fetch with the signer
+      const x402Fetch = createX402Fetch({
+        walletClient: signer,
+        maxValue: BigInt(100000000000), // 100 gwei max payment
+      });
+      fetchToUse = x402Fetch;
+    }
+
     // Create a Wayfinder instance with the appropriate verification strategy
     const verificationStrategy = createVerificationStrategy({
       strategy: strategyType as VerificationOption,
@@ -64,11 +90,12 @@ async function main() {
 
     // Use static routing to simplify the verification process
     const routingStrategy = new StaticRoutingStrategy({
-      gateway: 'https://permagate.io',
+      gateway,
     });
 
     // Create the Wayfinder instance with strict verification (will throw errors if verification fails)
     const wayfinder = new Wayfinder({
+      fetch: fetchToUse,
       routingSettings: {
         strategy: routingStrategy,
       },
@@ -78,6 +105,9 @@ async function main() {
         clientName: 'verify-script',
         clientVersion: '1.0.0',
       },
+      dataRetrievalStrategy: new ChunkDataRetrievalStrategy({
+        fetch: fetchToUse,
+      }),
       verificationSettings: {
         enabled: true,
         strategy: verificationStrategy,
@@ -112,7 +142,7 @@ async function main() {
       logger: {
         debug: (_message: string, _data: Record<string, any>) => {
           // noop
-          console.log('debug', _message, _data);
+          // console.log('debug', _message, _data);
         },
         info: (message: string, data: Record<string, any>) => {
           console.log(message, data);
@@ -133,8 +163,6 @@ async function main() {
 
     // Request the transaction data using the ar:// protocol
     const response = await wayfinder.request(`ar://${txIdOrArns}`);
-
-    console.table(response.headers);
 
     // Consume the response to ensure verification completes
     await response.text();

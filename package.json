@@ -4,7 +4,10 @@
   "description": "WayFinder monorepo containing the Chrome extension, core library, and React components",
   "private": true,
   "type": "module",
-  "workspaces": ["packages/*", "experimental/*"],
+  "workspaces": [
+    "packages/*",
+    "experimental/*"
+  ],
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
     "@changesets/cli": "^2.29.4",
@@ -17,7 +20,8 @@
     "husky": "^9.1.7",
     "rimraf": "^6.0.1",
     "tsx": "^4.20.3",
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "viem": "^2.38.6"
   },
   "scripts": {
     "test": "npm run test --workspaces",

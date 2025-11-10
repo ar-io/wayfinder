@@ -71,3 +71,7 @@ Positional arguments are acceptable for:
 - Define a type for the parameters object to ensure type safety
 - Use destructuring with default values in the function signature
 - Consider making the entire params object optional if all properties are optional
+
+## Chunk API Usage
+
+**CRITICAL**: When making chunk requests to `/chunk/<offset>/data`, DO NOT include the root transaction ID in the URL path. The correct format is just `/chunk/<offset>/data`.
