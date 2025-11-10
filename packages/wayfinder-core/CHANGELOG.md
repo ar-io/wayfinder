@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-core
 
+## 1.7.2-alpha.0
+
+### Patch Changes
+
+- 3f52698: fix infinite recursion in `preferred` routing strategy fallback resolution
+
 ## 1.7.1
 
 ### Patch Changes

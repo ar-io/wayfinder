@@ -132,9 +132,11 @@ describe('LocalStorageGatewaysProvider', () => {
           gatewaysProvider: mockGatewaysProvider,
         });
 
+        const now = Date.now();
         const cachedGateways = {
           gateways: ['https://cached1.com', 'https://cached2.com'],
-          timestamp: Date.now(),
+          timestamp: now,
+          expiresAt: now + 300 * 1000,
           ttlSeconds: 300,
         };
 
@@ -156,9 +158,11 @@ describe('LocalStorageGatewaysProvider', () => {
           gatewaysProvider: mockGatewaysProvider,
         });
 
+        const now = Date.now();
         const cachedGateways = {
           gateways: ['https://example.com'],
-          timestamp: Date.now(),
+          timestamp: now,
+          expiresAt: now + 300 * 1000,
           ttlSeconds: 300,
         };
 
@@ -200,9 +204,11 @@ describe('LocalStorageGatewaysProvider', () => {
           gatewaysProvider: mockGatewaysProvider,
         });
 
+        const timestamp = Date.now() - 400000; // 400 seconds ago (expired)
         const expiredCache = {
           gateways: ['https://expired.com'],
-          timestamp: Date.now() - 400000, // 400 seconds ago (expired)
+          timestamp: timestamp,
+          expiresAt: timestamp + 300 * 1000,
           ttlSeconds: 300,
         };
 
@@ -224,9 +230,12 @@ describe('LocalStorageGatewaysProvider', () => {
           gatewaysProvider: mockGatewaysProvider,
         });
 
+        const timestamp = Date.now() - 3700000; // Older than default TTL (3600s)
         const cacheWithoutTTL = {
           gateways: ['https://cached.com'],
-          timestamp: Date.now() - 3700000, // Older than default TTL (3600s)
+          timestamp: timestamp,
+          expiresAt: timestamp + 3600 * 1000, // Using default TTL
+          ttlSeconds: 3600,
         };
 
         mockLocalStorage.setItem(
@@ -297,9 +306,11 @@ describe('LocalStorageGatewaysProvider', () => {
         gatewaysProvider: mockGatewaysProvider,
       });
 
+      const now = Date.now();
       const cachedGateways = {
         gateways: ['https://cached.com'],
-        timestamp: Date.now(),
+        timestamp: now,
+        expiresAt: now + 300 * 1000,
         ttlSeconds: 300,
       };
 
@@ -338,9 +349,11 @@ describe('LocalStorageGatewaysProvider', () => {
         gatewaysProvider: mockGatewaysProvider,
       });
 
+      const timestamp = Date.now() - 100000; // 100 seconds ago
       const recentCache = {
         gateways: ['https://recent.com'],
-        timestamp: Date.now() - 100000, // 100 seconds ago
+        timestamp: timestamp,
+        expiresAt: timestamp + 300 * 1000,
         ttlSeconds: 300,
       };
 
@@ -360,9 +373,11 @@ describe('LocalStorageGatewaysProvider', () => {
         gatewaysProvider: mockGatewaysProvider,
       });
 
+      const timestamp = Date.now() - 400000; // 400 seconds ago
       const oldCache = {
         gateways: ['https://old.com'],
-        timestamp: Date.now() - 400000, // 400 seconds ago
+        timestamp: timestamp,
+        expiresAt: timestamp + 300 * 1000,
         ttlSeconds: 300,
       };
 
@@ -383,6 +398,7 @@ describe('LocalStorageGatewaysProvider', () => {
       const exactCache = {
         gateways: ['https://exact.com'],
         timestamp: currentTime,
+        expiresAt: currentTime + 300 * 1000,
         ttlSeconds: 300,
       };
 

@@ -1,3 +1,4 @@
+import { createVerificationStrategy } from '../packages/wayfinder-core/src/index.js';
 /**
  * WayFinder
  * Copyright (C) 2022-2025 Permanent Data Solutions, Inc.
@@ -14,30 +15,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { ARIO } from '@ar.io/sdk';
-import { NetworkGatewaysProvider } from '../packages/wayfinder-core/src/gateways/network.js';
 import { StaticRoutingStrategy } from '../packages/wayfinder-core/src/routing/static.js';
 import {
   VerificationStrategy,
   WayfinderEvent,
 } from '../packages/wayfinder-core/src/types.js';
-import { DataRootVerificationStrategy } from '../packages/wayfinder-core/src/verification/data-root-verification.js';
-import { HashVerificationStrategy } from '../packages/wayfinder-core/src/verification/hash-verification.js';
-import { SignatureVerificationStrategy } from '../packages/wayfinder-core/src/verification/signature-verification.js';
+import { VerificationOption } from '../packages/wayfinder-core/src/types.js';
 import { Wayfinder } from '../packages/wayfinder-core/src/wayfinder.js';
-
-// Define the verification strategies
-type VerificationStrategyType = 'data-root' | 'hash' | 'signature';
 
 // Parse command line arguments
 function parseArgs() {
   const args = process.argv.slice(2);
-  const txId = args[0];
-  const strategyType = (args[1] || 'hash') as VerificationStrategyType;
+  const txIdOrArns = args[0];
+  const strategyType = args[1] || 'hash';
   const gateway = args[2] || 'https://permagate.io';
 
-  if (!txId) {
-    console.error('Usage: node verify.js <tx-id> [verification-strategy]');
+  if (!txIdOrArns) {
+    console.error('Usage: node verify.js <tx-id|arns> [verification-strategy]');
     console.error(
       'Verification strategy options: data-root, hash, signature (default: hash)',
     );
@@ -51,56 +45,22 @@ function parseArgs() {
     process.exit(1);
   }
 
-  return { txId, strategyType, gateway };
-}
-
-// Create the appropriate verification strategy based on the input
-function createVerificationStrategy(
-  strategyType: VerificationStrategyType,
-  gateway: string,
-): VerificationStrategy {
-  // Use permagate.io as the trusted provider for verification
-  const trustedGateway = new URL(gateway);
-
-  switch (strategyType) {
-    case 'data-root':
-      return new DataRootVerificationStrategy({
-        trustedGateways: [trustedGateway],
-      });
-    case 'hash':
-      return new HashVerificationStrategy({
-        trustedGateways: [trustedGateway],
-      });
-    case 'signature':
-      return new SignatureVerificationStrategy({
-        trustedGateways: [trustedGateway],
-      });
-    default:
-      throw new Error(`Unknown verification strategy: ${strategyType}`);
-  }
+  return { txIdOrArns, strategyType, gateway };
 }
 
 async function main() {
-  const { txId, strategyType, gateway } = parseArgs();
+  const { txIdOrArns, strategyType, gateway } = parseArgs();
 
   console.log(
-    `Verifying transaction ${txId} using ${strategyType} verification...`,
+    `Verifying transaction ${txIdOrArns} using ${strategyType} verification...`,
   );
 
   try {
     // Create a Wayfinder instance with the appropriate verification strategy
-    const verificationStrategy = createVerificationStrategy(
-      strategyType,
-      gateway,
-    );
-
-    // Set up a static gateway provider with a known gateway
-    const gatewaysProvider = new NetworkGatewaysProvider({
-      ario: ARIO.mainnet(),
-      sortBy: 'operatorStake',
-      sortOrder: 'desc',
-      limit: 10,
-    });
+    const verificationStrategy = createVerificationStrategy({
+      strategy: strategyType as VerificationOption,
+      trustedGateways: [new URL(gateway)],
+    }) as VerificationStrategy;
 
     // Use static routing to simplify the verification process
     const routingStrategy = new StaticRoutingStrategy({
@@ -109,7 +69,6 @@ async function main() {
 
     // Create the Wayfinder instance with strict verification (will throw errors if verification fails)
     const wayfinder = new Wayfinder({
-      gatewaysProvider,
       routingSettings: {
         strategy: routingStrategy,
       },
@@ -169,17 +128,19 @@ async function main() {
 
     // an example resolve url
     await wayfinder.resolveUrl({
-      txId,
+      originalUrl: `ar://${txIdOrArns}`,
     });
 
     // Request the transaction data using the ar:// protocol
-    const response = await wayfinder.request(`ar://${txId}`);
+    const response = await wayfinder.request(`ar://${txIdOrArns}`);
+
+    console.table(response.headers);
 
     // Consume the response to ensure verification completes
     await response.text();
 
-    // wait for 15 seconds so telemetry can flush
-    await new Promise((resolve) => setTimeout(resolve, 15000));
+    // wait for 5 seconds so telemetry can flush
+    await new Promise((resolve) => setTimeout(resolve, 5000));
   } catch (error) {
     console.error('Error during verification:');
     console.error(error);
