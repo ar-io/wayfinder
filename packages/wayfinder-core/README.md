@@ -373,7 +373,7 @@ An advanced strategy that provides the easiest way to load chunks stored on Arwe
 - **Direct chunk access**: Efficiently retrieves data directly from the underlying chunk storage layer
 - **Bundled data items**: Seamlessly fetches data items from within ANS-104 bundles using calculated offsets
 - **x402 payment compatibility**: Both strategies support custom fetch clients for payment-enabled requests
-- **Large file handling**: More reliable for large transactions that may timeout with direct requests
+- **Large file handling**: More reliable for large transactions that may time out with direct requests
 
 **Requirements:**
 
