@@ -352,9 +352,9 @@ Wayfinder supports multiple data retrieval strategies to fetch transaction data 
 | Strategy                          | Default | Performance | Use Case                                    | Requirements                           |
 | --------------------------------- | ------- | ----------- | ------------------------------------------- | -------------------------------------- |
 | `ContiguousDataRetrievalStrategy` | ✅      | High        | Standard data fetching via direct GET      | Gateway has the data available         |
-| `ChunkDataRetrievalStrategy`      | ❌      | Medium      | Chunk-based data assembly for large files  | Gateway supports `/chunk/<offset>/data` API (r58+) |
+| `ChunkDataRetrievalStrategy`      | ❌      | Medium      | Chunk-based data assembly for large files  | Gateway supports `/chunk/<offset>/data` endpoint and has requested transaction indexed as offsets are needed |
 
-### ContiguousDataRetrievalStrategy
+#### ContiguousDataRetrievalStrategy
 
 The default strategy that fetches data using a direct GET request to the gateway. This is the most straightforward approach and works for most use cases.
 
@@ -366,7 +366,7 @@ const wayfinder = new Wayfinder({
 });
 ```
 
-### ChunkDataRetrievalStrategy
+#### ChunkDataRetrievalStrategy
 
 An advanced strategy that provides the easiest way to load chunks stored on Arweave nodes via the robust chunk API provided by AR.IO gateways. This approach is particularly useful for:
 
@@ -376,9 +376,9 @@ An advanced strategy that provides the easiest way to load chunks stored on Arwe
 - **Large file handling**: More reliable for large transactions that may timeout with direct requests
 
 **Requirements:**
-- Gateway must be running AR.IO node **r58 or later**
-- Data must be **indexed** by the gateway (including root transaction IDs for nested bundles)
-- Gateway must have **offset information** available via the `/chunk/<offset>/data` endpoint
+
+- Gateway must support the `/chunk/<offset>/data` endpoint (added in [r58](https://github.com/ar-io/ar-io-node/releases/tag/r58))
+- Gateway must have the requested transaction indexed (offsets are needed to fetch directly from chunks)
 
 ```javascript
 import { Wayfinder, ChunkDataRetrievalStrategy } from '@ar.io/wayfinder-core';
@@ -396,6 +396,46 @@ const wayfinder = new Wayfinder({
 4. Fetches data in chunks using `/chunk/<offset>/data` and assembles the complete data stream
 5. Validates that chunks belong to the expected root transaction for security
 
+**Sequence Diagram:**
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Wayfinder
+    participant Gateway as AR.IO Gateway
+    participant Arweave as Arweave Nodes
+
+    Client->>Wayfinder: request('ar://data-item-id')
+    activate Wayfinder
+
+    Wayfinder->>Gateway: HEAD /tx/{data-item-id}
+    Note over Gateway: Lookup data item metadata<br/>from indexed bundles
+    Gateway-->>Wayfinder: Headers:<br/>- x-root-tx-id (bundle ID)<br/>- x-data-offset<br/>- content-length
+
+    Wayfinder->>Gateway: GET /tx/{root-tx-id}/offset
+    Gateway->>Arweave: GET /tx/{root-tx-id}/offset
+    Note over Arweave: Lookup transaction offset<br/>in the weave
+    Arweave-->>Gateway: Root transaction offset
+    Gateway-->>Wayfinder: Root transaction offset in weave
+
+    Note over Wayfinder: Calculate absolute offset:<br/>absolute = root_offset + data_offset
+
+    loop For each chunk needed
+        Wayfinder->>Gateway: GET /chunk/{absolute-offset}/data
+        
+        Note over Gateway: Serve chunk data from<br/>indexed storage using<br/>root transaction ID
+        
+        Gateway-->>Wayfinder: Chunk data + validation headers<br/>(x-root-tx-id for security)
+        
+        Note over Wayfinder: Validate chunk belongs<br/>to expected root TX
+        
+        Wayfinder-->>Client: Stream chunk data
+    end
+
+    Wayfinder-->>Client: Complete response
+    deactivate Wayfinder
+```
+
 **Example with createWayfinderClient:**
 
 ```javascript
@@ -409,7 +449,9 @@ const wayfinder = createWayfinderClient({
 const response = await wayfinder.request('ar://data-item-id');
 ```
 
-**Example with x402 payment support:**
+#### x402 Support
+
+Both data retrieval strategies support custom fetch implementations, allowing you to use x402-enabled fetch clients for paid gateway requests.
 
 ```javascript
 import { createWayfinderClient, ChunkDataRetrievalStrategy } from '@ar.io/wayfinder-core';

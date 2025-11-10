@@ -181,7 +181,7 @@ export const createWayfinderFetch = ({
       }
 
       const requestHeaders = {
-        ...Object.fromEntries(new Headers(init?.headers || {})),
+        ...Object.fromEntries(new Headers(init?.headers || {}) as any),
         ...createWayfinderRequestHeaders({
           traceId: requestSpan?.spanContext().traceId,
         }),
