@@ -272,7 +272,7 @@ export class ChunkDataRetrievalStrategy implements DataRetrievalStrategy {
       status: 200,
       headers: {
         // all the original ario headers from the HEAD request
-        ...Object.fromEntries(headResponse.headers.entries()),
+        ...Object.fromEntries(headResponse.headers as any),
         'x-wayfinder-data-retrieval-strategy': 'chunk',
       },
     });

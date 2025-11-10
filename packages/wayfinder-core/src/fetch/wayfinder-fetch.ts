@@ -213,17 +213,9 @@ export const createWayfinderFetch = ({
         ? parseInt(dataResponse.headers.get('content-length')!, 10)
         : 0;
 
-      const headers: Record<string, string> = {};
-      dataResponse.headers.forEach((value, key) => {
-        headers[key] = value;
-      });
-
       const finalVerificationStrategy = init?.verificationSettings?.enabled
         ? init.verificationSettings.strategy
         : verificationStrategy;
-
-      // Determine strict mode - check init first, then fall back to instance settings
-      const isStrictMode = init?.verificationSettings?.strict ?? strict;
 
       let finalStream = dataResponse.body;
 
@@ -233,6 +225,9 @@ export const createWayfinderFetch = ({
           dataId: resolvedDataId,
         });
 
+        // Determine strict mode - check init first, then fall back to instance settings
+        const isStrictMode = init?.verificationSettings?.strict ?? strict;
+
         finalStream = tapAndVerifyReadableStream({
           originalStream: dataResponse.body,
           contentLength: contentLength,
@@ -240,14 +235,14 @@ export const createWayfinderFetch = ({
             finalVerificationStrategy,
           ),
           txId: resolvedDataId,
-          headers: headers,
+          headers: Object.fromEntries(dataResponse.headers as any),
           emitter: requestEmitter,
           strict: isStrictMode,
         });
       }
 
       return new Response(finalStream, {
-        headers: headers,
+        headers: dataResponse.headers,
       });
     } catch (error: any) {
       requestEmitter.emit('routing-failed', error as Error);
