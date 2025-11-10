@@ -18,8 +18,8 @@ import { pLimit } from 'plimit-lit';
 import { defaultLogger } from '../logger.js';
 import type { DataStream, Logger, VerificationStrategy } from '../types.js';
 import { arioGatewayHeaders } from '../utils/ario.js';
-import { sandboxFromId } from '../utils/base64.js';
 import { hashDataStreamToB64Url } from '../utils/hash.js';
+import { constructVerificationUrl } from '../utils/verification-url.js';
 
 export class HashVerificationStrategy implements VerificationStrategy {
   public readonly trustedGateways: URL[];
@@ -60,8 +60,7 @@ export class HashVerificationStrategy implements VerificationStrategy {
     const hashPromises = this.trustedGateways.map(
       async (gateway: URL): Promise<{ hash: string; gateway: URL }> => {
         return throttle(async () => {
-          const sandbox = sandboxFromId(txId);
-          const urlWithSandbox = `${gateway.protocol}//${sandbox}.${gateway.hostname}/${txId}`;
+          const urlWithSandbox = constructVerificationUrl({ gateway, txId });
           /**
            * This is a problem because we're not able to verify the hash of the data item if the gateway doesn't have the data in its cache. We start with a HEAD request, if it fails, we do a GET request to hydrate the cache and then a HEAD request again to get the cached digest.
            */

@@ -37,6 +37,7 @@ import {
   isAsyncIterable,
   readableStreamToAsyncIterable,
 } from '../utils/hash.js';
+import { constructGatewayUrl } from '../utils/verification-url.js';
 
 export const convertDataStreamToDataRoot = async ({
   stream,
@@ -141,7 +142,7 @@ export class DataRootVerificationStrategy implements VerificationStrategy {
       async (gateway): Promise<{ dataRoot: string; gateway: URL }> => {
         return throttle(async () => {
           const response = await fetch(
-            `${gateway.toString()}tx/${txId}/data_root`,
+            constructGatewayUrl({ gateway, path: `/tx/${txId}/data_root` }),
           );
           if (!response.ok) {
             // skip this gateway

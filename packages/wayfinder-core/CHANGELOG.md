@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-core
 
+## 1.8.0-alpha.0
+
+### Minor Changes
+
+- 8dff382: Add `DataRetrievalStrategy` interface for fetching data from AR.IO gateways. Implement `ContiguousDataRetrievalStrategy` (default) and `ChunkDataRetrievalStrategy`.
+
 ## 1.7.2
 
 ### Patch Changes
