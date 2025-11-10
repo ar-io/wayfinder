@@ -33,13 +33,14 @@ export function constructVerificationUrl({
   txId: string;
   path?: string;
 }): string {
+  const port = gateway.port ? `:${gateway.port}` : '';
   // For localhost, use port-based routing instead of subdomain routing
   if (gateway.hostname === 'localhost' || gateway.hostname === '127.0.0.1') {
-    return `${gateway.protocol}//${gateway.hostname}:${gateway.port}${path}/${txId}`;
+    return `${gateway.protocol}//${gateway.hostname}${port}${path}/${txId}`;
   } else {
     // For non-localhost, use subdomain routing with sandbox
     const sandbox = sandboxFromId(txId);
-    return `${gateway.protocol}//${sandbox}.${gateway.hostname}:${gateway.port}${path}/${txId}`;
+    return `${gateway.protocol}//${sandbox}.${gateway.hostname}${port}${path}/${txId}`;
   }
 }
 
