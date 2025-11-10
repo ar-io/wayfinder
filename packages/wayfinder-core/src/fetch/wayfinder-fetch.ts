@@ -243,6 +243,8 @@ export const createWayfinderFetch = ({
 
       return new Response(finalStream, {
         headers: dataResponse.headers,
+        status: dataResponse.status,
+        statusText: dataResponse.statusText,
       });
     } catch (error: any) {
       requestEmitter.emit('routing-failed', error as Error);
