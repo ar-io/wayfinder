@@ -50,7 +50,10 @@ export class ContiguousDataRetrievalStrategy implements DataRetrievalStrategy {
 
     return this.fetch(requestUrl.toString(), {
       method: 'GET',
-      headers,
+      headers: {
+        ...headers,
+        'x-wayfinder-data-retrieval-strategy': 'contiguous',
+      },
     });
   }
 }

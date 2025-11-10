@@ -27,10 +27,12 @@ import { arnsRegex, txIdRegex } from './constants.js';
 import { WayfinderEmitter } from './emitter.js';
 import { createWayfinderFetch } from './fetch/wayfinder-fetch.js';
 import { TrustedPeersGatewaysProvider } from './gateways/trusted-peers.js';
+import { ContiguousDataRetrievalStrategy } from './retrieval/contiguous.js';
 import { PingRoutingStrategy } from './routing/ping.js';
 import { RandomRoutingStrategy } from './routing/random.js';
 import { initTelemetry } from './telemetry.js';
 import type {
+  DataRetrievalStrategy,
   GatewaysProvider,
   Logger,
   RoutingStrategy,
@@ -176,16 +178,32 @@ export const constructGatewayUrl = ({
 }): URL => {
   const gatewayUrl = new URL(selectedGateway);
 
-  if (subdomain) {
-    gatewayUrl.hostname = `${subdomain}.${gatewayUrl.hostname}`;
+  // For localhost, use port-based routing instead of subdomain routing
+  if (
+    gatewayUrl.hostname === 'localhost' ||
+    gatewayUrl.hostname === '127.0.0.1'
+  ) {
+    // Don't modify hostname for localhost - just use the path directly
+    const [pathname, rawQuery] = path.split('?');
+    gatewayUrl.pathname = pathname;
+
+    if (rawQuery) {
+      gatewayUrl.search = rawQuery;
+    }
+  } else {
+    // For non-localhost, use subdomain routing as before
+    if (subdomain) {
+      gatewayUrl.hostname = `${subdomain}.${gatewayUrl.hostname}`;
+    }
+
+    const [pathname, rawQuery] = path.split('?');
+    gatewayUrl.pathname = pathname;
+
+    if (rawQuery) {
+      gatewayUrl.search = rawQuery;
+    }
   }
 
-  const [pathname, rawQuery] = path.split('?');
-  gatewayUrl.pathname = pathname;
-
-  if (rawQuery) {
-    gatewayUrl.search = rawQuery;
-  }
   return gatewayUrl;
 };
 
@@ -303,6 +321,11 @@ export class Wayfinder {
   public readonly emitter: WayfinderEmitter;
 
   /**
+   * The data retrieval strategy to use when fetching data.
+   */
+  protected dataRetrievalStrategy: DataRetrievalStrategy;
+
+  /**
    * The constructor for the wayfinder
    * @param options - Wayfinder configuration options
    */
@@ -321,6 +344,7 @@ export class Wayfinder {
     verificationSettings,
     routingSettings,
     telemetrySettings,
+    dataRetrievalStrategy,
   }: WayfinderOptions = {}) {
     // default logger to use if no logger is provided
     this.logger = logger ?? defaultLogger;
@@ -374,6 +398,13 @@ export class Wayfinder {
       );
     }
 
+    this.dataRetrievalStrategy =
+      dataRetrievalStrategy ??
+      new ContiguousDataRetrievalStrategy({
+        logger: this.logger,
+        fetch,
+      });
+
     this.emitter = new WayfinderEmitter({
       verification: this.verificationSettings?.events,
       routing: this.routingSettings?.events,
@@ -407,6 +438,8 @@ export class Wayfinder {
           'routing.strategy': this.routingSettings.strategy?.constructor.name,
           'telemetry.enabled': this.telemetrySettings.enabled,
           'telemetry.sampleRate': this.telemetrySettings.sampleRate,
+          'dataRetrieval.strategy':
+            this.dataRetrievalStrategy?.constructor.name,
         },
       })
       .end();
@@ -415,6 +448,7 @@ export class Wayfinder {
       logger: this.logger,
       fetch: fetch,
       verificationStrategy: this.verificationSettings.strategy,
+      dataRetrievalStrategy: this.dataRetrievalStrategy,
       strict: this.verificationSettings.strict,
       routingStrategy: this.routingSettings.strategy,
       tracer: this.tracer,
