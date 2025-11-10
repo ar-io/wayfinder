@@ -41,6 +41,7 @@ export class ContiguousDataRetrievalStrategy implements DataRetrievalStrategy {
     requestUrl,
     headers,
   }: {
+    gateway: URL;
     requestUrl: URL;
     headers?: Record<string, string>;
   }): Promise<Response> {
