@@ -368,11 +368,12 @@ const wayfinder = new Wayfinder({
 
 ### ChunkDataRetrievalStrategy
 
-An advanced strategy that fetches data by assembling individual chunks from the `/chunk/<offset>/data` endpoint. This approach is particularly useful for:
+An advanced strategy that provides the easiest way to load chunks stored on Arweave nodes via the robust chunk API provided by AR.IO gateways. This approach is particularly useful for:
 
-- **Large files**: More efficient for large transactions that may timeout with direct requests
-- **Bundled data items**: Retrieves data items from within ANS-104 bundles using calculated offsets
-- **Reliable data access**: Can handle cases where the full transaction might not be readily available
+- **Direct chunk access**: Efficiently retrieves data directly from the underlying chunk storage layer
+- **Bundled data items**: Seamlessly fetches data items from within ANS-104 bundles using calculated offsets
+- **x402 payment compatibility**: Both strategies support custom fetch clients for payment-enabled requests
+- **Large file handling**: More reliable for large transactions that may timeout with direct requests
 
 **Requirements:**
 - Gateway must be running AR.IO node **r58 or later**
@@ -406,6 +407,22 @@ const wayfinder = createWayfinderClient({
 
 // Fetch a data item from within an ANS-104 bundle
 const response = await wayfinder.request('ar://data-item-id');
+```
+
+**Example with x402 payment support:**
+
+```javascript
+import { createWayfinderClient, ChunkDataRetrievalStrategy } from '@ar.io/wayfinder-core';
+import { createX402Fetch } from '@ar.io/wayfinder-x402-fetch';
+
+const x402Fetch = createX402Fetch({ /* payment config */ });
+
+const wayfinder = createWayfinderClient({
+  fetch: x402Fetch,
+  dataRetrievalStrategy: new ChunkDataRetrievalStrategy({
+    fetch: x402Fetch,
+  }),
+});
 ```
 
 ## Verification Strategies
