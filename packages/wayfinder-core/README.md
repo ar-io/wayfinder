@@ -345,6 +345,69 @@ const wayfinder = createWayfinderClient({
 });
 ```
 
+## Data Retrieval Strategies
+
+Wayfinder supports multiple data retrieval strategies to fetch transaction data from AR.IO gateways. These strategies determine how data is requested and assembled from the underlying storage layer.
+
+| Strategy                          | Default | Performance | Use Case                                    | Requirements                           |
+| --------------------------------- | ------- | ----------- | ------------------------------------------- | -------------------------------------- |
+| `ContiguousDataRetrievalStrategy` | ✅      | High        | Standard data fetching via direct GET      | Gateway has the data available         |
+| `ChunkDataRetrievalStrategy`      | ❌      | Medium      | Chunk-based data assembly for large files  | Gateway supports `/chunk/<offset>/data` API (r58+) |
+
+### ContiguousDataRetrievalStrategy
+
+The default strategy that fetches data using a direct GET request to the gateway. This is the most straightforward approach and works for most use cases.
+
+```javascript
+import { Wayfinder, ContiguousDataRetrievalStrategy } from '@ar.io/wayfinder-core';
+
+const wayfinder = new Wayfinder({
+  dataRetrievalStrategy: new ContiguousDataRetrievalStrategy(),
+});
+```
+
+### ChunkDataRetrievalStrategy
+
+An advanced strategy that fetches data by assembling individual chunks from the `/chunk/<offset>/data` endpoint. This approach is particularly useful for:
+
+- **Large files**: More efficient for large transactions that may timeout with direct requests
+- **Bundled data items**: Retrieves data items from within ANS-104 bundles using calculated offsets
+- **Reliable data access**: Can handle cases where the full transaction might not be readily available
+
+**Requirements:**
+- Gateway must be running AR.IO node **r58 or later**
+- Data must be **indexed** by the gateway (including root transaction IDs for nested bundles)
+- Gateway must have **offset information** available via the `/chunk/<offset>/data` endpoint
+
+```javascript
+import { Wayfinder, ChunkDataRetrievalStrategy } from '@ar.io/wayfinder-core';
+
+const wayfinder = new Wayfinder({
+  dataRetrievalStrategy: new ChunkDataRetrievalStrategy(),
+});
+```
+
+**How it works:**
+
+1. Makes a HEAD request to get transaction metadata (root transaction ID, data offset, content length)
+2. Queries `/tx/{root-tx-id}/offset` to get the root transaction's absolute offset in the weave
+3. Calculates the absolute offset for the requested data item
+4. Fetches data in chunks using `/chunk/<offset>/data` and assembles the complete data stream
+5. Validates that chunks belong to the expected root transaction for security
+
+**Example with createWayfinderClient:**
+
+```javascript
+import { createWayfinderClient, ChunkDataRetrievalStrategy } from '@ar.io/wayfinder-core';
+
+const wayfinder = createWayfinderClient({
+  dataRetrievalStrategy: new ChunkDataRetrievalStrategy(),
+});
+
+// Fetch a data item from within an ANS-104 bundle
+const response = await wayfinder.request('ar://data-item-id');
+```
+
 ## Verification Strategies
 
 Wayfinder includes verification mechanisms to ensure the integrity of retrieved data. Verification strategies offer different trade-offs between complexity, performance, and security.
