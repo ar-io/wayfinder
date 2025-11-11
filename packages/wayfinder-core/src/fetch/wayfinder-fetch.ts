@@ -15,20 +15,13 @@
  * limitations under the License.
  */
 
-import { type Tracer, context, trace } from '@opentelemetry/api';
+import { context, trace } from '@opentelemetry/api';
 import { arioHeaderNames } from '../constants.js';
 import { WayfinderEmitter } from '../emitter.js';
 import { defaultLogger } from '../logger.js';
 import { ContiguousDataRetrievalStrategy } from '../retrieval/contiguous.js';
 import { RandomRoutingStrategy } from '../routing/random.js';
-import type {
-  DataRetrievalStrategy,
-  Logger,
-  RoutingStrategy,
-  VerificationStrategy,
-  WayfinderEvents,
-  WayfinderRequestInit,
-} from '../types.js';
+import type { WayfinderFetchOptions, WayfinderRequestInit } from '../types.js';
 import { tapAndVerifyReadableStream } from '../utils/verify-stream.js';
 import {
   constructGatewayUrl,
@@ -63,17 +56,7 @@ export const createWayfinderFetch = ({
   emitter,
   tracer,
   events,
-}: {
-  logger?: Logger;
-  verificationStrategy?: VerificationStrategy;
-  strict?: boolean;
-  routingStrategy?: RoutingStrategy;
-  dataRetrievalStrategy?: DataRetrievalStrategy;
-  emitter?: WayfinderEmitter;
-  tracer?: Tracer;
-  fetch?: typeof globalThis.fetch;
-  events?: WayfinderEvents;
-}): ((
+}: WayfinderFetchOptions): ((
   input: URL | RequestInfo,
   init?: WayfinderRequestInit,
 ) => Promise<Response>) => {

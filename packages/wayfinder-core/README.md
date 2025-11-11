@@ -36,21 +36,22 @@ import {
   createWayfinderClient,
   FastestPingRoutingStrategy,
   NetworkGatewaysProvider,
+  WayfinderFetchOptions,
 } from '@ar.io/wayfinder-core';
 import { ARIO } from '@ar.io/sdk';
 
-const gatewaysProvider = new NetworkGatewaysProvider({
-  ario: ARIO.mainnet(),
-  sortBy: 'operatorStake',
-  sortOrder: 'desc',
-  limit: 10,
-});
+const options: WayfinderFetchOptions = {
+  routingStrategy: new FastestPingRoutingStrategy({
+    gatewaysProvider: new NetworkGatewaysProvider({
+      ario: ARIO.mainnet(),
+      sortBy: 'operatorStake',
+      sortOrder: 'desc',
+      limit: 10,
+    }),
+  }),
+};
 
-const wayfinder = createWayfinderClient({
-  routingSettings: {
-    strategy: new FastestPingRoutingStrategy({ gatewaysProvider }),
-  },
-});
+const wayfinder = createWayfinderClient(options);
 ```
 
 ### Enable Verification
@@ -59,17 +60,17 @@ const wayfinder = createWayfinderClient({
 import {
   createWayfinderClient,
   HashVerificationStrategy,
+  WayfinderFetchOptions,
 } from '@ar.io/wayfinder-core';
 
-const wayfinder = createWayfinderClient({
-  verificationSettings: {
-    enabled: true,
-    strategy: new HashVerificationStrategy({
-      trustedGateways: [new URL('https://permagate.io')],
-    }),
-    strict: true, // Fail requests on verification errors
-  },
-});
+const options: WayfinderFetchOptions = {
+  verificationStrategy: new HashVerificationStrategy({
+    trustedGateways: [new URL('https://permagate.io')],
+  }),
+  strict: true, // Fail requests on verification errors
+};
+
+const wayfinder = createWayfinderClient(options);
 ```
 
 Wayfinder Core provides helper functions to construct routing and verification strategies:
@@ -280,68 +281,66 @@ The `CompositeRoutingStrategy` allows you to chain multiple routing strategies t
 
 ```javascript
 import { 
+  createWayfinderClient,
   CompositeRoutingStrategy, 
   FastestPingRoutingStrategy, 
   RandomRoutingStrategy,
   StaticRoutingStrategy,
-  NetworkGatewaysProvider 
+  NetworkGatewaysProvider,
 } from '@ar.io/wayfinder-core';
 import { ARIO } from '@ar.io/sdk';
 
 // Example 1: Performance-first with resilience fallback
-const performanceStrategy = new CompositeRoutingStrategy({
-  strategies: [
-    // Try fastest ping first (high performance, but may fail if all gateways are slow)
-    new FastestPingRoutingStrategy({
-      timeoutMs: 500,
-      gatewaysProvider: new NetworkGatewaysProvider({
-        ario: ARIO.mainnet(),
-        sortBy: 'operatorStake',
-        limit: 10,
+const performanceWayfinder = createWayfinderClient({
+  routingStrategy: new CompositeRoutingStrategy({
+    strategies: [
+      // Try fastest ping first (high performance, but may fail if all gateways are slow)
+      new FastestPingRoutingStrategy({
+        timeoutMs: 500,
+        gatewaysProvider: new NetworkGatewaysProvider({
+          ario: ARIO.mainnet(),
+          sortBy: 'operatorStake',
+          limit: 10,
+        }),
       }),
-    }),
-    // Fallback to random selection (guaranteed to work if gateways exist)
-    new RandomRoutingStrategy({
-      gatewaysProvider: new NetworkGatewaysProvider({
-        ario: ARIO.mainnet(),
-        sortBy: 'operatorStake', 
-        limit: 20, // Use more gateways for fallback
+      // Fallback to random selection (guaranteed to work if gateways exist)
+      new RandomRoutingStrategy({
+        gatewaysProvider: new NetworkGatewaysProvider({
+          ario: ARIO.mainnet(),
+          sortBy: 'operatorStake', 
+          limit: 20, // Use more gateways for fallback
+        }),
       }),
-    }),
-  ],
+    ],
+  }),
 });
 
 // Example 2: Preferred gateway with multi-tier fallback
-const preferredStrategy = new CompositeRoutingStrategy({
-  strategies: [
-    // First, try your preferred gateway
-    new StaticRoutingStrategy({ 
-      gateway: 'https://my-preferred-gateway.com' 
-    }),
-    // If that fails, try fastest ping from top-tier gateways
-    new FastestPingRoutingStrategy({
-      timeoutMs: 1000,
-      gatewaysProvider: new NetworkGatewaysProvider({
-        ario: ARIO.mainnet(),
-        sortBy: 'operatorStake',
-        limit: 5, // Only top 5 gateways
+const preferredWayfinder = createWayfinderClient({
+  routingStrategy: new CompositeRoutingStrategy({
+    strategies: [
+      // First, try your preferred gateway
+      new StaticRoutingStrategy({ 
+        gateway: 'https://my-preferred-gateway.com' 
       }),
-    }),
-    // Final fallback: any random gateway from a larger pool
-    new RandomRoutingStrategy({
-      gatewaysProvider: new NetworkGatewaysProvider({
-        ario: ARIO.mainnet(),
-        limit: 50, // Larger pool for maximum availability
+      // If that fails, try fastest ping from top-tier gateways
+      new FastestPingRoutingStrategy({
+        timeoutMs: 1000,
+        gatewaysProvider: new NetworkGatewaysProvider({
+          ario: ARIO.mainnet(),
+          sortBy: 'operatorStake',
+          limit: 5, // Only top 5 gateways
+        }),
       }),
-    }),
-  ],
-});
-
-// Use with createWayfinderClient
-const wayfinder = createWayfinderClient({
-  routingSettings: {
-    strategy: performanceStrategy,
-  },
+      // Final fallback: any random gateway from a larger pool
+      new RandomRoutingStrategy({
+        gatewaysProvider: new NetworkGatewaysProvider({
+          ario: ARIO.mainnet(),
+          limit: 50, // Larger pool for maximum availability
+        }),
+      }),
+    ],
+  }),
 });
 ```
 
@@ -349,10 +348,10 @@ const wayfinder = createWayfinderClient({
 
 Wayfinder supports multiple data retrieval strategies to fetch transaction data from AR.IO gateways. These strategies determine how data is requested and assembled from the underlying storage layer.
 
-| Strategy                          | Default | Performance | Use Case                                    | Requirements                           |
-| --------------------------------- | ------- | ----------- | ------------------------------------------- | -------------------------------------- |
-| `ContiguousDataRetrievalStrategy` | ✅      | High        | Standard data fetching via direct GET      | Gateway has the data available         |
-| `ChunkDataRetrievalStrategy`      | ❌      | Medium      | Chunk-based data assembly for large files  | Gateway supports `/chunk/<offset>/data` endpoint and has requested transaction indexed as offsets are needed |
+| Strategy                          | Use Case                                    | Requirements                           |
+| --------------------------------- | ------------------------------------------- | -------------------------------------- |
+| `ContiguousDataRetrievalStrategy`| Standard data fetching via direct GET      | Gateway has the data cached or able to fetch from trusted peers         |
+| `ChunkDataRetrievalStrategy`     | Chunk-based data assembly  | Gateway supports `/chunk/<offset>/data` endpoint (r58) and has requested transactions indexed |
 
 #### ContiguousDataRetrievalStrategy
 

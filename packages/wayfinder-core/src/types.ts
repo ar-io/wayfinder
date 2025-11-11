@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 
+import type { Tracer } from '@opentelemetry/api';
 import type { WayfinderEmitter } from './emitter.js';
 
 // Types
@@ -219,6 +220,65 @@ export interface WayfinderOptions {
    */
   dataRetrievalStrategy?: DataRetrievalStrategy;
 }
+
+/**
+ * Configuration options that match createWayfinderFetch parameters.
+ * This type can be used to create a unified configuration for both
+ * createWayfinderClient and createWayfinderFetch.
+ */
+export type WayfinderFetchOptions = {
+  /**
+   * Logger to use for logging
+   * @default defaultLogger (standard console logger)
+   */
+  logger?: Logger;
+
+  /**
+   * The verification strategy to use for verifying data integrity
+   */
+  verificationStrategy?: VerificationStrategy;
+
+  /**
+   * Whether to enforce strict verification.
+   * If true, verification failures will cause requests to fail.
+   * If false, verification will be performed asynchronously with events emitted.
+   * @default false
+   */
+  strict?: boolean;
+
+  /**
+   * The routing strategy to use for selecting gateways
+   * @default RandomRoutingStrategy
+   */
+  routingStrategy?: RoutingStrategy;
+
+  /**
+   * The data retrieval strategy to use for fetching transaction data
+   * @default ContiguousDataRetrievalStrategy
+   */
+  dataRetrievalStrategy?: DataRetrievalStrategy;
+
+  /**
+   * Event emitter for wayfinder events
+   */
+  emitter?: WayfinderEmitter;
+
+  /**
+   * OpenTelemetry tracer for distributed tracing
+   */
+  tracer?: Tracer;
+
+  /**
+   * Custom fetch implementation to use for making HTTP requests
+   * @default native fetch
+   */
+  fetch?: typeof globalThis.fetch;
+
+  /**
+   * Event handlers for wayfinder events
+   */
+  events?: WayfinderEvents;
+};
 
 export interface TelemetrySettings {
   /** Enable or disable telemetry collection */

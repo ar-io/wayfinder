@@ -40,6 +40,10 @@ export * from './verification/hash-verification.js';
 export * from './verification/signature-verification.js';
 export * from './verification/remote-verification.js';
 
+// retrieval strategies
+export * from './retrieval/contiguous.js';
+export * from './retrieval/chunk.js';
+
 // emitter
 export * from './emitter.js';
 
