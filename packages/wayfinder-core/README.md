@@ -36,11 +36,10 @@ import {
   createWayfinderClient,
   FastestPingRoutingStrategy,
   NetworkGatewaysProvider,
-  WayfinderFetchOptions,
 } from '@ar.io/wayfinder-core';
 import { ARIO } from '@ar.io/sdk';
 
-const options: WayfinderFetchOptions = {
+const wayfinder = createWayfinderClient({
   routingStrategy: new FastestPingRoutingStrategy({
     gatewaysProvider: new NetworkGatewaysProvider({
       ario: ARIO.mainnet(),
@@ -49,9 +48,7 @@ const options: WayfinderFetchOptions = {
       limit: 10,
     }),
   }),
-};
-
-const wayfinder = createWayfinderClient(options);
+});
 ```
 
 ### Enable Verification
@@ -60,17 +57,14 @@ const wayfinder = createWayfinderClient(options);
 import {
   createWayfinderClient,
   HashVerificationStrategy,
-  WayfinderFetchOptions,
 } from '@ar.io/wayfinder-core';
 
-const options: WayfinderFetchOptions = {
+const wayfinder = createWayfinderClient({
   verificationStrategy: new HashVerificationStrategy({
     trustedGateways: [new URL('https://permagate.io')],
   }),
   strict: true, // Fail requests on verification errors
-};
-
-const wayfinder = createWayfinderClient(options);
+});
 ```
 
 Wayfinder Core provides helper functions to construct routing and verification strategies:
