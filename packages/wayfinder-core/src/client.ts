@@ -30,9 +30,14 @@ import type {
   RoutingStrategy,
   VerificationOption,
   VerificationStrategy,
+  WayfinderFetchOptions,
   WayfinderOptions,
 } from './types.js';
 import { isBrowser } from './utils/browser.js';
+import {
+  convertFetchOptionsToSettings,
+  isWayfinderFetchOptions,
+} from './utils/config.js';
 import { DataRootVerificationStrategy } from './verification/data-root-verification.js';
 import { HashVerificationStrategy } from './verification/hash-verification.js';
 import { RemoteVerificationStrategy } from './verification/remote-verification.js';
@@ -135,17 +140,25 @@ const createCachedGatewaysProvider = ({
 /**
  * Creates a Wayfinder client with the specified configuration.
  * Uses the trusted peers gateways provider with caching and random routing by default.
+ *
+ * @param options - Either WayfinderOptions or WayfinderFetchOptions configuration
+ * @returns A configured Wayfinder instance
  */
 export function createWayfinderClient(
-  options: WayfinderOptions = {},
+  options: WayfinderOptions | WayfinderFetchOptions = {},
 ): Wayfinder {
+  // Convert WayfinderFetchOptions to WayfinderOptions if needed
+  const wayfinderOptions = isWayfinderFetchOptions(options)
+    ? convertFetchOptionsToSettings(options)
+    : options;
+
   const {
     logger,
     fetch,
     routingSettings,
     verificationSettings,
     telemetrySettings,
-  } = options;
+  } = wayfinderOptions;
 
   const resolvedLogger = logger ?? defaultLogger;
 
@@ -160,15 +173,16 @@ export function createWayfinderClient(
   };
 
   // Create final options
-  const wayfinderOptions: WayfinderOptions = {
+  const finalOptions: WayfinderOptions = {
     logger: resolvedLogger,
     fetch,
     routingSettings: finalRoutingSettings,
     verificationSettings,
     telemetrySettings,
+    dataRetrievalStrategy: wayfinderOptions.dataRetrievalStrategy,
   };
 
-  return new Wayfinder(wayfinderOptions);
+  return new Wayfinder(finalOptions);
 }
 
 export const createWayfinder = createWayfinderClient;
