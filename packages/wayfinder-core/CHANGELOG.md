@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-core
 
+## 1.8.1
+
+### Patch Changes
+
+- 4e1d694: Export retrieval strategies, add utility for converting legacy config to newest `WayfinderFetchOptions` type
+
 ## 1.8.1-alpha.0
 
 ### Patch Changes
