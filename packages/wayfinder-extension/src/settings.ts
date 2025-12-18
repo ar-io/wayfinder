@@ -137,6 +137,10 @@ function setupEventHandlers() {
     ?.addEventListener('change', handleGatewayDropdownChange);
 
   // Switches
+  // Verified browsing mode toggle
+  document
+    .getElementById('verificationEnabled')
+    ?.addEventListener('change', saveVerificationEnabled);
   // Verification toasts for remote verification status
   document
     .getElementById('showVerificationToasts')
@@ -237,6 +241,7 @@ async function loadCurrentSettings() {
       'advancedSettingsExpanded',
       'telemetryEnabled',
       'showVerificationToasts',
+      'verificationEnabled',
     ]);
 
     // Load static gateway URL if set
@@ -280,6 +285,15 @@ async function loadCurrentSettings() {
     const ensEl = document.getElementById('ensResolution') as HTMLInputElement;
     if (ensEl) {
       ensEl.checked = ensEnabled;
+    }
+
+    // Load verified browsing mode setting
+    const verificationEnabled = settings.verificationEnabled === true; // Default to false
+    const verificationEnabledEl = document.getElementById(
+      'verificationEnabled',
+    ) as HTMLInputElement;
+    if (verificationEnabledEl) {
+      verificationEnabledEl.checked = verificationEnabled;
     }
 
     // Load verification toast setting
@@ -779,6 +793,20 @@ async function validateStaticGateway() {
       dropdown.value = '';
     }
   }
+}
+
+// Save verified browsing mode preference
+async function saveVerificationEnabled(event: any) {
+  const enabled = event.target.checked;
+  await chrome.storage.local.set({ verificationEnabled: enabled });
+  chrome.runtime.sendMessage({
+    message: 'updateVerificationEnabled',
+    enabled,
+  });
+  showToast(
+    `Verified browsing mode ${enabled ? 'enabled' : 'disabled'}`,
+    'success',
+  );
 }
 
 // Save verification toasts preference

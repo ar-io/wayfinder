@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wayfinder Verified Content</title>
+    <!-- AR.IO Brand Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&family=Albert+Sans:wght@400;600&family=DM+Sans:wght@400;500&family=JetBrains+Mono:wght@400;500&family=Rubik:wght@300;400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="assets/css/variables.css" />
+    <style>
+      /* Reset and Base */
+      *, *::before, *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html, body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      body {
+        font-family: var(--font-family-rubik), 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        background: var(--colors-container-containerL0);
+        color: var(--colors-text-textHigh);
+      }
+
+      /* Main Container */
+      .verified-container {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        width: 100%;
+      }
+
+      /* Header with Search Bar */
+      .verified-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        background: var(--colors-container-containerL1);
+        border-bottom: 1px solid var(--colors-stroke-strokeLow);
+        flex-shrink: 0;
+        gap: 12px;
+      }
+
+      .header-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .logo-icon {
+        width: 32px;
+        height: 32px;
+        flex-shrink: 0;
+      }
+
+      .logo-icon img {
+        width: 100%;
+        height: 100%;
+      }
+
+      /* Search Bar */
+      .search-container {
+        flex: 1;
+        max-width: 600px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .search-input-wrapper {
+        flex: 1;
+        position: relative;
+      }
+
+      .search-input {
+        width: 100%;
+        padding: 10px 16px;
+        background: var(--colors-container-containerL2);
+        border: 1px solid var(--colors-stroke-strokeLow);
+        border-radius: var(--radius-lg);
+        color: var(--colors-text-textHigh);
+        font-size: 14px;
+        font-family: inherit;
+        outline: none;
+        transition: border-color 0.2s, box-shadow 0.2s;
+      }
+
+      .search-input:focus {
+        border-color: var(--accent-primary);
+        box-shadow: 0 0 0 2px rgba(45, 211, 190, 0.2);
+      }
+
+      .search-input::placeholder {
+        color: var(--colors-text-textLow);
+      }
+
+      .search-btn {
+        padding: 10px 20px;
+        background: var(--accent-primary);
+        color: var(--colors-container-containerL0);
+        border: none;
+        border-radius: var(--radius-lg);
+        font-size: 14px;
+        font-weight: 600;
+        font-family: inherit;
+        cursor: pointer;
+        transition: background-color 0.2s, transform 0.1s;
+        white-space: nowrap;
+      }
+
+      .search-btn:hover {
+        background: var(--accent-secondary);
+      }
+
+      .search-btn:active {
+        transform: scale(0.98);
+      }
+
+      .search-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      /* Verification Badge */
+      .verification-badge {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        background: var(--colors-container-containerL2);
+        border: 1px solid var(--colors-stroke-strokeLow);
+        border-radius: var(--radius-md);
+        font-size: 12px;
+        color: var(--colors-text-textLow);
+        flex-shrink: 0;
+      }
+
+      .verification-badge.verifying {
+        color: var(--warning);
+        border-color: rgba(252, 184, 35, 0.3);
+      }
+
+      .verification-badge.verified {
+        color: var(--success);
+        border-color: rgba(34, 197, 94, 0.3);
+      }
+
+      .verification-badge.partial {
+        color: var(--warning);
+        border-color: rgba(252, 184, 35, 0.3);
+      }
+
+      .verification-badge.failed {
+        color: var(--error);
+        border-color: rgba(242, 63, 93, 0.3);
+      }
+
+      .badge-icon {
+        width: 14px;
+        height: 14px;
+      }
+
+      /* Loading Screen */
+      .loading-screen {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: var(--colors-container-containerL0);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+        padding: 32px;
+      }
+
+      .loading-screen.hidden {
+        display: none;
+      }
+
+      .loading-content {
+        max-width: 480px;
+        width: 100%;
+        text-align: center;
+      }
+
+      .loading-icon {
+        width: 64px;
+        height: 64px;
+        margin-bottom: 24px;
+        animation: pulse 2s ease-in-out infinite;
+      }
+
+      @keyframes pulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.7; transform: scale(0.95); }
+      }
+
+      .loading-title {
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--colors-text-textHigh);
+        margin-bottom: 8px;
+      }
+
+      .loading-subtitle {
+        font-size: 14px;
+        color: var(--colors-text-textLow);
+        margin-bottom: 24px;
+      }
+
+      /* Phase Indicators */
+      .phase-indicators {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        margin-bottom: 24px;
+      }
+
+      .phase-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--colors-container-containerL3);
+        transition: background-color 0.3s, transform 0.3s;
+      }
+
+      .phase-dot.active {
+        background: var(--accent-primary);
+        transform: scale(1.25);
+      }
+
+      .phase-dot.complete {
+        background: var(--success);
+      }
+
+      /* Progress Bar */
+      .progress-container {
+        width: 100%;
+        margin-bottom: 24px;
+      }
+
+      .progress-bar {
+        width: 100%;
+        height: 6px;
+        background: var(--colors-container-containerL2);
+        border-radius: 3px;
+        overflow: hidden;
+      }
+
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+        border-radius: 3px;
+        transition: width 0.3s ease-out;
+        width: 0%;
+      }
+
+      .progress-text {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        color: var(--colors-text-textLow);
+        margin-top: 8px;
+      }
+
+      /* Activity Log */
+      .activity-log {
+        max-height: 120px;
+        overflow-y: auto;
+        text-align: left;
+        font-size: 12px;
+        font-family: 'JetBrains Mono', monospace;
+        color: var(--colors-text-textLow);
+        background: var(--colors-container-containerL1);
+        border-radius: var(--radius-md);
+        padding: 12px;
+        margin-bottom: 24px;
+      }
+
+      .activity-item {
+        padding: 2px 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .activity-item .check {
+        color: var(--success);
+      }
+
+      .activity-item .error {
+        color: var(--error);
+      }
+
+      /* Gateway Info */
+      .gateway-info {
+        font-size: 12px;
+        color: var(--colors-text-textLow);
+      }
+
+      .gateway-info span {
+        color: var(--colors-text-textHigh);
+        font-family: 'JetBrains Mono', monospace;
+      }
+
+      /* Content Area */
+      .content-wrapper {
+        flex: 1;
+        position: relative;
+        background: var(--colors-container-containerL1);
+        overflow: hidden;
+      }
+
+      /* Content Iframe */
+      .content-iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+        background: #fff;
+      }
+
+      .content-iframe.hidden {
+        display: none;
+      }
+
+      /* Empty State */
+      .empty-state {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 32px;
+        text-align: center;
+      }
+
+      .empty-state.hidden {
+        display: none;
+      }
+
+      .empty-icon {
+        width: 80px;
+        height: 80px;
+        margin-bottom: 24px;
+        opacity: 0.5;
+      }
+
+      .empty-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--colors-text-textHigh);
+        margin-bottom: 8px;
+      }
+
+      .empty-description {
+        font-size: 14px;
+        color: var(--colors-text-textLow);
+        max-width: 400px;
+      }
+
+      /* Error State */
+      .error-state {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 32px;
+        text-align: center;
+      }
+
+      .error-state.hidden {
+        display: none;
+      }
+
+      .error-icon {
+        font-size: 64px;
+        margin-bottom: 24px;
+      }
+
+      .error-title {
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--error);
+        margin-bottom: 8px;
+      }
+
+      .error-message {
+        font-size: 14px;
+        color: var(--colors-text-textLow);
+        max-width: 480px;
+        margin-bottom: 24px;
+        word-break: break-word;
+      }
+
+      .retry-btn {
+        padding: 10px 24px;
+        background: var(--colors-container-containerL2);
+        color: var(--colors-text-textHigh);
+        border: 1px solid var(--colors-stroke-strokeLow);
+        border-radius: var(--radius-lg);
+        font-size: 14px;
+        font-weight: 500;
+        font-family: inherit;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+
+      .retry-btn:hover {
+        background: var(--colors-container-containerL3);
+      }
+
+      /* Spinner */
+      @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+
+      .spinner {
+        animation: spin 1s linear infinite;
+      }
+
+      /* Scrollbar styling */
+      .activity-log::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      .activity-log::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      .activity-log::-webkit-scrollbar-thumb {
+        background: var(--colors-container-containerL3);
+        border-radius: 3px;
+      }
+    </style>
+    <script type="module" src="verified.js"></script>
+  </head>
+  <body>
+    <div class="verified-container">
+      <!-- Header with Search Bar -->
+      <header class="verified-header">
+        <div class="header-left">
+          <div class="logo-icon">
+            <img src="assets/Vector.png" alt="Wayfinder" width="32" height="32">
+          </div>
+        </div>
+
+        <div class="search-container">
+          <div class="search-input-wrapper">
+            <input
+              type="text"
+              class="search-input"
+              id="searchInput"
+              placeholder="Enter ArNS name or transaction ID..."
+              autocomplete="off"
+              spellcheck="false"
+            />
+          </div>
+          <button class="search-btn" id="searchBtn">
+            Explore
+          </button>
+        </div>
+
+        <div class="verification-badge" id="verificationBadge">
+          <svg class="badge-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          <span id="badgeText">Verified Mode</span>
+        </div>
+      </header>
+
+      <!-- Content Area -->
+      <div class="content-wrapper">
+        <!-- Loading Screen -->
+        <div class="loading-screen hidden" id="loadingScreen">
+          <div class="loading-content">
+            <svg class="loading-icon" viewBox="0 0 64 64" fill="none">
+              <path d="M32 58c14.359 0 26-11.641 26-26S46.359 6 32 6 6 17.641 6 32s11.641 26 26 26z" stroke="var(--accent-primary)" stroke-width="3" stroke-linecap="round"/>
+              <path d="M32 6c14.359 0 26 11.641 26 26" stroke="var(--accent-secondary)" stroke-width="3" stroke-linecap="round" class="spinner"/>
+            </svg>
+
+            <h2 class="loading-title" id="loadingTitle">Verifying Content</h2>
+            <p class="loading-subtitle" id="loadingSubtitle">Establishing secure connection...</p>
+
+            <!-- Phase Indicators -->
+            <div class="phase-indicators">
+              <div class="phase-dot active" id="phase1" title="Resolving"></div>
+              <div class="phase-dot" id="phase2" title="Fetching manifest"></div>
+              <div class="phase-dot" id="phase3" title="Verifying resources"></div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="progress-container" id="progressContainer" style="display: none;">
+              <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+              </div>
+              <div class="progress-text">
+                <span id="progressLabel">Verifying resources...</span>
+                <span id="progressPercent">0%</span>
+              </div>
+            </div>
+
+            <!-- Activity Log -->
+            <div class="activity-log" id="activityLog"></div>
+
+            <!-- Gateway Info -->
+            <div class="gateway-info" id="gatewayInfo">
+              Gateway: <span id="gatewayHost">--</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Empty State -->
+        <div class="empty-state" id="emptyState">
+          <svg class="empty-icon" viewBox="0 0 64 64" fill="none" stroke="var(--colors-text-textLow)" stroke-width="1.5">
+            <path d="M32 58c14.359 0 26-11.641 26-26S46.359 6 32 6 6 17.641 6 32s11.641 26 26 26z"/>
+            <path d="M32 6c14.359 0 26 11.641 26 26" stroke-dasharray="4 4"/>
+            <path d="M22 32h20M32 22v20" stroke-linecap="round"/>
+          </svg>
+          <h3 class="empty-title">Verified Content Browser</h3>
+          <p class="empty-description">
+            Enter an ArNS name (e.g., <code>ardrive</code>) or a 43-character transaction ID to load and verify Arweave content.
+          </p>
+        </div>
+
+        <!-- Error State -->
+        <div class="error-state hidden" id="errorState">
+          <div class="error-icon">🛡️</div>
+          <h3 class="error-title" id="errorTitle">Verification Failed</h3>
+          <p class="error-message" id="errorMessage">An error occurred during verification.</p>
+          <button class="retry-btn" id="retryBtn">Retry with different gateway</button>
+        </div>
+
+        <!-- Content Iframe -->
+        <!-- Sandbox iframe for verified content - NO allow-same-origin to maintain isolation -->
+        <iframe
+          class="content-iframe hidden"
+          id="contentFrame"
+          sandbox="allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
+          title="Verified Arweave Content"
+        ></iframe>
+      </div>
+    </div>
+  </body>
+</html>

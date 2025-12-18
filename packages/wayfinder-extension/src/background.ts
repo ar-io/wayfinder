@@ -30,6 +30,16 @@ import {
 import { RedirectedTabInfo, VerificationCacheEntry } from './types';
 import { logger } from './utils/logger';
 
+// Verification fetch handler - intercepts /ar-proxy/ requests from extension pages
+import {
+  handleVerificationMessage,
+  initializeFetchHandler,
+} from './verification/fetch-handler';
+
+// Initialize fetch handler at top level (required for MV3 service workers)
+// This registers self.addEventListener('fetch', ...) to intercept /ar-proxy/ requests
+initializeFetchHandler();
+
 // Enhanced tab state management
 class TabStateManager {
   private states = new Map<number, RedirectedTabInfo & { timestamp: number }>();
@@ -90,6 +100,7 @@ const readyTabs = new Set<number>();
 
 // holds verification status in memory
 let showVerificationToasts: boolean = EXTENSION_DEFAULTS.showVerificationToasts;
+let verificationEnabled: boolean = EXTENSION_DEFAULTS.verificationEnabled;
 
 // on chrome storage ready, initialize wayfinder with debounce
 const debouncedInitializeWayfinder = pDebounce(initializeWayfinder, 1000, {
@@ -314,11 +325,13 @@ let arIO = ARIO.init({
     blacklistedGateways,
     ensResolutionEnabled,
     showVerificationToasts,
+    verificationEnabled: storedVerificationEnabled,
   } = await chrome.storage.local.get([
     'routingMethod',
     'blacklistedGateways',
     'ensResolutionEnabled',
     'showVerificationToasts',
+    'verificationEnabled',
   ]);
 
   if (routingMethod === undefined)
@@ -329,6 +342,11 @@ let arIO = ARIO.init({
     updates.ensResolutionEnabled = EXTENSION_DEFAULTS.ensResolutionEnabled;
   if (showVerificationToasts === undefined)
     updates.showVerificationToasts = EXTENSION_DEFAULTS.showVerificationToasts;
+  if (storedVerificationEnabled === undefined)
+    updates.verificationEnabled = EXTENSION_DEFAULTS.verificationEnabled;
+
+  // Initialize in-memory state from storage
+  verificationEnabled = storedVerificationEnabled === true;
 
   await chrome.storage.local.set(updates);
 
@@ -406,6 +424,19 @@ async function handleBeforeNavigate(details: any) {
     // Validate ar:// URL format
     if (arUrl.length < 6) {
       logger.error(`Invalid ar:// URL format: ${arUrl}`);
+      return;
+    }
+
+    // Extract identifier from ar:// URL (e.g., ar://ardrive -> ardrive, ar://abc123...xyz -> abc123...xyz)
+    const identifier = arUrl.slice(5); // Remove 'ar://'
+
+    // If verification mode is enabled, redirect to the verified page
+    if (verificationEnabled) {
+      const verifiedPageUrl = chrome.runtime.getURL(
+        `verified.html?q=${encodeURIComponent(identifier)}`,
+      );
+      chrome.tabs.update(details.tabId, { url: verifiedPageUrl });
+      logger.info(`[VERIFIED] Redirecting to verified page: ${identifier}`);
       return;
     }
 
@@ -749,12 +780,20 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     'updateAdvancedSettings',
     'resetAdvancedSettings',
     'updateShowVerificationToasts',
+    'updateVerificationEnabled',
   ];
 
   const validTypes = [
     'convertArUrlToHttpUrl',
     'openSettings',
     'contentScriptReady',
+    // Verification messages from verified.html
+    'INIT_VERIFICATION',
+    'CLEAR_VERIFICATION_CACHE',
+    'CLEAR_VERIFICATION_STATE',
+    'START_VERIFICATION',
+    'GET_VERIFIED_CONTENT',
+    'GET_VERIFIED_RESOURCE',
   ];
 
   if (
@@ -764,6 +803,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     logger.warn('Unauthorized message:', request);
     sendResponse({ error: 'Unauthorized message' });
     return;
+  }
+
+  // Handle verification messages from verified.html
+  if (
+    request.type === 'INIT_VERIFICATION' ||
+    request.type === 'CLEAR_VERIFICATION_CACHE' ||
+    request.type === 'CLEAR_VERIFICATION_STATE' ||
+    request.type === 'START_VERIFICATION' ||
+    request.type === 'GET_VERIFIED_CONTENT' ||
+    request.type === 'GET_VERIFIED_RESOURCE'
+  ) {
+    return handleVerificationMessage(request, sender, sendResponse);
   }
 
   // handle content script ready signal
@@ -909,6 +960,25 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse({ success: true });
       } catch (error: any) {
         logger.error('Error updating verification mode:', error);
+        sendResponse({ error: error?.message || 'Unknown error' });
+      }
+    })();
+    return true;
+  }
+
+  if (request.message === 'updateVerificationEnabled') {
+    (async () => {
+      try {
+        await chrome.storage.local.set({
+          verificationEnabled: request.enabled,
+        });
+        verificationEnabled = request.enabled;
+        logger.info(
+          `[SETTINGS] Verified browsing mode ${request.enabled ? 'enabled' : 'disabled'}`,
+        );
+        sendResponse({ success: true });
+      } catch (error: any) {
+        logger.error('Error updating verified browsing mode:', error);
         sendResponse({ error: error?.message || 'Unknown error' });
       }
     })();

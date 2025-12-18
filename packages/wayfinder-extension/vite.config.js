@@ -19,6 +19,13 @@ import { defineConfig } from 'vite';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
 
+/**
+ * Build config for the Wayfinder Chrome Extension.
+ *
+ * Verification is handled by the background service worker (background.ts)
+ * which intercepts fetch requests from extension pages. The verification
+ * modules are imported directly into background.ts.
+ */
 export default defineConfig({
   plugins: [
     nodePolyfills({
@@ -41,6 +48,14 @@ export default defineConfig({
         },
         {
           src: 'src/performance.html',
+          dest: '.',
+        },
+        {
+          src: 'src/verified.html',
+          dest: '.',
+        },
+        {
+          src: 'src/sandbox.html',
           dest: '.',
         },
         {
@@ -70,6 +85,9 @@ export default defineConfig({
         settings: './src/settings.ts',
         gateways: './src/gateways.ts',
         performance: './src/performance.ts',
+        verified: './src/verified.ts',
+        sandbox: './src/sandbox.ts',
+        'location-patch': './src/location-patch.ts',
       },
       output: {
         entryFileNames: '[name].js',

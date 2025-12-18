@@ -264,6 +264,37 @@
           </div>
           
           <div class="advanced-options">
+            <!-- Verified Browsing Mode -->
+            <div class="advanced-option">
+              <div class="option-header">
+                <div class="option-info">
+                  <h3>Verified Browsing Mode</h3>
+                  <p>Cryptographically verify content before viewing</p>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="verificationEnabled">
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="option-description">
+                <p>When enabled, ar:// links open in a dedicated verified browser that cryptographically verifies all content before display. Uses hash verification against trusted AR.IO gateways to ensure content integrity.</p>
+                <div class="telemetry-info">
+                  <div class="info-item">
+                    <svg width="14" height="14" viewBox="0 0 36 36" fill="none">
+                      <path d="M27 13.5L15 25.5L9 19.5" stroke="var(--colors-success-successHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>Hash verification of all resources</span>
+                  </div>
+                  <div class="info-item">
+                    <svg width="14" height="14" viewBox="0 0 36 36" fill="none">
+                      <path d="M27 13.5L15 25.5L9 19.5" stroke="var(--colors-success-successHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>Trusted gateway consensus</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <!-- Verification Toasts -->
             <div class="advanced-option">
               <div class="option-header">

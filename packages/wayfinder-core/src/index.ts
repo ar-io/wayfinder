@@ -39,10 +39,15 @@ export * from './verification/data-root-verification.js';
 export * from './verification/hash-verification.js';
 export * from './verification/signature-verification.js';
 export * from './verification/remote-verification.js';
+export * from './verification/manifest-verification.js';
 
 // retrieval strategies
 export * from './retrieval/contiguous.js';
 export * from './retrieval/chunk.js';
+
+// manifest utilities
+export * from './manifest/parser.js';
+export * from './manifest/verification-cache.js';
 
 // emitter
 export * from './emitter.js';

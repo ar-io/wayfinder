@@ -31,6 +31,7 @@ export const EXTENSION_DEFAULTS = {
 
   // Verification Configuration
   showVerificationToasts: false,
+  verificationEnabled: false, // Opt-in verified browsing mode
 
   // Basic Extension Settings
   routingMethod: 'random',
