@@ -91,7 +91,6 @@ blacklistedGateways          - Array of gateway addresses to exclude
 dailyStats                   - Usage metrics reset daily
 ensResolutionEnabled         - ENS resolution toggle
 verificationEnabled          - Verified browsing mode toggle
-showVerificationToasts       - Show verification toasts on requests
 processId                    - AR.IO process ID (advanced)
 aoCuUrl                      - AO Compute Unit URL (advanced)
 ```

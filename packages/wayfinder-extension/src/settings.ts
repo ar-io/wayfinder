@@ -141,10 +141,6 @@ function setupEventHandlers() {
   document
     .getElementById('verificationEnabled')
     ?.addEventListener('change', saveVerificationEnabled);
-  // Verification toasts for remote verification status
-  document
-    .getElementById('showVerificationToasts')
-    ?.addEventListener('change', saveVerificationToasts);
   document
     .getElementById('ensResolution')
     ?.addEventListener('change', saveEnsResolution);
@@ -240,7 +236,6 @@ async function loadCurrentSettings() {
       'gatewayCacheTTL',
       'advancedSettingsExpanded',
       'telemetryEnabled',
-      'showVerificationToasts',
       'verificationEnabled',
     ]);
 
@@ -294,15 +289,6 @@ async function loadCurrentSettings() {
     ) as HTMLInputElement;
     if (verificationEnabledEl) {
       verificationEnabledEl.checked = verificationEnabled;
-    }
-
-    // Load verification toast setting
-    const showToasts = settings.showVerificationToasts !== false; // Default to false
-    const toastsEl = document.getElementById(
-      'showVerificationToasts',
-    ) as HTMLInputElement;
-    if (toastsEl) {
-      toastsEl.checked = showToasts;
     }
 
     // Load theme
@@ -805,19 +791,6 @@ async function saveVerificationEnabled(event: any) {
   });
   showToast(
     `Verified browsing mode ${enabled ? 'enabled' : 'disabled'}`,
-    'success',
-  );
-}
-
-// Save verification toasts preference
-async function saveVerificationToasts(event: any) {
-  const enabled = event.target.checked;
-  chrome.runtime.sendMessage({
-    message: 'updateShowVerificationToasts',
-    enabled,
-  });
-  showToast(
-    `Verification notifications ${enabled ? 'enabled' : 'disabled'}`,
     'success',
   );
 }

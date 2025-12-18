@@ -813,8 +813,19 @@ export function getVerifiedContent(
       headers.set('x-wayfinder-verified', 'true');
       headers.set('x-wayfinder-verified-at', resource.verifiedAt.toString());
       headers.set('x-wayfinder-location-patched', 'true');
-      // Set a permissive CSP for verified content so it can run inline scripts, eval, etc.
-      // This overrides the extension's restrictive CSP for this response only.
+
+      // TODO: SECURITY TRADEOFF - Permissive CSP for verified content
+      // We use a very permissive CSP here because:
+      // 1. Many Arweave apps use inline scripts, eval(), and dynamic code execution
+      // 2. The content has been cryptographically verified via hash comparison
+      // 3. Content is served in a sandboxed iframe in verified.html
+      //
+      // The security model relies on VERIFICATION, not CSP restrictions:
+      // - Content hash is verified against multiple trusted gateways
+      // - If content is tampered, hash verification fails before we reach this point
+      //
+      // Future improvement: Consider allowing apps to specify their own CSP in manifest
+      // metadata, with a stricter default for apps that don't need eval/inline scripts.
       headers.set(
         'Content-Security-Policy',
         "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; " +

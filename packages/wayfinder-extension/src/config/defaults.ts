@@ -30,7 +30,6 @@ export const EXTENSION_DEFAULTS = {
   aoCuUrl: DEFAULT_AO_CU_URL,
 
   // Verification Configuration
-  showVerificationToasts: false,
   verificationEnabled: false, // Opt-in verified browsing mode
 
   // Basic Extension Settings

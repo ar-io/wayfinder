@@ -59,10 +59,6 @@ export {
 // Location Patcher
 export { injectLocationPatch, isHtmlContent } from './location-patcher';
 
-// Service Worker Messaging (for use in verification page, not SW)
-export { verificationSwMessenger } from './sw-messaging';
-export type { ServiceWorkerMessage } from './sw-messaging';
-
 // Wayfinder Instance (for SW internal use)
 export {
   initializeWayfinder,

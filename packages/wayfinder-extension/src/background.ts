@@ -27,7 +27,7 @@ import {
   getWayfinderInstance,
   resetWayfinderInstance,
 } from './routing';
-import { RedirectedTabInfo, VerificationCacheEntry } from './types';
+import { RedirectedTabInfo } from './types';
 import { logger } from './utils/logger';
 
 // Verification fetch handler - intercepts /ar-proxy/ requests from extension pages
@@ -89,86 +89,14 @@ const requestTimings = new LRUCache<string, number>({
   max: 10_000,
   ttl: 60 * 60 * 1000 * 24, // 1 day in milliseconds
 });
-const verificationCache = new LRUCache<string, VerificationCacheEntry>({
-  max: 10_000,
-  ttl: 60 * 60 * 1000 * 24, // 1 day in milliseconds
-});
-
-// Message queue for content scripts that aren't ready yet
-const messageQueue = new Map<number, Record<string, { id: string } & any>>();
-const readyTabs = new Set<number>();
 
 // holds verification status in memory
-let showVerificationToasts: boolean = EXTENSION_DEFAULTS.showVerificationToasts;
 let verificationEnabled: boolean = EXTENSION_DEFAULTS.verificationEnabled;
 
 // on chrome storage ready, initialize wayfinder with debounce
 const debouncedInitializeWayfinder = pDebounce(initializeWayfinder, 1000, {
   before: true,
 });
-
-/**
- * Send message to tab with queuing support
- */
-async function sendMessageToTab(
-  tabId: number,
-  message: { id: string } & any,
-): Promise<void> {
-  if (readyTabs.has(tabId)) {
-    try {
-      await chrome.tabs.sendMessage(tabId, message);
-      console.debug(`Sent message to tab ${tabId}: ${message.id}`);
-    } catch (error: any) {
-      console.error('Failed to send message to tab:', error.message);
-      // Content script was removed, queue the message
-      readyTabs.delete(tabId);
-      queueMessage(tabId, message);
-    }
-  } else {
-    queueMessage(tabId, message);
-  }
-}
-
-/**
- * Queue a message for later delivery with deduplication based on message id
- */
-function queueMessage(tabId: number, message: { id: string } & any): void {
-  if (!messageQueue.has(tabId)) {
-    messageQueue.set(tabId, {});
-  }
-
-  // get the tab id
-  const tabQueue = messageQueue.get(tabId)!;
-
-  // add the message to the queue
-  tabQueue[message.id] = message;
-
-  // Clean up old messages (keep only last 10 per tab)
-  const queue = Object.values(messageQueue.get(tabId) || {});
-  if (queue.length > 10) {
-    queue.splice(0, queue.length - 10);
-  }
-}
-
-/**
- * Send all queued messages for a tab
- */
-async function flushMessageQueue(tabId: number): Promise<void> {
-  const queue = Object.values(messageQueue.get(tabId) || {});
-  if (queue.length === 0) return;
-
-  console.debug(`Flushing ${queue.length} queued messages for tab ${tabId}`);
-
-  for (const message of queue) {
-    try {
-      await chrome.tabs.sendMessage(tabId, message);
-    } catch (error) {
-      console.debug('Failed to send queued message:', error);
-    }
-  }
-
-  messageQueue.delete(tabId);
-}
 
 // manage webRequest listeners
 const webRequestListeners: {
@@ -324,13 +252,11 @@ let arIO = ARIO.init({
     routingMethod,
     blacklistedGateways,
     ensResolutionEnabled,
-    showVerificationToasts,
     verificationEnabled: storedVerificationEnabled,
   } = await chrome.storage.local.get([
     'routingMethod',
     'blacklistedGateways',
     'ensResolutionEnabled',
-    'showVerificationToasts',
     'verificationEnabled',
   ]);
 
@@ -340,8 +266,6 @@ let arIO = ARIO.init({
     updates.blacklistedGateways = EXTENSION_DEFAULTS.blacklistedGateways;
   if (ensResolutionEnabled === undefined)
     updates.ensResolutionEnabled = EXTENSION_DEFAULTS.ensResolutionEnabled;
-  if (showVerificationToasts === undefined)
-    updates.showVerificationToasts = EXTENSION_DEFAULTS.showVerificationToasts;
   if (storedVerificationEnabled === undefined)
     updates.verificationEnabled = EXTENSION_DEFAULTS.verificationEnabled;
 
@@ -533,30 +457,10 @@ async function handleBeforeNavigate(details: any) {
 /**
  * Clean up tab state when tabs are closed
  */
-async function handleTabRemoved(tabId: number) {
+function handleTabRemoved(tabId: number) {
   tabStateManager.delete(tabId);
-
-  // Clean up message queue and ready state
-  readyTabs.delete(tabId);
-  messageQueue.delete(tabId);
-
-  // Also clean up verification cache entries for this tab
-  try {
-    const tab = await chrome.tabs.get(tabId);
-    if (tab?.url) {
-      const url = new URL(tab.url);
-      const hostname = url.hostname;
-
-      // Remove all cache entries for this hostname
-      for (const key of verificationCache.keys()) {
-        if (key.startsWith(`${hostname}:`)) {
-          verificationCache.delete(key);
-        }
-      }
-    }
-  } catch {
-    // Tab already closed, ignore
-  }
+  // Note: We cannot access tab URL here as the tab is already closed.
+  // Verification cache cleanup happens via TTL expiration instead.
 }
 
 // Setup tab removed listener
@@ -662,57 +566,11 @@ async function handleRequestCompleted(details: any) {
 }
 
 /**
- * Handle verification headers - only for known gateways
+ * Handle response headers from known gateways.
+ * Currently a no-op but kept for future header-based features.
  */
-async function handleHeadersReceived(details: any) {
-  if (details.tabId !== -1 && showVerificationToasts) {
-    // Parse headers for verification
-    const url = new URL(details.url);
-    const hostname = url.hostname;
-    const headers: Record<string, string> = details.responseHeaders.reduce(
-      (acc: Record<string, string>, header: any) => {
-        acc[header.name] = header.value;
-        return acc;
-      },
-      {},
-    );
-
-    // TODO: we can only verify data requests - either arns.<gatewayURL> or /<txId>
-    // verify if we have an x-ar-io-data-id or x-ar-io-resolved-id (for older gateways), otherwise it's not verifiable data
-    const dataId = headers['x-ar-io-data-id'] || headers['x-ar-io-resolve-id'];
-
-    console.debug(
-      `Verifying data for ${details.url} with dataId: ${dataId} for request ${details.requestId}`,
-    );
-
-    // show verification toast if the verification cache entry is for the same url
-    const remotelyVerified = await (
-      await getWayfinderInstance()
-    ).verificationSettings.strategy
-      .verifyData({
-        // note: this response just returns the header data, use it as a stub
-        data: details.responseBody,
-        headers,
-        txId: dataId,
-      })
-      .then(() => {
-        return true;
-      })
-      .catch(() => {
-        return false;
-      });
-
-    const message: Record<string, { id: string } & any> = {
-      id: details.requestId,
-      type: 'showVerificationToast',
-      verified: remotelyVerified,
-      gateway: hostname,
-      url: details.url,
-      txId: dataId,
-    };
-
-    await sendMessageToTab(details.tabId, message);
-  }
+function handleHeadersReceived(_details: any) {
+  // Verification toasts removed - verified browsing mode now uses dedicated page
 }
 
 /**
@@ -779,7 +637,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     'updateVerificationMode',
     'updateAdvancedSettings',
     'resetAdvancedSettings',
-    'updateShowVerificationToasts',
     'updateVerificationEnabled',
   ];
 
@@ -818,20 +675,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   // handle content script ready signal
-  if (request.type === 'contentScriptReady' && sender.tab?.id) {
-    (async () => {
-      try {
-        const tabId = sender.tab.id;
-        readyTabs.add(tabId);
-        // flush any verification messages that were queued on page load while waiting for the content script to be ready
-        await flushMessageQueue(tabId);
-        sendResponse({ success: true });
-      } catch (error: any) {
-        logger.error('Error handling content script ready signal:', error);
-        sendResponse({ error: error?.message || 'Unknown error' });
-      }
-    })();
-    return true;
+  if (request.type === 'contentScriptReady') {
+    sendResponse({ success: true });
+    return false;
   }
 
   // Handle openSettings from error pages
@@ -944,22 +790,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse({ success: true });
       } catch (error: any) {
         logger.error('Error resetting advanced settings:', error);
-        sendResponse({ error: error?.message || 'Unknown error' });
-      }
-    })();
-    return true;
-  }
-
-  if (request.message === 'updateShowVerificationToasts') {
-    (async () => {
-      try {
-        await chrome.storage.local.set({
-          showVerificationToasts: request.enabled,
-        });
-        showVerificationToasts = request.enabled;
-        sendResponse({ success: true });
-      } catch (error: any) {
-        logger.error('Error updating verification mode:', error);
         sendResponse({ error: error?.message || 'Unknown error' });
       }
     })();
