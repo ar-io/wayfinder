@@ -364,6 +364,7 @@ export class Wayfinder {
         verificationSettings?.strategy !== undefined,
       events: {},
       strict: false,
+      raw: false,
       strategy:
         (verificationSettings?.strategy ?? verificationSettings?.enabled)
           ? new HashVerificationStrategy({
