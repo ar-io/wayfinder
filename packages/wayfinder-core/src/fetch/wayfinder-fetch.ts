@@ -16,7 +16,6 @@
  */
 
 import { context, trace } from '@opentelemetry/api';
-import { arioHeaderNames } from '../constants.js';
 import { WayfinderEmitter } from '../emitter.js';
 import { defaultLogger } from '../logger.js';
 import { ContiguousDataRetrievalStrategy } from '../retrieval/contiguous.js';
@@ -191,10 +190,6 @@ export const createWayfinderFetch = ({
         uri: requestUri,
       });
 
-      // Extract data ID from headers for verification
-      const resolvedDataId =
-        dataResponse.headers.get(arioHeaderNames.dataId.toLowerCase()) || txId;
-
       const contentLength = dataResponse.headers.has('content-length')
         ? parseInt(dataResponse.headers.get('content-length')!, 10)
         : 0;
@@ -206,13 +201,25 @@ export const createWayfinderFetch = ({
       let finalStream = dataResponse.body;
 
       // Apply verification if strategy is provided
-      if (resolvedDataId && dataResponse.body && finalVerificationStrategy) {
+      // Note: txId may be undefined for ArNS requests - the verification strategy
+      // will extract the actual verification ID from response headers (x-ar-io-data-id, x-arns-resolved-id)
+      if (
+        (txId || arnsName) &&
+        dataResponse.body &&
+        finalVerificationStrategy
+      ) {
         logger.debug('Applying verification to data stream', {
-          dataId: resolvedDataId,
+          txId,
+          arnsName,
         });
 
         // Determine strict mode - check init first, then fall back to instance settings
         const isStrictMode = init?.verificationSettings?.strict ?? strict;
+
+        // Determine raw mode - check init first, then auto-detect from path
+        // Raw mode is needed when explicitly fetching via /raw/ endpoint
+        const isRawMode =
+          init?.verificationSettings?.raw ?? path.includes('/raw/');
 
         finalStream = tapAndVerifyReadableStream({
           originalStream: dataResponse.body,
@@ -220,10 +227,11 @@ export const createWayfinderFetch = ({
           verifyData: finalVerificationStrategy.verifyData.bind(
             finalVerificationStrategy,
           ),
-          txId: resolvedDataId,
+          txId: txId ?? '', // Verification strategy extracts actual ID from headers
           headers: Object.fromEntries(dataResponse.headers as any),
           emitter: requestEmitter,
           strict: isStrictMode,
+          raw: isRawMode,
         });
       }
 

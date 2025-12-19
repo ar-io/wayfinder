@@ -22,18 +22,27 @@ import { sandboxFromId } from './base64.js';
  * @param gateway - The gateway URL to use for verification
  * @param txId - The transaction ID
  * @param path - Optional path to append (e.g., '/data_root', '/tx/', etc.)
+ * @param raw - When true, constructs a /raw/{txId} URL without sandbox routing
  * @returns The constructed verification URL
  */
 export function constructVerificationUrl({
   gateway,
   txId,
   path = '',
+  raw = false,
 }: {
   gateway: URL;
   txId: string;
   path?: string;
+  raw?: boolean;
 }): string {
   const port = gateway.port ? `:${gateway.port}` : '';
+
+  // For raw requests, don't use sandbox routing - just use /raw/{txId}
+  if (raw) {
+    return `${gateway.protocol}//${gateway.hostname}${port}/raw/${txId}`;
+  }
+
   // For localhost, use port-based routing instead of subdomain routing
   if (gateway.hostname === 'localhost' || gateway.hostname === '127.0.0.1') {
     return `${gateway.protocol}//${gateway.hostname}${port}${path}/${txId}`;

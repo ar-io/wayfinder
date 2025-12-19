@@ -14,7 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import { arioHeaderNames } from '../constants.js';
 import { DataStream, VerificationStrategy } from '../types.js';
+import { normalizeHeaders } from '../utils/ario.js';
+
 /**
  * This strategy is used to verify data by checking the 'x-ar-io-verified' header from the original response.
  * It does not require any client side computation, but it does require the gateway to set the header.
@@ -29,17 +32,17 @@ export class RemoteVerificationStrategy implements VerificationStrategy {
     headers: Record<string, string>;
     txId?: string;
     data?: DataStream;
+    raw?: boolean;
   }) {
-    // make sure headers are all lowercase
-    const headers = Object.fromEntries(
-      Object.entries(params.headers).map(([key, value]) => [
-        key.toLowerCase().trim(),
-        value.trim(),
-      ]),
-    );
+    // Note: The raw parameter doesn't affect remote verification since we only
+    // check the x-ar-io-verified header. The parameter is accepted for interface
+    // compatibility but ignored.
+
+    const headers = normalizeHeaders(params.headers);
 
     // we don't use the data at all, just the headers
-    const remoteVerified = headers['x-ar-io-verified'] === 'true';
+    const remoteVerified =
+      headers[arioHeaderNames.verified.toLowerCase()] === 'true';
     if (!remoteVerified) {
       throw new Error(`Data was not verified by gateway.`);
     }

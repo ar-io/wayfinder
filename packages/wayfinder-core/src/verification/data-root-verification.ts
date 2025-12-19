@@ -171,10 +171,19 @@ export class DataRootVerificationStrategy implements VerificationStrategy {
   async verifyData({
     data,
     txId,
+    headers: _headers = {},
+    raw: _raw = false,
   }: {
     data: DataStream;
     txId: string;
+    headers?: Record<string, string>;
+    raw?: boolean;
   }): Promise<void> {
+    // Note: The raw parameter is not applicable for data root verification
+    // as this strategy is specifically for L1 transactions which don't have
+    // the manifest/raw distinction. The parameter is accepted for interface
+    // compatibility but ignored.
+
     // classify the data, if ans104 throw an error
     const dataType = await this.classifier.classify({ txId });
     if (dataType === 'ans104') {
