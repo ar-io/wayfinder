@@ -59,6 +59,7 @@ describe('Wayfinder', () => {
         strategy: undefined,
         enabled: false,
         strict: false,
+        raw: false,
         events: {},
       });
       // check the telemetry settings

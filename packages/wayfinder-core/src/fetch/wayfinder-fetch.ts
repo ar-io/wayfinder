@@ -201,16 +201,23 @@ export const createWayfinderFetch = ({
       let finalStream = dataResponse.body;
 
       // Apply verification if strategy is provided
-      // Note: txId may be undefined for ArNS requests - the verification strategy
-      // will extract the actual verification ID from response headers (x-ar-io-data-id, x-arns-resolved-id)
       if (
         (txId || arnsName) &&
         dataResponse.body &&
         finalVerificationStrategy
       ) {
+        // Extract verification ID from response headers
+        // For ArNS requests, the gateway returns the resolved txId in headers
+        const headerDataId = dataResponse.headers.get('x-ar-io-data-id');
+        const headerResolvedId = dataResponse.headers.get('x-arns-resolved-id');
+        const verificationTxId = headerDataId || headerResolvedId || txId || '';
+
         logger.debug('Applying verification to data stream', {
           txId,
           arnsName,
+          headerDataId,
+          headerResolvedId,
+          verificationTxId,
         });
 
         // Determine strict mode - check init first, then fall back to instance settings
@@ -227,7 +234,7 @@ export const createWayfinderFetch = ({
           verifyData: finalVerificationStrategy.verifyData.bind(
             finalVerificationStrategy,
           ),
-          txId: txId ?? '', // Verification strategy extracts actual ID from headers
+          txId: verificationTxId,
           headers: Object.fromEntries(dataResponse.headers as any),
           emitter: requestEmitter,
           strict: isStrictMode,
