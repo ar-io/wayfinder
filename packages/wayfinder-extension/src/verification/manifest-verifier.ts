@@ -561,6 +561,7 @@ async function verifyAndCacheResource(
 
 /**
  * Verify all resources in a manifest with concurrency control.
+ * Returns true if the manifest was empty (no resources to verify).
  */
 async function verifyAllResources(
   identifier: string,
@@ -608,8 +609,12 @@ async function verifyAllResources(
       txId,
       path,
       orderedGateways,
-    ).catch(() => {
-      /* Errors already logged */
+    ).catch((error) => {
+      // Error already recorded via recordResourceFailed, just log for debugging
+      logger.debug(
+        TAG,
+        `Resource verification failed for ${path}: ${error?.message || error}`,
+      );
     });
 
     activePromises.add(promise);
@@ -618,6 +623,10 @@ async function verifyAllResources(
   }
 
   await Promise.allSettled(allResults);
+
+  // Note: completeVerificationInternal is called automatically by
+  // recordResourceVerified/recordResourceFailed when all resources are processed.
+  // Return false to indicate manifest was not empty.
   return false;
 }
 

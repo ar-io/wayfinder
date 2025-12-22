@@ -30,8 +30,7 @@ let selectedGateway: URL | null = null;
 
 // Promise that resolves when Wayfinder is initialized
 // Used by fetch handler to wait for initialization instead of returning 503
-let initializationResolve: (() => void) | null = null;
-let initializationPromise: Promise<void> | null = null;
+const initializationResolvers: Set<() => void> = new Set();
 
 /**
  * Wait for Wayfinder to be initialized.
@@ -48,23 +47,19 @@ export async function waitForInitialization(
     return true;
   }
 
-  // Create the promise if it doesn't exist
-  if (!initializationPromise) {
-    initializationPromise = new Promise<void>((resolve) => {
-      initializationResolve = resolve;
-    });
-  }
+  // Create a promise that will be resolved when initialization completes
+  const initPromise = new Promise<boolean>((resolve) => {
+    const resolver = () => resolve(true);
+    initializationResolvers.add(resolver);
 
-  // Race between initialization and timeout
-  const timeoutPromise = new Promise<boolean>((resolve) => {
-    setTimeout(() => resolve(false), maxWaitMs);
+    // Clean up resolver on timeout
+    setTimeout(() => {
+      initializationResolvers.delete(resolver);
+      resolve(false);
+    }, maxWaitMs);
   });
 
-  const initPromise = initializationPromise.then(() => true);
-
-  const result = await Promise.race([initPromise, timeoutPromise]);
-
-  return result;
+  return initPromise;
 }
 
 /**
@@ -200,11 +195,10 @@ export function initializeWayfinder(config: SwWayfinderConfig): void {
   });
 
   // Resolve any pending initialization waiters
-  if (initializationResolve) {
-    initializationResolve();
-    initializationResolve = null;
-    initializationPromise = null;
+  for (const resolver of initializationResolvers) {
+    resolver();
   }
+  initializationResolvers.clear();
 
   logger.info(
     TAG,

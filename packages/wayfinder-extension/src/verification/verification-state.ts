@@ -53,21 +53,28 @@ export function getActiveIdentifier(): string | null {
 /**
  * Broadcast verification event to all extension pages.
  * Uses chrome.runtime.sendMessage which works in the extension context.
+ *
+ * Note: This may "fail" if no listeners are active, which is expected behavior
+ * when no extension pages are open. We log these at debug level for visibility.
  */
 export async function broadcastEvent(event: VerificationEvent): Promise<void> {
   try {
     // Use chrome.runtime.sendMessage to broadcast to all extension pages
     // This sends to all extension contexts (popup, options, verified page, etc.)
-    chrome.runtime
-      .sendMessage({
-        type: 'VERIFICATION_EVENT',
-        event,
-      })
-      .catch(() => {
-        // Ignore errors - no listeners may be active
-      });
-  } catch {
-    // Ignore errors if no listeners
+    await chrome.runtime.sendMessage({
+      type: 'VERIFICATION_EVENT',
+      event,
+    });
+  } catch (error) {
+    // Common case: "Could not establish connection. Receiving end does not exist."
+    // This happens when no extension pages are listening - not a real error.
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.includes('Receiving end does not exist')) {
+      // Expected when no extension pages are open - ignore silently
+      return;
+    }
+    // Log unexpected errors at debug level for troubleshooting
+    logger.debug(TAG, `Broadcast failed: ${message}`);
   }
 }
 
@@ -511,10 +518,9 @@ export function cleanupOldStates(maxAgeMs: number = 30 * 60 * 1000): number {
   return cleaned;
 }
 
-// Run cleanup periodically (every 10 minutes)
-setInterval(
-  () => {
-    cleanupOldStates();
-  },
-  10 * 60 * 1000,
-);
+// Periodic cleanup for old verification states.
+// In MV3 service workers, this interval is recreated on each wake-up.
+// Run immediately on load to clean up any states from before worker restart,
+// then periodically every 10 minutes.
+cleanupOldStates();
+setInterval(() => cleanupOldStates(), 10 * 60 * 1000);

@@ -116,20 +116,6 @@ class VerifiedCacheImpl {
   }
 
   /**
-   * Get multiple resources by txId.
-   */
-  getMany(txIds: string[]): Map<string, VerifiedResource> {
-    const results = new Map<string, VerifiedResource>();
-    for (const txId of txIds) {
-      const resource = this.cache.get(txId);
-      if (resource) {
-        results.set(txId, resource);
-      }
-    }
-    return results;
-  }
-
-  /**
    * Create a Response from a cached resource.
    */
   toResponse(resource: VerifiedResource): Response {

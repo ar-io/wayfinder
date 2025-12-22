@@ -404,14 +404,13 @@ function installUrlInterceptors(): void {
   };
 
   // === IMAGE INTERCEPTION ===
-  // Intercept Image constructor
+  // Intercept Image constructor - prototype setter handles src interception
   const OriginalImage = window.Image;
   (window as any).Image = function (
     width?: number,
     height?: number,
   ): HTMLImageElement {
-    const img = new OriginalImage(width, height);
-    return wrapImageElement(img);
+    return new OriginalImage(width, height);
   };
   // Preserve prototype chain
   (window as any).Image.prototype = OriginalImage.prototype;
@@ -845,19 +844,17 @@ function installUrlInterceptors(): void {
   }
 
   // === BASE HREF INTERCEPTION ===
+  // Block base href changes as they can break our URL resolution
   const baseHrefDescriptor = Object.getOwnPropertyDescriptor(
     HTMLBaseElement.prototype,
     'href',
   );
   if (baseHrefDescriptor && baseHrefDescriptor.set) {
-    const _originalBaseHrefSetter = baseHrefDescriptor.set;
     Object.defineProperty(HTMLBaseElement.prototype, 'href', {
       ...baseHrefDescriptor,
       set(value: string) {
-        // For base element, we might want to block or redirect
         console.debug('[Sandbox] base.href intercepted (blocked):', value);
-        // Don't set it - base href can break our URL resolution
-        return;
+        // Intentionally don't set - base href can break our URL resolution
       },
     });
   }
@@ -1099,35 +1096,9 @@ function installUrlInterceptors(): void {
     'content',
   ].forEach(interceptStyleProperty);
 
-  // === SVG IMAGE HREF INTERCEPTION ===
-  // SVG uses href attribute on image elements
-  try {
-    const svgImageHrefDescriptor = Object.getOwnPropertyDescriptor(
-      SVGImageElement.prototype,
-      'href',
-    );
-    if (svgImageHrefDescriptor) {
-      // SVG href is an SVGAnimatedString, not a simple string
-      // We need to intercept the baseVal setter
-      console.debug('[Sandbox] SVG image href interception registered');
-    }
-  } catch (e) {
-    console.debug('[Sandbox] Could not intercept SVG image href:', e);
-  }
-
-  // === USE ELEMENT HREF INTERCEPTION (SVG) ===
-  try {
-    // SVGUseElement uses href for referencing symbols
-    const svgUseHrefDescriptor = Object.getOwnPropertyDescriptor(
-      SVGUseElement.prototype,
-      'href',
-    );
-    if (svgUseHrefDescriptor) {
-      console.debug('[Sandbox] SVG use href interception registered');
-    }
-  } catch (e) {
-    console.debug('[Sandbox] Could not intercept SVG use href:', e);
-  }
+  // NOTE: SVG href interception (SVGImageElement, SVGUseElement) is not implemented.
+  // SVG uses SVGAnimatedString which requires intercepting baseVal.baseVal setter,
+  // which is complex. Most SVG content is rewritten via innerHTML/setAttribute handlers.
 
   // === INNERHTML INTERCEPTION ===
   // Intercept innerHTML to rewrite URLs in injected HTML
@@ -1190,14 +1161,6 @@ function installUrlInterceptors(): void {
   };
 
   console.log('[Sandbox] URL interceptors installed (comprehensive)');
-}
-
-/**
- * Helper to wrap an image element with src interception
- */
-function wrapImageElement(img: HTMLImageElement): HTMLImageElement {
-  // The prototype setter should handle this, but just in case
-  return img;
 }
 
 /**

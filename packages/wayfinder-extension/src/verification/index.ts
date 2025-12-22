@@ -45,25 +45,18 @@ export {
   getTxIdForPath,
   getActiveTxIdForPath,
   clearManifestState,
-  clearAllStates,
-  cleanupOldStates,
 } from './verification-state';
 
 // Gateway Health
-export {
-  swGatewayHealth,
-  checkSwGatewayHealth,
-  selectHealthyGateway,
-} from './gateway-health';
+export { swGatewayHealth } from './gateway-health';
 
 // Location Patcher
-export { injectLocationPatch, isHtmlContent } from './location-patcher';
+export { injectLocationPatch } from './location-patcher';
 
 // Wayfinder Instance (for SW internal use)
 export {
   initializeWayfinder,
   isWayfinderReady,
-  getWayfinder,
   getConfig,
   getVerificationStrategy,
   setSelectedGateway,

@@ -81,7 +81,6 @@ const contentFrame = document.getElementById(
 let currentIdentifier: string | null = null;
 let verificationReady = false;
 let sandboxReady = false;
-let _startTime = 0;
 
 /**
  * Initialize the page.
@@ -226,7 +225,6 @@ async function handleSearch(): Promise<void> {
 
   // Clear previous state
   currentIdentifier = input;
-  _startTime = Date.now();
 
   // Show loading screen
   showLoading(input);
@@ -343,16 +341,20 @@ function handleSandboxMessage(event: MessageEvent): void {
 
 /**
  * Handle messages from the background service worker.
+ * Returns true if the response will be sent asynchronously.
  */
 function handleBackgroundMessage(
   message: { type: string; event?: VerificationEvent },
   _sender: chrome.runtime.MessageSender,
   _sendResponse: (response: any) => void,
-): void {
+): boolean | void {
   // Handle verification events
   if (message.type === 'VERIFICATION_EVENT' && message.event) {
     handleVerificationEvent(message.event);
+    // Synchronous handling, no response needed
+    return;
   }
+  // Return undefined for unhandled messages to allow other listeners to process
 }
 
 /**
@@ -451,18 +453,24 @@ async function handleVerificationComplete(
         size: number;
       }>;
       totalResources?: number;
-    }>((resolve) => {
+    }>((resolve, reject) => {
       chrome.runtime.sendMessage(
         { type: 'GET_VERIFIED_CONTENT', identifier: currentIdentifier },
-        resolve,
+        (response) => {
+          // Check lastError inside callback before it gets cleared
+          if (chrome.runtime.lastError) {
+            reject(
+              new Error(
+                chrome.runtime.lastError.message ||
+                  'Failed to get content metadata',
+              ),
+            );
+            return;
+          }
+          resolve(response);
+        },
       );
     });
-
-    if (chrome.runtime.lastError) {
-      throw new Error(
-        chrome.runtime.lastError.message || 'Failed to get content metadata',
-      );
-    }
 
     if (!metadata?.success) {
       throw new Error(metadata?.error || 'Content metadata not available');
@@ -499,7 +507,7 @@ async function handleVerificationComplete(
           totalChunks?: number;
           chunkIndex?: number;
           totalSize?: number;
-        }>((resolve) => {
+        } | null>((resolve) => {
           chrome.runtime.sendMessage(
             {
               type: 'GET_VERIFIED_RESOURCE',
@@ -507,23 +515,28 @@ async function handleVerificationComplete(
               path,
               chunkIndex: 0,
             },
-            resolve,
+            (response) => {
+              // Check lastError inside callback before it gets cleared
+              if (chrome.runtime.lastError) {
+                console.warn(
+                  `[Verified] Failed to load resource ${path}:`,
+                  chrome.runtime.lastError.message,
+                );
+                resolve(null);
+                return;
+              }
+              resolve(response);
+            },
           );
         });
 
-        if (chrome.runtime.lastError) {
-          console.warn(
-            `[Verified] Failed to load resource ${path}:`,
-            chrome.runtime.lastError,
-          );
-          continue;
-        }
-
         if (!firstChunk?.success || !firstChunk.data) {
-          console.warn(
-            `[Verified] Resource not available: ${path}`,
-            firstChunk?.error,
-          );
+          if (firstChunk) {
+            console.warn(
+              `[Verified] Resource not available: ${path}`,
+              firstChunk.error,
+            );
+          }
           continue;
         }
 
@@ -550,7 +563,7 @@ async function handleVerificationComplete(
             success: boolean;
             error?: string;
             data?: number[];
-          }>((resolve) => {
+          } | null>((resolve) => {
             chrome.runtime.sendMessage(
               {
                 type: 'GET_VERIFIED_RESOURCE',
@@ -558,7 +571,18 @@ async function handleVerificationComplete(
                 path,
                 chunkIndex: chunkIdx,
               },
-              resolve,
+              (response) => {
+                // Check lastError inside callback before it gets cleared
+                if (chrome.runtime.lastError) {
+                  console.warn(
+                    `[Verified] Failed to load chunk ${chunkIdx} for ${path}:`,
+                    chrome.runtime.lastError.message,
+                  );
+                  resolve(null);
+                  return;
+                }
+                resolve(response);
+              },
             );
           });
 
