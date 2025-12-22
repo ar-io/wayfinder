@@ -18,12 +18,12 @@ npm run dev
 # Clean build artifacts
 npm run clean
 
-# Linting and formatting
+# Linting and formatting (uses Biome)
 npm run lint:fix
 npm run format:fix
 ```
 
-After building, load the unpacked extension from `dist/` in `chrome://extensions/`.
+After building, load the unpacked extension from `dist/` in `chrome://extensions/` with Developer mode enabled.
 
 ## Key Architecture
 
@@ -34,7 +34,8 @@ After building, load the unpacked extension from `dist/` in `chrome://extensions
    - Manages WayFinder instance lifecycle via debounced initialization
    - Tracks gateway performance with WebRequest API
    - Syncs with AR.IO gateway registry
-   - Intercepts fetch events from extension pages for verification
+   - Intercepts fetch events from extension pages for verification via `initializeFetchHandler()`
+   - Uses `TabStateManager` class for tracking redirected tabs with automatic cleanup
 
 2. **Routing Module (`src/routing.ts`)**
    - Thread-safe singleton WayFinder instance (promise-based race prevention)
@@ -51,6 +52,9 @@ After building, load the unpacked extension from `dist/` in `chrome://extensions
    - `manifest-verifier.ts` - Verifies manifest entries using wayfinder-core
    - `verification-state.ts` - Tracks verification progress per identifier
    - `verified-cache.ts` - LRU cache for verified content
+   - `wayfinder-instance.ts` - Manages Wayfinder instance for verification
+   - `gateway-health.ts` - Monitors gateway health for verification routing
+   - `trusted-gateways.ts` - Provides trusted gateway lists for verification
    - `verified.ts` + `verified.html` - Sandbox page for verified browsing mode
 
 5. **Chrome Storage Adapter (`src/adapters/chrome-storage-gateway-provider.ts`)**
@@ -115,13 +119,19 @@ Background script handles these `chrome.runtime.sendMessage` types:
 - `GET_VERIFIED_CONTENT` - Get verified HTML and resource metadata
 - `GET_VERIFIED_RESOURCE` - Get single resource (chunked for large files)
 
-## Configuration Defaults
+## Configuration
 
-Located in `src/config/defaults.ts`:
-- `routingMethod: 'random'` - Default to balanced distribution
-- `verificationEnabled: false` - Opt-in verified browsing
-- `gatewaySortBy: 'totalDelegatedStake'` - Default gateway ordering
-- `fastestPing.timeoutMs: 2000` - Ping timeout for fastest ping strategy
+All defaults are centralized in `src/config/defaults.ts`:
+- `EXTENSION_DEFAULTS` - Core extension settings (routing, verification, stats)
+- `WAYFINDER_DEFAULTS` - Wayfinder core configuration
+- `ROUTING_STRATEGY_DEFAULTS` - Per-strategy settings (timeouts, concurrency)
+- `CACHE_DEFAULTS` - TTL settings for ArNS, gateways, DNS
+- `PERFORMANCE_DEFAULTS` - Request timeouts, cleanup intervals
+
+Constants in `src/constants.ts`:
+- `ARIO_MAINNET_PROCESS_ID` - AR.IO mainnet process ID
+- `DEFAULT_AO_CU_URL` - Default AO Compute Unit URL (cu.ardrive.io)
+- `FALLBACK_GATEWAY` - Last resort gateway (arweave.net)
 
 ## Build Configuration
 
@@ -135,12 +145,14 @@ Vite config (`vite.config.js`):
 
 - **MV3 Service Worker Limitations**: No DOM access, must use chrome.storage for persistence
 - **Service Worker Restarts**: Can lose in-memory state - always persist to chrome.storage
+- **Fetch Handler Registration**: `initializeFetchHandler()` must be called at top level of background.ts (before any async operations) for MV3 compliance
 - **Fetch Event Interception**: Only works for extension pages (chrome-extension://), not content scripts
 - **Message Queuing**: Content script may not be ready immediately - messages are queued and flushed on `contentScriptReady`
 - **Gateway Filtering**: Automatically excludes gateways with `failedConsecutiveEpochs > 0`
-- **CORS Issues**: Some gateways may block HEAD requests used for health checks
+- **Debounced Initialization**: Wayfinder instance uses `pDebounce` to prevent rapid re-initialization on settings changes
+- **LRU Cache for Request Timings**: Uses `lru-cache` with 24-hour TTL and 10k max entries
 
-## Testing Approach
+## Manual Testing
 
 1. Load unpacked extension from `dist/` in `chrome://extensions/`
 2. Test ar:// navigation in Chrome address bar
