@@ -24,6 +24,15 @@ const resourceBlobUrls = new Map<string, string>();
 // The identifier being rendered
 let currentIdentifier: string | null = null;
 
+// Save references to native functions BEFORE any scripts can modify them
+// This protects against scripts that polyfill or modify prototypes
+const nativeCreateElement = document.createElement.bind(document);
+const nativeAppendChild = Node.prototype.appendChild;
+const nativeMapGet = Map.prototype.get;
+const nativeStringIndexOf = String.prototype.indexOf;
+const nativeStringSubstring = String.prototype.substring;
+const nativeRegExpTest = RegExp.prototype.test;
+
 /**
  * Initialize message listener
  */
@@ -94,7 +103,13 @@ function handleRenderContent(
     if (resource.contentType?.includes('css')) {
       cssResources.push(resource);
     } else {
-      const blob = new Blob([resource.data], { type: resource.contentType });
+      // Fix WASM content-type - gateways may return text/plain but WebAssembly
+      // requires application/wasm for instantiateStreaming() to work
+      let contentType = resource.contentType;
+      if (resource.path.endsWith('.wasm')) {
+        contentType = 'application/wasm';
+      }
+      const blob = new Blob([resource.data], { type: contentType });
       const blobUrl = URL.createObjectURL(blob);
       blobUrls.push(blobUrl);
       resourceBlobUrls.set(resource.path, blobUrl);
@@ -332,6 +347,70 @@ function injectSandboxPolyfills(): void {
     verified: true,
     sandbox: true,
   };
+
+  // Flutter-specific environment setup
+  // Flutter uses these to determine base paths and configuration
+  try {
+    // Set base element if not present - Flutter uses this for path resolution
+    if (!document.querySelector('base')) {
+      const base = document.createElement('base');
+      base.href = '/';
+      document.head.insertBefore(base, document.head.firstChild);
+    }
+
+    // Flutter configuration that some builds look for
+    (window as any).flutterConfiguration = {
+      assetBase: '/',
+      canvasKitBaseUrl: '/canvaskit/',
+    };
+
+    // Some Flutter versions look for this
+    if (!(window as any)._flutter) {
+      (window as any)._flutter = {};
+    }
+  } catch (e) {
+    console.debug('[Sandbox] Could not set Flutter configuration:', e);
+  }
+
+  // Mock document.currentScript to provide the original script path
+  // This is critical for Flutter and other frameworks that use document.currentScript.src
+  // to determine the base path for loading additional resources.
+  // Without this, blob URLs break path resolution.
+  try {
+    Object.defineProperty(document, 'currentScript', {
+      get: () => {
+        if (!currentExecutingScriptSrc) {
+          return null;
+        }
+        // Return a mock HTMLScriptElement with the original src
+        // We can't return a real element, but we can return an object
+        // with the properties that frameworks typically access
+        return {
+          src: currentExecutingScriptSrc,
+          // Provide absolute URL based on the original path
+          getAttribute: (name: string) => {
+            if (name === 'src') return currentExecutingScriptSrc;
+            return null;
+          },
+          // Common properties that might be accessed
+          async: false,
+          defer: false,
+          type: '',
+          text: '',
+          charset: '',
+          crossOrigin: null,
+          noModule: false,
+          // Make it look like an element
+          tagName: 'SCRIPT',
+          nodeName: 'SCRIPT',
+          nodeType: 1,
+        } as unknown as HTMLScriptElement;
+      },
+      configurable: true,
+    });
+  } catch (e) {
+    console.debug('[Sandbox] Could not mock document.currentScript:', e);
+  }
 
   console.log('[Sandbox] Polyfills injected successfully');
 }
@@ -1395,68 +1474,142 @@ interface ScriptInfo {
   attrs: string;
 }
 
+// Track the currently executing script's original src for document.currentScript mock
+let currentExecutingScriptSrc: string | null = null;
+
 /**
  * Execute scripts in order
  */
 async function executeScripts(scripts: ScriptInfo[]): Promise<void> {
-  for (const script of scripts) {
+  console.log(`[Sandbox] Executing ${scripts.length} scripts in order`);
+  for (let i = 0; i < scripts.length; i++) {
+    const script = scripts[i];
+    const scriptName = script.src || `inline-${i}`;
+    console.log(
+      `[Sandbox] Executing script ${i + 1}/${scripts.length}: ${scriptName}`,
+    );
     try {
       await executeScript(script);
+      console.log(`[Sandbox] Script completed: ${scriptName}`);
     } catch (error) {
-      console.error('[Sandbox] Script error:', error);
+      console.error(`[Sandbox] Script ${scriptName} error:`, error);
     }
   }
+  console.log('[Sandbox] All scripts executed');
 }
 
 /**
  * Execute a single script
+ *
+ * Note: We use saved native function references to avoid issues when loaded
+ * scripts (e.g., Flutter's dart2js output) modify prototypes like
+ * String.prototype, Map.prototype, or Function.prototype.
  */
 async function executeScript(script: ScriptInfo): Promise<void> {
-  return new Promise((resolve, _reject) => {
-    const scriptEl = document.createElement('script');
+  return new Promise(function promiseExecutor(resolve, _reject) {
+    let scriptEl: HTMLScriptElement;
+
+    try {
+      // Use saved native reference
+      scriptEl = nativeCreateElement('script') as HTMLScriptElement;
+    } catch (e) {
+      console.error('[Sandbox] Failed to create script element:', e);
+      resolve();
+      return;
+    }
 
     // Copy type if present
     if (script.type) {
-      scriptEl.type = script.type;
+      try {
+        scriptEl.type = script.type;
+      } catch (e) {
+        console.warn('[Sandbox] Could not set script type:', e);
+      }
     }
 
     if (script.src) {
       // External script - check if we have a blob URL
       let src = script.src;
+      const originalSrc = script.src;
 
-      // Normalize path
-      let normalizedPath = src;
-      if (normalizedPath.startsWith('./')) {
-        normalizedPath = normalizedPath.slice(2);
+      // For external URLs (http/https/blob/data), use as-is
+      // Only do blob URL lookup for relative paths
+      // Use saved native RegExp.prototype.test
+      const externalUrlPattern = /^(https?:\/\/|\/\/|data:|blob:)/i;
+      const isExternalUrl = nativeRegExpTest.call(externalUrlPattern, src);
+
+      if (!isExternalUrl) {
+        // Normalize path for internal resources
+        // Use saved native String methods
+        let normalizedPath = src;
+        if (nativeStringIndexOf.call(normalizedPath, './') === 0) {
+          normalizedPath = nativeStringSubstring.call(normalizedPath, 2);
+        }
+        if (nativeStringIndexOf.call(normalizedPath, '/') === 0) {
+          normalizedPath = nativeStringSubstring.call(normalizedPath, 1);
+        }
+
+        // Look up blob URL using saved native Map.prototype.get
+        const blobUrl =
+          nativeMapGet.call(resourceBlobUrls, normalizedPath) ||
+          nativeMapGet.call(resourceBlobUrls, '/' + normalizedPath);
+
+        if (blobUrl) {
+          src = blobUrl;
+        } else {
+          // Relative URL without blob - skip it
+          console.warn('[Sandbox] Skipping script without blob URL:', src);
+          resolve();
+          return;
+        }
       }
-      if (normalizedPath.startsWith('/')) {
-        normalizedPath = normalizedPath.slice(1);
+
+      // Set the original src for document.currentScript mock
+      // Only set for internal paths, not external URLs
+      if (!isExternalUrl) {
+        currentExecutingScriptSrc =
+          nativeStringIndexOf.call(originalSrc, '/') === 0
+            ? originalSrc
+            : '/' + originalSrc;
+      } else {
+        // For external URLs, set the full URL
+        currentExecutingScriptSrc = originalSrc;
       }
 
-      const blobUrl =
-        resourceBlobUrls.get(normalizedPath) ||
-        resourceBlobUrls.get('/' + normalizedPath);
+      try {
+        scriptEl.src = src;
 
-      if (blobUrl) {
-        src = blobUrl;
-      } else if (!/^(https?:\/\/|\/\/|data:|blob:)/i.test(src)) {
-        // Relative URL without blob - skip it as we don't have the content
-        console.warn('[Sandbox] Skipping script without blob URL:', src);
+        // Use function expressions to avoid arrow function issues
+        scriptEl.onload = function onScriptLoad() {
+          currentExecutingScriptSrc = null;
+          resolve();
+        };
+
+        scriptEl.onerror = function onScriptError(_e: Event | string) {
+          console.error('[Sandbox] Failed to load script:', src);
+          currentExecutingScriptSrc = null;
+          resolve(); // Continue even on error
+        };
+
+        // Use saved native appendChild
+        nativeAppendChild.call(document.body, scriptEl);
+      } catch (e) {
+        console.error('[Sandbox] Error setting up script:', src, e);
+        currentExecutingScriptSrc = null;
         resolve();
-        return;
+      }
+    } else if (script.content) {
+      // Inline script
+      currentExecutingScriptSrc = null;
+
+      try {
+        scriptEl.textContent = script.content;
+        // Use saved native appendChild
+        nativeAppendChild.call(document.body, scriptEl);
+      } catch (e) {
+        console.error('[Sandbox] Error executing inline script:', e);
       }
 
-      scriptEl.src = src;
-      scriptEl.onload = () => resolve();
-      scriptEl.onerror = (_e) => {
-        console.error('[Sandbox] Failed to load script:', src);
-        resolve(); // Continue even on error
-      };
-      document.body.appendChild(scriptEl);
-    } else if (script.content) {
-      // Inline script - execute directly
-      scriptEl.textContent = script.content;
-      document.body.appendChild(scriptEl);
       resolve();
     } else {
       resolve();

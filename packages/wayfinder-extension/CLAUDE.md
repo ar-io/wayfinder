@@ -49,13 +49,23 @@ After building, load the unpacked extension from `dist/` in `chrome://extensions
 
 4. **Verification System (`src/verification/`)**
    - `fetch-handler.ts` - Intercepts `/ar-proxy/` requests, serves verified content
-   - `manifest-verifier.ts` - Verifies manifest entries using wayfinder-core
+   - `manifest-verifier.ts` - Manifest-first verification orchestrator with security model
    - `verification-state.ts` - Tracks verification progress per identifier
    - `verified-cache.ts` - LRU cache for verified content
    - `wayfinder-instance.ts` - Manages Wayfinder instance for verification
    - `gateway-health.ts` - Monitors gateway health for verification routing
    - `trusted-gateways.ts` - Provides trusted gateway lists for verification
-   - `verified.ts` + `verified.html` - Sandbox page for verified browsing mode
+   - `verified.ts` + `verified.html` - Verified browsing mode page
+   - `location-patcher.ts` - Patches `window.location` in sandbox to return ar:// URLs
+   - `index.ts` - Public API exports for verification utilities
+
+   Key verification API functions (from `src/verification/index.ts`):
+   - `initializeWayfinder` / `waitForInitialization` - SW Wayfinder lifecycle
+   - `verifyIdentifier` / `getVerifiedContent` - Core verification workflow
+   - `setActiveIdentifier` / `getActiveIdentifier` - Track current verification target
+   - `broadcastEvent` - Send verification events to listeners
+   - `getTrustedGateways` / `getTopStakedGateways` / `getRoutingGateways` - Gateway selection
+   - `setVerificationConcurrency` - Control parallel resource verification (default: 10)
 
 5. **Chrome Storage Adapter (`src/adapters/chrome-storage-gateway-provider.ts`)**
    - Implements `GatewaysProvider` interface for wayfinder-core
@@ -68,6 +78,20 @@ After building, load the unpacked extension from `dist/` in `chrome://extensions
    - `settings.ts` - Configuration (routing, verification, network)
    - `gateways.ts` - Gateway list and blacklist management
    - `performance.ts` - Usage analytics and metrics
+
+7. **Sandbox System**
+   - `sandbox.ts` + `sandbox.html` - Sandboxed page for executing untrusted content
+   - `location-patch.ts` - Injected script to patch location in sandbox iframe
+   - Uses relaxed CSP (allows `unsafe-inline`, `unsafe-eval`) vs strict extension_pages CSP
+   - Comprehensive URL interception for: fetch, XHR, Image, Script, Link, Media, Worker, etc.
+   - Stubs unavailable APIs: serviceWorker, caches, localStorage, sessionStorage, cookies
+   - Exposes `window.__wayfinder = { verified: true, sandbox: true }` for app detection
+
+8. **Utilities (`src/utils/`)**
+   - `logger.ts` - Logging utility with configurable levels
+   - `error-handler.ts` - Error handling helpers
+   - `time.ts` - Time formatting utilities
+   - `version.ts` - Version comparison helpers
 
 ### Data Flow
 
@@ -82,6 +106,20 @@ After building, load the unpacked extension from `dist/` in `chrome://extensions
 2. verified.ts sends `INIT_VERIFICATION` → background initializes Wayfinder
 3. Iframe loads `/ar-proxy/<identifier>/` → fetch handler intercepts
 4. Manifest verified → Resources fetched and verified → Content served from cache
+
+### Verification Security Model
+
+The manifest-verifier (`src/verification/manifest-verifier.ts`) implements a security-first verification flow:
+
+1. **ArNS Resolution**: Names resolved via trusted gateways with consensus checking (mismatch = security issue)
+2. **Manifest Verification**: Manifest content hash-verified BEFORE trusting path→txId mappings
+3. **Resource Verification**: All resources verified against trusted gateways before serving
+4. **Error Classification**: `NetworkError` (retriable) vs `VerificationError` (hash mismatch = tampering)
+
+Key timeouts:
+- `GATEWAY_TIMEOUT_MS`: 10s for gateway requests
+- `RESOURCE_FETCH_TIMEOUT_MS`: 5s for resource fetch initiation
+- `BODY_DOWNLOAD_TIMEOUT_MS`: 30s for body download (larger for WASM files)
 
 ## Chrome Storage Keys
 
@@ -140,6 +178,20 @@ Vite config (`vite.config.js`):
 - Manual chunk `webIndex` bundles: @ar.io/sdk/web, @permaweb/aoconnect, @ar.io/wayfinder-core
 - Node polyfills for crypto, stream, buffer
 - Static copy: HTML files, manifest.json, assets, package.json → `dist/`
+- Sourcemaps enabled for debugging
+
+## Chrome Permissions
+
+Manifest V3 permissions (see `manifest.json`):
+- `storage` - Persist settings and gateway cache
+- `webNavigation` - Intercept ar:// navigation
+- `webRequest` - Track request performance metrics
+- `scripting` - Inject content scripts dynamically
+- `host_permissions: <all_urls>` - Access all sites for ar:// link conversion
+
+Content Security Policy notes:
+- **extension_pages**: Strict CSP (`script-src 'self'`) - no inline scripts
+- **sandbox**: Relaxed CSP (allows `unsafe-inline`, `unsafe-eval`) for executing arbitrary Arweave content
 
 ## Key Gotchas
 
@@ -151,6 +203,11 @@ Vite config (`vite.config.js`):
 - **Gateway Filtering**: Automatically excludes gateways with `failedConsecutiveEpochs > 0`
 - **Debounced Initialization**: Wayfinder instance uses `pDebounce` to prevent rapid re-initialization on settings changes
 - **LRU Cache for Request Timings**: Uses `lru-cache` with 24-hour TTL and 10k max entries
+- **In-Memory Caching**: `getCachedGatewayRegistry()` in helpers.ts caches registry reads for 1 hour to reduce Chrome storage calls
+- **Version Mismatch**: manifest.json version may differ from package.json - use package.json as source of truth
+- **WASM Content-Type**: Gateways may return `text/plain` for .wasm files - sandbox.ts fixes this to `application/wasm` for `instantiateStreaming()` compatibility
+- **Sandbox Unique Origin**: Many browser APIs throw `SecurityError` in sandbox - use try/catch when stubbing (see `injectSandboxPolyfills()`)
+- **Verification vs Network Errors**: Hash mismatch = `VerificationError` (don't retry), connection issues = `NetworkError` (try other gateways)
 
 ## Manual Testing
 

@@ -631,6 +631,32 @@ function serveFromCache(identifier: string, resourcePath: string): Response {
 // ============================================================================
 
 /**
+ * Check if we already have verified content ready for an identifier.
+ * Returns true if verification is complete AND the index file is still in cache.
+ * This handles the edge case where verification completed but resources were
+ * evicted from the LRU cache due to memory pressure.
+ */
+function isContentReady(identifier: string): boolean {
+  if (!isVerificationComplete(identifier)) {
+    return false;
+  }
+
+  // Also verify the index file is still in cache
+  const state = getManifestState(identifier);
+  if (!state?.pathToTxId) {
+    return false;
+  }
+
+  const indexTxId = state.pathToTxId.get(state.indexPath);
+  if (!indexTxId) {
+    return false;
+  }
+
+  // Check if index is still in cache (could have been evicted by LRU)
+  return verifiedCache.has(indexTxId);
+}
+
+/**
  * Handle messages from the verified.html page.
  * These are Chrome runtime messages, not service worker postMessage.
  */
@@ -639,6 +665,18 @@ export function handleVerificationMessage(
   _sender: chrome.runtime.MessageSender,
   sendResponse: (response: any) => void,
 ): boolean {
+  // Quick check if content is already verified and cached
+  if (message.type === 'CHECK_VERIFICATION_STATUS') {
+    const identifier = message.identifier;
+    if (!identifier) {
+      sendResponse({ ready: false, error: 'Missing identifier' });
+      return false;
+    }
+    const ready = isContentReady(identifier);
+    sendResponse({ ready, status: ready ? 'complete' : 'not_verified' });
+    return false;
+  }
+
   if (message.type === 'INIT_VERIFICATION') {
     const config: SwWayfinderConfig = message.config;
     initializeWayfinder(config);
@@ -659,21 +697,25 @@ export function handleVerificationMessage(
 
   if (message.type === 'CLEAR_VERIFICATION_STATE') {
     const identifier = message.identifier;
+    const clearCache = message.clearCache === true; // Only clear cache if explicitly requested
+
     if (identifier) {
       const state = getManifestState(identifier);
-      if (state?.pathToTxId) {
+      if (clearCache && state?.pathToTxId) {
+        // Only clear cache if explicitly requested (e.g., force refresh)
         const txIds = Array.from(state.pathToTxId.values());
         if (state.manifestTxId) {
           txIds.push(state.manifestTxId);
         }
         verifiedCache.clearForManifest(txIds);
+        logger.debug(TAG, `Cleared cache for: ${identifier}`);
       }
       clearManifestState(identifier);
       pendingVerifications.delete(identifier);
       if (getActiveIdentifier() === identifier) {
         setActiveIdentifier(null);
       }
-      logger.debug(TAG, `Cleared verification for: ${identifier}`);
+      logger.debug(TAG, `Cleared verification state for: ${identifier}`);
     }
     sendResponse({ success: true });
     return false;

@@ -204,9 +204,30 @@ async function buildVerificationConfig(): Promise<SwWayfinderConfig> {
 }
 
 /**
- * Handle search action.
+ * Check if content is already verified and cached.
  */
-async function handleSearch(): Promise<void> {
+async function checkVerificationStatus(
+  identifier: string,
+): Promise<{ ready: boolean; status: string }> {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage(
+      { type: 'CHECK_VERIFICATION_STATUS', identifier },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          resolve({ ready: false, status: 'error' });
+        } else {
+          resolve(response || { ready: false, status: 'unknown' });
+        }
+      },
+    );
+  });
+}
+
+/**
+ * Handle search action.
+ * @param forceRefresh - If true, clear cache and re-verify from scratch
+ */
+async function handleSearch(forceRefresh: boolean = false): Promise<void> {
   const input = searchInput.value.trim();
   if (!input) return;
 
@@ -226,18 +247,43 @@ async function handleSearch(): Promise<void> {
   // Clear previous state
   currentIdentifier = input;
 
+  // Check if we already have verified content for this identifier
+  if (!forceRefresh) {
+    const status = await checkVerificationStatus(input);
+    if (status.ready) {
+      console.log(
+        '[Verified] Content already verified, loading from cache:',
+        input,
+      );
+      // Content is already verified - just load it directly
+      await reloadSandbox();
+      // Simulate verification complete to load content
+      handleVerificationComplete({
+        type: 'verification-complete',
+        identifier: input,
+        manifestTxId: '',
+        progress: { current: 0, total: 0 },
+      });
+      return;
+    }
+  }
+
   // Show loading screen
   showLoading(input);
 
-  // Clear previous verification if any
-  await clearVerification(input);
+  // Clear previous verification state (but not cache unless forceRefresh)
+  await clearVerification(input, forceRefresh);
 
   // Reload sandbox iframe to get a fresh JavaScript context
   // This is critical - just clearing innerHTML doesn't stop running scripts
   await reloadSandbox();
 
   // Start verification via background service worker
-  console.log('[Verified] Starting verification:', input);
+  console.log(
+    '[Verified] Starting verification:',
+    input,
+    forceRefresh ? '(force refresh)' : '',
+  );
   chrome.runtime.sendMessage(
     { type: 'START_VERIFICATION', identifier: input },
     (response) => {
@@ -261,11 +307,15 @@ async function handleSearch(): Promise<void> {
 
 /**
  * Clear verification state for an identifier.
+ * @param clearCache - If true, also clear the verified resource cache (force refresh)
  */
-async function clearVerification(identifier: string): Promise<void> {
+async function clearVerification(
+  identifier: string,
+  clearCache: boolean = false,
+): Promise<void> {
   return new Promise((resolve) => {
     chrome.runtime.sendMessage(
-      { type: 'CLEAR_VERIFICATION_STATE', identifier },
+      { type: 'CLEAR_VERIFICATION_STATE', identifier, clearCache },
       () => resolve(),
     );
   });
@@ -307,13 +357,14 @@ async function reloadSandbox(): Promise<void> {
 
 /**
  * Handle retry action.
+ * Forces a complete re-verification by clearing the cache.
  */
 async function handleRetry(): Promise<void> {
   if (!currentIdentifier) return;
 
-  // Clear verification and reload
-  await clearVerification(currentIdentifier);
-  await handleSearch();
+  // Force refresh - clear cache and re-verify from scratch
+  searchInput.value = currentIdentifier;
+  await handleSearch(true /* forceRefresh */);
 }
 
 /**

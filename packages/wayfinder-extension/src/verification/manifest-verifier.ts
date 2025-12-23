@@ -55,8 +55,60 @@ const DEFAULT_CONCURRENCY = 10;
 // Timeout for individual gateway requests (ArNS resolution, gateway selection)
 const GATEWAY_TIMEOUT_MS = 10000; // 10 seconds
 
-// Shorter timeout for resource fetches (most resources are small)
+// Shorter timeout for resource fetches (initial response)
 const RESOURCE_FETCH_TIMEOUT_MS = 5000; // 5 seconds
+
+// Timeout for downloading the response body (larger for big files like WASM)
+const BODY_DOWNLOAD_TIMEOUT_MS = 30000; // 30 seconds
+
+/**
+ * Custom error class for network failures (timeout, HTTP errors, connection issues).
+ * These are retriable and don't indicate tampering.
+ */
+class NetworkError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'NetworkError';
+  }
+}
+
+/**
+ * Custom error class for verification failures (hash mismatch).
+ * These indicate potential tampering and should not be retried.
+ */
+class VerificationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'VerificationError';
+  }
+}
+
+/**
+ * Download response body with a timeout.
+ * This is necessary because the fetch timeout only covers the initial response,
+ * not the body download which can hang on slow connections.
+ */
+async function downloadBodyWithTimeout(
+  response: Response,
+  timeoutMs: number,
+): Promise<ArrayBuffer> {
+  return new Promise((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      reject(new NetworkError(`Body download timeout after ${timeoutMs}ms`));
+    }, timeoutMs);
+
+    response
+      .arrayBuffer()
+      .then((data) => {
+        clearTimeout(timeoutId);
+        resolve(data);
+      })
+      .catch((err) => {
+        clearTimeout(timeoutId);
+        reject(new NetworkError(`Body download failed: ${err.message}`));
+      });
+  });
+}
 
 // Current concurrency setting (can be updated via config)
 let maxConcurrentVerifications = DEFAULT_CONCURRENCY;
@@ -404,11 +456,49 @@ async function verifyResourceWithSdk(
 
 /**
  * Fetch and verify manifest/content from the selected routing gateway.
+ * Checks cache first to avoid re-fetching already verified content.
  */
 async function fetchAndVerifyRawContent(
   txId: string,
   routingGateway: string,
 ): Promise<ManifestCheckResult> {
+  // Check cache first - if we already have this txId verified, use it
+  const cached = verifiedCache.get(txId);
+  if (cached) {
+    logger.debug(TAG, `Cache hit for manifest: ${txId.slice(0, 8)}...`);
+
+    // Check if it's a manifest by trying to parse as JSON
+    // Use try-catch for both branches since content-type could be wrong
+    let isManifest = false;
+    let manifest: ArweaveManifest | undefined;
+
+    try {
+      const text = new TextDecoder().decode(cached.data);
+      const parsed = JSON.parse(text);
+      if (parsed.manifest === 'arweave/paths' && parsed.paths) {
+        isManifest = true;
+        manifest = parsed as ArweaveManifest;
+      }
+    } catch {
+      // Not valid JSON - treat as non-manifest content
+      isManifest = false;
+    }
+
+    if (isManifest) {
+      return {
+        isManifest: true,
+        manifest: manifest!,
+        rawData: cached.data,
+        contentType: cached.contentType,
+      };
+    }
+    return {
+      isManifest: false,
+      rawData: cached.data,
+      contentType: cached.contentType,
+    };
+  }
+
   const gatewayBase = routingGateway.replace(/\/+$/, '');
   const rawUrl = `${gatewayBase}/raw/${txId}`;
 
@@ -520,21 +610,48 @@ async function verifyAndCacheResource(
         RESOURCE_FETCH_TIMEOUT_MS,
       );
 
-      const response = await fetch(rawUrl, {
-        signal: controller.signal,
-      });
+      let response: Response;
+      try {
+        response = await fetch(rawUrl, {
+          signal: controller.signal,
+        });
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        const msg =
+          fetchError instanceof Error ? fetchError.message : String(fetchError);
+        throw new NetworkError(`Fetch failed: ${msg}`);
+      }
 
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+        throw new NetworkError(`HTTP ${response.status}`);
       }
 
-      const data = await response.arrayBuffer();
+      // Download body with separate timeout (handles slow/hanging connections)
+      const data = await downloadBodyWithTimeout(
+        response,
+        BODY_DOWNLOAD_TIMEOUT_MS,
+      );
+
+      // Check for empty response (can happen with some gateway issues)
+      if (data.byteLength === 0) {
+        throw new NetworkError('Empty response body');
+      }
+
       const contentType =
         response.headers.get('content-type') || 'application/octet-stream';
 
-      await verifyResourceWithSdk(txId, data, strategy);
+      // Verification - if this fails, it's a security issue, don't retry other gateways
+      try {
+        await verifyResourceWithSdk(txId, data, strategy);
+      } catch (verifyError) {
+        const msg =
+          verifyError instanceof Error
+            ? verifyError.message
+            : String(verifyError);
+        throw new VerificationError(`Hash mismatch: ${msg}`);
+      }
 
       const headers: Record<string, string> = {};
       response.headers.forEach((value, key) => {
@@ -546,15 +663,29 @@ async function verifyAndCacheResource(
       return;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
+
+      // Verification failures indicate tampering - don't try other gateways
+      if (error instanceof VerificationError) {
+        logger.error(
+          TAG,
+          `VERIFICATION FAILED for ${path}: ${lastError.message} - possible tampering`,
+        );
+        break; // Stop trying other gateways
+      }
+
+      // Network errors - log and try next gateway
       logger.debug(
         TAG,
-        `Gateway ${new URL(gatewayBase).hostname} failed for ${path}: ${lastError.message}`,
+        `Gateway ${new URL(gatewayBase).hostname} network error for ${path}: ${lastError.message}`,
       );
     }
   }
 
+  const isVerificationFailure = lastError instanceof VerificationError;
+  const errorType = isVerificationFailure ? 'VERIFICATION' : 'NETWORK';
   const errorMsg = lastError?.message || 'All gateways failed';
-  logger.warn(TAG, `Failed: ${path} - ${errorMsg}`);
+
+  logger.warn(TAG, `${errorType} FAILURE: ${path} - ${errorMsg}`);
   recordResourceFailed(identifier, verificationId, txId, path, errorMsg);
   throw lastError || new Error(errorMsg);
 }
