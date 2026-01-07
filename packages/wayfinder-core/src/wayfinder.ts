@@ -27,6 +27,8 @@ import { arnsRegex, txIdRegex } from './constants.js';
 import { WayfinderEmitter } from './emitter.js';
 import { createWayfinderFetch } from './fetch/wayfinder-fetch.js';
 import { TrustedPeersGatewaysProvider } from './gateways/trusted-peers.js';
+import { ArweaveManifest, ManifestParser } from './manifest/parser.js';
+import { ManifestVerificationCache } from './manifest/verification-cache.js';
 import { ContiguousDataRetrievalStrategy } from './retrieval/contiguous.js';
 import { PingRoutingStrategy } from './routing/ping.js';
 import { RandomRoutingStrategy } from './routing/random.js';
@@ -35,6 +37,8 @@ import type {
   DataRetrievalStrategy,
   GatewaysProvider,
   Logger,
+  ManifestRequestOptions,
+  ManifestResponse,
   RoutingStrategy,
   TelemetrySettings,
   VerificationStrategy,
@@ -45,6 +49,7 @@ import type {
 } from './types.js';
 import { sandboxFromId } from './utils/base64.js';
 import { HashVerificationStrategy } from './verification/hash-verification.js';
+import { ManifestVerificationStrategy } from './verification/manifest-verification.js';
 
 // headers
 export const createWayfinderRequestHeaders = ({
@@ -261,6 +266,22 @@ export class Wayfinder {
   protected logger: Logger;
 
   /**
+   * Cache for storing verified manifest content
+   * Used to serve verified content without re-fetching
+   */
+  protected manifestContentCache: ManifestVerificationCache;
+
+  /**
+   * Cache for storing manifest structures (metadata)
+   * Maps identifiers (tx-id or ArNS name) to parsed manifest structures
+   * Used to resolve paths to transaction IDs
+   */
+  protected manifestStructureCache: Map<
+    string,
+    { manifest: ArweaveManifest; expiresAt: number }
+  >;
+
+  /**
    * The event emitter for wayfinder that emits routing and verification events for all requests.
    *
    * This is useful for tracking all requests and their statuses, and is updated for each request.
@@ -409,6 +430,14 @@ export class Wayfinder {
       verification: this.verificationSettings?.events,
       routing: this.routingSettings?.events,
     });
+
+    // Initialize manifest content cache for serving verified content
+    this.manifestContentCache = new ManifestVerificationCache({
+      ttlMs: 3600000, // 1 hour TTL for cached content
+    });
+
+    // Initialize manifest structure cache for path resolution
+    this.manifestStructureCache = new Map();
 
     this.telemetrySettings = {
       enabled: telemetrySettings?.enabled ?? false,
@@ -613,6 +642,165 @@ export class Wayfinder {
     input: URL | RequestInfo,
     init?: WayfinderRequestInit,
   ): Promise<Response> {
+    // Check if we can extract a transaction ID from the input
+    try {
+      // Convert input to a string URL we can parse
+      let urlString: string;
+      if (input instanceof URL) {
+        urlString = input.toString();
+      } else if (typeof input === 'string') {
+        urlString = input;
+      } else {
+        // Request object - try to get URL from it
+        urlString = input.url;
+      }
+
+      // Try to create a wayfinder URL and extract routing info
+      const wayfinderUrl = createWayfinderUrl({ originalUrl: urlString });
+      const { txId, arnsName, path } = extractRoutingInfo(wayfinderUrl);
+
+      // Determine the manifest identifier (could be tx-id or ArNS name)
+      const manifestIdentifier = txId || arnsName;
+
+      // Track the resolved resource transaction ID
+      // Only set if: (1) direct tx-id request, or (2) path resolution succeeds
+      let resourceTxId: string | undefined = undefined;
+
+      if (manifestIdentifier && path) {
+        // This is a path-based request (e.g., ar://manifest-id/assets/main.js)
+
+        // Extract the path component (remove the identifier prefix for tx-id based URLs)
+        let manifestPath = path;
+        if (txId && path.startsWith(`/${txId}`)) {
+          // For tx-id URLs: path is /tx-id/assets/main.js → extract /assets/main.js
+          manifestPath = path.substring(txId.length + 1);
+        }
+        // For ArNS URLs: path is already /assets/main.js
+
+        // Look up the manifest structure in cache
+        const cachedManifest =
+          this.manifestStructureCache.get(manifestIdentifier);
+
+        // Check if entry exists and is not expired
+        if (cachedManifest) {
+          const now = Date.now();
+          if (now > cachedManifest.expiresAt) {
+            // Entry expired - remove it from cache (lazy cleanup)
+            this.manifestStructureCache.delete(manifestIdentifier);
+            this.logger.debug('Removed expired manifest from structure cache', {
+              manifestIdentifier,
+            });
+          } else {
+            // Entry valid - proceed with path resolution
+            try {
+              // Normalize path (remove leading slash if present)
+              const normalizedPath = manifestPath.startsWith('/')
+                ? manifestPath.substring(1)
+                : manifestPath;
+
+              // Resolve path to get the actual resource transaction ID
+              const resolvedTxId = ManifestParser.resolvePath(
+                cachedManifest.manifest,
+                normalizedPath,
+              );
+
+              if (resolvedTxId) {
+                resourceTxId = resolvedTxId;
+                this.logger.debug('Resolved manifest path to transaction ID', {
+                  manifestIdentifier,
+                  path: normalizedPath,
+                  resourceTxId,
+                });
+              } else {
+                this.logger.debug('Path not found in manifest', {
+                  manifestIdentifier,
+                  path: normalizedPath,
+                });
+              }
+            } catch (error) {
+              this.logger.debug('Failed to resolve manifest path', {
+                manifestIdentifier,
+                path: manifestPath,
+                error,
+              });
+            }
+          }
+        } else {
+          this.logger.debug('Manifest not in cache for path resolution', {
+            manifestIdentifier,
+          });
+        }
+      } else if (txId) {
+        // Direct tx-id request without path (e.g., ar://tx-id)
+        resourceTxId = txId;
+      }
+
+      // Only check cache if we have a resolved transaction ID
+      // This happens when:
+      // 1. It's a direct tx-id request (no path component), OR
+      // 2. Path resolution succeeded (found resource in manifest)
+      // This prevents checking cache with manifest-id when path resolution fails
+      if (resourceTxId) {
+        const cached = this.manifestContentCache.get({ txId: resourceTxId });
+
+        if (cached && cached.content) {
+          // We have cached content for this transaction
+
+          // STRICT MODE: Block unverified content
+          if (!cached.verified && this.verificationSettings.strict) {
+            const error = new Error(
+              `Blocked unverified content: ${resourceTxId}. ` +
+                `The resource failed verification and cannot be served in strict mode.`,
+            );
+
+            // Emit verification-failed event
+            this.emitter.emit('verification-failed', {
+              txId: resourceTxId,
+              error,
+              timestamp: Date.now(),
+            });
+
+            throw error;
+          }
+
+          // NON-STRICT MODE: Serve unverified content with warning
+          if (!cached.verified) {
+            this.emitter.emit('verification-warning', {
+              txId: resourceTxId,
+              message: 'Serving unverified cached content',
+              timestamp: Date.now(),
+            });
+          }
+
+          // Serve from cache - convert headers object to Headers
+          const headers = new Headers(cached.headers || {});
+
+          // Add wayfinder verification headers
+          headers.set('x-wayfinder-cached', 'true');
+          headers.set(
+            'x-wayfinder-verified',
+            cached.verified ? 'true' : 'false',
+          );
+
+          if (cached.contentType && !headers.has('content-type')) {
+            headers.set('content-type', cached.contentType);
+          }
+
+          return Promise.resolve(
+            new Response(cached.content, {
+              status: 200,
+              headers,
+            }),
+          );
+        }
+      }
+    } catch (_error) {
+      // If URL parsing fails or any other error, fall through to normal fetch
+      // This ensures backward compatibility - if we can't parse the URL,
+      // just proceed with the normal fetch flow
+    }
+
+    // Not in cache or couldn't extract txId - proceed with normal fetch
     return this.fetch(input, init);
   }
 
@@ -696,5 +884,219 @@ export class Wayfinder {
 
     // return the constructed gateway url
     return constructedGatewayUrl;
+  }
+
+  /**
+   * Request with manifest verification support
+   *
+   * This method provides enhanced verification for Arweave manifests:
+   * - Detects if content is a manifest
+   * - Parses manifest structure
+   * - Recursively verifies all nested resources
+   * - Handles nested manifests (manifests that reference other manifests)
+   * - Emits detailed progress events
+   *
+   * @example
+   * ```typescript
+   * const wayfinder = new Wayfinder({
+   *   verificationSettings: {
+   *     enabled: true,
+   *     strategy: new HashVerificationStrategy({
+   *       trustedGateways: [new URL('https://permagate.io')]
+   *     })
+   *   }
+   * });
+   *
+   * const response = await wayfinder.requestWithManifest('ar://manifest-txid', {
+   *   verifyNested: true,
+   *   onProgress: (event) => {
+   *     console.log(`Progress: ${event.type}`, event);
+   *   }
+   * });
+   *
+   * console.log('All verified:', response.allVerified);
+   * console.log('Manifest:', response.manifest);
+   * ```
+   *
+   * @param input - URL or RequestInfo (must be ar:// URL)
+   * @param options - Manifest-specific request options
+   * @returns ManifestResponse with manifest data and verification results
+   */
+  async requestWithManifest(
+    input: URL | RequestInfo,
+    options?: ManifestRequestOptions,
+  ): Promise<ManifestResponse> {
+    const {
+      maxDepth = 5,
+      concurrency = 10,
+      onProgress,
+      verifyNested = true,
+    } = options || {};
+
+    // Ensure verification is enabled
+    if (!this.verificationSettings.strategy) {
+      throw new Error(
+        'Verification strategy must be configured to use requestWithManifest',
+      );
+    }
+
+    // Create manifest-specific emitter for progress events
+    const manifestEmitter = new WayfinderEmitter({
+      verification: this.verificationSettings.events,
+      routing: this.routingSettings.events,
+      parentEmitter: this.emitter,
+    });
+
+    // Listen to manifest progress events if callback provided
+    if (onProgress) {
+      manifestEmitter.on('manifest-progress' as any, onProgress);
+    }
+
+    // Use the instance-level cache so verified content persists across request() calls
+    // This enables serving cached verified content without re-fetching
+    const cache = this.manifestContentCache;
+
+    // Wrap the verification strategy with manifest support
+    const manifestStrategy = new ManifestVerificationStrategy({
+      baseStrategy: this.verificationSettings.strategy,
+      maxDepth,
+      concurrency,
+      cache,
+      logger: this.logger,
+      emitter: manifestEmitter,
+    });
+
+    // Extract identifier from input to fetch manifest JSON via /raw/
+    let manifestUrl: string;
+    if (typeof input === 'string') {
+      manifestUrl = input;
+    } else if (input instanceof URL) {
+      manifestUrl = input.toString();
+    } else if (input instanceof Request) {
+      manifestUrl = input.url;
+    } else {
+      manifestUrl = String(input);
+    }
+
+    const wayfinderUrl = createWayfinderUrl({ originalUrl: manifestUrl });
+    const { txId, arnsName, subdomain } = extractRoutingInfo(wayfinderUrl);
+    const identifier = txId || arnsName || subdomain;
+
+    // Fetch manifest JSON from /raw/ endpoint for verification
+    let manifest: ArweaveManifest | undefined;
+    const verificationResults = new Map<
+      string,
+      { verified: boolean; error?: Error }
+    >();
+    let allVerified = true;
+
+    if (identifier) {
+      try {
+        this.logger.debug('Fetching manifest JSON from /raw/ endpoint', {
+          identifier,
+        });
+
+        // Select gateway for /raw/ fetch
+        const rawGateway = await this.routingSettings.strategy.selectGateway({
+          path: `/raw/${identifier}`,
+          subdomain: '',
+        });
+
+        const rawUrl = `${rawGateway.origin}/raw/${identifier}`;
+        const rawResponse = await fetch(rawUrl);
+
+        if (rawResponse.ok) {
+          const manifestText = await rawResponse.text();
+
+          try {
+            manifest = ManifestParser.parse(manifestText);
+            this.logger.debug('Successfully parsed manifest', {
+              identifier,
+              pathCount: Object.keys(manifest.paths).length,
+            });
+
+            // Cache the manifest structure for path resolution
+            // This enables request() to resolve paths like "ar://manifest-id/assets/main.js"
+            this.manifestStructureCache.set(identifier, {
+              manifest,
+              expiresAt: Date.now() + 3600000, // 1 hour TTL
+            });
+
+            // Verify nested resources with manifest strategy
+            if (verifyNested !== false && manifest) {
+              const txIds = ManifestParser.getAllTransactionIds(manifest);
+
+              this.logger.debug('Verifying nested manifest resources', {
+                resourceCount: txIds.length,
+              });
+
+              // Use the manifest strategy's internal verification
+              for (const resourceTxId of txIds) {
+                try {
+                  // This will use cache if already verified
+                  await (manifestStrategy as any).fetchAndVerifyResource({
+                    txId: resourceTxId,
+                    depth: 1,
+                    parentTxId: identifier,
+                  });
+
+                  const result = cache.get({ txId: resourceTxId });
+                  if (result) {
+                    verificationResults.set(resourceTxId, {
+                      verified: result.verified,
+                      error: result.error,
+                    });
+                    if (!result.verified) {
+                      allVerified = false;
+                    }
+                  }
+                } catch (error) {
+                  this.logger.error('Failed to verify nested resource', {
+                    resourceTxId,
+                    error,
+                  });
+                  verificationResults.set(resourceTxId, {
+                    verified: false,
+                    error: error as Error,
+                  });
+                  allVerified = false;
+                }
+              }
+            }
+          } catch (error) {
+            this.logger.error('Failed to parse manifest from /raw/', {
+              identifier,
+              error,
+            });
+          }
+        } else {
+          this.logger.warn('Failed to fetch manifest from /raw/ endpoint', {
+            identifier,
+            status: rawResponse.status,
+          });
+        }
+      } catch (error) {
+        this.logger.error('Error fetching manifest for verification', {
+          identifier,
+          error,
+        });
+      }
+    }
+
+    // Make the main request to serve actual content (index.html)
+    // This is what gets returned to the user for display
+    const response = await this.request(input, {
+      verificationSettings: this.verificationSettings,
+    });
+
+    // Create enhanced response
+    const manifestResponse = response as ManifestResponse;
+    manifestResponse.manifest = manifest;
+    manifestResponse.verificationResults = verificationResults;
+    // Only set allVerified to true if we actually have results AND they're all verified
+    // If verificationResults.size === 0, it means nothing was verified, so allVerified should be false
+    manifestResponse.allVerified = verificationResults.size > 0 && allVerified;
+
+    return manifestResponse;
   }
 }

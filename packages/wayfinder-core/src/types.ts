@@ -53,12 +53,23 @@ export type WayfinderEvent = {
   };
   'routing-failed': Error;
   'verification-succeeded': { txId: string };
-  'verification-failed': Error;
+  'verification-failed':
+    | Error
+    | {
+        txId?: string;
+        error: Error;
+        timestamp?: number;
+      };
   'verification-skipped': { originalUrl: string };
   'verification-progress': {
     txId: string;
     processedBytes: number;
     totalBytes: number;
+  };
+  'verification-warning': {
+    txId: string;
+    message: string;
+    timestamp: number;
   };
 };
 
@@ -341,4 +352,96 @@ export interface DataRetrievalStrategy {
     requestUrl: URL;
     headers?: Record<string, string>;
   }): Promise<Response>;
+}
+
+/**
+ * Progress events emitted during manifest verification
+ */
+export type ManifestVerificationProgress =
+  | {
+      type: 'manifest-detected';
+      txId: string;
+      totalResources: number;
+    }
+  | {
+      type: 'manifest-parsed';
+      txId: string;
+      manifest: unknown; // ArweaveManifest type
+      totalResources: number;
+    }
+  | {
+      type: 'resource-verifying';
+      txId: string;
+      resourceTxId: string;
+      currentIndex: number;
+      totalResources: number;
+    }
+  | {
+      type: 'resource-verified';
+      txId: string;
+      resourceTxId: string;
+      verified: boolean;
+      currentIndex: number;
+      totalResources: number;
+    }
+  | {
+      type: 'nested-manifest-detected';
+      parentTxId: string;
+      nestedTxId: string;
+      depth: number;
+    }
+  | {
+      type: 'manifest-complete';
+      txId: string;
+      totalVerified: number;
+      totalFailed: number;
+      allVerified: boolean;
+    };
+
+/**
+ * Options for requestWithManifest
+ */
+export interface ManifestRequestOptions {
+  /**
+   * Whether to verify nested resources in the manifest
+   * @default true
+   */
+  verifyNested?: boolean;
+
+  /**
+   * Maximum depth for nested manifest verification
+   * @default 5
+   */
+  maxDepth?: number;
+
+  /**
+   * Maximum concurrent verifications
+   * @default 10
+   */
+  concurrency?: number;
+
+  /**
+   * Callback for manifest verification progress
+   */
+  onProgress?: (event: ManifestVerificationProgress) => void;
+}
+
+/**
+ * Response from requestWithManifest
+ */
+export interface ManifestResponse extends Response {
+  /**
+   * Parsed manifest (if content was a manifest)
+   */
+  manifest?: unknown; // ArweaveManifest type
+
+  /**
+   * Verification results for all resources in the manifest
+   */
+  verificationResults: Map<string, { verified: boolean; error?: Error }>;
+
+  /**
+   * Whether all resources in the manifest were successfully verified
+   */
+  allVerified: boolean;
 }

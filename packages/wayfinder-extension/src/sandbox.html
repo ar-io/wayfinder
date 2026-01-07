@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wayfinder Sandbox</title>
+  <style>
+    /* Reset - sandbox content takes full viewport */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+    body {
+      background: #0e0e0f;
+    }
+    /* The content container fills the viewport */
+    #sandbox-content {
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+    }
+    /* Loading state */
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #7f7f87;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div id="sandbox-content" class="loading">
+    Waiting for verified content...
+  </div>
+  <script src="sandbox.js"></script>
+</body>
+</html>

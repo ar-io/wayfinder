@@ -137,10 +137,10 @@ function setupEventHandlers() {
     ?.addEventListener('change', handleGatewayDropdownChange);
 
   // Switches
-  // Verification toasts for remote verification status
+  // Verified browsing mode toggle
   document
-    .getElementById('showVerificationToasts')
-    ?.addEventListener('change', saveVerificationToasts);
+    .getElementById('verificationEnabled')
+    ?.addEventListener('change', saveVerificationEnabled);
   document
     .getElementById('ensResolution')
     ?.addEventListener('change', saveEnsResolution);
@@ -236,7 +236,7 @@ async function loadCurrentSettings() {
       'gatewayCacheTTL',
       'advancedSettingsExpanded',
       'telemetryEnabled',
-      'showVerificationToasts',
+      'verificationEnabled',
     ]);
 
     // Load static gateway URL if set
@@ -282,13 +282,13 @@ async function loadCurrentSettings() {
       ensEl.checked = ensEnabled;
     }
 
-    // Load verification toast setting
-    const showToasts = settings.showVerificationToasts !== false; // Default to false
-    const toastsEl = document.getElementById(
-      'showVerificationToasts',
+    // Load verified browsing mode setting
+    const verificationEnabled = settings.verificationEnabled === true; // Default to false
+    const verificationEnabledEl = document.getElementById(
+      'verificationEnabled',
     ) as HTMLInputElement;
-    if (toastsEl) {
-      toastsEl.checked = showToasts;
+    if (verificationEnabledEl) {
+      verificationEnabledEl.checked = verificationEnabled;
     }
 
     // Load theme
@@ -781,15 +781,16 @@ async function validateStaticGateway() {
   }
 }
 
-// Save verification toasts preference
-async function saveVerificationToasts(event: any) {
+// Save verified browsing mode preference
+async function saveVerificationEnabled(event: any) {
   const enabled = event.target.checked;
+  await chrome.storage.local.set({ verificationEnabled: enabled });
   chrome.runtime.sendMessage({
-    message: 'updateShowVerificationToasts',
+    message: 'updateVerificationEnabled',
     enabled,
   });
   showToast(
-    `Verification notifications ${enabled ? 'enabled' : 'disabled'}`,
+    `Verified browsing mode ${enabled ? 'enabled' : 'disabled'}`,
     'success',
   );
 }

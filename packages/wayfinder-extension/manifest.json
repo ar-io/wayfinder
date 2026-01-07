@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "AR.IO Wayfinder",
   "version": "1.0.15",
-  "description": "Fast, verifiable, decentralized access to ar:// links via AR.IO’s Permanent Cloud.",
+  "description": "Fast, verifiable, decentralized access to ar:// links via AR.IO's Permanent Cloud.",
   "permissions": ["storage", "webNavigation", "webRequest", "scripting"],
   "host_permissions": ["<all_urls>"],
   "background": {
@@ -19,7 +19,11 @@
     }
   ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'none'; font-src 'self' https://fonts.gstatic.com;"
+    "extension_pages": "script-src 'self'; object-src 'none'; font-src 'self' https://fonts.gstatic.com;",
+    "sandbox": "sandbox allow-scripts allow-forms allow-popups allow-modals; script-src 'self' 'unsafe-inline' 'unsafe-eval' https: http: blob: data:; style-src 'self' 'unsafe-inline' https: http: blob: data:; img-src * data: blob:; font-src * data: blob:; connect-src *; frame-src * blob: data:; default-src 'self' 'unsafe-inline' 'unsafe-eval' https: http: blob: data:;"
+  },
+  "sandbox": {
+    "pages": ["sandbox.html"]
   },
   "icons": {
     "16": "assets/icon16.png",
