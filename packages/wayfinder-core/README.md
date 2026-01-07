@@ -172,6 +172,7 @@ Gateway providers supply the list of gateways for routing. **By default, `create
 | `StaticGatewaysProvider`       | Returns a static list of gateways | Testing or specific gateways |
 | `SimpleCacheGatewaysProvider`  | In-memory caching wrapper | Reduce API calls (used by default) |
 | `LocalStorageGatewaysProvider` | Browser localStorage caching | Persistent caching (used by default in browsers) |
+| `CompositeGatewaysProvider`    | Chains multiple providers with fallback | Maximum resilience with multiple sources |
 
 #### NetworkGatewaysProvider
 
@@ -199,6 +200,47 @@ import { TrustedPeersGatewaysProvider } from '@ar.io/wayfinder-core';
 
 const gatewayProvider = new TrustedPeersGatewaysProvider({
   trustedGateway: 'https://arweave.net',
+});
+```
+
+#### CompositeGatewaysProvider
+
+Chains multiple gateway providers together, trying each in sequence until one succeeds. This is useful for building resilient gateway discovery with fallbacks.
+
+**How it works:**
+
+1. Tries each provider in the order they're provided
+2. If a provider returns a non-empty list of gateways, those gateways are used
+3. If a provider throws an error or returns an empty list, moves to the next provider
+4. If all providers fail, throws an error
+
+```javascript
+import {
+  CompositeGatewaysProvider,
+  NetworkGatewaysProvider,
+  StaticGatewaysProvider,
+  TrustedPeersGatewaysProvider,
+} from '@ar.io/wayfinder-core';
+import { ARIO } from '@ar.io/sdk';
+
+// Example: Network-first with static fallback
+const gatewayProvider = new CompositeGatewaysProvider({
+  providers: [
+    // Try fetching from AR.IO network first
+    new NetworkGatewaysProvider({
+      ario: ARIO.mainnet(),
+      sortBy: 'operatorStake',
+      limit: 10,
+    }),
+    // Fallback to trusted peers if network fetch fails
+    new TrustedPeersGatewaysProvider({
+      trustedGateway: 'https://arweave.net',
+    }),
+    // Final fallback to static list
+    new StaticGatewaysProvider({
+      gateways: ['https://arweave.net', 'https://permagate.io'],
+    }),
+  ],
 });
 ```
 
