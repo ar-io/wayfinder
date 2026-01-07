@@ -7,5 +7,5 @@
     "@ar.io/wayfinder-react": "1.0.20",
     "@ar.io/wayfinder-x402-fetch": "0.0.1"
   },
-  "changesets": ["six-planes-sneeze"]
+  "changesets": ["composite-gateways-provider"]
 }
