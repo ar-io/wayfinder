@@ -12,8 +12,8 @@ This monorepo contains the following packages:
 : React components for Wayfinder, including Hooks and Context provider
 - **[@ar.io/wayfinder-extension](./packages/wayfinder-extension)** ![chrome](https://img.shields.io/chrome-web-store/v/hnhmeknhajanolcoihhkkaaimapnmgil?label=chrome)
 : Chrome extension for Wayfinder
-- **[@ar.io/wayfinder-cli](./packages/cli)** (coming soon)
-: CLI for interacting with Wayfinder in the terminal
+- **[@ar.io/wayfinder-cli](./packages/wayfinder-cli)** ![npm](https://img.shields.io/npm/v/@ar.io/wayfinder-cli.svg)
+: Fast and user-friendly CLI for fetching files via wayfinder
 
 ## What is it?
 
