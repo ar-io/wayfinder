@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 
+import { debug } from 'node:console';
 import path from 'node:path';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
@@ -56,14 +57,17 @@ export const fetchCommand = new Command('fetch')
     try {
       validateArUrl(uri);
 
+      // Get global options from parent command
+      const globalOptions = fetchCommand.parent?.opts() || {};
+
       // Load and merge configs
       const fileConfig = loadConfig();
       const config = mergeConfigs(fileConfig, {
         routing: options.routing as any,
         verification: options.verify as any,
         gateway: options.gateway,
-        verbose: options.verbose,
-        quiet: options.quiet,
+        verbose: options.verbose || globalOptions.verbose,
+        quiet: options.quiet || globalOptions.quiet,
         progress: options.progress,
         json: options.json,
         timeout: options.timeout || 60_000,
@@ -86,10 +90,10 @@ export const fetchCommand = new Command('fetch')
         output.verbose(`Using preferred gateway: ${config.gateway}`);
       }
 
-      // Show spinner or progress
+      // Show spinner only in verbose mode when outputting to stdout
       const spinner =
-        !options.output && !config.quiet
-          ? ora('Fetching data...').start()
+        !options.output && !config.quiet && config.verbose
+          ? ora('Fetching data...\n').start()
           : null;
       const progressTracker = createProgressTracker(
         !!config.progress && !!options.output,
@@ -127,7 +131,7 @@ export const fetchCommand = new Command('fetch')
           verificationStatus = 'failed';
         }
 
-        output.verbose(`Response from gateway: ${gateway}`);
+        output.verbose(`Response from gateway: ${response.status}`);
         if (contentType) {
           output.verbose(`Content-Type: ${contentType}`);
         }
@@ -177,11 +181,11 @@ export const fetchCommand = new Command('fetch')
           const buffer = await response.arrayBuffer();
           totalBytes = buffer.byteLength;
 
+          output.verbose(`Received ${totalBytes} bytes\n`);
+
           if (!config.quiet && !options.json) {
             process.stdout.write(Buffer.from(buffer));
           }
-
-          output.verbose(`Received ${totalBytes} bytes`);
         }
       } catch (error) {
         spinner?.fail();
@@ -191,8 +195,8 @@ export const fetchCommand = new Command('fetch')
 
       const duration = Date.now() - startTime;
 
-      // Output metadata (always show unless quiet, regardless of whether output file is provided)
-      if (!config.quiet) {
+      // Output metadata based on mode
+      if (config.json && !config.quiet) {
         const metadata: OutputMetadata = {
           uri,
           txId,
@@ -203,12 +207,19 @@ export const fetchCommand = new Command('fetch')
           duration,
           bytesReceived: totalBytes,
         };
-
-        if (config.json) {
-          console.log(formatMetadata(metadata, 'json'));
-        } else {
-          console.error(formatMetadata(metadata, 'human'));
-        }
+        console.log(formatMetadata(metadata, 'json'));
+      } else if (config.verbose && !config.quiet) {
+        const metadata: OutputMetadata = {
+          uri,
+          txId,
+          gateway: gateway || 'unknown',
+          contentLength,
+          contentType,
+          verificationStatus,
+          duration,
+          bytesReceived: totalBytes,
+        };
+        console.error(formatMetadata(metadata, 'human'));
       }
     } catch (error) {
       handleError(error);
@@ -220,8 +231,17 @@ function createWayfinder(config: any): Wayfinder {
 
   // Configure logger - quiet by default, verbose when requested
   if (config.verbose) {
-    // Use default logger for verbose output
-    options.logger = undefined;
+    // add warn and error to verbose logger
+    options.logger = {
+      debug: () => {
+        /* no-op */
+      },
+      info: (msg: string) => {
+        console.info(msg);
+      },
+      warn: (msg: string) => console.warn(msg),
+      error: (msg: string) => console.error(msg),
+    };
   } else {
     // Create silent logger for quiet operation
     options.logger = {

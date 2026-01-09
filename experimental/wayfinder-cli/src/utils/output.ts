@@ -26,28 +26,28 @@ interface OutputOptions {
 export const createOutput = (options: OutputOptions = {}) => ({
   success: (message: string) => {
     if (!options.quiet) {
-      console.log(chalk.green('✓'), message);
+      console.error(chalk.green('✓'), message);
     }
   },
   error: (message: string) => console.error(chalk.red('✖'), message),
   info: (message: string) => {
     if (!options.quiet) {
-      console.log(chalk.blue('ℹ'), message);
+      console.error(chalk.blue('ℹ'), message);
     }
   },
   warn: (message: string) => {
     if (!options.quiet) {
-      console.log(chalk.yellow('⚠'), message);
+      console.error(chalk.yellow('⚠'), message);
     }
   },
   debug: (message: string) => {
     if (options.verbose && !options.quiet) {
-      console.log(chalk.gray('⚙'), message);
+      console.error(chalk.gray('⚙'), message);
     }
   },
   verbose: (message: string) => {
     if (options.verbose && !options.quiet) {
-      console.log(chalk.dim(message));
+      console.error(chalk.gray('⚙'), message);
     }
   },
 });
@@ -77,7 +77,7 @@ export function formatMetadata(
   }
 
   const lines = [
-    chalk.bold('Fetch Summary:'),
+    chalk.bold('\nSummary:'),
     `  URI: ${metadata.uri}`,
     `. TxId: ${metadata.txId}`,
     `  Gateway: ${metadata.gateway}`,
