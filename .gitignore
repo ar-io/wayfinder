@@ -4,6 +4,9 @@ node_modules/
 # Ignore TypeScript build output
 dist/
 
+# Ignore binary outputs
+bin/
+
 # Ignore logs
 logs/
 *.log
