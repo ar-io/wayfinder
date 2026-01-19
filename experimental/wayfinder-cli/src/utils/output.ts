@@ -79,7 +79,7 @@ export function formatMetadata(
   const lines = [
     chalk.bold('\nSummary:'),
     `  URI: ${metadata.uri}`,
-    `. TxId: ${metadata.txId}`,
+    `  TxId: ${metadata.txId}`,
     `  Gateway: ${metadata.gateway}`,
     `  Size: ${formatBytes(metadata.bytesReceived)}`,
     `  Duration: ${formatDuration(metadata.duration)}`,
