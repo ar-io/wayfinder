@@ -1,0 +1,59 @@
+{
+  "name": "@ar.io/wayfinder-cli",
+  "version": "0.0.4",
+  "description": "Fast and user-friendly CLI for fetching files via AR.IO Wayfinder",
+  "type": "module",
+  "bin": {
+    "wayfinder": "./dist/index.js"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "test": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "clean": "rimraf dist",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "keywords": [
+    "ar.io",
+    "wayfinder",
+    "cli",
+    "arweave",
+    "permaweb"
+  ],
+  "author": "Permanent Data Solutions, Inc.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ar-io/wayfinder.git",
+    "directory": "experimental/wayfinder-cli"
+  },
+  "bugs": {
+    "url": "https://github.com/ar-io/wayfinder/issues"
+  },
+  "homepage": "https://github.com/ar-io/wayfinder/tree/main/experimental/wayfinder-cli#readme",
+  "dependencies": {
+    "@ar.io/wayfinder-core": "1.8.0",
+    "chalk": "^5.3.0",
+    "cli-progress": "^3.12.0",
+    "commander": "^12.1.0",
+    "cosmiconfig": "^9.0.0",
+    "fs-extra": "^11.2.0",
+    "ora": "^8.1.1"
+  },
+  "devDependencies": {
+    "@types/cli-progress": "^3.11.6",
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^22.10.6",
+    "rimraf": "^6.0.1",
+    "tsx": "^4.20.3",
+    "typescript": "^5.4.5",
+    "vitest": "^2.1.8"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
