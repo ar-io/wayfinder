@@ -225,8 +225,10 @@ export const createWayfinderFetch = ({
 
         // Determine raw mode - check init first, then auto-detect from path
         // Raw mode is needed when explicitly fetching via /raw/ endpoint
+        // Only auto-detect for non-ArNS requests since /raw/ on ArNS is just a manifest path
         const isRawMode =
-          init?.verificationSettings?.raw ?? path.includes('/raw/');
+          init?.verificationSettings?.raw ??
+          (!arnsName && path.startsWith('/raw/'));
 
         finalStream = tapAndVerifyReadableStream({
           originalStream: dataResponse.body,
