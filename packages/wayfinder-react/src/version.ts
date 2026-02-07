@@ -14,4 +14,4 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-export const WAYFINDER_REACT_VERSION = 'v1.0.26';
+export const WAYFINDER_REACT_VERSION = 'v1.0.27-alpha.0';

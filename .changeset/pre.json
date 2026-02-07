@@ -5,7 +5,8 @@
     "@ar.io/wayfinder-core": "1.5.0",
     "@ar.io/wayfinder-extension": "1.0.15",
     "@ar.io/wayfinder-react": "1.0.20",
-    "@ar.io/wayfinder-x402-fetch": "0.0.1"
+    "@ar.io/wayfinder-x402-fetch": "0.0.1",
+    "@ar.io/wayfinder-cli": "0.0.4"
   },
-  "changesets": ["composite-gateways-provider"]
+  "changesets": ["composite-gateways-provider", "manifest-verification"]
 }
