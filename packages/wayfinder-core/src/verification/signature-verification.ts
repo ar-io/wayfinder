@@ -23,12 +23,13 @@ import {
 } from '@dha-team/arbundles';
 
 import { pLimit } from 'plimit-lit';
-import { GqlClassifier } from '../classifiers/gql-classifier.js';
 import { defaultLogger } from '../logger.js';
+import { GqlRootTransactionSource } from '../root-transaction/gql.js';
 import type {
   DataClassifier,
   DataStream,
   Logger,
+  RootTransactionSource,
   VerificationStrategy,
 } from '../types.js';
 import { arioGatewayHeaders } from '../utils/ario.js';
@@ -520,17 +521,19 @@ export const SignatureVerificationStrategies = {
 export class SignatureVerificationStrategy {
   private readonly ans104: Ans104SignatureVerificationStrategy;
   private readonly transaction: TransactionSignatureVerificationStrategy;
-  private readonly classifier: DataClassifier;
+  private readonly rootTransactionSource: RootTransactionSource;
   public readonly trustedGateways: URL[];
   constructor({
     trustedGateways,
     maxConcurrency = 1,
     logger = defaultLogger,
-    classifier = new GqlClassifier({ logger }),
+    rootTransactionSource = new GqlRootTransactionSource({ logger }),
   }: {
     trustedGateways: URL[];
     maxConcurrency?: number;
     logger?: Logger;
+    rootTransactionSource?: RootTransactionSource;
+    /** @deprecated Use rootTransactionSource instead */
     classifier?: DataClassifier;
   }) {
     this.trustedGateways = trustedGateways;
@@ -543,7 +546,7 @@ export class SignatureVerificationStrategy {
       trustedGateways,
       logger,
     });
-    this.classifier = classifier;
+    this.rootTransactionSource = rootTransactionSource;
   }
 
   async verifyData({
@@ -557,16 +560,12 @@ export class SignatureVerificationStrategy {
     headers?: Record<string, string>;
     raw?: boolean;
   }): Promise<void> {
-    const dataType = await this.classifier.classify({ txId });
-    switch (dataType) {
-      case 'ans104':
-        return this.ans104.verifyData({ data, txId, headers, raw });
-      case 'transaction':
-        return this.transaction.verifyData({ data, txId, headers, raw });
-      default:
-        throw new Error('Unknown data type', {
-          cause: { dataType },
-        });
+    const rootTxInfo = await this.rootTransactionSource.getRootTransaction({
+      txId,
+    });
+    if (rootTxInfo.isDataItem) {
+      return this.ans104.verifyData({ data, txId, headers, raw });
     }
+    return this.transaction.verifyData({ data, txId, headers, raw });
   }
 }

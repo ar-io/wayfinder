@@ -24,12 +24,13 @@ import {
 } from 'arweave/node/lib/merkle.js';
 
 import { pLimit } from 'plimit-lit';
-import { GqlClassifier } from '../classifiers/gql-classifier.js';
 import { defaultLogger } from '../logger.js';
+import { GqlRootTransactionSource } from '../root-transaction/gql.js';
 import {
   DataClassifier,
   DataStream,
   Logger,
+  RootTransactionSource,
   VerificationStrategy,
 } from '../types.js';
 import { toB64Url } from '../utils/base64.js';
@@ -106,22 +107,24 @@ export class DataRootVerificationStrategy implements VerificationStrategy {
   public readonly trustedGateways: URL[];
   private readonly maxConcurrency: number;
   private readonly logger: Logger;
-  private readonly classifier: DataClassifier;
+  private readonly rootTransactionSource: RootTransactionSource;
   constructor({
     trustedGateways,
     maxConcurrency = 1,
     logger = defaultLogger,
-    classifier = new GqlClassifier({ logger }),
+    rootTransactionSource = new GqlRootTransactionSource({ logger }),
   }: {
     trustedGateways: URL[];
     maxConcurrency?: number;
     logger?: Logger;
+    rootTransactionSource?: RootTransactionSource;
+    /** @deprecated Use rootTransactionSource instead */
     classifier?: DataClassifier;
   }) {
     this.trustedGateways = trustedGateways;
     this.maxConcurrency = maxConcurrency;
     this.logger = logger;
-    this.classifier = classifier;
+    this.rootTransactionSource = rootTransactionSource;
   }
 
   /**
@@ -185,8 +188,10 @@ export class DataRootVerificationStrategy implements VerificationStrategy {
     // compatibility but ignored.
 
     // classify the data, if ans104 throw an error
-    const dataType = await this.classifier.classify({ txId });
-    if (dataType === 'ans104') {
+    const rootTxInfo = await this.rootTransactionSource.getRootTransaction({
+      txId,
+    });
+    if (rootTxInfo.isDataItem) {
       throw new Error(
         'ANS-104 data is not supported for data root verification',
         {
