@@ -371,6 +371,5 @@ export interface RootTransactionInfo {
 export interface RootTransactionSource {
   getRootTransaction(params: {
     txId: string;
-    gateway?: URL;
   }): Promise<RootTransactionInfo>;
 }
