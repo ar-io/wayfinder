@@ -23,14 +23,11 @@
  *
  * Ported from ar-io-node's CDB64 implementation.
  *
- * Utility functions (cdb64Hash, decodeCdb64Value) use Uint8Array and DataView
- * for web compatibility. The Cdb64Reader/Writer classes require Node.js fs.
+ * This module is fully web-compatible — no Node.js APIs are used.
+ * All I/O goes through the ByteRangeSource abstraction (typically
+ * HttpByteRangeSource using fetch with Range headers).
  */
 
-import { createWriteStream } from 'node:fs';
-import * as fs from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import * as path from 'node:path';
 import { Unpackr } from 'msgpackr';
 
 import { defaultLogger } from '../logger.js';
@@ -73,7 +70,11 @@ function readUint64LE(data: Uint8Array, offset: number): bigint {
 }
 
 /** Write a little-endian uint64 into a Uint8Array using DataView. */
-function writeUint64LE(data: Uint8Array, offset: number, value: bigint): void {
+export function writeUint64LE(
+  data: Uint8Array,
+  offset: number,
+  value: bigint,
+): void {
   const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
   view.setBigUint64(offset, value, true);
 }
@@ -101,33 +102,108 @@ export function cdb64Hash(key: Uint8Array): bigint {
   return h;
 }
 
+// ---------------------------------------------------------------------------
+// ByteRangeSource abstraction
+// ---------------------------------------------------------------------------
+
 /**
- * CDB64 Reader - Performs lookups in CDB64 files.
- * Requires Node.js (uses fs.FileHandle for disk-based I/O).
+ * Web-compatible interface for random-access byte range reads.
+ * Uses Uint8Array (not Buffer) for web compatibility.
+ */
+export interface ByteRangeSource {
+  read(offset: number, size: number): Promise<Uint8Array>;
+  close(): Promise<void>;
+  isOpen(): boolean;
+}
+
+/**
+ * Web-compatible implementation of ByteRangeSource using fetch with
+ * HTTP Range requests. Works in both browsers and Node.js.
+ */
+export class HttpByteRangeSource implements ByteRangeSource {
+  private url: string;
+  private fetchFn: typeof globalThis.fetch;
+  private open_ = true;
+
+  constructor({
+    url,
+    fetch: fetchFn = globalThis.fetch,
+  }: {
+    url: string;
+    fetch?: typeof globalThis.fetch;
+  }) {
+    this.url = url;
+    this.fetchFn = fetchFn;
+  }
+
+  async read(offset: number, size: number): Promise<Uint8Array> {
+    if (!this.open_) {
+      throw new Error('HttpByteRangeSource is closed.');
+    }
+    const end = offset + size - 1;
+    const response = await this.fetchFn(this.url, {
+      headers: { Range: `bytes=${offset}-${end}` },
+    });
+
+    if (response.status !== 206) {
+      throw new Error(`Expected 206 Partial Content, got ${response.status}`);
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const result = new Uint8Array(arrayBuffer);
+    if (result.length !== size) {
+      throw new Error(`Expected ${size} bytes, got ${result.length}`);
+    }
+    return result;
+  }
+
+  async close(): Promise<void> {
+    this.open_ = false;
+  }
+
+  isOpen(): boolean {
+    return this.open_;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// CDB64 Reader
+// ---------------------------------------------------------------------------
+
+/**
+ * CDB64 Reader - Performs lookups in CDB64 databases via a ByteRangeSource.
  *
  * Usage:
- *   const reader = new Cdb64Reader('/path/to/data.cdb');
+ *   const reader = Cdb64Reader.fromSource({ source: mySource });
  *   await reader.open();
  *   const value = await reader.get(key);
  *   await reader.close();
  */
 export class Cdb64Reader {
-  private filePath: string;
-  private fileHandle: fs.FileHandle | null = null;
+  private source: ByteRangeSource;
+  private ownsSource: boolean;
   private tablePointers: { position: bigint; length: bigint }[] = [];
+  private opened = false;
 
-  constructor(filePath: string) {
-    this.filePath = filePath;
+  constructor(source: ByteRangeSource, ownsSource = true) {
+    this.source = source;
+    this.ownsSource = ownsSource;
+  }
+
+  static fromSource({
+    source,
+    ownsSource = true,
+  }: {
+    source: ByteRangeSource;
+    ownsSource?: boolean;
+  }): Cdb64Reader {
+    return new Cdb64Reader(source, ownsSource);
   }
 
   async open(): Promise<void> {
-    this.fileHandle = await fs.open(this.filePath, 'r');
+    const header = await this.source.read(0, HEADER_SIZE);
 
-    const header = new Uint8Array(HEADER_SIZE);
-    const { bytesRead } = await this.fileHandle.read(header, 0, HEADER_SIZE, 0);
-
-    if (bytesRead !== HEADER_SIZE) {
-      await this.close();
+    if (header.length !== HEADER_SIZE) {
       throw new Error('Invalid CDB64 file: header too short');
     }
 
@@ -139,10 +215,12 @@ export class Cdb64Reader {
         length: readUint64LE(header, offset + 8),
       });
     }
+
+    this.opened = true;
   }
 
   async get(key: Uint8Array): Promise<Uint8Array | undefined> {
-    if (!this.fileHandle) {
+    if (!this.opened) {
       throw new Error('Reader not opened. Call open() first.');
     }
 
@@ -160,18 +238,10 @@ export class Cdb64Reader {
     for (let i = 0; i < tableLength; i++) {
       const slotPosition = pointer.position + BigInt(slot * SLOT_SIZE);
 
-      const slotData = new Uint8Array(SLOT_SIZE);
-      const { bytesRead: slotBytesRead } = await this.fileHandle.read(
-        slotData,
-        0,
-        SLOT_SIZE,
+      const slotData = await this.source.read(
         toSafeFilePosition(slotPosition),
+        SLOT_SIZE,
       );
-      if (slotBytesRead !== SLOT_SIZE) {
-        throw new Error(
-          `Incomplete slot read: expected ${SLOT_SIZE} bytes, got ${slotBytesRead}`,
-        );
-      }
 
       const slotHash = readUint64LE(slotData, 0);
       const recordPosition = readUint64LE(slotData, 8);
@@ -181,49 +251,24 @@ export class Cdb64Reader {
       }
 
       if (slotHash === hash) {
-        const recordHeader = new Uint8Array(16);
-        const { bytesRead: headerBytesRead } = await this.fileHandle.read(
-          recordHeader,
-          0,
-          16,
+        const recordHeader = await this.source.read(
           toSafeFilePosition(recordPosition),
+          16,
         );
-        if (headerBytesRead !== 16) {
-          throw new Error(
-            `Incomplete record header read: expected 16 bytes, got ${headerBytesRead}`,
-          );
-        }
 
         const keyLength = Number(readUint64LE(recordHeader, 0));
         const valueLength = Number(readUint64LE(recordHeader, 8));
 
-        const recordKey = new Uint8Array(keyLength);
-        const { bytesRead: keyBytesRead } = await this.fileHandle.read(
-          recordKey,
-          0,
-          keyLength,
+        const recordKey = await this.source.read(
           toSafeFilePosition(recordPosition + 16n),
+          keyLength,
         );
-        if (keyBytesRead !== keyLength) {
-          throw new Error(
-            `Incomplete key read: expected ${keyLength} bytes, got ${keyBytesRead}`,
-          );
-        }
 
         if (uint8ArrayEquals(key, recordKey)) {
-          const value = new Uint8Array(valueLength);
-          const { bytesRead: valueBytesRead } = await this.fileHandle.read(
-            value,
-            0,
-            valueLength,
+          return await this.source.read(
             toSafeFilePosition(recordPosition + 16n + BigInt(keyLength)),
+            valueLength,
           );
-          if (valueBytesRead !== valueLength) {
-            throw new Error(
-              `Incomplete value read: expected ${valueLength} bytes, got ${valueBytesRead}`,
-            );
-          }
-          return value;
         }
       }
 
@@ -234,16 +279,20 @@ export class Cdb64Reader {
   }
 
   async close(): Promise<void> {
-    if (this.fileHandle) {
-      await this.fileHandle.close();
-      this.fileHandle = null;
+    if (this.ownsSource) {
+      await this.source.close();
     }
+    this.opened = false;
   }
 
   isOpen(): boolean {
-    return this.fileHandle !== null;
+    return this.opened;
   }
 }
+
+// ---------------------------------------------------------------------------
+// CDB64 value encoding/decoding
+// ---------------------------------------------------------------------------
 
 /**
  * Decoded CDB64 value containing root transaction information.
@@ -304,231 +353,205 @@ export function decodeCdb64Value(data: Uint8Array): Cdb64RootTxValue {
   return { rootTxId };
 }
 
-/**
- * CDB64 Writer - Creates CDB64 files from key-value pairs.
- * Requires Node.js (uses fs and streams).
- * Used primarily for testing; ported from ar-io-node.
- */
-export class Cdb64Writer {
-  private outputPath: string;
-  private tempPath: string;
-  private stream: ReturnType<typeof createWriteStream> | null = null;
-  private position: bigint = BigInt(HEADER_SIZE);
-  private records: { hash: bigint; position: bigint }[][] = [];
-  private finalized = false;
+// ---------------------------------------------------------------------------
+// CDB64 Manifest types (for partitioned indexes)
+// ---------------------------------------------------------------------------
 
-  constructor(outputPath: string) {
-    this.outputPath = outputPath;
-    this.tempPath = `${outputPath}.tmp.${process.pid}`;
-    for (let i = 0; i < NUM_TABLES; i++) {
-      this.records[i] = [];
+export type PartitionLocation = { type: 'http'; url: string };
+
+export interface PartitionInfo {
+  prefix: string; // hex "00"-"ff"
+  location: PartitionLocation;
+  recordCount: number;
+  size: number;
+}
+
+export interface Cdb64Manifest {
+  version: 1;
+  createdAt: string;
+  totalRecords: number;
+  partitions: PartitionInfo[];
+}
+
+// ---------------------------------------------------------------------------
+// Partitioned CDB64 Reader
+// ---------------------------------------------------------------------------
+
+type PartitionState = {
+  reader: Cdb64Reader;
+  source: ByteRangeSource;
+};
+
+/**
+ * Routes lookups to partition-specific CDB64 files based on the first byte
+ * of the key. Partitions are opened lazily on first access via HTTP
+ * byte-range reads.
+ */
+export class PartitionedCdb64Reader {
+  // null = no partition, undefined = not yet opened, PartitionState = open
+  private partitions: (PartitionState | null | undefined)[];
+  private openPromises: Map<number, Promise<PartitionState | null>>;
+  private manifest: Cdb64Manifest;
+  private fetchFn?: typeof globalThis.fetch;
+  private logger: Logger;
+  private opened = false;
+
+  constructor({
+    manifest,
+    fetch: fetchFn,
+    logger = defaultLogger,
+  }: {
+    manifest: Cdb64Manifest;
+    fetch?: typeof globalThis.fetch;
+    logger?: Logger;
+  }) {
+    this.manifest = manifest;
+    this.fetchFn = fetchFn;
+    this.logger = logger;
+
+    // Initialize all 256 slots as undefined (not yet opened)
+    this.partitions = new Array<PartitionState | null | undefined>(256).fill(
+      undefined,
+    );
+    this.openPromises = new Map();
+
+    // Build a set of prefixes that exist in the manifest
+    const existingPrefixes = new Set(
+      manifest.partitions.map((p) => parseInt(p.prefix, 16)),
+    );
+
+    // Mark slots with no partition as null
+    for (let i = 0; i < 256; i++) {
+      if (!existingPrefixes.has(i)) {
+        this.partitions[i] = null;
+      }
     }
   }
 
   async open(): Promise<void> {
-    const dir = path.dirname(this.outputPath);
-    await fs.mkdir(dir, { recursive: true });
-    const placeholderHeader = new Uint8Array(HEADER_SIZE);
-    await fs.writeFile(this.tempPath, placeholderHeader);
-    this.stream = createWriteStream(this.tempPath, { flags: 'a' });
-    await new Promise<void>((resolve, reject) => {
-      this.stream!.on('open', () => resolve());
-      this.stream!.on('error', reject);
-    });
+    this.opened = true;
   }
 
-  async add(key: Uint8Array, value: Uint8Array): Promise<void> {
-    if (this.finalized) {
-      throw new Error('Cannot add records after finalization');
-    }
-    if (!this.stream) {
-      throw new Error('Writer not opened. Call open() first.');
+  async get(key: Uint8Array): Promise<Uint8Array | undefined> {
+    if (!this.opened) {
+      throw new Error('PartitionedCdb64Reader not opened. Call open() first.');
     }
 
-    const hash = cdb64Hash(key);
-    const tableIndex = Number(hash % BigInt(NUM_TABLES));
-    this.records[tableIndex].push({ hash, position: this.position });
+    const partitionIndex = key[0];
+    const partition = this.partitions[partitionIndex];
 
-    const header = new Uint8Array(16);
-    writeUint64LE(header, 0, BigInt(key.length));
-    writeUint64LE(header, 8, BigInt(value.length));
+    if (partition === null) {
+      return undefined;
+    }
 
-    await this.writeToStream(header);
-    await this.writeToStream(key);
-    await this.writeToStream(value);
+    if (partition === undefined) {
+      const state = await this.openPartition(partitionIndex);
+      if (state === null) {
+        return undefined;
+      }
+      return state.reader.get(key);
+    }
 
-    this.position += BigInt(16 + key.length + value.length);
+    return partition.reader.get(key);
   }
 
-  async finalize(): Promise<void> {
-    if (this.finalized) {
-      throw new Error('Already finalized');
-    }
-    if (!this.stream) {
-      throw new Error('Writer not opened. Call open() first.');
-    }
-
-    this.finalized = true;
-
-    const tablePointers: { position: bigint; length: bigint }[] = [];
-
-    for (let i = 0; i < NUM_TABLES; i++) {
-      const records = this.records[i];
-      const tableLength = records.length === 0 ? 0 : records.length * 2;
-
-      tablePointers.push({
-        position: this.position,
-        length: BigInt(tableLength),
-      });
-
-      if (tableLength === 0) continue;
-
-      const slots: { hash: bigint; position: bigint }[] = new Array(
-        tableLength,
-      );
-      for (let j = 0; j < tableLength; j++) {
-        slots[j] = { hash: 0n, position: 0n };
-      }
-
-      for (const record of records) {
-        let slot = Number(
-          (record.hash / BigInt(NUM_TABLES)) % BigInt(tableLength),
-        );
-        while (slots[slot].position !== 0n) {
-          slot = (slot + 1) % tableLength;
-        }
-        slots[slot] = { hash: record.hash, position: record.position };
-      }
-
-      const tableData = new Uint8Array(tableLength * SLOT_SIZE);
-      for (let j = 0; j < tableLength; j++) {
-        const offset = j * SLOT_SIZE;
-        writeUint64LE(tableData, offset, slots[j].hash);
-        writeUint64LE(tableData, offset + 8, slots[j].position);
-      }
-
-      await this.writeToStream(tableData);
-      this.position += BigInt(tableLength * SLOT_SIZE);
+  private async openPartition(index: number): Promise<PartitionState | null> {
+    // Deduplicate concurrent opens for the same partition
+    const existing = this.openPromises.get(index);
+    if (existing) {
+      return existing;
     }
 
-    await new Promise<void>((resolve, reject) => {
-      this.stream!.end(() => resolve());
-      this.stream!.on('error', reject);
-    });
+    const promise = this.doOpenPartition(index);
+    this.openPromises.set(index, promise);
 
-    const header = new Uint8Array(HEADER_SIZE);
-    for (let i = 0; i < NUM_TABLES; i++) {
-      const offset = i * POINTER_SIZE;
-      writeUint64LE(header, offset, tablePointers[i].position);
-      writeUint64LE(header, offset + 8, tablePointers[i].length);
-    }
-
-    const fileHandle = await fs.open(this.tempPath, 'r+');
     try {
-      await fileHandle.write(header, 0, HEADER_SIZE, 0);
-      await fileHandle.sync();
+      const result = await promise;
+      this.partitions[index] = result;
+      return result;
+    } catch (error: any) {
+      this.logger.warn('Failed to open partition', {
+        index,
+        error: error.message,
+      });
+      this.partitions[index] = null;
+      return null;
     } finally {
-      await fileHandle.close();
+      this.openPromises.delete(index);
     }
-
-    await fs.rename(this.tempPath, this.outputPath);
   }
 
-  private async writeToStream(data: Uint8Array): Promise<void> {
-    return new Promise((resolve, reject) => {
-      this.stream!.write(data, (err) => {
-        if (err) return reject(err);
-        resolve();
-      });
+  private async doOpenPartition(index: number): Promise<PartitionState | null> {
+    const prefix = index.toString(16).padStart(2, '0');
+    const partitionInfo = this.manifest.partitions.find(
+      (p) => p.prefix === prefix,
+    );
+
+    if (!partitionInfo) {
+      return null;
+    }
+
+    const source = new HttpByteRangeSource({
+      url: partitionInfo.location.url,
+      ...(this.fetchFn ? { fetch: this.fetchFn } : {}),
     });
+
+    const reader = Cdb64Reader.fromSource({ source });
+    await reader.open();
+
+    return { reader, source };
+  }
+
+  async close(): Promise<void> {
+    for (const partition of this.partitions) {
+      if (partition != null) {
+        try {
+          await partition.reader.close();
+        } catch {
+          // ignore close errors
+        }
+      }
+    }
+    this.partitions = new Array<PartitionState | null | undefined>(256).fill(
+      null,
+    );
+    this.openPromises.clear();
+    this.opened = false;
+  }
+
+  isOpen(): boolean {
+    return this.opened;
   }
 }
 
+// ---------------------------------------------------------------------------
+// CDB64 Root Transaction Source
+// ---------------------------------------------------------------------------
+
 type CDB64RootTransactionSourceParams = {
-  cdb64Urls: string[];
-  logger?: Logger;
+  manifest: Cdb64Manifest;
   fetch?: typeof globalThis.fetch;
-  cacheDir?: string;
-  cacheTtlMs?: number;
+  logger?: Logger;
 };
 
 /**
- * Resolves data item IDs to root transaction IDs using local CDB64 files.
- *
- * Downloads CDB64 files from URLs to a local cache directory and uses
- * Cdb64Reader for O(1) lookups.
+ * Resolves data item IDs to root transaction IDs using partitioned CDB64
+ * files. Partitions are opened lazily on first access via HTTP byte-range
+ * reads.
  */
 export class CDB64RootTransactionSource implements RootTransactionSource {
-  private cdb64Urls: string[];
-  private logger: Logger;
-  private fetch: typeof globalThis.fetch;
-  private cacheDir: string;
-  private cacheTtlMs: number;
-  private readers: Cdb64Reader[] = [];
-  private lastDownloadTime = 0;
-  private initialized = false;
+  private reader: PartitionedCdb64Reader;
 
   constructor({
-    cdb64Urls,
+    manifest,
+    fetch: fetchFn,
     logger = defaultLogger,
-    fetch: fetchFn = globalThis.fetch,
-    cacheDir = path.join(tmpdir(), 'wayfinder-cdb64'),
-    cacheTtlMs = 60 * 60 * 1000, // 1 hour
   }: CDB64RootTransactionSourceParams) {
-    this.cdb64Urls = cdb64Urls;
-    this.logger = logger;
-    this.fetch = fetchFn;
-    this.cacheDir = cacheDir;
-    this.cacheTtlMs = cacheTtlMs;
-  }
-
-  private async ensureInitialized(): Promise<void> {
-    const now = Date.now();
-    if (this.initialized && now - this.lastDownloadTime < this.cacheTtlMs) {
-      return;
-    }
-
-    await this.closeReaders();
-
-    await fs.mkdir(this.cacheDir, { recursive: true });
-
-    const readers: Cdb64Reader[] = [];
-    for (let i = 0; i < this.cdb64Urls.length; i++) {
-      const url = this.cdb64Urls[i];
-      const localPath = path.join(this.cacheDir, `cdb64-${i}.cdb`);
-
-      try {
-        const response = await this.fetch(url);
-        if (!response.ok || !response.body) {
-          this.logger.warn('Failed to download CDB64 file', {
-            url,
-            status: response.status,
-          });
-          continue;
-        }
-
-        const arrayBuffer = await response.arrayBuffer();
-        await fs.writeFile(localPath, new Uint8Array(arrayBuffer));
-
-        const reader = new Cdb64Reader(localPath);
-        await reader.open();
-        readers.push(reader);
-
-        this.logger.debug('Downloaded and opened CDB64 file', {
-          url,
-          localPath,
-        });
-      } catch (error: any) {
-        this.logger.warn('Error downloading CDB64 file', {
-          url,
-          error: error.message,
-        });
-      }
-    }
-
-    this.readers = readers;
-    this.lastDownloadTime = now;
-    this.initialized = true;
+    this.reader = new PartitionedCdb64Reader({
+      manifest,
+      fetch: fetchFn,
+      logger,
+    });
   }
 
   async getRootTransaction({
@@ -537,48 +560,29 @@ export class CDB64RootTransactionSource implements RootTransactionSource {
     txId: string;
     gateway?: URL;
   }): Promise<RootTransactionInfo> {
-    await this.ensureInitialized();
+    if (!this.reader.isOpen()) {
+      await this.reader.open();
+    }
 
     const keyBytes = fromB64Url(txId);
+    const value = await this.reader.get(keyBytes);
 
-    for (const reader of this.readers) {
-      try {
-        const value = await reader.get(keyBytes);
-        if (value) {
-          const decoded = decodeCdb64Value(value);
-          return {
-            rootTransactionId: toB64Url(decoded.rootTxId),
-            rootDataItemOffset: decoded.rootDataItemOffset,
-            rootDataOffset: decoded.rootDataOffset,
-            isDataItem: true,
-          };
-        }
-      } catch (error: any) {
-        this.logger.debug('Error looking up txId in CDB64 reader', {
-          txId,
-          error: error.message,
-        });
-      }
+    if (!value) {
+      throw new Error('Transaction not found in any CDB64 partition', {
+        cause: { txId },
+      });
     }
 
-    throw new Error('Transaction not found in any CDB64 file', {
-      cause: { txId },
-    });
-  }
-
-  private async closeReaders(): Promise<void> {
-    for (const reader of this.readers) {
-      try {
-        await reader.close();
-      } catch {
-        // ignore close errors
-      }
-    }
-    this.readers = [];
+    const decoded = decodeCdb64Value(value);
+    return {
+      rootTransactionId: toB64Url(decoded.rootTxId),
+      rootDataItemOffset: decoded.rootDataItemOffset,
+      rootDataOffset: decoded.rootDataOffset,
+      isDataItem: true,
+    };
   }
 
   async close(): Promise<void> {
-    await this.closeReaders();
-    this.initialized = false;
+    await this.reader.close();
   }
 }
