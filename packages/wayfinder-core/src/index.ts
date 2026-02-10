@@ -45,6 +45,9 @@ export * from './verification/remote-verification.js';
 export * from './retrieval/contiguous.js';
 export * from './retrieval/chunk.js';
 
+// root transaction sources
+export * from './root-transaction/index.js';
+
 // emitter
 export * from './emitter.js';
 
