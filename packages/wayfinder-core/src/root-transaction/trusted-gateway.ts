@@ -54,7 +54,6 @@ export class TrustedGatewayRootTransactionSource
     txId,
   }: {
     txId: string;
-    gateway?: URL;
   }): Promise<RootTransactionInfo> {
     for (const trustedGateway of this.trustedGateways) {
       try {

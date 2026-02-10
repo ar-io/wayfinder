@@ -558,7 +558,6 @@ export class CDB64RootTransactionSource implements RootTransactionSource {
     txId,
   }: {
     txId: string;
-    gateway?: URL;
   }): Promise<RootTransactionInfo> {
     if (!this.reader.isOpen()) {
       await this.reader.open();

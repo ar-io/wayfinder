@@ -69,7 +69,6 @@ export class GqlRootTransactionSource implements RootTransactionSource {
     txId,
   }: {
     txId: string;
-    gateway?: URL;
   }): Promise<RootTransactionInfo> {
     for (const endpoint of this.gqlEndpoints) {
       try {
