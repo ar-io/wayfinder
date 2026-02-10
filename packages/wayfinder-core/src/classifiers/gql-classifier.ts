@@ -17,6 +17,9 @@
 import { defaultLogger } from '../logger.js';
 import type { DataClassifier, Logger } from '../types.js';
 
+/**
+ * @deprecated Use {@link GqlRootTransactionSource} from `../root-transaction/gql.js` instead.
+ */
 export class GqlClassifier implements DataClassifier {
   private readonly gqlEndpoint: URL;
   private readonly logger: Logger;
