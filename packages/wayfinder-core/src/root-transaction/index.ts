@@ -15,4 +15,5 @@
  * limitations under the License.
  */
 export * from './cdb64.js';
+export * from './gql.js';
 export * from './trusted-gateway.js';
