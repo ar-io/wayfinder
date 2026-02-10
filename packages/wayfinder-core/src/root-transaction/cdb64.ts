@@ -22,6 +22,9 @@
  * with modifications to support 64-bit file offsets for files >4GB.
  *
  * Ported from ar-io-node's CDB64 implementation.
+ *
+ * Utility functions (cdb64Hash, decodeCdb64Value) use Uint8Array and DataView
+ * for web compatibility. The Cdb64Reader/Writer classes require Node.js fs.
  */
 
 import { createWriteStream } from 'node:fs';
@@ -63,6 +66,27 @@ function toSafeFilePosition(position: bigint): number {
   return Number(position);
 }
 
+/** Read a little-endian uint64 from a Uint8Array using DataView. */
+function readUint64LE(data: Uint8Array, offset: number): bigint {
+  const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+  return view.getBigUint64(offset, true);
+}
+
+/** Write a little-endian uint64 into a Uint8Array using DataView. */
+function writeUint64LE(data: Uint8Array, offset: number, value: bigint): void {
+  const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+  view.setBigUint64(offset, value, true);
+}
+
+/** Compare two Uint8Arrays for byte equality. */
+function uint8ArrayEquals(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+}
+
 /**
  * DJB hash function used by CDB, extended to 64-bit.
  *
@@ -79,6 +103,7 @@ export function cdb64Hash(key: Uint8Array): bigint {
 
 /**
  * CDB64 Reader - Performs lookups in CDB64 files.
+ * Requires Node.js (uses fs.FileHandle for disk-based I/O).
  *
  * Usage:
  *   const reader = new Cdb64Reader('/path/to/data.cdb');
@@ -98,7 +123,7 @@ export class Cdb64Reader {
   async open(): Promise<void> {
     this.fileHandle = await fs.open(this.filePath, 'r');
 
-    const header = Buffer.alloc(HEADER_SIZE);
+    const header = new Uint8Array(HEADER_SIZE);
     const { bytesRead } = await this.fileHandle.read(header, 0, HEADER_SIZE, 0);
 
     if (bytesRead !== HEADER_SIZE) {
@@ -110,19 +135,18 @@ export class Cdb64Reader {
     for (let i = 0; i < NUM_TABLES; i++) {
       const offset = i * POINTER_SIZE;
       this.tablePointers.push({
-        position: header.readBigUInt64LE(offset),
-        length: header.readBigUInt64LE(offset + 8),
+        position: readUint64LE(header, offset),
+        length: readUint64LE(header, offset + 8),
       });
     }
   }
 
-  async get(key: Uint8Array): Promise<Buffer | undefined> {
+  async get(key: Uint8Array): Promise<Uint8Array | undefined> {
     if (!this.fileHandle) {
       throw new Error('Reader not opened. Call open() first.');
     }
 
-    const keyBuffer = Buffer.from(key);
-    const hash = cdb64Hash(keyBuffer);
+    const hash = cdb64Hash(key);
     const tableIndex = Number(hash % BigInt(NUM_TABLES));
     const pointer = this.tablePointers[tableIndex];
 
@@ -136,9 +160,9 @@ export class Cdb64Reader {
     for (let i = 0; i < tableLength; i++) {
       const slotPosition = pointer.position + BigInt(slot * SLOT_SIZE);
 
-      const slotBuffer = Buffer.alloc(SLOT_SIZE);
+      const slotData = new Uint8Array(SLOT_SIZE);
       const { bytesRead: slotBytesRead } = await this.fileHandle.read(
-        slotBuffer,
+        slotData,
         0,
         SLOT_SIZE,
         toSafeFilePosition(slotPosition),
@@ -149,15 +173,15 @@ export class Cdb64Reader {
         );
       }
 
-      const slotHash = slotBuffer.readBigUInt64LE(0);
-      const recordPosition = slotBuffer.readBigUInt64LE(8);
+      const slotHash = readUint64LE(slotData, 0);
+      const recordPosition = readUint64LE(slotData, 8);
 
       if (recordPosition === 0n) {
         return undefined;
       }
 
       if (slotHash === hash) {
-        const recordHeader = Buffer.alloc(16);
+        const recordHeader = new Uint8Array(16);
         const { bytesRead: headerBytesRead } = await this.fileHandle.read(
           recordHeader,
           0,
@@ -170,10 +194,10 @@ export class Cdb64Reader {
           );
         }
 
-        const keyLength = Number(recordHeader.readBigUInt64LE(0));
-        const valueLength = Number(recordHeader.readBigUInt64LE(8));
+        const keyLength = Number(readUint64LE(recordHeader, 0));
+        const valueLength = Number(readUint64LE(recordHeader, 8));
 
-        const recordKey = Buffer.alloc(keyLength);
+        const recordKey = new Uint8Array(keyLength);
         const { bytesRead: keyBytesRead } = await this.fileHandle.read(
           recordKey,
           0,
@@ -186,8 +210,8 @@ export class Cdb64Reader {
           );
         }
 
-        if (keyBuffer.equals(recordKey)) {
-          const value = Buffer.alloc(valueLength);
+        if (uint8ArrayEquals(key, recordKey)) {
+          const value = new Uint8Array(valueLength);
           const { bytesRead: valueBytesRead } = await this.fileHandle.read(
             value,
             0,
@@ -225,7 +249,7 @@ export class Cdb64Reader {
  * Decoded CDB64 value containing root transaction information.
  */
 export interface Cdb64RootTxValue {
-  rootTxId: Buffer;
+  rootTxId: Uint8Array;
   rootDataItemOffset?: number;
   rootDataOffset?: number;
 }
@@ -236,20 +260,20 @@ const unpackr = new Unpackr({ useRecords: false });
  * Decodes a MessagePack-encoded CDB64 value.
  *
  * Expected format:
- *   { r: Buffer(32), i?: number, d?: number }
+ *   { r: Uint8Array(32), i?: number, d?: number }
  */
-export function decodeCdb64Value(buffer: Buffer): Cdb64RootTxValue {
-  const decoded = unpackr.unpack(buffer);
+export function decodeCdb64Value(data: Uint8Array): Cdb64RootTxValue {
+  const decoded = unpackr.unpack(data);
 
   if (!decoded || typeof decoded !== 'object') {
     throw new Error('Invalid CDB64 value: not an object');
   }
 
-  if (!Buffer.isBuffer(decoded.r) && !(decoded.r instanceof Uint8Array)) {
+  if (!(decoded.r instanceof Uint8Array)) {
     throw new Error('Invalid CDB64 value: missing or invalid rootTxId');
   }
 
-  const rootTxId = Buffer.from(decoded.r);
+  const rootTxId = new Uint8Array(decoded.r);
   if (rootTxId.length !== 32) {
     throw new Error('Invalid CDB64 value: rootTxId must be 32 bytes');
   }
@@ -282,6 +306,7 @@ export function decodeCdb64Value(buffer: Buffer): Cdb64RootTxValue {
 
 /**
  * CDB64 Writer - Creates CDB64 files from key-value pairs.
+ * Requires Node.js (uses fs and streams).
  * Used primarily for testing; ported from ar-io-node.
  */
 export class Cdb64Writer {
@@ -303,7 +328,7 @@ export class Cdb64Writer {
   async open(): Promise<void> {
     const dir = path.dirname(this.outputPath);
     await fs.mkdir(dir, { recursive: true });
-    const placeholderHeader = Buffer.alloc(HEADER_SIZE);
+    const placeholderHeader = new Uint8Array(HEADER_SIZE);
     await fs.writeFile(this.tempPath, placeholderHeader);
     this.stream = createWriteStream(this.tempPath, { flags: 'a' });
     await new Promise<void>((resolve, reject) => {
@@ -312,7 +337,7 @@ export class Cdb64Writer {
     });
   }
 
-  async add(key: Buffer, value: Buffer): Promise<void> {
+  async add(key: Uint8Array, value: Uint8Array): Promise<void> {
     if (this.finalized) {
       throw new Error('Cannot add records after finalization');
     }
@@ -324,9 +349,9 @@ export class Cdb64Writer {
     const tableIndex = Number(hash % BigInt(NUM_TABLES));
     this.records[tableIndex].push({ hash, position: this.position });
 
-    const header = Buffer.alloc(16);
-    header.writeBigUInt64LE(BigInt(key.length), 0);
-    header.writeBigUInt64LE(BigInt(value.length), 8);
+    const header = new Uint8Array(16);
+    writeUint64LE(header, 0, BigInt(key.length));
+    writeUint64LE(header, 8, BigInt(value.length));
 
     await this.writeToStream(header);
     await this.writeToStream(key);
@@ -375,14 +400,14 @@ export class Cdb64Writer {
         slots[slot] = { hash: record.hash, position: record.position };
       }
 
-      const tableBuffer = Buffer.alloc(tableLength * SLOT_SIZE);
+      const tableData = new Uint8Array(tableLength * SLOT_SIZE);
       for (let j = 0; j < tableLength; j++) {
         const offset = j * SLOT_SIZE;
-        tableBuffer.writeBigUInt64LE(slots[j].hash, offset);
-        tableBuffer.writeBigUInt64LE(slots[j].position, offset + 8);
+        writeUint64LE(tableData, offset, slots[j].hash);
+        writeUint64LE(tableData, offset + 8, slots[j].position);
       }
 
-      await this.writeToStream(tableBuffer);
+      await this.writeToStream(tableData);
       this.position += BigInt(tableLength * SLOT_SIZE);
     }
 
@@ -391,11 +416,11 @@ export class Cdb64Writer {
       this.stream!.on('error', reject);
     });
 
-    const header = Buffer.alloc(HEADER_SIZE);
+    const header = new Uint8Array(HEADER_SIZE);
     for (let i = 0; i < NUM_TABLES; i++) {
       const offset = i * POINTER_SIZE;
-      header.writeBigUInt64LE(tablePointers[i].position, offset);
-      header.writeBigUInt64LE(tablePointers[i].length, offset + 8);
+      writeUint64LE(header, offset, tablePointers[i].position);
+      writeUint64LE(header, offset + 8, tablePointers[i].length);
     }
 
     const fileHandle = await fs.open(this.tempPath, 'r+');
@@ -409,7 +434,7 @@ export class Cdb64Writer {
     await fs.rename(this.tempPath, this.outputPath);
   }
 
-  private async writeToStream(data: Buffer): Promise<void> {
+  private async writeToStream(data: Uint8Array): Promise<void> {
     return new Promise((resolve, reject) => {
       this.stream!.write(data, (err) => {
         if (err) return reject(err);
@@ -483,7 +508,7 @@ export class CDB64RootTransactionSource implements RootTransactionSource {
         }
 
         const arrayBuffer = await response.arrayBuffer();
-        await fs.writeFile(localPath, Buffer.from(arrayBuffer));
+        await fs.writeFile(localPath, new Uint8Array(arrayBuffer));
 
         const reader = new Cdb64Reader(localPath);
         await reader.open();
@@ -522,7 +547,7 @@ export class CDB64RootTransactionSource implements RootTransactionSource {
         if (value) {
           const decoded = decodeCdb64Value(value);
           return {
-            rootTransactionId: toB64Url(new Uint8Array(decoded.rootTxId)),
+            rootTransactionId: toB64Url(decoded.rootTxId),
             rootDataItemOffset: decoded.rootDataItemOffset,
             rootDataOffset: decoded.rootDataOffset,
             isDataItem: true,
