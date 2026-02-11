@@ -28,6 +28,7 @@ import { VerificationStrategy } from '../types.js';
  * @param emitter Optional WayfinderEmitter to emit verification events.
  * @param headers Optional headers to pass to the verification function.
  * @param strict If true, the client stream will error if verification fails; otherwise, verification runs asynchronously.
+ * @param raw If true, indicates the data is raw manifest data and verification should use /raw/ endpoints.
  * @returns A ReadableStream that passes through data to the client while verifying in parallel.
  */
 export const tapAndVerifyReadableStream = ({
@@ -38,6 +39,7 @@ export const tapAndVerifyReadableStream = ({
   emitter,
   headers = {},
   strict = false,
+  raw = false,
 }: {
   originalStream: ReadableStream;
   contentLength: number;
@@ -46,6 +48,7 @@ export const tapAndVerifyReadableStream = ({
   txId: string;
   emitter?: WayfinderEmitter;
   strict?: boolean;
+  raw?: boolean;
 }): ReadableStream => {
   if (
     originalStream instanceof ReadableStream &&
@@ -65,6 +68,7 @@ export const tapAndVerifyReadableStream = ({
       data: verifyBranch,
       txId,
       headers,
+      raw,
     });
 
     let bytesProcessed = 0;

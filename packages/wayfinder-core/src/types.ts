@@ -193,6 +193,14 @@ export interface WayfinderOptions {
      * @default false
      */
     strict?: boolean;
+
+    /**
+     * When true, fetch expected hash from /raw/{txId} endpoint instead of /{txId}.
+     * This is needed for verifying raw manifest data which has a different hash
+     * than the resolved index content.
+     * @default false (auto-detected based on request path)
+     */
+    raw?: boolean;
   };
 
   /**
@@ -318,6 +326,12 @@ export interface VerificationStrategy {
     data: DataStream;
     headers: Record<string, string>;
     txId: string;
+    /**
+     * When true, fetch expected hash from /raw/{txId} endpoint instead of /{txId}.
+     * This is needed for verifying raw manifest data which has a different hash
+     * than the resolved index content.
+     */
+    raw?: boolean;
   }): Promise<void>;
 }
 

@@ -24,3 +24,18 @@ export const arioGatewayHeaders = {
   dataItemSize: 'x-ar-io-data-item-size',
   rootTransactionId: 'x-ar-io-root-transaction-id',
 };
+
+/**
+ * Normalizes HTTP headers to lowercase keys with trimmed values.
+ * This ensures consistent header access regardless of original casing.
+ */
+export function normalizeHeaders(
+  headers: Record<string, string>,
+): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(headers).map(([key, value]) => [
+      key.toLowerCase().trim(),
+      value.trim(),
+    ]),
+  );
+}

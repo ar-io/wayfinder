@@ -283,13 +283,19 @@ export class Ans104SignatureVerificationStrategy
    *
    * @param data - The data stream to verify
    * @param txId - The transaction ID of the data
+   * @param headers - Optional response headers (not used in signature verification)
+   * @param raw - Optional flag for raw verification (not applicable for signature verification)
    */
   async verifyData({
     data,
     txId,
+    headers: _headers = {},
+    raw: _raw = false,
   }: {
     data: DataStream;
     txId: string;
+    headers?: Record<string, string>;
+    raw?: boolean;
   }): Promise<void> {
     // fetch signature data from trusted gateway
     const trustedSignatureData = await this.getSignatureData({ txId });
@@ -442,7 +448,18 @@ export class TransactionSignatureVerificationStrategy
   async verifyData({
     data,
     txId,
-  }: { data: DataStream; txId: string }): Promise<void> {
+    headers: _headers = {},
+    raw: _raw = false,
+  }: {
+    data: DataStream;
+    txId: string;
+    headers?: Record<string, string>;
+    raw?: boolean;
+  }): Promise<void> {
+    // Note: The raw parameter is not applicable for transaction signature verification
+    // as this strategy verifies the cryptographic signature of the transaction itself.
+    // The parameter is accepted for interface compatibility but ignored.
+
     const {
       format,
       owner,
@@ -532,13 +549,20 @@ export class SignatureVerificationStrategy {
   async verifyData({
     data,
     txId,
-  }: { data: DataStream; txId: string }): Promise<void> {
+    headers = {},
+    raw = false,
+  }: {
+    data: DataStream;
+    txId: string;
+    headers?: Record<string, string>;
+    raw?: boolean;
+  }): Promise<void> {
     const dataType = await this.classifier.classify({ txId });
     switch (dataType) {
       case 'ans104':
-        return this.ans104.verifyData({ data, txId });
+        return this.ans104.verifyData({ data, txId, headers, raw });
       case 'transaction':
-        return this.transaction.verifyData({ data, txId });
+        return this.transaction.verifyData({ data, txId, headers, raw });
       default:
         throw new Error('Unknown data type', {
           cause: { dataType },
