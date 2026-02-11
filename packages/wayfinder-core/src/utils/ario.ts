@@ -23,6 +23,8 @@ export const arioGatewayHeaders = {
   dataItemDataOffset: 'x-ar-io-data-item-data-offset',
   dataItemSize: 'x-ar-io-data-item-size',
   rootTransactionId: 'x-ar-io-root-transaction-id',
+  rootDataItemOffset: 'x-ar-io-root-data-item-offset',
+  rootDataOffset: 'x-ar-io-root-data-offset',
 };
 
 /**

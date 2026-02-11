@@ -60,6 +60,7 @@
     "@opentelemetry/sdk-trace-web": "^2.0.1",
     "arweave": "^1.14.0",
     "eventemitter3": "^5.0.1",
+    "msgpackr": "^1.11.0",
     "plimit-lit": "^3.0.1",
     "rfc4648": "^1.5.4",
     "zone.js": "^0.15.1"

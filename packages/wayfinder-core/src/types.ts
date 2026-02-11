@@ -356,3 +356,20 @@ export interface DataRetrievalStrategy {
     headers?: Record<string, string>;
   }): Promise<Response>;
 }
+
+export interface RootTransactionInfo {
+  /** The root (L1) transaction ID */
+  rootTransactionId: string;
+  /** Byte offset of data item header within root TX (maps to X-AR-IO-Root-Data-Item-Offset / CDB64 field 'i') */
+  rootDataItemOffset?: number;
+  /** Byte offset of data payload within root TX (maps to X-AR-IO-Root-Data-Offset / CDB64 field 'd') */
+  rootDataOffset?: number;
+  /** Whether the resolved transaction is a data item (L2) bundled inside a root transaction */
+  isDataItem: boolean;
+}
+
+export interface RootTransactionSource {
+  getRootTransaction(params: {
+    txId: string;
+  }): Promise<RootTransactionInfo>;
+}
