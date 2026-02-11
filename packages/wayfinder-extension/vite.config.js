@@ -27,7 +27,7 @@ export default defineConfig({
       global: {
         process: true,
         buffer: true,
-      }
+      },
     }),
     viteStaticCopy({
       targets: [

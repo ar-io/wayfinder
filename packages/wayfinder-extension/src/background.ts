@@ -500,7 +500,6 @@ async function handleTabRemoved(tabId: number) {
   // Clean up message queue and ready state
   readyTabs.delete(tabId);
   messageQueue.delete(tabId);
-
 }
 
 // Setup tab removed listener
