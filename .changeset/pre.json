@@ -8,5 +8,5 @@
     "@ar.io/wayfinder-x402-fetch": "0.0.1",
     "@ar.io/wayfinder-cli": "0.0.4"
   },
-  "changesets": ["composite-gateways-provider", "manifest-verification"]
+  "changesets": ["manifest-verification"]
 }
