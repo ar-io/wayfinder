@@ -1,7 +1,6 @@
 # @ar.io/wayfinder-core
 
-<<<<<<< HEAD
-## 1.9.0-alpha.1
+## 1.9.1
 
 ### Patch Changes
 
@@ -11,7 +10,20 @@
   - When dataId !== resolvedId, verify against the actual served content (e.g., index.html)
   - Add raw parameter support for /raw/{txId} endpoint verification
   - Add normalizeHeaders utility to reduce code duplication
-=======
+
+<<<<<<< HEAD
+
+## 1.9.0-alpha.1
+
+### Patch Changes
+
+- b8c9a9f: Fix verification for manifest and raw data endpoints
+
+  - Add automatic manifest detection via x-ar-io-data-id and x-arns-resolved-id headers
+  - When dataId !== resolvedId, verify against the actual served content (e.g., index.html)
+  - Add raw parameter support for /raw/{txId} endpoint verification
+  - # Add normalizeHeaders utility to reduce code duplication
+
 ## 1.9.0
 
 ### Minor Changes
@@ -21,7 +33,7 @@
   - Tries multiple GatewaysProvider instances in order until one succeeds
   - Skips providers that fail or return empty gateway lists
   - Includes addProvider() and getProviders() helper methods
->>>>>>> origin/main
+    > > > > > > > origin/main
 
 ## 1.9.0-alpha.0
 
