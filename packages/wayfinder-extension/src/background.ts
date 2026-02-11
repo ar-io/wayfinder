@@ -16,7 +16,6 @@
  */
 import { AOProcess, ARIO, AoGateway, WalletAddress } from '@ar.io/sdk/web';
 import { connect } from '@permaweb/aoconnect';
-import { LRUCache } from 'lru-cache';
 import pDebounce from 'p-debounce';
 import { ChromeStorageGatewayProvider } from './adapters/chrome-storage-gateway-provider';
 import { EXTENSION_DEFAULTS } from './config/defaults';
@@ -27,7 +26,7 @@ import {
   getWayfinderInstance,
   resetWayfinderInstance,
 } from './routing';
-import { RedirectedTabInfo, VerificationCacheEntry } from './types';
+import { RedirectedTabInfo } from './types';
 import { logger } from './utils/logger';
 
 // Enhanced tab state management
@@ -75,14 +74,7 @@ class TabStateManager {
 
 // Global variables
 const tabStateManager = new TabStateManager();
-const requestTimings = new LRUCache<string, number>({
-  max: 10_000,
-  ttl: 60 * 60 * 1000 * 24, // 1 day in milliseconds
-});
-const verificationCache = new LRUCache<string, VerificationCacheEntry>({
-  max: 10_000,
-  ttl: 60 * 60 * 1000 * 24, // 1 day in milliseconds
-});
+const requestTimings = new Map<string, number>();
 
 // Message queue for content scripts that aren't ready yet
 const messageQueue = new Map<number, Record<string, { id: string } & any>>();
@@ -509,23 +501,6 @@ async function handleTabRemoved(tabId: number) {
   readyTabs.delete(tabId);
   messageQueue.delete(tabId);
 
-  // Also clean up verification cache entries for this tab
-  try {
-    const tab = await chrome.tabs.get(tabId);
-    if (tab?.url) {
-      const url = new URL(tab.url);
-      const hostname = url.hostname;
-
-      // Remove all cache entries for this hostname
-      for (const key of verificationCache.keys()) {
-        if (key.startsWith(`${hostname}:`)) {
-          verificationCache.delete(key);
-        }
-      }
-    }
-  } catch {
-    // Tab already closed, ignore
-  }
 }
 
 // Setup tab removed listener

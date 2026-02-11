@@ -37,7 +37,6 @@
     "@ar.io/sdk": "^3.21.0",
     "@ar.io/wayfinder-core": "^1.9.0",
     "@permaweb/aoconnect": "0.0.69",
-    "lru-cache": "^11.1.0",
     "p-debounce": "^4.0.0"
   }
 }
