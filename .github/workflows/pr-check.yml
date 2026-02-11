@@ -51,7 +51,7 @@ jobs:
           cache: "npm"
 
       - name: Install dependencies
-        run: npm ci
+        run: npm i
 
       - name: Lint
         run: npm run lint:check -w @ar.io/wayfinder-core
@@ -74,7 +74,7 @@ jobs:
           cache: "npm"
 
       - name: Install dependencies
-        run: npm ci
+        run: npm i
 
       - name: Lint
         run: npm run lint:check -w @ar.io/wayfinder-extension
@@ -100,7 +100,7 @@ jobs:
           cache: "npm"
 
       - name: Install dependencies
-        run: npm ci
+        run: npm i
 
       - name: Lint
         run: npm run lint:check -w @ar.io/wayfinder-react
