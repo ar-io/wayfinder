@@ -38,8 +38,8 @@ export class RoundRobinRoutingStrategy implements RoutingStrategy {
     }
     if (!gateways && !gatewaysProvider) {
       gateways = [
-        new URL('https://arweave.net'),
-        new URL('https://permagate.io'),
+        new URL('https://turbo-gateway.com'),
+        new URL('https://g8way.io'),
       ];
     }
 

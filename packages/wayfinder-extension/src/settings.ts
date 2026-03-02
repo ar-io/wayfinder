@@ -630,10 +630,10 @@ async function fetchAvailableGateways() {
       console.error('Failed to fetch from AR.IO network:', networkError);
     }
 
-    // Absolute last resort - return arweave.net
+    // Absolute last resort - return turbo-gateway.com
     return [
       {
-        fqdn: 'arweave.net',
+        fqdn: 'turbo-gateway.com',
         protocol: 'https',
         operatorStake: 1,
         totalDelegatedStake: 0,

@@ -61,7 +61,7 @@ import {
 
 const wayfinder = createWayfinderClient({
   verificationStrategy: new HashVerificationStrategy({
-    trustedGateways: [new URL('https://permagate.io')],
+    trustedGateways: [new URL('https://turbo-gateway.com')],
   }),
   strict: true, // Fail requests on verification errors
 });
@@ -96,7 +96,7 @@ import { createVerificationStrategy } from '@ar.io/wayfinder-core';
 // Create a hash verification strategy
 const hashStrategy = createVerificationStrategy({
   strategy: 'hash',
-  trustedGateways: [new URL('https://permagate.io')],
+  trustedGateways: [new URL('https://turbo-gateway.com')],
   logger: myLogger,
 });
 
@@ -199,7 +199,7 @@ Fetches a dynamic list of trusted peer gateways from an AR.IO gateway's `/ar-io/
 import { TrustedPeersGatewaysProvider } from '@ar.io/wayfinder-core';
 
 const gatewayProvider = new TrustedPeersGatewaysProvider({
-  trustedGateway: 'https://arweave.net',
+  trustedGateway: 'https://turbo-gateway.com',
 });
 ```
 
@@ -234,11 +234,11 @@ const gatewayProvider = new CompositeGatewaysProvider({
     }),
     // Fallback to trusted peers if network fetch fails
     new TrustedPeersGatewaysProvider({
-      trustedGateway: 'https://arweave.net',
+      trustedGateway: 'https://turbo-gateway.com',
     }),
     // Final fallback to static list
     new StaticGatewaysProvider({
-      gateways: ['https://arweave.net', 'https://permagate.io'],
+      gateways: ['https://turbo-gateway.com', 'https://g8way.io'],
     }),
   ],
 });
@@ -543,7 +543,7 @@ const wayfinder = new Wayfinder({
   verificationSettings: {
     enabled: true,
     strategy: new HashVerificationStrategy({
-      trustedGateways: [new URL('https://permagate.io')],
+      trustedGateways: [new URL('https://turbo-gateway.com')],
     }),
   },
 });
@@ -560,7 +560,7 @@ const wayfinder = new Wayfinder({
   verificationSettings: {
     enabled: true,
     strategy: new DataRootVerificationStrategy({
-      trustedGateways: [new URL('https://permagate.io')],
+      trustedGateways: [new URL('https://turbo-gateway.com')],
     }),
   },
 });
@@ -577,7 +577,7 @@ const wayfinder = new Wayfinder({
   verificationSettings: {
     enabled: true,
     strategy: new SignatureVerificationStrategy({
-      trustedGateways: [new URL('https://permagate.io')],
+      trustedGateways: [new URL('https://turbo-gateway.com')],
     }),
   },
 });

@@ -121,9 +121,9 @@ export class ChromeStorageGatewayProvider {
     // If no gateways are available (registry not synced or empty), use fallback
     if (gateways.length === 0) {
       console.warn(
-        '[ChromeStorageGatewayProvider] No gateways in local registry, using arweave.net as fallback',
+        '[ChromeStorageGatewayProvider] No gateways in local registry, using turbo-gateway.com as fallback',
       );
-      return [new URL('https://arweave.net')];
+      return [new URL('https://turbo-gateway.com')];
     }
 
     return gateways;

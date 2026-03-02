@@ -284,7 +284,7 @@ export class Wayfinder {
    * const wayfinder = new Wayfinder({
    *   verificationSettings: {
    *     strategy: new HashVerificationStrategy({
-   *       trustedGateways: [new URL('https://permagate.io')],
+   *       trustedGateways: [new URL('https://turbo-gateway.com')],
    *     }),
    *     events: {
    *       onVerificationProgress: (event) => {
@@ -353,7 +353,7 @@ export class Wayfinder {
     this.gatewaysProvider =
       gatewaysProvider ??
       new TrustedPeersGatewaysProvider({
-        trustedGateway: 'https://arweave.net',
+        trustedGateway: 'https://turbo-gateway.com',
         logger: this.logger,
       });
 
@@ -369,7 +369,7 @@ export class Wayfinder {
         (verificationSettings?.strategy ?? verificationSettings?.enabled)
           ? new HashVerificationStrategy({
               logger,
-              trustedGateways: [new URL('https://permagate.io')],
+              trustedGateways: [new URL('https://turbo-gateway.com')],
             })
           : undefined,
       // overwrite the default settings with the provided ones
@@ -517,7 +517,7 @@ export class Wayfinder {
    * @example
    * const wayfinder = new Wayfinder();
    * wayfinder.setVerificationStrategy(new HashVerificationStrategy({
-   *   trustedGateways: [new URL('https://permagate.io')],
+   *   trustedGateways: [new URL('https://turbo-gateway.com')],
    * }));
    *
    * @param strategy - The verification strategy to use
@@ -577,7 +577,7 @@ export class Wayfinder {
       this.verificationSettings.strategy ??
       new HashVerificationStrategy({
         logger: this.logger,
-        trustedGateways: [new URL('https://permagate.io')],
+        trustedGateways: [new URL('https://turbo-gateway.com')],
       });
   }
 
@@ -588,7 +588,7 @@ export class Wayfinder {
    * @example
    * const wayfinder = new Wayfinder({
    *   verificationStrategy: new HashVerificationStrategy({
-   *     trustedGateways: [new URL('https://permagate.io')],
+   *     trustedGateways: [new URL('https://turbo-gateway.com')],
    *   }),
    * })
    *
