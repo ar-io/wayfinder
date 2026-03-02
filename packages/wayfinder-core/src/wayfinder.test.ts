@@ -26,7 +26,7 @@ import { HashVerificationStrategy } from './verification/hash-verification.js';
 import { Wayfinder, createWayfinderUrl } from './wayfinder.js';
 
 // TODO: replace with locally running gateway
-const gatewayUrl = 'permagate.io';
+const gatewayUrl = 'turbo-gateway.com';
 const stubbedGatewaysProvider: GatewaysProvider = {
   getGateways: async () => [new URL(`https://${gatewayUrl}`)],
 } as unknown as GatewaysProvider;
