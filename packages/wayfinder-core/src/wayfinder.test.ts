@@ -93,14 +93,19 @@ describe('Wayfinder', () => {
       ]);
       assert.strictEqual(response.status, 200);
       assert.strictEqual(response.status, nativeFetch.status);
-      // assert the arns headers are the same
+      // assert the arns headers are the same (excluding timestamp which varies)
       const arnsHeaders = Array.from(response.headers.entries()).filter(
-        ([key]) => key.startsWith('x-arns-'),
+        ([key]) => key.startsWith('x-arns-') && key !== 'x-arns-resolved-at',
       );
       const nativeFetchHeaders = Array.from(
         nativeFetch.headers.entries(),
-      ).filter(([key]) => key.startsWith('x-arns-'));
+      ).filter(
+        ([key]) => key.startsWith('x-arns-') && key !== 'x-arns-resolved-at',
+      );
       assert.deepStrictEqual(arnsHeaders, nativeFetchHeaders);
+      // verify timestamp header exists but don't compare exact values
+      assert.ok(response.headers.has('x-arns-resolved-at'));
+      assert.ok(nativeFetch.headers.has('x-arns-resolved-at'));
     });
 
     it('should fetch a tx id using the selected gateway', async () => {
