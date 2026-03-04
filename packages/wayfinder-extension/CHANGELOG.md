@@ -1,5 +1,22 @@
 # @ar.io/wayfinder-extension
 
+## 1.0.23
+
+### Patch Changes
+
+- 954e60e: Replace hardcoded gateway defaults with turbo-gateway.com
+
+  - Replace arweave.net and permagate.io defaults with turbo-gateway.com throughout codebase
+  - Update all fallback gateways to use AR.IO-compatible gateway
+  - Update documentation examples to use turbo-gateway.com
+  - Fix integration tests to use turbo-gateway.com instead of permagate.io
+  - Fix flaky test by excluding timestamp header from ArNS header comparison
+  - No breaking changes - all user configurations still work as before
+  - arweave.net is no longer an AR.IO gateway and doesn't support /ar-io/\* endpoints
+
+- Updated dependencies [954e60e]
+  - @ar.io/wayfinder-core@1.9.2
+
 ## 1.0.22
 
 ### Patch Changes
