@@ -245,7 +245,13 @@ export const createWayfinderFetch = ({
       }
 
       return new Response(finalStream, {
-        headers: dataResponse.headers,
+        headers: {
+          ...dataResponse.headers,
+          // Response objects do not let you specify the url, which would normally tell you what gateway the data came from. To work around this, we add a custom header with the gateway URL for observability purposes.
+          // This is important for users to be able to see which gateway served the data, especially when using multiple gateways or routing strategies that may select different gateways for different requests.
+          // Note that this header is only for informational purposes and should not be used for any security-sensitive logic, as headers can be spoofed. It's purely to provide visibility into the routing decisions made by Wayfinder.
+          'x-ar-io-gateway-url': selectedGateway.toString(),
+        },
         status: dataResponse.status,
         statusText: dataResponse.statusText,
       });

@@ -116,7 +116,7 @@ export const fetchCommand = new Command('fetch')
         }
 
         // Extract metadata
-        gateway = response.headers.get('x-wayfinder-url') || undefined;
+        gateway = response.headers.get('x-ar-io-gateway-url') || undefined;
         contentType = response.headers.get('content-type') || undefined;
         txId = response.headers.get('x-ar-io-data-id') || 'unknown';
         const contentLengthHeader = response.headers.get('content-length');
