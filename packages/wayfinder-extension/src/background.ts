@@ -401,7 +401,26 @@ let arIO: AoARIORead | undefined;
 
   await chrome.storage.local.set(updates);
 
-  arIO = await arioFromStorage();
+  // arioFromStorage() can throw if the user previously persisted an
+  // invalid custom RPC URL or program ID (via @solana/kit's address()
+  // assertion). Don't let that block service-worker startup —
+  // syncGatewayAddressRegistry + reinitializeArIO can still recover.
+  try {
+    arIO = await arioFromStorage();
+  } catch (error: any) {
+    logger.error(
+      'Failed to initialize ARIO from stored config; falling back to bundled devnet defaults.',
+      { error: error?.message },
+    );
+    arIO = ARIO.init({
+      backend: 'solana',
+      rpc: createSolanaRpc(EXTENSION_DEFAULTS.rpcUrl),
+      coreProgramId: address(EXTENSION_DEFAULTS.coreProgramId),
+      garProgramId: address(EXTENSION_DEFAULTS.garProgramId),
+      arnsProgramId: address(EXTENSION_DEFAULTS.arnsProgramId),
+      antProgramId: address(EXTENSION_DEFAULTS.antProgramId),
+    });
+  }
 
   debouncedInitializeWayfinder();
 })();
@@ -796,9 +815,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     'syncGatewayAddressRegistry',
     'resetWayfinder',
     'updateRoutingStrategy',
-    'updateVerificationMode',
     'updateAdvancedSettings',
-    'resetAdvancedSettings',
     'updateShowVerificationToasts',
   ];
 
@@ -915,29 +932,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse({ success: true });
       } catch (error: any) {
         logger.error('Error updating advanced settings:', error);
-        sendResponse({ error: error?.message || 'Unknown error' });
-      }
-    })();
-    return true;
-  }
-
-  // Handle advanced settings reset
-  if (request.message === 'resetAdvancedSettings') {
-    (async () => {
-      try {
-        await chrome.storage.local.set({
-          network: EXTENSION_DEFAULTS.network,
-          rpcUrl: EXTENSION_DEFAULTS.rpcUrl,
-          coreProgramId: EXTENSION_DEFAULTS.coreProgramId,
-          garProgramId: EXTENSION_DEFAULTS.garProgramId,
-          arnsProgramId: EXTENSION_DEFAULTS.arnsProgramId,
-          antProgramId: EXTENSION_DEFAULTS.antProgramId,
-        });
-        arIO = await arioFromStorage();
-        resetWayfinderInstance();
-        sendResponse({ success: true });
-      } catch (error: any) {
-        logger.error('Error resetting advanced settings:', error);
         sendResponse({ error: error?.message || 'Unknown error' });
       }
     })();
