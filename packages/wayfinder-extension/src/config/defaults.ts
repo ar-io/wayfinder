@@ -17,9 +17,22 @@
 
 import {
   ARIO_MAINNET_PROCESS_ID,
+  AR_IO_SOLANA_DEVNET,
   DEFAULT_AO_CU_URL,
   FALLBACK_GATEWAY,
 } from '../constants';
+import type { NetworkPreset } from '../types';
+
+/**
+ * AR.IO Solana network configuration defaults applied on first install.
+ * Active preset is `devnet` (AR.IO Solana mainnet is not yet deployed).
+ * Stored as flat keys in `chrome.storage.local` for easy diffing and
+ * incremental updates from the settings UI.
+ */
+export const SOLANA_NETWORK_DEFAULTS = {
+  network: 'devnet' satisfies NetworkPreset as NetworkPreset,
+  ...AR_IO_SOLANA_DEVNET,
+} as const;
 
 /**
  * Core extension defaults

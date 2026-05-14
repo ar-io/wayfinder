@@ -32,6 +32,27 @@ export type RedirectedTabInfo = {
 
 export type GatewayRegistry = Record<string, AoGatewayWithAddress>;
 
+/**
+ * Identifier for an AR.IO Solana network deployment. `mainnet` is reserved
+ * for the eventual AR.IO Solana mainnet deployment (not yet live as of
+ * 2026-05); `devnet` targets the currently-live AR.IO devnet contracts;
+ * `custom` lets advanced users plug in their own RPC + program IDs (e.g.,
+ * for localnet development).
+ */
+export type NetworkPreset = 'mainnet' | 'devnet' | 'custom';
+
+/**
+ * Solana endpoint + AR.IO program addresses for a single network. All
+ * program IDs are base58-encoded Solana pubkeys.
+ */
+export type SolanaNetworkConfig = {
+  rpcUrl: string;
+  coreProgramId: string;
+  garProgramId: string;
+  arnsProgramId: string;
+  antProgramId: string;
+};
+
 export type VerificationCacheEntry = {
   txId: string;
   verified: boolean;

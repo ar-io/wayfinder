@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 import { AoGatewayWithAddress } from '@ar.io/sdk/web';
+import { SolanaNetworkConfig } from './types';
 
 // Last resort fallback gateway - only used when AR.IO network is unreachable
 export const FALLBACK_GATEWAY: AoGatewayWithAddress = {
@@ -66,6 +67,41 @@ export const ARIO_MAINNET_PROCESS_ID =
   'qNvAoz0TgcH7DMg8BCVn8jF32QH5L6T29VjHxhHqqGE';
 export const GASLESS_ARNS_DNS_EXPIRATION_TIME = 15 * 60 * 1000; // 15 minutes
 export const DEFAULT_AO_CU_URL = 'https://cu.ardrive.io';
+
+/**
+ * AR.IO Solana devnet program addresses. Mirrors
+ * `ar-io-solana-contracts/program-ids/devnet.json`. The default RPC URL
+ * is the public Solana devnet endpoint, which is heavily rate-limited;
+ * users hitting limits should switch to the `custom` network preset and
+ * supply their own RPC (QuickNode, Helius, etc.).
+ */
+export const AR_IO_SOLANA_DEVNET: SolanaNetworkConfig = {
+  rpcUrl: 'https://api.devnet.solana.com',
+  coreProgramId: '83CQLP848zzCgnZ4LTq87g6hvxTooNLX7YXXkUUGv5ig',
+  garProgramId: 'AF8QAEaR4hzsqeUDwEdeTXMYtdyFegTENBdnJro6WVLR',
+  arnsProgramId: '2HgSCKYjcapJPdHRKqkLrGXm7kvBmCP45ZyhWEm87oM1',
+  antProgramId: '8ZMuXhiK7DorjPUg8RB1rzu7CvsABMk38WDJRbM62y2C',
+};
+
+/**
+ * AR.IO Solana mainnet program addresses. Mainnet is not yet deployed
+ * (as of 2026-05); this stays `null` until the AR.IO contracts ship on
+ * Solana mainnet. The `mainnet` preset in the settings UI is disabled
+ * until this is non-null.
+ */
+export const AR_IO_SOLANA_MAINNET: SolanaNetworkConfig | null = null;
+
+/**
+ * Preset lookup keyed by `NetworkPreset`. `custom` has no preset value
+ * (consumer-supplied at runtime). `mainnet` may be null until deployed.
+ */
+export const AR_IO_SOLANA_PRESETS: Record<
+  'devnet' | 'mainnet',
+  SolanaNetworkConfig | null
+> = {
+  devnet: AR_IO_SOLANA_DEVNET,
+  mainnet: AR_IO_SOLANA_MAINNET,
+};
 export const TOP_ONCHAIN_GATEWAY_LIMIT = 25; // The top amount of gateways returned for onchain performance ranking
 export const DNS_LOOKUP_API = 'https://dns.google/resolve';
 // Legacy routing constants removed - extension now uses simple string values
