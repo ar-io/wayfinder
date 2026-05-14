@@ -226,33 +226,57 @@
           </div>
           
           <div class="network-options">
-            <!-- AR.IO Process ID -->
+            <!-- Network Preset -->
             <div class="network-option">
               <div class="option-header">
                 <div class="option-info">
-                  <h3>AR.IO Process ID</h3>
-                  <p>Process identifier for AR.IO network interactions</p>
+                  <h3>Network</h3>
+                  <p>AR.IO Solana network to connect to. Mainnet is reserved for when AR.IO Solana mainnet is deployed.</p>
                 </div>
               </div>
               <div class="option-input">
-                <input type="text" id="processId" placeholder="Enter AR.IO Process ID..." />
-                <button class="test-button" id="testProcessId" disabled>Test</button>
+                <select id="network">
+                  <option value="mainnet" disabled>AR.IO Solana Mainnet (coming soon)</option>
+                  <option value="devnet">AR.IO Solana Devnet</option>
+                  <option value="custom">Custom</option>
+                </select>
               </div>
             </div>
 
-            <!-- AO Compute Unit URL -->
+            <!-- Solana RPC URL -->
             <div class="network-option">
               <div class="option-header">
                 <div class="option-info">
-                  <h3>AO Compute Unit URL</h3>
-                  <p>URL for AO compute unit interactions</p>
+                  <h3>Solana RPC URL</h3>
+                  <p>Endpoint for Solana JSON-RPC calls. Editable only when Network is set to Custom.</p>
                 </div>
               </div>
               <div class="option-input">
-                <input type="url" id="aoCuUrl" placeholder="Enter AO Compute Unit URL..." />
-                <button class="test-button" id="testAoCuUrl" disabled>Test</button>
+                <input type="url" id="rpcUrl" placeholder="https://..." />
               </div>
             </div>
+
+            <!-- Advanced: AR.IO Program IDs -->
+            <details class="network-option network-option-advanced">
+              <summary><h3>Advanced: AR.IO Program IDs</h3></summary>
+              <p>Per-program Solana addresses. Auto-filled from the selected preset; editable only in Custom mode.</p>
+              <div class="option-input">
+                <label for="coreProgramId">Core</label>
+                <input type="text" id="coreProgramId" placeholder="Solana pubkey..." />
+              </div>
+              <div class="option-input">
+                <label for="garProgramId">GAR (Gateway Address Registry)</label>
+                <input type="text" id="garProgramId" placeholder="Solana pubkey..." />
+              </div>
+              <div class="option-input">
+                <label for="arnsProgramId">ArNS</label>
+                <input type="text" id="arnsProgramId" placeholder="Solana pubkey..." />
+              </div>
+              <div class="option-input">
+                <label for="antProgramId">ANT</label>
+                <input type="text" id="antProgramId" placeholder="Solana pubkey..." />
+              </div>
+            </details>
           </div>
         </section>
 

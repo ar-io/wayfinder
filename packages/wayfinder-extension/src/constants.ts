@@ -63,10 +63,7 @@ export const FALLBACK_GATEWAY: AoGatewayWithAddress = {
   gatewayAddress: 'FALLBACK',
 };
 
-export const ARIO_MAINNET_PROCESS_ID =
-  'qNvAoz0TgcH7DMg8BCVn8jF32QH5L6T29VjHxhHqqGE';
 export const GASLESS_ARNS_DNS_EXPIRATION_TIME = 15 * 60 * 1000; // 15 minutes
-export const DEFAULT_AO_CU_URL = 'https://cu.ardrive.io';
 
 /**
  * AR.IO Solana devnet program addresses. Mirrors

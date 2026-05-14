@@ -14,12 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { AOProcess, ARIO, AoGateway, WalletAddress } from '@ar.io/sdk/web';
-import { connect } from '@permaweb/aoconnect';
+import { ARIO, AoARIORead, AoGateway, WalletAddress } from '@ar.io/sdk/web';
+import { address, createSolanaRpc } from '@solana/kit';
 import pDebounce from 'p-debounce';
 import { ChromeStorageGatewayProvider } from './adapters/chrome-storage-gateway-provider';
 import { EXTENSION_DEFAULTS } from './config/defaults';
-import { ARIO_MAINNET_PROCESS_ID, DEFAULT_AO_CU_URL } from './constants';
 import { getCachedGatewayRegistry } from './helpers';
 import {
   getRoutableGatewayUrl,
@@ -254,24 +253,83 @@ async function updateDailyStats(
   // Daily stats updated
 }
 
-// Initialize AR.IO SDK
-let arIO = ARIO.init({
-  process: new AOProcess({
-    processId: ARIO_MAINNET_PROCESS_ID,
-    ao: connect({
-      CU_URL: DEFAULT_AO_CU_URL,
-      MODE: 'legacy',
-    }),
-  }),
-});
+/**
+ * Construct a read-only `ARIO` instance from the network configuration
+ * persisted in `chrome.storage.local`, falling back to
+ * `EXTENSION_DEFAULTS` (AR.IO Solana devnet) for any key that isn't set.
+ * Always returns a Solana-backed `AoARIORead`; AO is no longer supported.
+ */
+async function arioFromStorage(): Promise<AoARIORead> {
+  const {
+    rpcUrl = EXTENSION_DEFAULTS.rpcUrl,
+    coreProgramId = EXTENSION_DEFAULTS.coreProgramId,
+    garProgramId = EXTENSION_DEFAULTS.garProgramId,
+    arnsProgramId = EXTENSION_DEFAULTS.arnsProgramId,
+    antProgramId = EXTENSION_DEFAULTS.antProgramId,
+  } = await chrome.storage.local.get([
+    'rpcUrl',
+    'coreProgramId',
+    'garProgramId',
+    'arnsProgramId',
+    'antProgramId',
+  ]);
+
+  return ARIO.init({
+    backend: 'solana',
+    rpc: createSolanaRpc(rpcUrl),
+    coreProgramId: address(coreProgramId),
+    garProgramId: address(garProgramId),
+    arnsProgramId: address(arnsProgramId),
+    antProgramId: address(antProgramId),
+  });
+}
+
+/**
+ * Migrate AO-era storage on upgrade. If the user already used the
+ * extension when it was AO-only (`processId` / `aoCuUrl` present, but no
+ * Solana `network` key yet), silently drop the AO keys, write the
+ * Solana defaults, and invalidate the cached gateway registry so the
+ * next sync repopulates from a Solana gateway source.
+ * No-op on fresh installs and on subsequent runs.
+ */
+async function migrateStorageFromAOEra(): Promise<void> {
+  const { network, processId, aoCuUrl } = await chrome.storage.local.get([
+    'network',
+    'processId',
+    'aoCuUrl',
+  ]);
+
+  // Already migrated.
+  if (network !== undefined) return;
+
+  // Fresh install (no legacy keys, no new keys) — the defaults block
+  // below will populate the new keys.
+  if (processId === undefined && aoCuUrl === undefined) return;
+
+  logger.info(
+    '[migration] AO-era storage detected; resetting to Solana defaults and invalidating cached gateway registry.',
+  );
+
+  await chrome.storage.local.remove([
+    'processId',
+    'aoCuUrl',
+    'localGatewayAddressRegistry',
+    'lastSyncTime',
+    'lastKnownGatewayCount',
+  ]);
+}
+
+// Solana-backed AR.IO read instance; initialized at startup inside the
+// async IIFE below after storage defaults are applied.
+let arIO: AoARIORead | undefined;
 
 // Initialize Chrome storage with defaults
 (async () => {
-  const { dailyStats, processId, aoCuUrl, localGatewayAddressRegistry } =
+  await migrateStorageFromAOEra();
+
+  const { dailyStats, localGatewayAddressRegistry } =
     await chrome.storage.local.get([
       'dailyStats',
-      'processId',
-      'aoCuUrl',
       'localGatewayAddressRegistry',
     ]);
 
@@ -293,26 +351,45 @@ let arIO = ARIO.init({
     dailyStats: existingStats,
   };
 
-  // Set defaults only if not already present
-  if (!processId) updates.processId = EXTENSION_DEFAULTS.processId;
-  if (!aoCuUrl) updates.aoCuUrl = EXTENSION_DEFAULTS.aoCuUrl;
   if (!localGatewayAddressRegistry)
     updates.localGatewayAddressRegistry =
       EXTENSION_DEFAULTS.localGatewayAddressRegistry;
 
   // Only set these if they don't exist in storage
   const {
+    network,
+    rpcUrl,
+    coreProgramId,
+    garProgramId,
+    arnsProgramId,
+    antProgramId,
     routingMethod,
     blacklistedGateways,
     ensResolutionEnabled,
     showVerificationToasts,
   } = await chrome.storage.local.get([
+    'network',
+    'rpcUrl',
+    'coreProgramId',
+    'garProgramId',
+    'arnsProgramId',
+    'antProgramId',
     'routingMethod',
     'blacklistedGateways',
     'ensResolutionEnabled',
     'showVerificationToasts',
   ]);
 
+  if (network === undefined) updates.network = EXTENSION_DEFAULTS.network;
+  if (rpcUrl === undefined) updates.rpcUrl = EXTENSION_DEFAULTS.rpcUrl;
+  if (coreProgramId === undefined)
+    updates.coreProgramId = EXTENSION_DEFAULTS.coreProgramId;
+  if (garProgramId === undefined)
+    updates.garProgramId = EXTENSION_DEFAULTS.garProgramId;
+  if (arnsProgramId === undefined)
+    updates.arnsProgramId = EXTENSION_DEFAULTS.arnsProgramId;
+  if (antProgramId === undefined)
+    updates.antProgramId = EXTENSION_DEFAULTS.antProgramId;
   if (routingMethod === undefined)
     updates.routingMethod = EXTENSION_DEFAULTS.routingMethod;
   if (blacklistedGateways === undefined)
@@ -323,6 +400,8 @@ let arIO = ARIO.init({
     updates.showVerificationToasts = EXTENSION_DEFAULTS.showVerificationToasts;
 
   await chrome.storage.local.set(updates);
+
+  arIO = await arioFromStorage();
 
   debouncedInitializeWayfinder();
 })();
@@ -862,7 +941,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.message === 'resetAdvancedSettings') {
     (async () => {
       try {
-        await chrome.storage.local.remove(['processId', 'aoCuUrl']);
+        await chrome.storage.local.set({
+          network: EXTENSION_DEFAULTS.network,
+          rpcUrl: EXTENSION_DEFAULTS.rpcUrl,
+          coreProgramId: EXTENSION_DEFAULTS.coreProgramId,
+          garProgramId: EXTENSION_DEFAULTS.garProgramId,
+          arnsProgramId: EXTENSION_DEFAULTS.arnsProgramId,
+          antProgramId: EXTENSION_DEFAULTS.antProgramId,
+        });
+        arIO = await arioFromStorage();
         resetWayfinderInstance();
         sendResponse({ success: true });
       } catch (error: any) {
@@ -920,34 +1007,11 @@ async function syncGatewayAddressRegistry(): Promise<void> {
   try {
     // Update status to syncing
     await updateSyncStatus('syncing');
-    const { processId, aoCuUrl } = await chrome.storage.local.get([
-      'processId',
-      'aoCuUrl',
-    ]);
 
-    if (!processId || !aoCuUrl) {
-      logger.warn('Process ID or AO CU URL not found, using defaults...');
-      // Use defaults if not set
-      const defaultProcessId = processId || ARIO_MAINNET_PROCESS_ID;
-      const defaultAoCuUrl = aoCuUrl || DEFAULT_AO_CU_URL;
-
-      // Save defaults
-      await chrome.storage.local.set({
-        processId: defaultProcessId,
-        aoCuUrl: defaultAoCuUrl,
-      });
-
-      // Initialize AR.IO with defaults
-      arIO = ARIO.init({
-        process: new AOProcess({
-          processId: defaultProcessId,
-          ao: connect({
-            CU_URL: defaultAoCuUrl,
-            MODE: 'legacy',
-          }),
-        }),
-      });
-    }
+    // Ensure the read instance is initialized — the startup IIFE
+    // normally sets `arIO`, but on cold reloads the sync can fire
+    // before that completes.
+    arIO ??= await arioFromStorage();
 
     // Syncing Gateway Address Registry
     const registry: Record<WalletAddress, AoGateway> = {};
@@ -998,26 +1062,24 @@ async function syncGatewayAddressRegistry(): Promise<void> {
 }
 
 /**
- * Reinitialize AR.IO with updated configuration
+ * Reinitialize the AR.IO read instance after the user changes the
+ * network preset, RPC URL, or program ID overrides in settings.
  */
 async function reinitializeArIO(): Promise<void> {
   try {
-    const { processId, aoCuUrl } = await chrome.storage.local.get([
-      'processId',
-      'aoCuUrl',
-    ]);
-
-    arIO = ARIO.init({
-      process: new AOProcess({
-        processId: processId,
-        ao: connect({ MODE: 'legacy', CU_URL: aoCuUrl }),
-      }),
-    });
-
-    // AR.IO reinitialized
+    arIO = await arioFromStorage();
   } catch (error) {
-    logger.error('Failed to reinitialize AR.IO, using default:', error);
-    arIO = ARIO.init();
+    logger.error('Failed to reinitialize AR.IO from storage:', error);
+    // Fall back to the bundled defaults directly so the extension stays
+    // usable even if the user persisted an invalid RPC URL or program id.
+    arIO = ARIO.init({
+      backend: 'solana',
+      rpc: createSolanaRpc(EXTENSION_DEFAULTS.rpcUrl),
+      coreProgramId: address(EXTENSION_DEFAULTS.coreProgramId),
+      garProgramId: address(EXTENSION_DEFAULTS.garProgramId),
+      arnsProgramId: address(EXTENSION_DEFAULTS.arnsProgramId),
+      antProgramId: address(EXTENSION_DEFAULTS.antProgramId),
+    });
   }
 }
 
