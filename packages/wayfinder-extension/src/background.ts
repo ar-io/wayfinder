@@ -794,8 +794,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   // Validate message types
   const validMessages = [
     'syncGatewayAddressRegistry',
-    'setArIOProcessId',
-    'setAoCuUrl',
     'resetWayfinder',
     'updateRoutingStrategy',
     'updateVerificationMode',
@@ -857,22 +855,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 
-  // Set AO CU URL
-  if (request.message === 'setAoCuUrl') {
-    (async () => {
-      try {
-        await reinitializeArIO();
-        await syncGatewayAddressRegistry();
-        resetWayfinderInstance();
-        sendResponse({ success: true });
-      } catch (error: any) {
-        logger.error('Error setting AO CU URL:', error);
-        sendResponse({ error: error?.message || 'Unknown error' });
-      }
-    })();
-    return true;
-  }
-
   // Reset Wayfinder instance (for configuration changes)
   if (request.message === 'resetWayfinder') {
     resetWayfinderInstance();
@@ -918,15 +900,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 
-  // Handle advanced settings updates
+  // Handle advanced settings updates. The settings page writes the
+  // changed key(s) directly to chrome.storage.local before sending this
+  // message; we just rebuild the ARIO read instance from the new storage
+  // state and reset the wayfinder so it picks up the change.
   if (request.message === 'updateAdvancedSettings') {
     (async () => {
       try {
-        await chrome.storage.local.set(request.settings);
+        await reinitializeArIO();
         resetWayfinderInstance();
-        const changedSettings = Object.keys(request.settings).join(', ');
         logger.info(
-          `[SETTINGS] Wayfinder reinitialized with updated: ${changedSettings}`,
+          '[SETTINGS] ARIO + Wayfinder reinitialized after settings change',
         );
         sendResponse({ success: true });
       } catch (error: any) {

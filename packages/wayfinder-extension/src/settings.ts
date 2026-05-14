@@ -886,13 +886,18 @@ async function resetSettings() {
   }
 
   try {
-    // Clear specific settings
+    // Clear specific settings. Removing the network keys causes the
+    // startup defaults block to repopulate them with the Solana devnet
+    // preset on the next page load.
     await chrome.storage.local.remove([
       'routingMethod',
       'staticGateway',
-      // 'verificationMode', // Removed - no longer used
-      'processId',
-      'aoCuUrl',
+      'network',
+      'rpcUrl',
+      'coreProgramId',
+      'garProgramId',
+      'arnsProgramId',
+      'antProgramId',
       'theme',
     ]);
 
