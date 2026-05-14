@@ -82,11 +82,7 @@ export default defineConfig({
         // Manual chunks configuration
         manualChunks: {
           // Group SDK and large dependencies together
-          webIndex: [
-            '@ar.io/sdk/web',
-            '@permaweb/aoconnect',
-            '@ar.io/wayfinder-core',
-          ],
+          webIndex: ['@ar.io/sdk/web', '@solana/kit', '@ar.io/wayfinder-core'],
         },
       },
     },

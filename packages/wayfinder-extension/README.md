@@ -84,8 +84,9 @@ Click the settings icon in the popup to access:
 #### Network Configuration
 - **Gateway Registry Sync**: Manually refresh the gateway list from AR.IO network
 - **ENS Resolution**: Enable/disable Ethereum Name Service support
-- **Process ID**: Configure custom AR.IO process ID (advanced)
-- **AO CU URL**: Set custom AO Compute Unit URL (advanced)
+- **Network**: Select an AR.IO Solana network preset (Devnet, or Custom). Mainnet is reserved for when AR.IO Solana mainnet is deployed.
+- **Solana RPC URL**: Endpoint for Solana JSON-RPC calls (editable only in Custom mode)
+- **Advanced — AR.IO Program IDs**: Override the per-program Solana addresses (core / GAR / ArNS / ANT) when running against localnet or a custom deployment (editable only in Custom mode)
 
 #### Performance Settings
 - **Gateway Cache TTL**: Set how long to cache gateway information

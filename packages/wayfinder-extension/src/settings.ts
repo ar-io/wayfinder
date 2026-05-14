@@ -18,6 +18,9 @@
 // Import wayfinder-core modules for gateway discovery
 import { ARIO } from '@ar.io/sdk/web';
 import { NetworkGatewaysProvider } from '@ar.io/wayfinder-core';
+import { address, createSolanaRpc } from '@solana/kit';
+import { AR_IO_SOLANA_DEVNET, AR_IO_SOLANA_MAINNET } from './constants';
+import type { NetworkPreset } from './types';
 import { setExtensionVersion } from './utils/version';
 
 // Toast notification system
@@ -145,13 +148,19 @@ function setupEventHandlers() {
     .getElementById('ensResolution')
     ?.addEventListener('change', saveEnsResolution);
 
-  // Advanced settings are now saved automatically on change
-  document
-    .getElementById('processId')
-    ?.addEventListener('change', handleProcessIdChange);
-  document
-    .getElementById('aoCuUrl')
-    ?.addEventListener('change', handleAoCuUrlChange);
+  // Advanced settings are saved automatically on change
+  for (const id of [
+    'network',
+    'rpcUrl',
+    'coreProgramId',
+    'garProgramId',
+    'arnsProgramId',
+    'antProgramId',
+  ]) {
+    document
+      .getElementById(id)
+      ?.addEventListener('change', handleNetworkConfigChange);
+  }
 
   // Performance actions moved to performance.js
 
@@ -229,8 +238,12 @@ async function loadCurrentSettings() {
       'staticGateway',
       'ensResolutionEnabled',
       'theme',
-      'processId',
-      'aoCuUrl',
+      'network',
+      'rpcUrl',
+      'coreProgramId',
+      'garProgramId',
+      'arnsProgramId',
+      'antProgramId',
       'gatewaySortBy',
       'gatewaySortOrder',
       'gatewayCacheTTL',
@@ -301,20 +314,38 @@ async function loadCurrentSettings() {
       applyTheme(theme);
     }
 
-    // Load advanced settings
-    if (settings.processId) {
-      const processIdEl = document.getElementById(
-        'processId',
-      ) as HTMLInputElement;
-      if (processIdEl) {
-        processIdEl.value = settings.processId;
+    // Load advanced (network) settings
+    for (const id of [
+      'network',
+      'rpcUrl',
+      'coreProgramId',
+      'garProgramId',
+      'arnsProgramId',
+      'antProgramId',
+    ] as const) {
+      const el = document.getElementById(id) as
+        | HTMLInputElement
+        | HTMLSelectElement
+        | null;
+      const value = (settings as Record<string, unknown>)[id];
+      if (el && typeof value === 'string') {
+        el.value = value;
       }
     }
-    if (settings.aoCuUrl) {
-      const aoCuUrlEl = document.getElementById('aoCuUrl') as HTMLInputElement;
-      if (aoCuUrlEl) {
-        aoCuUrlEl.value = settings.aoCuUrl;
-      }
+
+    // Lock the RPC URL + program ID inputs unless the user is on the
+    // 'custom' preset; in preset mode they show the preset's values
+    // as read-only.
+    const isCustom = settings.network === 'custom';
+    for (const id of [
+      'rpcUrl',
+      'coreProgramId',
+      'garProgramId',
+      'arnsProgramId',
+      'antProgramId',
+    ]) {
+      const el = document.getElementById(id) as HTMLInputElement | null;
+      if (el) el.disabled = !isCustom;
     }
 
     // Load gateway provider settings
@@ -610,10 +641,34 @@ async function fetchAvailableGateways() {
     return gateways;
   } catch (error) {
     console.error('Error fetching gateways from local registry:', error);
-    // Try to fetch from AR.IO network as fallback
+    // Try to fetch from AR.IO network as fallback. Constructs a
+    // read-only Solana-backed ARIO using the user's currently-configured
+    // RPC + program IDs (falling back to the AR.IO Solana devnet
+    // defaults if anything is missing).
     try {
+      const {
+        rpcUrl = AR_IO_SOLANA_DEVNET.rpcUrl,
+        coreProgramId = AR_IO_SOLANA_DEVNET.coreProgramId,
+        garProgramId = AR_IO_SOLANA_DEVNET.garProgramId,
+        arnsProgramId = AR_IO_SOLANA_DEVNET.arnsProgramId,
+        antProgramId = AR_IO_SOLANA_DEVNET.antProgramId,
+      } = await chrome.storage.local.get([
+        'rpcUrl',
+        'coreProgramId',
+        'garProgramId',
+        'arnsProgramId',
+        'antProgramId',
+      ]);
+
       const networkProvider = new NetworkGatewaysProvider({
-        ario: ARIO.mainnet(),
+        ario: ARIO.init({
+          backend: 'solana',
+          rpc: createSolanaRpc(rpcUrl),
+          coreProgramId: address(coreProgramId),
+          garProgramId: address(garProgramId),
+          arnsProgramId: address(arnsProgramId),
+          antProgramId: address(antProgramId),
+        }),
       });
       const networkGateways = await networkProvider.getGateways();
 
@@ -831,13 +886,18 @@ async function resetSettings() {
   }
 
   try {
-    // Clear specific settings
+    // Clear specific settings. Removing the network keys causes the
+    // startup defaults block to repopulate them with the Solana devnet
+    // preset on the next page load.
     await chrome.storage.local.remove([
       'routingMethod',
       'staticGateway',
-      // 'verificationMode', // Removed - no longer used
-      'processId',
-      'aoCuUrl',
+      'network',
+      'rpcUrl',
+      'coreProgramId',
+      'garProgramId',
+      'arnsProgramId',
+      'antProgramId',
       'theme',
     ]);
 
@@ -853,55 +913,78 @@ async function resetSettings() {
   }
 }
 
-async function handleProcessIdChange(event: any) {
-  const processId = event.target.value.trim();
+/**
+ * Single handler for all network-related field changes:
+ * - `network`: preset selector ('mainnet' | 'devnet' | 'custom')
+ * - `rpcUrl`: Solana RPC endpoint
+ * - `coreProgramId` / `garProgramId` / `arnsProgramId` / `antProgramId`:
+ *   per-program AR.IO Solana program IDs (base58)
+ *
+ * Selecting a non-custom preset auto-fills the RPC + program IDs from
+ * the preset definition and disables those inputs in the UI.
+ */
+async function handleNetworkConfigChange(event: Event) {
+  const target = event.target as HTMLInputElement | HTMLSelectElement;
+  const key = target.id as
+    | 'network'
+    | 'rpcUrl'
+    | 'coreProgramId'
+    | 'garProgramId'
+    | 'arnsProgramId'
+    | 'antProgramId';
+  const value = target.value.trim();
 
   try {
-    if (processId) {
-      await chrome.storage.local.set({ processId });
+    if (key === 'network') {
+      const preset = value as NetworkPreset;
+      const presetConfig =
+        preset === 'devnet'
+          ? AR_IO_SOLANA_DEVNET
+          : preset === 'mainnet'
+            ? AR_IO_SOLANA_MAINNET
+            : null;
+
+      if (preset !== 'custom' && presetConfig === null) {
+        showToast(`${preset} is not yet available`, 'warning');
+        // Revert the dropdown back to the previous value.
+        const { network: prev } = await chrome.storage.local.get(['network']);
+        if (prev && target instanceof HTMLSelectElement) target.value = prev;
+        return;
+      }
+
+      const updates: Record<string, string> = { network: preset };
+      if (presetConfig !== null) {
+        Object.assign(updates, presetConfig);
+      }
+      await chrome.storage.local.set(updates);
+
+      // Refresh form values + lock state.
+      await loadCurrentSettings();
     } else {
-      await chrome.storage.local.remove(['processId']);
+      // Per-field edit (only reachable in 'custom' mode; UI guards the
+      // others as `disabled`).
+      if (key === 'rpcUrl') {
+        new URL(value); // validates http(s)://… or throws
+      }
+      // Program IDs: validate as Solana base58 addresses.
+      else if (value.length > 0) {
+        address(value);
+      }
+      if (value) {
+        await chrome.storage.local.set({ [key]: value });
+      } else {
+        await chrome.storage.local.remove([key]);
+      }
     }
 
-    // Notify background script
     await chrome.runtime.sendMessage({
       message: 'updateAdvancedSettings',
-      settings: { processId },
     });
 
-    showToast('Process ID updated', 'success');
-  } catch (error) {
-    console.error('Error updating process ID:', error);
-    showToast('Failed to update process ID', 'error');
-  }
-}
-
-async function handleAoCuUrlChange(event: any) {
-  const aoCuUrl = event.target.value.trim();
-
-  try {
-    if (aoCuUrl) {
-      // Validate URL
-      new URL(aoCuUrl);
-      await chrome.storage.local.set({ aoCuUrl });
-    } else {
-      await chrome.storage.local.remove(['aoCuUrl']);
-    }
-
-    // Notify background script
-    await chrome.runtime.sendMessage({
-      message: 'updateAdvancedSettings',
-      settings: { aoCuUrl },
-    });
-
-    showToast('AO CU URL updated', 'success');
+    showToast(`${key} updated`, 'success');
   } catch (error: any) {
-    console.error('Error updating AO CU URL:', error);
-    if (aoCuUrl && error.message.includes('URL')) {
-      showToast('Invalid URL format', 'error');
-    } else {
-      showToast('Failed to update AO CU URL', 'error');
-    }
+    console.error(`Error updating ${key}:`, error);
+    showToast(`Invalid value for ${key}`, 'error');
   }
 }
 

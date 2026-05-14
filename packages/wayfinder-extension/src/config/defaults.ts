@@ -15,12 +15,7 @@
  * limitations under the License.
  */
 
-import {
-  ARIO_MAINNET_PROCESS_ID,
-  AR_IO_SOLANA_DEVNET,
-  DEFAULT_AO_CU_URL,
-  FALLBACK_GATEWAY,
-} from '../constants';
+import { AR_IO_SOLANA_DEVNET, FALLBACK_GATEWAY } from '../constants';
 import type { NetworkPreset } from '../types';
 
 /**
@@ -38,9 +33,13 @@ export const SOLANA_NETWORK_DEFAULTS = {
  * Core extension defaults
  */
 export const EXTENSION_DEFAULTS = {
-  // AR.IO Network Configuration
-  processId: ARIO_MAINNET_PROCESS_ID,
-  aoCuUrl: DEFAULT_AO_CU_URL,
+  // AR.IO Network Configuration (Solana)
+  network: 'devnet' satisfies NetworkPreset as NetworkPreset,
+  rpcUrl: AR_IO_SOLANA_DEVNET.rpcUrl,
+  coreProgramId: AR_IO_SOLANA_DEVNET.coreProgramId,
+  garProgramId: AR_IO_SOLANA_DEVNET.garProgramId,
+  arnsProgramId: AR_IO_SOLANA_DEVNET.arnsProgramId,
+  antProgramId: AR_IO_SOLANA_DEVNET.antProgramId,
 
   // Verification Configuration
   showVerificationToasts: false,
