@@ -2,13 +2,13 @@ name: Core Library
 
 on:
   push:
-    branches: [main, alpha]
+    branches: [main, alpha, solana]
     paths:
       - "packages/wayfinder-core/**"
       - ".github/workflows/core.yml"
       - "package.json"
   pull_request:
-    branches: [main, alpha]
+    branches: [main, alpha, solana]
     paths:
       - "packages/wayfinder-core/**"
       - ".github/workflows/core.yml"

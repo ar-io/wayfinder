@@ -3,7 +3,7 @@ name: Diff Check
 on:
   workflow_call:
   pull_request:
-    branches: [main, alpha]
+    branches: [main, alpha, solana]
     # This runs on all PRs regardless of paths changed
 
 jobs:

@@ -2,14 +2,14 @@ name: React Components & Hooks
 
 on:
   push:
-    branches: [main, alpha]
+    branches: [main, alpha, solana]
     paths:
       - "packages/wayfinder-react/**"
       - "packages/wayfinder-core/**"
       - ".github/workflows/react.yml"
       - "package.json"
   pull_request:
-    branches: [main, alpha]
+    branches: [main, alpha, solana]
     paths:
       - "packages/wayfinder-react/**"
       - "packages/wayfinder-core/**"
