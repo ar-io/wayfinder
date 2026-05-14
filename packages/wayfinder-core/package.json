@@ -73,7 +73,7 @@
     }
   },
   "devDependencies": {
-    "@ar.io/sdk": "^3.13.0",
+    "@ar.io/sdk": "^4.0.0-solana.8",
     "@types/node": "^24.0.0",
     "tsx": "^4.20.3"
   }
