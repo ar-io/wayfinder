@@ -2,15 +2,11 @@
 "@ar.io/wayfinder-core": patch
 ---
 
-Docs: update README examples from AO-era `ARIO.mainnet()` syntax to
-SDK 4.x Solana syntax (`ARIO.init({ backend: 'solana', rpc, ...programIds })`).
+Docs: update README examples to SDK v4.0.2 stable syntax.
 
-The package itself is chain-agnostic and works against any SDK
-backend, but the published README only showed AO-mainnet examples,
-which is misleading in the post-Solana-migration ecosystem. The four
-example blocks (Getting Started, NetworkGatewaysProvider reference,
-CompositeGatewaysProvider, CompositeRoutingStrategy) now show AR.IO
-Solana devnet syntax with a note explaining how to drop the
-program-ID overrides for the eventual mainnet deployment.
+Remove `backend: 'solana'` parameter (Solana is now the only backend),
+switch examples to mainnet (no program-ID overrides needed), and
+remove stale devnet program IDs. The `address()` import from
+`@solana/kit` is no longer needed in mainnet examples.
 
 No code changes; this is docs-only.

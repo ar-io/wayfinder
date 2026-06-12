@@ -38,19 +38,12 @@ import {
   NetworkGatewaysProvider,
 } from '@ar.io/wayfinder-core';
 import { ARIO } from '@ar.io/sdk';
-import { address, createSolanaRpc } from '@solana/kit';
+import { createSolanaRpc } from '@solana/kit';
 
-// AR.IO Solana devnet. When AR.IO Solana mainnet is deployed, drop the
-// program-id overrides (the SDK ships mainnet defaults) and point `rpc`
-// at a mainnet endpoint. wayfinder-core itself is chain-agnostic — the
-// same APIs work against any backend the SDK supports.
+// AR.IO Solana mainnet — program-id overrides are not needed on mainnet
+// (the SDK ships defaults). For devnet, pass explicit program IDs.
 const ario = ARIO.init({
-  backend: 'solana',
-  rpc: createSolanaRpc('https://api.devnet.solana.com'),
-  coreProgramId: address('83CQLP848zzCgnZ4LTq87g6hvxTooNLX7YXXkUUGv5ig'),
-  garProgramId: address('AF8QAEaR4hzsqeUDwEdeTXMYtdyFegTENBdnJro6WVLR'),
-  arnsProgramId: address('2HgSCKYjcapJPdHRKqkLrGXm7kvBmCP45ZyhWEm87oM1'),
-  antProgramId: address('8ZMuXhiK7DorjPUg8RB1rzu7CvsABMk38WDJRbM62y2C'),
+  rpc: createSolanaRpc('https://api.mainnet-beta.solana.com'),
 });
 
 const wayfinder = createWayfinderClient({
@@ -190,22 +183,15 @@ Gateway providers supply the list of gateways for routing. **By default, `create
 
 #### NetworkGatewaysProvider
 
-Returns a list of gateways from the ARIO Network based on on-chain [Gateway Address Registry](https://docs.ar.io/learn/gateways/gateway-registry). You can specify on-chain metrics for gateways to prioritize the highest quality gateways. Requires `@ar.io/sdk` plus `@solana/kit` for the Solana backend.
+Returns a list of gateways from the ARIO Network based on on-chain [Gateway Address Registry](https://docs.ar.io/learn/gateways/gateway-registry). You can specify on-chain metrics for gateways to prioritize the highest quality gateways. Requires `@ar.io/sdk` and `@solana/kit`.
 
 ```javascript
 import { NetworkGatewaysProvider } from '@ar.io/wayfinder-core';
 import { ARIO } from '@ar.io/sdk';
-import { address, createSolanaRpc } from '@solana/kit';
+import { createSolanaRpc } from '@solana/kit';
 
-// AR.IO Solana devnet — see the Getting Started example above for
-// the mainnet variant once it is deployed.
 const ario = ARIO.init({
-  backend: 'solana',
-  rpc: createSolanaRpc('https://api.devnet.solana.com'),
-  coreProgramId: address('83CQLP848zzCgnZ4LTq87g6hvxTooNLX7YXXkUUGv5ig'),
-  garProgramId: address('AF8QAEaR4hzsqeUDwEdeTXMYtdyFegTENBdnJro6WVLR'),
-  arnsProgramId: address('2HgSCKYjcapJPdHRKqkLrGXm7kvBmCP45ZyhWEm87oM1'),
-  antProgramId: address('8ZMuXhiK7DorjPUg8RB1rzu7CvsABMk38WDJRbM62y2C'),
+  rpc: createSolanaRpc('https://api.mainnet-beta.solana.com'),
 });
 
 const gatewayProvider = new NetworkGatewaysProvider({
@@ -248,15 +234,10 @@ import {
   TrustedPeersGatewaysProvider,
 } from '@ar.io/wayfinder-core';
 import { ARIO } from '@ar.io/sdk';
-import { address, createSolanaRpc } from '@solana/kit';
+import { createSolanaRpc } from '@solana/kit';
 
 const ario = ARIO.init({
-  backend: 'solana',
-  rpc: createSolanaRpc('https://api.devnet.solana.com'),
-  coreProgramId: address('83CQLP848zzCgnZ4LTq87g6hvxTooNLX7YXXkUUGv5ig'),
-  garProgramId: address('AF8QAEaR4hzsqeUDwEdeTXMYtdyFegTENBdnJro6WVLR'),
-  arnsProgramId: address('2HgSCKYjcapJPdHRKqkLrGXm7kvBmCP45ZyhWEm87oM1'),
-  antProgramId: address('8ZMuXhiK7DorjPUg8RB1rzu7CvsABMk38WDJRbM62y2C'),
+  rpc: createSolanaRpc('https://api.mainnet-beta.solana.com'),
 });
 
 // Example: Network-first with static fallback
@@ -361,15 +342,10 @@ import {
   NetworkGatewaysProvider,
 } from '@ar.io/wayfinder-core';
 import { ARIO } from '@ar.io/sdk';
-import { address, createSolanaRpc } from '@solana/kit';
+import { createSolanaRpc } from '@solana/kit';
 
 const ario = ARIO.init({
-  backend: 'solana',
-  rpc: createSolanaRpc('https://api.devnet.solana.com'),
-  coreProgramId: address('83CQLP848zzCgnZ4LTq87g6hvxTooNLX7YXXkUUGv5ig'),
-  garProgramId: address('AF8QAEaR4hzsqeUDwEdeTXMYtdyFegTENBdnJro6WVLR'),
-  arnsProgramId: address('2HgSCKYjcapJPdHRKqkLrGXm7kvBmCP45ZyhWEm87oM1'),
-  antProgramId: address('8ZMuXhiK7DorjPUg8RB1rzu7CvsABMk38WDJRbM62y2C'),
+  rpc: createSolanaRpc('https://api.mainnet-beta.solana.com'),
 });
 
 // Example 1: Performance-first with resilience fallback

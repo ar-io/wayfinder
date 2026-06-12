@@ -1,9 +1,10 @@
 ---
-"@ar.io/wayfinder-core": patch
+"@ar.io/wayfinder-core": major
 ---
 
-Verify compatibility with `@ar.io/sdk` `4.x-solana.X` (Solana-backed AR.IO Network).
+BREAKING: Upgrade to `@ar.io/sdk` v4.0.2 stable (Solana-only).
 
-- Bump devDependency from `^3.13.0` → `^4.0.0-solana.8` so tests exercise the Solana-capable SDK.
-- The `peerDependency` range `>=3.12.0` is unchanged — wayfinder-core is chain-agnostic at runtime (only consumes the `AoARIORead` type, which has the same shape in both AO and Solana SDK lines). AO-era consumers continue to work unchanged.
-- No code changes. No breaking changes for consumers.
+- Bump `peerDependency` from `>=3.12.0` → `>=4.0.0`. SDK v3.x (AO-backed) is no longer supported.
+- Bump `devDependency` from `^4.0.0-solana.8` → `^4.0.2`.
+- Rename `AoARIORead` → `ARIORead` in `NetworkGatewaysProvider` to match the SDK's v4 type names.
+- No runtime behavior changes — the `getGateways()` API shape is unchanged.

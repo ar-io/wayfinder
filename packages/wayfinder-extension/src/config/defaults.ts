@@ -20,7 +20,7 @@ import type { NetworkPreset } from '../types';
 
 /**
  * AR.IO Solana network configuration defaults applied on first install.
- * Active preset is `devnet` (AR.IO Solana mainnet is not yet deployed).
+ * Active preset is `devnet`; users can switch to `mainnet` in settings.
  * Stored as flat keys in `chrome.storage.local` for easy diffing and
  * incremental updates from the settings UI.
  */

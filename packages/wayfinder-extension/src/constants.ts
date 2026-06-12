@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { AoGatewayWithAddress } from '@ar.io/sdk/web';
+import { GatewayWithAddress } from '@ar.io/sdk/web';
 import { SolanaNetworkConfig } from './types';
 
 // Last resort fallback gateway - only used when AR.IO network is unreachable
-export const FALLBACK_GATEWAY: AoGatewayWithAddress = {
+export const FALLBACK_GATEWAY: GatewayWithAddress = {
   operatorStake: 0,
   settings: {
     allowedDelegates: [],
@@ -67,26 +67,30 @@ export const GASLESS_ARNS_DNS_EXPIRATION_TIME = 15 * 60 * 1000; // 15 minutes
 
 /**
  * AR.IO Solana devnet program addresses. Mirrors
- * `ar-io-solana-contracts/program-ids/devnet.json`. The default RPC URL
+ * `@ar.io/sdk` DEVNET_PROGRAM_IDS (clusters.ts). The default RPC URL
  * is the public Solana devnet endpoint, which is heavily rate-limited;
  * users hitting limits should switch to the `custom` network preset and
  * supply their own RPC (QuickNode, Helius, etc.).
  */
 export const AR_IO_SOLANA_DEVNET: SolanaNetworkConfig = {
   rpcUrl: 'https://api.devnet.solana.com',
-  coreProgramId: '83CQLP848zzCgnZ4LTq87g6hvxTooNLX7YXXkUUGv5ig',
-  garProgramId: 'AF8QAEaR4hzsqeUDwEdeTXMYtdyFegTENBdnJro6WVLR',
-  arnsProgramId: '2HgSCKYjcapJPdHRKqkLrGXm7kvBmCP45ZyhWEm87oM1',
-  antProgramId: '8ZMuXhiK7DorjPUg8RB1rzu7CvsABMk38WDJRbM62y2C',
+  coreProgramId: '8Njx9wPkXiNzDCgjwVsJFRjpAEV34gGW3n8DzX3V23m1',
+  garProgramId: '7WsDTrtZBsfKtnP33XkjuqXCY69JE7n4QVYpynqJCFxz',
+  arnsProgramId: '6EZNezcg4rc5hnh8HG34vGquT3WpW5xXypzPb24uyEpp',
+  antProgramId: 'DbHbRwUD1oAn1mrDSqtWtvwGcNrmhWdD2g8L4xmeQ7NX',
 };
 
 /**
- * AR.IO Solana mainnet program addresses. Mainnet is not yet deployed
- * (as of 2026-05); this stays `null` until the AR.IO contracts ship on
- * Solana mainnet. The `mainnet` preset in the settings UI is disabled
- * until this is non-null.
+ * AR.IO Solana mainnet program addresses. Mirrors
+ * `@ar.io/sdk` MAINNET_PROGRAM_IDS (clusters.ts).
  */
-export const AR_IO_SOLANA_MAINNET: SolanaNetworkConfig | null = null;
+export const AR_IO_SOLANA_MAINNET: SolanaNetworkConfig = {
+  rpcUrl: 'https://api.mainnet-beta.solana.com',
+  coreProgramId: '73YoECm6NKXpVRoe5f1Q9BcP5DJGPFUjnFy6AxBE5Nvh',
+  garProgramId: '89fNiiwgpFSPHKuqfNUkgYTYjtAJAhyqHjXmgXeppGpf',
+  arnsProgramId: '2yCUx5edFvUrkibYaUa2ZXWyx9kuJkS8CwyzsgHPWdZZ',
+  antProgramId: '2MWexMHfMhGJwMHv9Qm9YAVCqjUFUJwDJAysW4oCUGk5',
+};
 
 /**
  * Preset lookup keyed by `NetworkPreset`. `custom` has no preset value
@@ -94,7 +98,7 @@ export const AR_IO_SOLANA_MAINNET: SolanaNetworkConfig | null = null;
  */
 export const AR_IO_SOLANA_PRESETS: Record<
   'devnet' | 'mainnet',
-  SolanaNetworkConfig | null
+  SolanaNetworkConfig
 > = {
   devnet: AR_IO_SOLANA_DEVNET,
   mainnet: AR_IO_SOLANA_MAINNET,

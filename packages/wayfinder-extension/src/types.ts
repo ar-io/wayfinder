@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { AoGatewayWithAddress } from '@ar.io/sdk/web';
+import { GatewayWithAddress } from '@ar.io/sdk/web';
 
 export type RedirectedTabInfo = {
   originalGateway: string; // The original gateway FQDN (e.g., "permagate.io")
@@ -30,7 +30,7 @@ export type RedirectedTabInfo = {
   };
 };
 
-export type GatewayRegistry = Record<string, AoGatewayWithAddress>;
+export type GatewayRegistry = Record<string, GatewayWithAddress>;
 
 /**
  * Identifier for an AR.IO Solana network deployment. `mainnet` is reserved

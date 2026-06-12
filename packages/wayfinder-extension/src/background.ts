@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { ARIO, AoARIORead, AoGateway, WalletAddress } from '@ar.io/sdk/web';
+import { ARIO, ARIORead, Gateway, WalletAddress } from '@ar.io/sdk/web';
 import { address, createSolanaRpc } from '@solana/kit';
 import pDebounce from 'p-debounce';
 import { ChromeStorageGatewayProvider } from './adapters/chrome-storage-gateway-provider';
@@ -257,9 +257,9 @@ async function updateDailyStats(
  * Construct a read-only `ARIO` instance from the network configuration
  * persisted in `chrome.storage.local`, falling back to
  * `EXTENSION_DEFAULTS` (AR.IO Solana devnet) for any key that isn't set.
- * Always returns a Solana-backed `AoARIORead`; AO is no longer supported.
+ * Always returns a Solana-backed `ARIORead`; AO is no longer supported.
  */
-async function arioFromStorage(): Promise<AoARIORead> {
+async function arioFromStorage(): Promise<ARIORead> {
   const {
     rpcUrl = EXTENSION_DEFAULTS.rpcUrl,
     coreProgramId = EXTENSION_DEFAULTS.coreProgramId,
@@ -275,7 +275,6 @@ async function arioFromStorage(): Promise<AoARIORead> {
   ]);
 
   return ARIO.init({
-    backend: 'solana',
     rpc: createSolanaRpc(rpcUrl),
     coreProgramId: address(coreProgramId),
     garProgramId: address(garProgramId),
@@ -319,13 +318,52 @@ async function migrateStorageFromAOEra(): Promise<void> {
   ]);
 }
 
+/**
+ * Migrate stale devnet program IDs from the v4.0.0-solana prerelease to
+ * the current SDK v4.0.2 devnet deployment. Only fires when the stored
+ * IDs exactly match the old values; no-op otherwise.
+ */
+async function migrateStaleDevnetProgramIds(): Promise<void> {
+  const OLD_DEVNET_CORE = '83CQLP848zzCgnZ4LTq87g6hvxTooNLX7YXXkUUGv5ig';
+
+  const { coreProgramId, network } = await chrome.storage.local.get([
+    'coreProgramId',
+    'network',
+  ]);
+
+  // Only migrate if user is on devnet with the old core program ID.
+  if (coreProgramId !== OLD_DEVNET_CORE) return;
+  if (network !== undefined && network !== 'devnet') return;
+
+  logger.info(
+    '[migration] Stale devnet program IDs detected; updating to SDK v4.0.2 devnet values.',
+  );
+
+  await chrome.storage.local.set({
+    coreProgramId: EXTENSION_DEFAULTS.coreProgramId,
+    garProgramId: EXTENSION_DEFAULTS.garProgramId,
+    arnsProgramId: EXTENSION_DEFAULTS.arnsProgramId,
+    antProgramId: EXTENSION_DEFAULTS.antProgramId,
+    rpcUrl: EXTENSION_DEFAULTS.rpcUrl,
+  });
+
+  // Invalidate cached registry so the next sync fetches from the new
+  // devnet deployment.
+  await chrome.storage.local.remove([
+    'localGatewayAddressRegistry',
+    'lastSyncTime',
+    'lastKnownGatewayCount',
+  ]);
+}
+
 // Solana-backed AR.IO read instance; initialized at startup inside the
 // async IIFE below after storage defaults are applied.
-let arIO: AoARIORead | undefined;
+let arIO: ARIORead | undefined;
 
 // Initialize Chrome storage with defaults
 (async () => {
   await migrateStorageFromAOEra();
+  await migrateStaleDevnetProgramIds();
 
   const { dailyStats, localGatewayAddressRegistry } =
     await chrome.storage.local.get([
@@ -413,7 +451,6 @@ let arIO: AoARIORead | undefined;
       { error: error?.message },
     );
     arIO = ARIO.init({
-      backend: 'solana',
       rpc: createSolanaRpc(EXTENSION_DEFAULTS.rpcUrl),
       coreProgramId: address(EXTENSION_DEFAULTS.coreProgramId),
       garProgramId: address(EXTENSION_DEFAULTS.garProgramId),
@@ -992,7 +1029,7 @@ async function syncGatewayAddressRegistry(): Promise<void> {
     arIO ??= await arioFromStorage();
 
     // Syncing Gateway Address Registry
-    const registry: Record<WalletAddress, AoGateway> = {};
+    const registry: Record<WalletAddress, Gateway> = {};
     let cursor: string | undefined = undefined;
     let totalFetched = 0;
 
@@ -1051,7 +1088,6 @@ async function reinitializeArIO(): Promise<void> {
     // Fall back to the bundled defaults directly so the extension stays
     // usable even if the user persisted an invalid RPC URL or program id.
     arIO = ARIO.init({
-      backend: 'solana',
       rpc: createSolanaRpc(EXTENSION_DEFAULTS.rpcUrl),
       coreProgramId: address(EXTENSION_DEFAULTS.coreProgramId),
       garProgramId: address(EXTENSION_DEFAULTS.garProgramId),

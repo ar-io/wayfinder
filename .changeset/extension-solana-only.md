@@ -26,21 +26,20 @@ removed.
   per-program addresses (core / GAR / ArNS / ANT). Preset modes auto-
   fill the RPC + program IDs and disable those inputs; Custom mode
   re-enables them for advanced operators (e.g., localnet developers).
-- `mainnet` preset is `<option disabled>` until AR.IO Solana mainnet is
-  deployed; the default preset on a fresh install is `devnet`.
+- All three presets are now selectable (`mainnet`, `devnet`, `custom`);
+  the default preset on a fresh install is `devnet`.
 
 **Dependencies:**
 
-- Bumped `@ar.io/sdk` from `^3.21.0` to `^4.0.0-solana.8`.
-- Added `@solana/kit` (Solana JS client used by the SDK's Solana
-  backend).
+- Bumped `@ar.io/sdk` from `^3.21.0` to `^4.0.2`.
+- Bumped `@solana/kit` to `^6.8.0` (matches SDK v4.0.2 requirement).
 - Removed `@permaweb/aoconnect` (no longer needed).
 
 **Code:**
 
 - `src/background.ts`: dropped `AOProcess` / `connect` / AO process
   constants imports; added `arioFromStorage()` helper that constructs
-  a Solana-backed `ARIO.init({backend: 'solana', rpc, ...programIds})`
+  a Solana-backed `ARIO.init({rpc, ...programIds})`
   from `chrome.storage.local`; rewrote the four `ARIO.init` call sites
   to use the helper; added `migrateStorageFromAOEra()` to handle the
   storage schema bump.

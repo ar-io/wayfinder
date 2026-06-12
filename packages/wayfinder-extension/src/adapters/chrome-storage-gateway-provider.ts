@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { AoGatewayWithAddress } from '@ar.io/sdk/web';
+import { GatewayWithAddress } from '@ar.io/sdk/web';
 import { GatewayRegistry } from '../types';
 
 /**
@@ -135,7 +135,7 @@ export class ChromeStorageGatewayProvider {
   async getGatewaysWithMetadata(): Promise<
     Array<{
       url: URL;
-      gateway: AoGatewayWithAddress;
+      gateway: GatewayWithAddress;
       performance?: {
         avgResponseTime: number;
         failures: number;

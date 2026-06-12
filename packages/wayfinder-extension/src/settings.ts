@@ -662,7 +662,6 @@ async function fetchAvailableGateways() {
 
       const networkProvider = new NetworkGatewaysProvider({
         ario: ARIO.init({
-          backend: 'solana',
           rpc: createSolanaRpc(rpcUrl),
           coreProgramId: address(coreProgramId),
           garProgramId: address(garProgramId),
