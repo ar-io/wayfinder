@@ -475,6 +475,37 @@ chrome.storage.local
     logger.error('Failed to initialize gateway performance storage:', error);
   });
 
+// Periodic gateway registry sync. Fires every 60 minutes so the
+// registry stays fresh even if the initial startup sync failed or the
+// service worker was suspended for a long time.
+const SYNC_ALARM_NAME = 'sync-gateway-registry';
+const SYNC_INTERVAL_MINUTES = 60;
+const SYNC_STALE_MS = SYNC_INTERVAL_MINUTES * 60 * 1000;
+
+chrome.alarms.create(SYNC_ALARM_NAME, {
+  periodInMinutes: SYNC_INTERVAL_MINUTES,
+});
+
+chrome.alarms.onAlarm.addListener(async (alarm) => {
+  if (alarm.name !== SYNC_ALARM_NAME) return;
+
+  // Skip if the last sync was recent (e.g. user manually triggered one)
+  const { lastSyncTime } = await chrome.storage.local.get(['lastSyncTime']);
+  if (lastSyncTime && Date.now() - lastSyncTime < SYNC_STALE_MS) {
+    logger.debug(
+      `[SYNC] Skipping periodic sync — last sync was ${Math.round((Date.now() - lastSyncTime) / 60_000)}m ago`,
+    );
+    return;
+  }
+
+  logger.info('[SYNC] Periodic gateway registry sync triggered');
+  try {
+    await syncGatewayAddressRegistry();
+  } catch (error) {
+    logger.error('[SYNC] Periodic sync failed:', error);
+  }
+});
+
 // Create gateway provider instance
 const gatewayProvider = new ChromeStorageGatewayProvider();
 

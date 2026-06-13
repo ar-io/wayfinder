@@ -20,6 +20,7 @@ import {
   PingRoutingStrategy,
   RandomRoutingStrategy,
   RemoteVerificationStrategy,
+  SimpleCacheRoutingStrategy,
   StaticRoutingStrategy,
   Wayfinder,
 } from '@ar.io/wayfinder-core';
@@ -108,10 +109,14 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
       });
       break;
     case 'fastestPing':
-      routingStrategy = new FastestPingRoutingStrategy({
-        timeoutMs: ROUTING_STRATEGY_DEFAULTS.fastestPing.timeoutMs,
-        maxConcurrency: ROUTING_STRATEGY_DEFAULTS.fastestPing.maxConcurrency,
-        gatewaysProvider,
+      routingStrategy = new SimpleCacheRoutingStrategy({
+        routingStrategy: new FastestPingRoutingStrategy({
+          timeoutMs: ROUTING_STRATEGY_DEFAULTS.fastestPing.timeoutMs,
+          maxConcurrency: ROUTING_STRATEGY_DEFAULTS.fastestPing.maxConcurrency,
+          gatewaysProvider,
+          logger,
+        }),
+        ttlSeconds: 120,
         logger,
       });
       break;
@@ -380,7 +385,9 @@ async function lookupArweaveTxIdForDomain(
 
     // Perform DNS lookup
     logger.debug('Checking DNS TXT record for:', domain);
-    const response = await fetch(`${DNS_LOOKUP_API}?name=${domain}&type=TXT`);
+    const response = await fetch(`${DNS_LOOKUP_API}?name=${domain}&type=TXT`, {
+      signal: AbortSignal.timeout(5_000),
+    });
 
     if (!response.ok) {
       logger.error(`DNS lookup failed: ${response.statusText}`);

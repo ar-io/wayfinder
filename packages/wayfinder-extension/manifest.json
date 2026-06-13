@@ -3,7 +3,13 @@
   "name": "AR.IO Wayfinder",
   "version": "2.0.0",
   "description": "Fast, verifiable, decentralized access to ar:// links via AR.IO’s Permanent Cloud.",
-  "permissions": ["storage", "webNavigation", "webRequest", "scripting"],
+  "permissions": [
+    "storage",
+    "webNavigation",
+    "webRequest",
+    "scripting",
+    "alarms"
+  ],
   "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "background.js",
