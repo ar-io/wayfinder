@@ -479,7 +479,7 @@ chrome.storage.local
 // registry stays fresh even if the initial startup sync failed or the
 // service worker was suspended for a long time.
 const SYNC_ALARM_NAME = 'sync-gateway-registry';
-const SYNC_INTERVAL_MINUTES = 60;
+const SYNC_INTERVAL_MINUTES = 24 * 60; // 24 hours
 const SYNC_STALE_MS = SYNC_INTERVAL_MINUTES * 60 * 1000;
 
 chrome.alarms.create(SYNC_ALARM_NAME, {
