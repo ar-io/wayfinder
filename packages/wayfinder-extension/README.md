@@ -25,13 +25,13 @@ The WayFinder Chrome extension intelligently routes users to optimal AR.IO gatew
 ## Installation
 
 ### From Chrome Web Store
-(Coming soon)
+Install from the [Chrome Web Store](https://chromewebstore.google.com/) (search "AR.IO Wayfinder").
 
 ### Development Build
 
 #### Requirements
 - Node.js v22+
-- npm v10.9.2+
+- Yarn v1.22+
 
 #### Build Instructions
 
@@ -41,7 +41,10 @@ git clone https://github.com/ar-io/wayfinder.git
 cd wayfinder
 
 # Install dependencies
-npm install
+yarn install
+
+# Build core library (required first)
+npm run build -w packages/wayfinder-core
 
 # Build the extension
 npm run build -w packages/wayfinder-extension
@@ -84,9 +87,9 @@ Click the settings icon in the popup to access:
 #### Network Configuration
 - **Gateway Registry Sync**: Manually refresh the gateway list from AR.IO network
 - **ENS Resolution**: Enable/disable Ethereum Name Service support
-- **Network**: Select an AR.IO Solana network preset (Mainnet, Devnet, or Custom).
-- **Solana RPC URL**: Endpoint for Solana JSON-RPC calls (editable only in Custom mode)
-- **Advanced — AR.IO Program IDs**: Override the per-program Solana addresses (core / GAR / ArNS / ANT) when running against localnet or a custom deployment (editable only in Custom mode)
+- **Network**: Select an AR.IO Solana network preset (Mainnet, Devnet, or Custom). Defaults to Mainnet.
+- **Solana RPC URL**: Endpoint for Solana JSON-RPC calls (editable only in Custom mode). Mainnet ships with a bundled RPC; Devnet uses the public Solana devnet endpoint.
+- **Advanced — AR.IO Program IDs**: Override the per-program Solana addresses (core / GAR / ArNS / ANT) for localnet or custom deployments (editable only in Custom mode)
 
 #### Performance Settings
 - **Gateway Cache TTL**: Set how long to cache gateway information
@@ -132,19 +135,24 @@ src/
 ├── background.ts      # Service worker handling ar:// navigation
 ├── content.ts         # Content script for in-page ar:// links
 ├── routing.ts         # WayFinder core integration
-├── popup.js          # Extension popup UI
-├── settings.js       # Settings page
-├── gateways.js       # Gateway list management
-├── performance.js    # Performance analytics
+├── popup.ts           # Extension popup UI
+├── settings.ts        # Settings page
+├── gateways.ts        # Gateway list management
+├── performance.ts     # Performance analytics
+├── constants.ts       # Solana network presets and program IDs
+├── types.ts           # Extension-specific types
+├── adapters/
+│   └── chrome-storage-gateway-provider.ts
 └── config/
-    └── defaults.ts   # Default configuration values
+    └── defaults.ts    # Default configuration values
 ```
 
 ### Key Technologies
 
 - **Build System**: Vite with Chrome extension support
 - **Core Library**: @ar.io/wayfinder-core for routing logic
-- **Gateway Discovery**: @ar.io/sdk for AR.IO network integration
+- **Gateway Discovery**: @ar.io/sdk v4.x (Solana backend) for AR.IO on-chain registry
+- **Solana RPC**: @solana/kit for Solana JSON-RPC communication
 - **Storage**: Chrome storage API for persistence
 - **Networking**: WebRequest API for request interception
 
