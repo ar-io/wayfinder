@@ -409,7 +409,8 @@
 
 .modal-header h2 {
   font-size: var(--font-size-base);
-  font-weight: 600;
+  font-weight: 800;
+  letter-spacing: -0.025em;
   color: var(--text-primary);
   margin: 0;
 }
@@ -443,7 +444,8 @@
 
 .section-title h3 {
   font-size: var(--font-size-sm);
-  font-weight: 600;
+  font-weight: 800;
+  letter-spacing: -0.025em;
   color: var(--text-primary);
   margin: 0;
 }
@@ -495,7 +497,8 @@
 
 .section-title h3 {
   font-size: var(--font-size-base);
-  font-weight: 600;
+  font-weight: 800;
+  letter-spacing: -0.025em;
   color: var(--text-primary);
   margin: 0;
 }

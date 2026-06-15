@@ -62,7 +62,7 @@ body {
   height: 54.879px;
   background: var(--colors-container-containerL1, #1a1527);
   border: none;
-  border-radius: 10px;
+  border-radius: var(--radius-md, 12px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -81,9 +81,10 @@ body {
 
 .header-title h1 {
   font-family: "Besley", serif;
-  font-weight: 700;
+  font-weight: 800;
   font-size: 16px;
   line-height: 1.5;
+  letter-spacing: -0.025em;
   color: var(--colors-solid-neutrals-100, #ffffff);
   margin: 0 0 2.703px 0;
 }
@@ -349,7 +350,7 @@ body {
   padding: 8px 12px;
   background: var(--colors-container-containerL0, #0e0a1c);
   border: 1px solid rgba(212, 198, 255, 0.1);
-  border-radius: 6px;
+  border-radius: var(--radius-sm, 8px);
   color: var(--colors-text-textHigh, #d4c6ff);
   font-size: 12px;
   font-weight: 600;
@@ -652,9 +653,10 @@ body {
 
 .empty-state h3 {
   font-family: "Besley", serif;
-  font-weight: 700;
+  font-weight: 800;
   font-size: 17px;
   line-height: 1.4;
+  letter-spacing: -0.025em;
   color: var(--colors-solid-neutrals-100, #ffffff);
   margin: 0;
 }
@@ -670,9 +672,10 @@ body {
 
 .no-results-state h3 {
   font-family: "Besley", serif;
-  font-weight: 700;
+  font-weight: 800;
   font-size: 17px;
   line-height: 1.4;
+  letter-spacing: -0.025em;
   color: var(--colors-solid-neutrals-100, #ffffff);
   margin: 0;
 }
@@ -871,9 +874,10 @@ body {
 
 .modal-header h2 {
   font-family: "Besley", serif;
-  font-weight: 700;
+  font-weight: 800;
   font-size: 20px;
   line-height: 1.4;
+  letter-spacing: -0.025em;
   color: var(--colors-text-textHigh);
   margin: 0;
 }
@@ -893,9 +897,10 @@ body {
 
 .modal-title-section h2 {
   font-family: "Besley", serif;
-  font-weight: 700;
+  font-weight: 800;
   font-size: 20px;
   line-height: 1.4;
+  letter-spacing: -0.025em;
   color: var(--colors-solid-neutrals-100, #ffffff);
   margin: 0;
   background: linear-gradient(135deg, #5427c8, #dfd6f7);
@@ -1063,9 +1068,10 @@ body {
 
 .section-title h3 {
   font-family: "Besley", serif;
-  font-weight: 700;
+  font-weight: 800;
   font-size: 17px;
   line-height: 1.4;
+  letter-spacing: -0.025em;
   color: var(--colors-solid-neutrals-100, #ffffff);
   margin: 0;
   flex: 1;

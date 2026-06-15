@@ -85,9 +85,10 @@ body {
 
 .header-title h1 {
   font-family: var(--font-family-heading, "Besley", serif);
-  font-weight: 700;
+  font-weight: 800;
   font-size: 16px;
-  line-height: 1.5;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
   color: var(--colors-solid-neutrals-100, #ffffff);
   margin: 0 0 2.703px 0;
 }
@@ -207,9 +208,10 @@ body {
 
 .section-header h2 {
   font-family: var(--font-family-heading, "Besley", serif);
-  font-weight: 700;
+  font-weight: 800;
   font-size: 17px;
-  line-height: 1.4;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
   color: var(--colors-solid-neutrals-100, #ffffff);
   margin: 0 0 4px 0;
 }
@@ -311,9 +313,10 @@ body {
 
 .strategy-info h3 {
   font-family: var(--font-family-heading, "Besley", serif);
-  font-weight: 700;
+  font-weight: 800;
   font-size: 14px;
-  line-height: 1.4;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
   color: var(--colors-solid-neutrals-100, #ffffff);
   margin: 0 0 4px 0;
 }
@@ -613,9 +616,10 @@ body {
 
 .verification-strategy-config .strategy-info h3 {
   font-family: var(--font-family-heading, "Besley", serif);
-  font-weight: 700;
+  font-weight: 800;
   font-size: 14px;
-  line-height: 1.4;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
   color: var(--colors-solid-neutrals-100, #ffffff);
   margin: 0 0 4px 0;
 }
@@ -743,7 +747,7 @@ body {
   .strategy-info
   h3 {
   font-size: 14px; /* Match routing strategy */
-  font-weight: 700; /* Match routing strategy */
+  font-weight: 800; /* Match routing strategy */
   margin: 0 0 4px 0; /* Match routing strategy */
 }
 
@@ -854,9 +858,10 @@ body {
 
 .theme-info h3 {
   font-family: var(--font-family-heading, "Besley", serif);
-  font-weight: 700;
+  font-weight: 800;
   font-size: 14px;
-  line-height: 1.4;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
   color: var(--colors-solid-neutrals-100, #ffffff);
   margin: 0 0 4px 0;
 }
@@ -897,9 +902,10 @@ body {
 
 .advanced-option .option-info h3 {
   font-family: var(--font-family-heading, "Besley", serif);
-  font-weight: 700;
+  font-weight: 800;
   font-size: 14px;
-  line-height: 1.4;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
   color: var(--colors-solid-neutrals-100, #ffffff);
   margin: 0 0 4px 0;
 }
@@ -958,9 +964,10 @@ body {
 
 .advanced-info h3 {
   font-family: var(--font-family-heading, "Besley", serif);
-  font-weight: 700;
+  font-weight: 800;
   font-size: 14px;
-  line-height: 1.4;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
   color: var(--colors-solid-neutrals-100, #ffffff);
   margin: 0 0 4px 0;
 }
@@ -1093,9 +1100,10 @@ body {
 
 .verification-strategy-selector .strategy-info h3 {
   font-family: var(--font-family-heading, "Besley", serif);
-  font-weight: 600;
+  font-weight: 800;
+  letter-spacing: -0.025em;
   font-size: 12px;
-  line-height: 1.4;
+  line-height: 1.08;
   color: var(--colors-solid-neutrals-100, #ffffff);
   margin: 0 0 2px 0;
 }
@@ -1152,9 +1160,10 @@ body {
 
 .mode-info h3 {
   font-family: var(--font-family-heading, "Besley", serif);
-  font-weight: 600;
+  font-weight: 800;
+  letter-spacing: -0.025em;
   font-size: 12px;
-  line-height: 1.4;
+  line-height: 1.08;
   color: var(--colors-solid-neutrals-100, #ffffff);
   margin: 0 0 2px 0;
 }
@@ -1286,9 +1295,10 @@ body {
 
 .mode-info h3 {
   font-family: var(--font-family-heading, "Besley", serif);
-  font-weight: 700;
+  font-weight: 800;
   font-size: 14px;
-  line-height: 1.4;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
   color: var(--colors-solid-neutrals-100, #ffffff);
   margin: 0 0 4px 0;
 }
@@ -1430,9 +1440,10 @@ body {
 
 .option-info h3 {
   font-family: var(--font-family-heading, "Besley", serif);
-  font-weight: 700;
+  font-weight: 800;
   font-size: 14px;
-  line-height: 1.4;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
   color: var(--colors-solid-neutrals-100, #ffffff);
   margin: 0 0 4px 0;
 }
@@ -1497,7 +1508,7 @@ body {
 
 .toggle-switch input:not(:checked) + .toggle-slider,
 .switch input:not(:checked) + .switch-slider {
-  background: #0e0a1c;
+  background: #26203a;
   border: 1.14286px solid rgba(212, 198, 255, 0.01);
   box-shadow: none;
   justify-content: flex-start;
@@ -1538,9 +1549,10 @@ body {
 
 .action-info h3 {
   font-family: var(--font-family-heading, "Besley", serif);
-  font-weight: 700;
+  font-weight: 800;
   font-size: var(--font-size-h3);
-  line-height: var(--line-height-normal);
+  line-height: 1.08;
+  letter-spacing: -0.025em;
   color: var(--text-high);
   margin: 0 0 4px 0;
 }
@@ -1836,9 +1848,10 @@ body {
 
 .provider-option .option-info h3 {
   font-family: var(--font-family-heading, "Besley", serif);
-  font-weight: 700;
+  font-weight: 800;
   font-size: 14px;
-  line-height: 1.4;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
   color: var(--colors-solid-neutrals-100, #ffffff);
   margin: 0 0 4px 0;
 }
@@ -1965,9 +1978,10 @@ body {
 
 .trusted-gateways-config .mode-info h3 {
   font-family: var(--font-family-heading, "Besley", serif);
-  font-weight: 700;
+  font-weight: 800;
   font-size: 14px;
-  line-height: 1.4;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
   color: var(--colors-solid-neutrals-100, #ffffff);
   margin: 0 0 4px 0;
 }
@@ -2023,8 +2037,10 @@ body {
 
 .gateway-selection-section h4 {
   font-family: var(--font-family-heading, "Besley", serif);
-  font-weight: 700;
+  font-weight: 800;
   font-size: 14px;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
   color: var(--colors-solid-neutrals-100, #ffffff);
   margin: 0 0 12px 0;
 }
@@ -2111,8 +2127,10 @@ body {
 
 .trusted-gateways-preview h4 {
   font-family: var(--font-family-heading, "Besley", serif);
-  font-weight: 700;
+  font-weight: 800;
   font-size: 14px;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
   color: var(--colors-solid-neutrals-100, #ffffff);
   margin: 0 0 12px 0;
 }
@@ -2180,9 +2198,10 @@ body {
 
 .network-option .option-info h3 {
   font-family: var(--font-family-heading, "Besley", serif);
-  font-weight: 700;
+  font-weight: 800;
   font-size: 14px;
-  line-height: 1.4;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
   color: var(--colors-solid-neutrals-100, #ffffff);
   margin: 0 0 4px 0;
 }
@@ -2218,6 +2237,7 @@ body {
 .option-input input[type="url"]:focus {
   outline: none;
   border-color: var(--accent-primary, #5427c8);
+  box-shadow: 0 0 0 3px rgba(84, 39, 200, 0.2);
 }
 
 .option-input input[type="text"]::placeholder,
@@ -2254,10 +2274,11 @@ body {
 }
 
 .network-option-advanced summary {
-  font-family: var(--font-family-body, "Plus Jakarta Sans", sans-serif);
-  font-weight: 700;
+  font-family: var(--font-family-heading, "Besley", serif);
+  font-weight: 800;
   font-size: 14px;
-  line-height: 1.4;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
   color: var(--colors-solid-neutrals-100, #ffffff);
   cursor: pointer;
   list-style: none;
@@ -2322,6 +2343,7 @@ body {
 .program-id-field input[type="text"]:focus {
   outline: none;
   border-color: var(--accent-primary, #5427c8);
+  box-shadow: 0 0 0 3px rgba(84, 39, 200, 0.2);
 }
 
 .program-id-field input[type="text"]::placeholder {
@@ -2464,7 +2486,8 @@ body {
 
 .action-info h3 {
   font-family: var(--font-family-heading, "Besley", serif);
-  font-weight: 600;
+  font-weight: 800;
+  letter-spacing: -0.025em;
   font-size: 15px;
   color: var(--colors-text-textHigh);
   margin: 0 0 4px 0;
@@ -2517,7 +2540,8 @@ body {
 
 .notification-option .option-info h3 {
   font-family: var(--font-family-heading, "Besley", serif);
-  font-weight: 600;
+  font-weight: 800;
+  letter-spacing: -0.025em;
   font-size: 15px;
   color: var(--colors-text-textHigh);
   margin: 0 0 4px 0;
