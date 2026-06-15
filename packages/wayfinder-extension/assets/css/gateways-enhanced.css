@@ -82,7 +82,7 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(0, 208, 132, 0.3);
+  box-shadow: 0 4px 12px rgba(84, 39, 200, 0.3);
 }
 
 .modal-stat-card .stat-content {
@@ -566,7 +566,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, transparent, rgba(0, 208, 132, 0.05));
+  background: linear-gradient(135deg, transparent, rgba(84, 39, 200, 0.05));
   opacity: 0;
   transition: opacity 0.3s ease;
   pointer-events: none;

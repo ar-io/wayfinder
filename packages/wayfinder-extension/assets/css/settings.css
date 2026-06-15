@@ -11,9 +11,9 @@
 
 html,
 body {
-  font-family: var(--font-family-base, "Rubik", sans-serif);
-  background: var(--colors-container-containerL0, #050505);
-  color: var(--colors-text-textHigh, #cacad6);
+  font-family: var(--font-family-body, "Plus Jakarta Sans", sans-serif);
+  background: var(--colors-container-containerL0, #0e0a1c);
+  color: var(--colors-text-textHigh, #d4c6ff);
   width: var(--extension-width, 420px);
   min-height: var(--extension-height, 600px);
   overflow: hidden;
@@ -26,7 +26,7 @@ body {
   flex-direction: column;
   width: 100%;
   min-height: 100vh;
-  background: var(--colors-container-containerL0, #050505);
+  background: var(--colors-container-containerL0, #0e0a1c);
   border-radius: 0 0 8px 8px;
   overflow: hidden;
 }
@@ -35,8 +35,8 @@ body {
 .settings-header {
   width: 100%;
   height: 95.832px;
-  background: #000;
-  border-bottom: 1px solid rgba(202, 202, 214, 0.1);
+  background: var(--colors-container-containerL0, #0e0a1c);
+  border-bottom: 1px solid rgba(212, 198, 255, 0.1);
   display: flex;
   align-items: center;
   position: fixed;
@@ -64,7 +64,7 @@ body {
 .back-button {
   width: 54.88px;
   height: 54.879px;
-  background: var(--colors-container-containerL0, #050505);
+  background: var(--colors-container-containerL0, #0e0a1c);
   border: none;
   border-radius: 10px;
   display: flex;
@@ -75,7 +75,7 @@ body {
 }
 
 .back-button:hover {
-  background: var(--colors-container-containerL0, #050505);
+  background: var(--colors-container-containerL0, #0e0a1c);
 }
 
 .back-button svg {
@@ -84,7 +84,7 @@ body {
 }
 
 .header-title h1 {
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-heading, "Besley", serif);
   font-weight: 700;
   font-size: 16px;
   line-height: 1.5;
@@ -93,11 +93,11 @@ body {
 }
 
 .header-title p {
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-body, "Plus Jakarta Sans", sans-serif);
   font-weight: 400;
   font-size: 16px;
   line-height: 1.5;
-  color: var(--colors-text-textHigh, #cacad6);
+  color: var(--colors-text-textHigh, #d4c6ff);
   margin: 0;
 }
 
@@ -107,9 +107,9 @@ body {
   justify-content: center;
   width: 32px;
   height: 32px;
-  background: var(--colors-container-containerL0, #050505);
+  background: var(--colors-container-containerL0, #0e0a1c);
   border-radius: 8px;
-  border: 1px solid rgba(202, 202, 214, 0.08);
+  border: 1px solid rgba(212, 198, 255, 0.08);
   cursor: pointer;
   position: relative;
 }
@@ -118,7 +118,7 @@ body {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: var(--accent-primary, #349fa8);
+  background: var(--accent-primary, #5427C8);
   animation: pulse 2s infinite;
 }
 
@@ -132,11 +132,11 @@ body {
   bottom: -35px;
   left: 50%;
   transform: translateX(-50%);
-  background: var(--colors-container-containerL0, #050505);
-  color: var(--colors-text-textHigh, #cacad6);
+  background: var(--colors-container-containerL0, #0e0a1c);
+  color: var(--colors-text-textHigh, #D4C6FF);
   padding: 6px 12px;
   border-radius: 6px;
-  font-family: 'Rubik', sans-serif;
+  font-family: var(--font-family-body, 'Plus Jakarta Sans', sans-serif);
   font-size: 12px;
   font-weight: 500;
   white-space: nowrap;
@@ -144,7 +144,7 @@ body {
   visibility: hidden;
   transition: opacity 0.2s ease, visibility 0.2s ease;
   z-index: 1000;
-  border: 1px solid rgba(202, 202, 214, 0.08);
+  border: 1px solid rgba(212, 198, 255, 0.08);
 }
 
 .status-indicator:hover::after {
@@ -180,9 +180,9 @@ body {
 /* Settings sections */
 .settings-section {
   width: 384px;
-  background: var(--colors-container-containerL1, #0e0e0f);
+  background: var(--colors-container-containerL1, #1a1527);
   border-radius: 12px;
-  border: 1px solid rgba(202, 202, 214, 0.08);
+  border: 1px solid rgba(212, 198, 255, 0.08);
   position: relative;
   overflow: hidden;
   cursor: pointer;
@@ -196,17 +196,17 @@ body {
   ):not(.gateway-provider-config):not(.trusted-gateways-config):not(
     .network-config
   ):not(.data-management) {
-  background: #1c1c1f; /* containerL2 */
-  border-color: rgba(202, 202, 214, 0.1);
+  background: var(--colors-container-containerL2, #26203a);
+  border-color: rgba(212, 198, 255, 0.1);
 }
 
 .section-header {
   padding: 18px;
-  border-bottom: 1px solid rgba(202, 202, 214, 0.1);
+  border-bottom: 1px solid rgba(212, 198, 255, 0.1);
 }
 
 .section-header h2 {
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-heading, "Besley", serif);
   font-weight: 700;
   font-size: 17px;
   line-height: 1.4;
@@ -215,11 +215,11 @@ body {
 }
 
 .section-header p {
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-body, "Plus Jakarta Sans", sans-serif);
   font-weight: 400;
   font-size: 14px;
   line-height: 1.4;
-  color: var(--colors-text-textHigh, #cacad6);
+  color: var(--colors-text-textHigh, #d4c6ff);
   margin: 0;
 }
 
@@ -230,9 +230,9 @@ body {
 
 .strategy-option {
   margin-bottom: 18px;
-  border: 1px solid rgba(202, 202, 214, 0.08);
+  border: 1px solid rgba(212, 198, 255, 0.08);
   border-radius: 8px;
-  background: var(--colors-container-containerL1, #0e0e0f);
+  background: var(--colors-container-containerL1, #1a1527);
   overflow: hidden;
   position: relative;
   cursor: pointer;
@@ -240,8 +240,8 @@ body {
 }
 
 .strategy-option:hover:not(:has(input[type="radio"]:checked)) {
-  background: #1c1c1f; /* containerL2 */
-  border-color: rgba(202, 202, 214, 0.1);
+  background: var(--colors-container-containerL2, #26203a);
+  border-color: rgba(212, 198, 255, 0.1);
 }
 
 .strategy-option input[type="radio"]:checked {
@@ -256,7 +256,7 @@ body {
   position: absolute;
   inset: 0;
   padding: 1px;
-  background: linear-gradient(135deg, #f7c3a1, #df9be8);
+  background: linear-gradient(135deg, #5427c8, #dfd6f7);
   border-radius: inherit;
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask-composite: xor;
@@ -310,7 +310,7 @@ body {
 }
 
 .strategy-info h3 {
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-heading, "Besley", serif);
   font-weight: 700;
   font-size: 14px;
   line-height: 1.4;
@@ -319,11 +319,11 @@ body {
 }
 
 .strategy-info p {
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-body, "Plus Jakarta Sans", sans-serif);
   font-weight: 400;
   font-size: 12px;
   line-height: 1.4;
-  color: var(--colors-text-textHigh, #cacad6);
+  color: var(--colors-text-textHigh, #d4c6ff);
   margin: 0;
 }
 
@@ -337,7 +337,7 @@ body {
 }
 
 .strategy-badge.recommended {
-  background: #1e1e24;
+  background: var(--colors-container-containerL2, #26203a);
   color: var(--colors-solid-neutrals-100, #ffffff);
 }
 
@@ -352,7 +352,7 @@ body {
 .strategy-details {
   display: none;
   padding: 0 16px 16px 16px;
-  border-top: 1px solid rgba(202, 202, 214, 0.1);
+  border-top: 1px solid rgba(212, 198, 255, 0.1);
   position: relative;
   z-index: 1;
 }
@@ -372,7 +372,7 @@ body {
 
 .feature {
   font-size: 12px;
-  color: var(--colors-text-textHigh, #cacad6);
+  color: var(--colors-text-textHigh, #d4c6ff);
   padding-left: 16px;
   position: relative;
 }
@@ -381,7 +381,7 @@ body {
   content: "•";
   position: absolute;
   left: 0;
-  color: var(--accent-primary, #349fa8);
+  color: var(--accent-primary, #5427c8);
 }
 
 /* Static Gateway Configuration */
@@ -417,12 +417,12 @@ body {
 .input-with-button input {
   width: 100%;
   padding: 12px 16px;
-  background: var(--colors-container-containerL0, #050505);
-  border: 1px solid rgba(202, 202, 214, 0.08);
+  background: var(--colors-container-containerL0, #0e0a1c);
+  border: 1px solid rgba(212, 198, 255, 0.08);
   border-radius: 8px;
-  color: var(--colors-text-textHigh, #cacad6);
+  color: var(--colors-text-textHigh, #d4c6ff);
   font-size: 14px;
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-body, "Plus Jakarta Sans", sans-serif);
 }
 
 .gateway-dropdown {
@@ -455,14 +455,14 @@ body {
   left: 0;
   right: 0;
   height: 1px;
-  background: rgba(202, 202, 214, 0.1);
+  background: rgba(212, 198, 255, 0.1);
 }
 
 .gateway-divider span {
-  background: var(--colors-container-containerL0, #050505);
+  background: var(--colors-container-containerL0, #0e0a1c);
   padding: 0 12px;
   font-size: 12px;
-  color: var(--colors-text-textHigh, #cacad6);
+  color: var(--colors-text-textHigh, #d4c6ff);
 }
 
 .input-with-button {
@@ -476,10 +476,10 @@ body {
 
 .test-button {
   padding: 12px 16px;
-  background: var(--colors-container-containerL3, #2a2a2e);
+  background: var(--colors-container-containerL3, #342d4d);
   border: none;
   border-radius: 8px;
-  color: var(--colors-text-textHigh, #cacad6);
+  color: var(--colors-text-textHigh, #d4c6ff);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -487,8 +487,8 @@ body {
 }
 
 .test-button:hover:not(:disabled) {
-  background: #d6ecee;
-  color: #000000;
+  background: var(--accent-hover, #6b3ed4);
+  color: #ffffff;
 }
 
 .test-button:disabled {
@@ -500,13 +500,13 @@ body {
 .apply-static-gateway {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid rgba(202, 202, 214, 0.08);
+  border-top: 1px solid rgba(212, 198, 255, 0.08);
   text-align: center;
 }
 
 .apply-static-gateway .btn-primary {
-  background: linear-gradient(135deg, #f7c3a1, #df9be8);
-  color: #000000;
+  background: linear-gradient(135deg, #5427c8, #dfd6f7);
+  color: #ffffff;
   border: none;
   padding: 12px 24px;
   border-radius: 8px;
@@ -520,12 +520,12 @@ body {
 
 .apply-static-gateway .btn-primary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(223, 155, 232, 0.3);
+  box-shadow: 0 4px 12px rgba(84, 39, 200, 0.3);
 }
 
 .apply-static-gateway .apply-hint {
   font-size: 12px;
-  color: var(--colors-text-textLow, #8989a1);
+  color: var(--colors-text-textLow, #9b93b4);
   margin: 0;
 }
 
@@ -536,9 +536,9 @@ body {
 
 .verification-strategy-config .strategy-option {
   margin-bottom: 18px;
-  border: 1px solid rgba(202, 202, 214, 0.08);
+  border: 1px solid rgba(212, 198, 255, 0.08);
   border-radius: 8px;
-  background: var(--colors-container-containerL1, #0e0e0f);
+  background: var(--colors-container-containerL1, #1a1527);
   overflow: hidden;
   position: relative;
   cursor: pointer;
@@ -551,8 +551,8 @@ body {
 
 .verification-strategy-config
   .strategy-option:hover:not(:has(input[type="radio"]:checked)) {
-  background: #1c1c1f; /* containerL2 */
-  border-color: rgba(202, 202, 214, 0.1);
+  background: var(--colors-container-containerL2, #26203a);
+  border-color: rgba(212, 198, 255, 0.1);
 }
 
 .verification-strategy-config
@@ -561,7 +561,7 @@ body {
   position: absolute;
   inset: 0;
   padding: 1px;
-  background: linear-gradient(135deg, #f7c3a1, #df9be8);
+  background: linear-gradient(135deg, #5427c8, #dfd6f7);
   border-radius: inherit;
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask-composite: xor;
@@ -612,7 +612,7 @@ body {
 }
 
 .verification-strategy-config .strategy-info h3 {
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-heading, "Besley", serif);
   font-weight: 700;
   font-size: 14px;
   line-height: 1.4;
@@ -621,11 +621,11 @@ body {
 }
 
 .verification-strategy-config .strategy-info p {
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-body, "Plus Jakarta Sans", sans-serif);
   font-weight: 400;
   font-size: 12px;
   line-height: 1.4;
-  color: var(--colors-text-textHigh, #cacad6);
+  color: var(--colors-text-textHigh, #d4c6ff);
   margin: 0;
 }
 
@@ -643,7 +643,7 @@ body {
 }
 
 .verification-strategy-config .strategy-badge.recommended {
-  background: #1e1e24;
+  background: var(--colors-container-containerL2, #26203a);
   color: var(--colors-solid-neutrals-100, #ffffff);
 }
 
@@ -664,7 +664,7 @@ body {
 .verification-strategy-config .strategy-details {
   display: none;
   padding: 0 16px 16px 16px;
-  border-top: 1px solid rgba(202, 202, 214, 0.1);
+  border-top: 1px solid rgba(212, 198, 255, 0.1);
   position: relative;
   z-index: 1;
 }
@@ -685,7 +685,7 @@ body {
 
 .verification-strategy-config .feature {
   font-size: 12px;
-  color: var(--colors-text-textHigh, #cacad6);
+  color: var(--colors-text-textHigh, #d4c6ff);
   padding-left: 16px;
   position: relative;
 }
@@ -694,14 +694,14 @@ body {
   content: "•";
   position: absolute;
   left: 0;
-  color: var(--accent-primary, #349fa8);
+  color: var(--accent-primary, #5427c8);
 }
 
 /* Coming Soon Badge */
 .coming-soon-badge {
   display: inline-block;
   padding: 2px 8px;
-  background: linear-gradient(135deg, #f7c3a1, #df9be8);
+  background: linear-gradient(135deg, #5427c8, #dfd6f7);
   color: #ffffff;
   font-size: 10px;
   font-weight: 600;
@@ -730,7 +730,7 @@ body {
 
 /* Override general verification-strategy-selector rules for the config section */
 .verification-strategy-config .verification-strategy-selector .strategy-option {
-  background: var(--colors-container-containerL1, #0e0e0f);
+  background: var(--colors-container-containerL1, #1a1527);
   padding: 0; /* Remove the extra 20px padding that causes indentation */
 }
 
@@ -758,9 +758,9 @@ body {
 
 .theme-option {
   margin-bottom: 18px;
-  border: 1px solid rgba(202, 202, 214, 0.08);
+  border: 1px solid rgba(212, 198, 255, 0.08);
   border-radius: 8px;
-  background: var(--colors-container-containerL0, #050505);
+  background: var(--colors-container-containerL0, #0e0a1c);
   overflow: hidden;
   position: relative;
 }
@@ -770,32 +770,32 @@ body {
 }
 
 .theme-option:hover:not(:has(input[type="radio"]:checked)) {
-  background: #1c1c1f; /* containerL2 */
-  border-color: rgba(202, 202, 214, 0.1);
+  background: var(--colors-container-containerL2, #26203a);
+  border-color: rgba(212, 198, 255, 0.1);
 }
 
 /* Special hover state for light theme card in dark mode */
 .theme-option[data-theme="light"]:hover:not(:has(input[type="radio"]:checked)) {
-  background: #f1f5f9; /* Light theme containerL2 */
-  border-color: rgba(15, 23, 42, 0.16); /* Light theme border */
+  background: #f6f4ef; /* Light theme containerL2 */
+  border-color: rgba(35, 35, 45, 0.16); /* Light theme border */
 }
 
 .theme-option[data-theme="light"]:hover:not(:has(input[type="radio"]:checked))
   .theme-info
   h3 {
-  color: #0f172a; /* Light theme text */
+  color: #23232d; /* Light theme text */
 }
 
 .theme-option[data-theme="light"]:hover:not(:has(input[type="radio"]:checked))
   .theme-info
   p {
-  color: #1e293b; /* Light theme secondary text */
+  color: #23232d; /* Light theme secondary text */
 }
 
 .theme-option[data-theme="light"]:hover:not(:has(input[type="radio"]:checked))
   .theme-icon
   svg {
-  color: #1e293b; /* Light theme icon color */
+  color: #23232d; /* Light theme icon color */
 }
 
 .theme-option:has(input[type="radio"]:checked)::before {
@@ -803,7 +803,7 @@ body {
   position: absolute;
   inset: 0;
   padding: 1px;
-  background: linear-gradient(135deg, #f7c3a1, #df9be8);
+  background: linear-gradient(135deg, #5427c8, #dfd6f7);
   border-radius: inherit;
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask-composite: xor;
@@ -853,7 +853,7 @@ body {
 }
 
 .theme-info h3 {
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-heading, "Besley", serif);
   font-weight: 700;
   font-size: 14px;
   line-height: 1.4;
@@ -862,11 +862,11 @@ body {
 }
 
 .theme-info p {
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-body, "Plus Jakarta Sans", sans-serif);
   font-weight: 400;
   font-size: 12px;
   line-height: 1.4;
-  color: var(--colors-text-textHigh, #cacad6);
+  color: var(--colors-text-textHigh, #d4c6ff);
   margin: 0;
 }
 
@@ -877,9 +877,9 @@ body {
 
 .advanced-option {
   margin-bottom: 18px;
-  border: 1px solid rgba(202, 202, 214, 0.08);
+  border: 1px solid rgba(212, 198, 255, 0.08);
   border-radius: 8px;
-  background: var(--colors-container-containerL0, #050505);
+  background: var(--colors-container-containerL0, #0e0a1c);
   overflow: hidden;
   padding: 16px;
 }
@@ -896,7 +896,7 @@ body {
 }
 
 .advanced-option .option-info h3 {
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-heading, "Besley", serif);
   font-weight: 700;
   font-size: 14px;
   line-height: 1.4;
@@ -905,21 +905,21 @@ body {
 }
 
 .advanced-option .option-info p {
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-body, "Plus Jakarta Sans", sans-serif);
   font-weight: 400;
   font-size: 12px;
   line-height: 1.4;
-  color: var(--colors-text-textHigh, #cacad6);
+  color: var(--colors-text-textHigh, #d4c6ff);
   margin: 0;
 }
 
 .advanced-option .option-description {
   margin-top: 12px;
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-body, "Plus Jakarta Sans", sans-serif);
   font-weight: 400;
   font-size: 12px;
   line-height: 1.5;
-  color: var(--colors-text-textMid, #8a8a9e);
+  color: var(--colors-text-textMid, #9b93b4);
 }
 
 .advanced-header {
@@ -957,7 +957,7 @@ body {
 }
 
 .advanced-info h3 {
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-heading, "Besley", serif);
   font-weight: 700;
   font-size: 14px;
   line-height: 1.4;
@@ -966,11 +966,11 @@ body {
 }
 
 .advanced-info p {
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-body, "Plus Jakarta Sans", sans-serif);
   font-weight: 400;
   font-size: 12px;
   line-height: 1.4;
-  color: var(--colors-text-textHigh, #cacad6);
+  color: var(--colors-text-textHigh, #d4c6ff);
   margin: 0;
 }
 
@@ -985,7 +985,7 @@ body {
 .advanced-details {
   display: none;
   padding: 0 16px 16px 16px;
-  border-top: 1px solid rgba(202, 202, 214, 0.1);
+  border-top: 1px solid rgba(212, 198, 255, 0.1);
 }
 
 /* Telemetry Info */
@@ -1000,11 +1000,11 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-body, "Plus Jakarta Sans", sans-serif);
   font-weight: 400;
   font-size: 12px;
   line-height: 1.4;
-  color: var(--colors-text-textMid, #8a8a9e);
+  color: var(--colors-text-textMid, #9b93b4);
 }
 
 .telemetry-info .info-item svg {
@@ -1027,9 +1027,9 @@ body {
 
 .verification-strategy-selector .strategy-option {
   margin-bottom: 12px;
-  border: 1px solid rgba(202, 202, 214, 0.08);
+  border: 1px solid rgba(212, 198, 255, 0.08);
   border-radius: 8px;
-  background: var(--colors-container-containerL0, #050505);
+  background: var(--colors-container-containerL0, #0e0a1c);
   overflow: hidden;
   position: relative;
   padding: 20px;
@@ -1041,7 +1041,7 @@ body {
   position: absolute;
   inset: 0;
   padding: 1px;
-  background: linear-gradient(135deg, #f7c3a1, #df9be8);
+  background: linear-gradient(135deg, #5427c8, #dfd6f7);
   border-radius: inherit;
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask-composite: xor;
@@ -1092,7 +1092,7 @@ body {
 }
 
 .verification-strategy-selector .strategy-info h3 {
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-heading, "Besley", serif);
   font-weight: 600;
   font-size: 12px;
   line-height: 1.4;
@@ -1101,11 +1101,11 @@ body {
 }
 
 .verification-strategy-selector .strategy-info p {
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-body, "Plus Jakarta Sans", sans-serif);
   font-weight: 400;
   font-size: 10px;
   line-height: 1.4;
-  color: var(--colors-text-textHigh, #cacad6);
+  color: var(--colors-text-textHigh, #d4c6ff);
   margin: 0;
 }
 
@@ -1122,16 +1122,16 @@ body {
 }
 
 .mode-option {
-  border: 1px solid rgba(202, 202, 214, 0.08);
+  border: 1px solid rgba(212, 198, 255, 0.08);
   border-radius: 8px;
-  background: var(--colors-container-containerL0, #050505);
+  background: var(--colors-container-containerL0, #0e0a1c);
   padding: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .mode-option:hover {
-  background: var(--colors-container-containerL0, #050505);
+  background: var(--colors-container-containerL0, #0e0a1c);
 }
 
 .mode-option input[type="radio"] {
@@ -1139,8 +1139,8 @@ body {
 }
 
 .mode-option:has(input[type="radio"]:checked) {
-  border-color: var(--accent-primary, #349fa8);
-  background: var(--colors-container-containerL0, #050505);
+  border-color: var(--accent-primary, #5427c8);
+  background: var(--colors-container-containerL0, #0e0a1c);
 }
 
 .mode-option label {
@@ -1151,7 +1151,7 @@ body {
 }
 
 .mode-info h3 {
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-heading, "Besley", serif);
   font-weight: 600;
   font-size: 12px;
   line-height: 1.4;
@@ -1160,26 +1160,26 @@ body {
 }
 
 .mode-info p {
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-body, "Plus Jakarta Sans", sans-serif);
   font-weight: 400;
   font-size: 10px;
   line-height: 1.4;
-  color: var(--colors-text-textHigh, #cacad6);
+  color: var(--colors-text-textHigh, #d4c6ff);
   margin: 0;
 }
 
 /* Gateway Count Slider */
 .gateway-count-config {
-  border-top: 1px solid rgba(202, 202, 214, 0.1);
+  border-top: 1px solid rgba(212, 198, 255, 0.1);
   padding-top: 16px;
 }
 
 .gateway-count-config label {
   display: block;
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-body, "Plus Jakarta Sans", sans-serif);
   font-weight: 600;
   font-size: 12px;
-  color: var(--colors-text-textHigh, #cacad6);
+  color: var(--colors-text-textHigh, #d4c6ff);
   margin-bottom: 8px;
 }
 
@@ -1192,7 +1192,7 @@ body {
 .slider-container input[type="range"] {
   flex: 1;
   height: 6px;
-  background: var(--colors-container-containerL0, #050505);
+  background: var(--colors-container-containerL0, #0e0a1c);
   border-radius: 3px;
   outline: none;
   -webkit-appearance: none;
@@ -1204,7 +1204,7 @@ body {
   appearance: none;
   width: 18px;
   height: 18px;
-  background: var(--accent-primary, #349fa8);
+  background: var(--accent-primary, #5427c8);
   border-radius: 50%;
   cursor: pointer;
 }
@@ -1212,14 +1212,14 @@ body {
 .slider-container input[type="range"]::-moz-range-thumb {
   width: 18px;
   height: 18px;
-  background: var(--accent-primary, #349fa8);
+  background: var(--accent-primary, #5427c8);
   border-radius: 50%;
   cursor: pointer;
   border: none;
 }
 
 .slider-value {
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-body, "Plus Jakarta Sans", sans-serif);
   font-weight: 700;
   font-size: 14px;
   color: var(--colors-solid-neutrals-100, #ffffff);
@@ -1254,21 +1254,21 @@ body {
   gap: 12px;
   cursor: pointer;
   padding: 12px;
-  border: 1px solid rgba(202, 202, 214, 0.08);
+  border: 1px solid rgba(212, 198, 255, 0.08);
   border-radius: 8px;
-  background: var(--colors-container-containerL0, #050505);
+  background: var(--colors-container-containerL0, #0e0a1c);
   transition: all 0.2s ease;
 }
 
 .mode-option:hover {
-  background: var(--colors-container-containerL0, #050505);
+  background: var(--colors-container-containerL0, #0e0a1c);
 }
 
 .mode-option input[type="radio"] {
   width: 16px;
   height: 16px;
   margin: 0;
-  accent-color: var(--accent-primary, #349fa8);
+  accent-color: var(--accent-primary, #5427c8);
   cursor: pointer;
   flex-shrink: 0;
   appearance: auto;
@@ -1280,12 +1280,12 @@ body {
 }
 
 .mode-option:has(input[type="radio"]:checked) {
-  background: var(--colors-container-containerL0, #050505);
-  border-color: var(--accent-primary, #349fa8);
+  background: var(--colors-container-containerL0, #0e0a1c);
+  border-color: var(--accent-primary, #5427c8);
 }
 
 .mode-info h3 {
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-heading, "Besley", serif);
   font-weight: 700;
   font-size: 14px;
   line-height: 1.4;
@@ -1294,17 +1294,17 @@ body {
 }
 
 .mode-info p {
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-body, "Plus Jakarta Sans", sans-serif);
   font-weight: 400;
   font-size: 12px;
   line-height: 1.4;
-  color: var(--colors-text-textHigh, #cacad6);
+  color: var(--colors-text-textHigh, #d4c6ff);
   margin: 0;
 }
 
 .option-card {
-  background: var(--colors-container-containerL0, #050505);
-  border: 1px solid rgba(202, 202, 214, 0.08);
+  background: var(--colors-container-containerL0, #0e0a1c);
+  border: 1px solid rgba(212, 198, 255, 0.08);
   border-radius: 12px;
   padding: 16px;
   position: relative;
@@ -1313,8 +1313,8 @@ body {
 }
 
 .option-card:hover {
-  background: #1c1c1f; /* containerL2 */
-  border-color: rgba(202, 202, 214, 0.1);
+  background: var(--colors-container-containerL2, #26203a);
+  border-color: rgba(212, 198, 255, 0.1);
 }
 
 .option-card::before {
@@ -1323,7 +1323,7 @@ body {
   inset: 0;
   padding: 1px;
   margin-bottom: 10px;
-  background: linear-gradient(135deg, #f7c3a1, #df9be8);
+  background: linear-gradient(135deg, #5427c8, #dfd6f7);
   border-radius: inherit;
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask-composite: xor;
@@ -1334,7 +1334,7 @@ body {
 /* Verified browsing card when toggled off */
 .verified-browsing-config:has(#verifiedBrowsingToggle:not(:checked))
   .option-card:first-child {
-  border: 1px solid rgba(202, 202, 214, 0.08);
+  border: 1px solid rgba(212, 198, 255, 0.08);
 }
 
 .verified-browsing-config:has(#verifiedBrowsingToggle:not(:checked))
@@ -1345,14 +1345,14 @@ body {
 /* Expanded state when toggle is ON */
 .verified-browsing-config:has(#verifiedBrowsingToggle:checked)
   .option-card:first-child {
-  border-color: #f7c3a1;
+  border-color: var(--border-accent, #5427c8);
 }
 
 .option-details {
   display: none;
   margin-top: 18px;
   padding-top: 18px;
-  border-top: 1px solid rgba(202, 202, 214, 0.1);
+  border-top: 1px solid rgba(212, 198, 255, 0.1);
   position: relative;
   z-index: 1;
 }
@@ -1394,7 +1394,7 @@ body {
 }
 
 .feature-label {
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-body, "Plus Jakarta Sans", sans-serif);
   font-weight: 700;
   font-size: 14px;
   line-height: 1.4;
@@ -1402,11 +1402,11 @@ body {
 }
 
 .feature-description {
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-body, "Plus Jakarta Sans", sans-serif);
   font-weight: 400;
   font-size: 12px;
   line-height: 1.4;
-  color: var(--colors-text-textHigh, #cacad6);
+  color: var(--colors-text-textHigh, #d4c6ff);
 }
 
 /* Legacy option styling for backward compatibility */
@@ -1429,7 +1429,7 @@ body {
 }
 
 .option-info h3 {
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-heading, "Besley", serif);
   font-weight: 700;
   font-size: 14px;
   line-height: 1.4;
@@ -1438,11 +1438,11 @@ body {
 }
 
 .option-info p {
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-body, "Plus Jakarta Sans", sans-serif);
   font-weight: 400;
   font-size: 12px;
   line-height: 1.4;
-  color: var(--colors-text-textHigh, #cacad6);
+  color: var(--colors-text-textHigh, #d4c6ff);
   margin: 0;
 }
 
@@ -1473,9 +1473,9 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background: #349fa8;
+  background: var(--accent-primary, #5427c8);
   border-radius: 114.286px;
-  border: 1.14286px solid #050505;
+  border: 1.14286px solid #0e0a1c;
   box-shadow: 0px 1.14286px 1.14286px 0px rgba(171, 171, 171, 0.2);
   transition: 0.3s;
   display: flex;
@@ -1490,22 +1490,22 @@ body {
   height: 13.714px;
   width: 13.714px;
   border-radius: 50%;
-  background: #cacad6;
+  background: var(--colors-text-textHigh, #d4c6ff);
   transition: 0.3s;
   position: relative;
 }
 
 .toggle-switch input:not(:checked) + .toggle-slider,
 .switch input:not(:checked) + .switch-slider {
-  background: #050505;
-  border: 1.14286px solid rgba(202, 202, 214, 0.01);
+  background: #0e0a1c;
+  border: 1.14286px solid rgba(212, 198, 255, 0.01);
   box-shadow: none;
   justify-content: flex-start;
 }
 
 .toggle-switch input:not(:checked) + .toggle-slider:before,
 .switch input:not(:checked) + .switch-slider:before {
-  background: #7f7f87;
+  background: #9b93b4;
 }
 
 /* Data Management */
@@ -1537,7 +1537,7 @@ body {
 }
 
 .action-info h3 {
-  font-family: var(--font-family-base);
+  font-family: var(--font-family-heading, "Besley", serif);
   font-weight: 700;
   font-size: var(--font-size-h3);
   line-height: var(--line-height-normal);
@@ -1546,7 +1546,7 @@ body {
 }
 
 .action-info p {
-  font-family: var(--font-family-base);
+  font-family: var(--font-family-body, "Plus Jakarta Sans", sans-serif);
   font-weight: 400;
   font-size: var(--font-size-sm);
   line-height: var(--line-height-normal);
@@ -1563,10 +1563,10 @@ body {
 
 .secondary-button {
   padding: 8px 16px;
-  background: var(--colors-container-containerL0, #050505);
-  border: 1px solid rgba(202, 202, 214, 0.08);
+  background: var(--colors-container-containerL0, #0e0a1c);
+  border: 1px solid rgba(212, 198, 255, 0.08);
   border-radius: 6px;
-  color: var(--colors-text-textHigh, #cacad6);
+  color: var(--colors-text-textHigh, #d4c6ff);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -1574,7 +1574,7 @@ body {
 }
 
 .secondary-button:hover {
-  background: var(--colors-container-containerL0, #050505);
+  background: var(--colors-container-containerL0, #0e0a1c);
 }
 
 .danger-button {
@@ -1668,7 +1668,7 @@ body {
 }
 
 .toast-text {
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-body, "Plus Jakarta Sans", sans-serif);
   font-weight: 400;
   font-size: 14px;
   line-height: 1.4;
@@ -1740,8 +1740,8 @@ body {
 /* Footer */
 .settings-footer {
   width: 100%;
-  background: #000;
-  border-top: 1px solid rgba(202, 202, 214, 0.1);
+  background: var(--colors-container-containerL0, #0e0a1c);
+  border-top: 1px solid rgba(212, 198, 255, 0.1);
   padding: 18px;
   position: fixed;
   bottom: 0;
@@ -1792,7 +1792,7 @@ body {
 }
 
 .settings-footer .version-info {
-  font-family: var(--font-family-base);
+  font-family: var(--font-family-body, "Plus Jakarta Sans", sans-serif);
   font-weight: 700;
   font-size: 11px;
   line-height: 1.4;
@@ -1812,9 +1812,9 @@ body {
 
 .provider-option {
   margin-bottom: 18px;
-  border: 1px solid rgba(202, 202, 214, 0.08);
+  border: 1px solid rgba(212, 198, 255, 0.08);
   border-radius: 8px;
-  background: var(--colors-container-containerL0, #050505);
+  background: var(--colors-container-containerL0, #0e0a1c);
   overflow: hidden;
   padding: 16px;
   cursor: pointer;
@@ -1826,8 +1826,8 @@ body {
 }
 
 .provider-option:hover {
-  background: #1c1c1f; /* containerL2 */
-  border-color: rgba(202, 202, 214, 0.1);
+  background: var(--colors-container-containerL2, #26203a);
+  border-color: rgba(212, 198, 255, 0.1);
 }
 
 .provider-option .option-header {
@@ -1835,7 +1835,7 @@ body {
 }
 
 .provider-option .option-info h3 {
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-heading, "Besley", serif);
   font-weight: 700;
   font-size: 14px;
   line-height: 1.4;
@@ -1844,21 +1844,21 @@ body {
 }
 
 .provider-option .option-info p {
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-body, "Plus Jakarta Sans", sans-serif);
   font-weight: 400;
   font-size: 12px;
   line-height: 1.4;
-  color: var(--colors-text-textHigh, #cacad6);
+  color: var(--colors-text-textHigh, #d4c6ff);
   margin: 0;
 }
 
 .provider-dropdown {
-  background: var(--colors-container-containerL3, #2a2a2d);
-  border: 1px solid rgba(202, 202, 214, 0.1);
+  background: var(--colors-container-containerL3, #342d4d);
+  border: 1px solid rgba(212, 198, 255, 0.1);
   border-radius: 8px;
   padding: 8px 12px;
   color: var(--colors-solid-neutrals-100, #ffffff);
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-body, "Plus Jakarta Sans", sans-serif);
   font-size: 14px;
   min-width: 160px;
   cursor: pointer;
@@ -1867,7 +1867,7 @@ body {
 
 .provider-dropdown:focus {
   outline: none;
-  border-color: var(--accent-primary, #349fa8);
+  border-color: var(--accent-primary, #5427c8);
 }
 
 .ttl-config .slider-container {
@@ -1897,9 +1897,9 @@ body {
 
 .trusted-gateways-config .mode-option {
   margin-bottom: 18px;
-  border: 1px solid rgba(202, 202, 214, 0.08);
+  border: 1px solid rgba(212, 198, 255, 0.08);
   border-radius: 8px;
-  background: var(--colors-container-containerL0, #050505);
+  background: var(--colors-container-containerL0, #0e0a1c);
   overflow: hidden;
   position: relative;
   padding: 16px;
@@ -1913,8 +1913,8 @@ body {
 
 .trusted-gateways-config
   .mode-option:hover:not(:has(input[type="radio"]:checked)) {
-  background: #1c1c1f; /* containerL2 */
-  border-color: rgba(202, 202, 214, 0.1);
+  background: var(--colors-container-containerL2, #26203a);
+  border-color: rgba(212, 198, 255, 0.1);
 }
 
 .trusted-gateways-config .mode-option input[type="radio"] {
@@ -1926,7 +1926,7 @@ body {
   position: absolute;
   inset: 0;
   padding: 1px;
-  background: linear-gradient(135deg, #f7c3a1, #df9be8);
+  background: linear-gradient(135deg, #5427c8, #dfd6f7);
   border-radius: inherit;
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask-composite: xor;
@@ -1964,7 +1964,7 @@ body {
 }
 
 .trusted-gateways-config .mode-info h3 {
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-heading, "Besley", serif);
   font-weight: 700;
   font-size: 14px;
   line-height: 1.4;
@@ -1973,17 +1973,17 @@ body {
 }
 
 .trusted-gateways-config .mode-info p {
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-body, "Plus Jakarta Sans", sans-serif);
   font-weight: 400;
   font-size: 12px;
   line-height: 1.4;
-  color: var(--colors-text-textHigh, #cacad6);
+  color: var(--colors-text-textHigh, #d4c6ff);
   margin: 0;
 }
 
 .gateway-count-config {
-  background: var(--colors-container-containerL0, #050505);
-  border: 1px solid rgba(202, 202, 214, 0.08);
+  background: var(--colors-container-containerL0, #0e0a1c);
+  border: 1px solid rgba(212, 198, 255, 0.08);
   border-radius: 8px;
   padding: 16px;
   margin-bottom: 18px;
@@ -1992,12 +1992,12 @@ body {
 }
 
 .gateway-count-config:hover {
-  background: #1c1c1f; /* containerL2 */
-  border-color: rgba(202, 202, 214, 0.1);
+  background: var(--colors-container-containerL2, #26203a);
+  border-color: rgba(212, 198, 255, 0.1);
 }
 
 .gateway-count-config label {
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-body, "Plus Jakarta Sans", sans-serif);
   font-weight: 700;
   font-size: 14px;
   line-height: 1.4;
@@ -2007,8 +2007,8 @@ body {
 }
 
 .gateway-selection-section {
-  background: var(--colors-container-containerL0, #050505);
-  border: 1px solid rgba(202, 202, 214, 0.08);
+  background: var(--colors-container-containerL0, #0e0a1c);
+  border: 1px solid rgba(212, 198, 255, 0.08);
   border-radius: 8px;
   padding: 16px;
   margin-bottom: 18px;
@@ -2017,12 +2017,12 @@ body {
 }
 
 .gateway-selection-section:hover {
-  background: #1c1c1f; /* containerL2 */
-  border-color: rgba(202, 202, 214, 0.1);
+  background: var(--colors-container-containerL2, #26203a);
+  border-color: rgba(212, 198, 255, 0.1);
 }
 
 .gateway-selection-section h4 {
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-heading, "Besley", serif);
   font-weight: 700;
   font-size: 14px;
   color: var(--colors-solid-neutrals-100, #ffffff);
@@ -2047,7 +2047,7 @@ body {
 }
 
 .gateway-selection-item:hover {
-  background: var(--colors-container-containerL1, #0e0e0f);
+  background: var(--colors-container-containerL1, #1a1527);
 }
 
 .gateway-selection-item input[type="checkbox"] {
@@ -2056,8 +2056,8 @@ body {
   height: 16px;
   appearance: none;
   -webkit-appearance: none;
-  background: var(--colors-container-containerL0, #050505);
-  border: 2px solid rgba(202, 202, 214, 0.2);
+  background: var(--colors-container-containerL0, #0e0a1c);
+  border: 2px solid rgba(212, 198, 255, 0.2);
   border-radius: 3px;
   cursor: pointer;
   position: relative;
@@ -2065,19 +2065,19 @@ body {
 }
 
 .gateway-selection-item input[type="checkbox"]:hover {
-  border-color: var(--accent-primary, #349fa8);
-  background: var(--colors-container-containerL1, #0e0e0f);
+  border-color: var(--accent-primary, #5427c8);
+  background: var(--colors-container-containerL1, #1a1527);
 }
 
 .gateway-selection-item input[type="checkbox"]:focus {
   outline: none;
-  border-color: var(--accent-primary, #349fa8);
-  box-shadow: 0 0 0 2px rgba(52, 159, 168, 0.2);
+  border-color: var(--accent-primary, #5427c8);
+  box-shadow: 0 0 0 2px rgba(84, 39, 200, 0.2);
 }
 
 .gateway-selection-item input[type="checkbox"]:checked {
-  background: var(--accent-primary, #349fa8);
-  border-color: var(--accent-primary, #349fa8);
+  background: var(--accent-primary, #5427c8);
+  border-color: var(--accent-primary, #5427c8);
 }
 
 .gateway-selection-item input[type="checkbox"]:checked::before {
@@ -2093,14 +2093,14 @@ body {
 
 .gateway-selection-item label {
   font-size: 12px;
-  color: var(--colors-text-textHigh, #cacad6);
+  color: var(--colors-text-textHigh, #d4c6ff);
   cursor: pointer;
   flex: 1;
 }
 
 .trusted-gateways-preview {
-  background: var(--colors-container-containerL0, #050505);
-  border: 1px solid rgba(202, 202, 214, 0.08);
+  background: var(--colors-container-containerL0, #0e0a1c);
+  border: 1px solid rgba(212, 198, 255, 0.08);
   border-radius: 8px;
   padding: 16px;
 }
@@ -2110,7 +2110,7 @@ body {
 }
 
 .trusted-gateways-preview h4 {
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-heading, "Besley", serif);
   font-weight: 700;
   font-size: 14px;
   color: var(--colors-solid-neutrals-100, #ffffff);
@@ -2128,7 +2128,7 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 8px;
-  background: var(--colors-container-containerL2, #1c1c1f);
+  background: var(--colors-container-containerL2, #26203a);
   border-radius: 8px;
 }
 
@@ -2144,7 +2144,7 @@ body {
 }
 
 .trusted-gateway-info .gateway-stake {
-  color: var(--colors-text-textHigh, #cacad6);
+  color: var(--colors-text-textHigh, #d4c6ff);
   font-size: 11px;
 }
 
@@ -2158,8 +2158,8 @@ body {
 }
 
 .network-option {
-  background: var(--colors-container-containerL0, #050505);
-  border: 1px solid rgba(202, 202, 214, 0.08);
+  background: var(--colors-container-containerL0, #0e0a1c);
+  border: 1px solid rgba(212, 198, 255, 0.08);
   border-radius: 8px;
   padding: 16px;
   cursor: pointer;
@@ -2171,7 +2171,7 @@ body {
 }
 
 .network-option:hover {
-  background: var(--colors-container-containerL2, #1c1c1f);
+  background: var(--colors-container-containerL2, #26203a);
 }
 
 .network-option .option-header {
@@ -2179,7 +2179,7 @@ body {
 }
 
 .network-option .option-info h3 {
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-heading, "Besley", serif);
   font-weight: 700;
   font-size: 14px;
   line-height: 1.4;
@@ -2188,11 +2188,11 @@ body {
 }
 
 .network-option .option-info p {
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-body, "Plus Jakarta Sans", sans-serif);
   font-weight: 400;
   font-size: 12px;
   line-height: 1.4;
-  color: var(--colors-text-textHigh, #cacad6);
+  color: var(--colors-text-textHigh, #d4c6ff);
   margin: 0;
 }
 
@@ -2205,33 +2205,33 @@ body {
 .option-input input[type="text"],
 .option-input input[type="url"] {
   flex: 1;
-  background: var(--colors-container-containerL3, #2a2a2d);
-  border: 1px solid rgba(202, 202, 214, 0.1);
+  background: var(--colors-container-containerL3, #342d4d);
+  border: 1px solid rgba(212, 198, 255, 0.1);
   border-radius: 8px;
   padding: 12px 16px;
   color: var(--colors-solid-neutrals-100, #ffffff);
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-body, "Plus Jakarta Sans", sans-serif);
   font-size: 14px;
 }
 
 .option-input input[type="text"]:focus,
 .option-input input[type="url"]:focus {
   outline: none;
-  border-color: var(--accent-primary, #349fa8);
+  border-color: var(--accent-primary, #5427c8);
 }
 
 .option-input input[type="text"]::placeholder,
 .option-input input[type="url"]::placeholder {
-  color: var(--colors-text-textMid, #8a8a8a);
+  color: var(--colors-text-textMid, #9b93b4);
 }
 
 .network-config .test-button {
-  background: var(--colors-container-containerL3, #2a2a2d);
-  border: 1px solid rgba(202, 202, 214, 0.1);
+  background: var(--colors-container-containerL3, #342d4d);
+  border: 1px solid rgba(212, 198, 255, 0.1);
   border-radius: 8px;
   padding: 12px 16px;
   color: var(--colors-solid-neutrals-100, #ffffff);
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-body, "Plus Jakarta Sans", sans-serif);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -2239,8 +2239,8 @@ body {
 }
 
 .network-config .test-button:hover:not(:disabled) {
-  background: #d6ecee;
-  color: #000;
+  background: var(--accent-hover, #6b3ed4);
+  color: #ffffff;
 }
 
 .network-config .test-button:disabled {
@@ -2254,7 +2254,7 @@ body {
 }
 
 .network-option-advanced summary {
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-body, "Plus Jakarta Sans", sans-serif);
   font-weight: 700;
   font-size: 14px;
   line-height: 1.4;
@@ -2281,11 +2281,11 @@ body {
 }
 
 .network-option-advanced .advanced-description {
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-body, "Plus Jakarta Sans", sans-serif);
   font-weight: 400;
   font-size: 12px;
   line-height: 1.4;
-  color: var(--colors-text-textMid, #8a8a8a);
+  color: var(--colors-text-textMid, #9b93b4);
   margin: 8px 0 16px 0;
 }
 
@@ -2302,16 +2302,16 @@ body {
 }
 
 .program-id-field label {
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-body, "Plus Jakarta Sans", sans-serif);
   font-weight: 500;
   font-size: 12px;
-  color: var(--colors-text-textHigh, #cacad6);
+  color: var(--colors-text-textHigh, #d4c6ff);
 }
 
 .program-id-field input[type="text"] {
   width: 100%;
-  background: var(--colors-container-containerL3, #2a2a2d);
-  border: 1px solid rgba(202, 202, 214, 0.1);
+  background: var(--colors-container-containerL3, #342d4d);
+  border: 1px solid rgba(212, 198, 255, 0.1);
   border-radius: 8px;
   padding: 10px 12px;
   color: var(--colors-solid-neutrals-100, #ffffff);
@@ -2321,26 +2321,26 @@ body {
 
 .program-id-field input[type="text"]:focus {
   outline: none;
-  border-color: var(--accent-primary, #349fa8);
+  border-color: var(--accent-primary, #5427c8);
 }
 
 .program-id-field input[type="text"]::placeholder {
-  color: var(--colors-text-textMid, #8a8a8a);
-  font-family: "Rubik", sans-serif;
+  color: var(--colors-text-textMid, #9b93b4);
+  font-family: var(--font-family-body, "Plus Jakarta Sans", sans-serif);
 }
 
 /* Light Mode Support for Settings */
 [data-theme="light"] {
-  /* Update outer card border colors to CACAD6 */
+  /* Update outer card border colors */
   .settings-section {
-    border: 1px solid #cacad6;
+    border: 1px solid #e6e4ef;
   }
 
   /* Fix recommended badges for light theme */
   .strategy-badge.recommended,
   .verification-strategy-config .strategy-badge.recommended {
-    background: #e2e8f0;
-    color: #1e293b;
+    background: #e6e4ef;
+    color: #23232d;
   }
 
   .settings-header {
@@ -2357,77 +2357,77 @@ body {
 
   /* Fix verified browsing card hover state */
   .verified-browsing-config .option-card:hover {
-    background: var(--colors-container-containerL2, #f1f5f9);
-    border-color: #cacad6;
+    background: var(--colors-container-containerL2, #f6f4ef);
+    border-color: #e6e4ef;
   }
 
   .strategy-option:hover:not(:has(input[type="radio"]:checked)) {
-    background: var(--colors-container-containerL2, #f1f5f9);
+    background: var(--colors-container-containerL2, #f6f4ef);
     border-color: var(--border-default);
   }
 
   .verification-strategy-config
     .strategy-option:hover:not(:has(input[type="radio"]:checked)) {
-    background: var(--colors-container-containerL2, #f1f5f9);
+    background: var(--colors-container-containerL2, #f6f4ef);
     border-color: var(--border-default);
   }
 
   .theme-option:hover:not(:has(input[type="radio"]:checked)) {
-    background: var(--colors-container-containerL2, #f1f5f9);
+    background: var(--colors-container-containerL2, #f6f4ef);
     border-color: var(--border-default);
   }
 
   .advanced-option:hover {
-    background: var(--colors-container-containerL2, #f1f5f9);
+    background: var(--colors-container-containerL2, #f6f4ef);
     border-color: var(--border-default);
   }
 
   .provider-option:hover {
-    background: var(--colors-container-containerL2, #f1f5f9);
+    background: var(--colors-container-containerL2, #f6f4ef);
     border-color: var(--border-default);
   }
 
   .trusted-gateways-config
     .mode-option:hover:not(:has(input[type="radio"]:checked)) {
-    background: var(--colors-container-containerL2, #f1f5f9);
+    background: var(--colors-container-containerL2, #f6f4ef);
     border-color: var(--border-default);
   }
 
   .gateway-count-config:hover {
-    background: var(--colors-container-containerL2, #f1f5f9);
+    background: var(--colors-container-containerL2, #f6f4ef);
     border-color: var(--border-default);
   }
 
   .gateway-selection-section:hover {
-    background: var(--colors-container-containerL2, #f1f5f9);
+    background: var(--colors-container-containerL2, #f6f4ef);
     border-color: var(--border-default);
   }
 
   .trusted-gateways-preview:hover {
-    background: var(--colors-container-containerL2, #f1f5f9);
+    background: var(--colors-container-containerL2, #f6f4ef);
     border-color: var(--border-default);
   }
 
   .network-option:hover {
-    background: var(--colors-container-containerL2, #f1f5f9);
+    background: var(--colors-container-containerL2, #f6f4ef);
     border-color: var(--border-default);
   }
 
   .gateway-selection-item:hover {
-    background: var(--colors-container-containerL1, #f8fafc);
+    background: var(--colors-container-containerL1, #f1ecff);
   }
 
   .secondary-button:hover {
-    background: var(--colors-container-containerL2, #f1f5f9);
+    background: var(--colors-container-containerL2, #f6f4ef);
   }
 
   .test-button:hover:not(:disabled) {
-    background: var(--colors-container-containerL2, #f1f5f9);
+    background: var(--colors-container-containerL2, #f6f4ef);
     border-color: var(--border-default);
   }
 
   .network-config .test-button:hover:not(:disabled) {
-    background: var(--colors-container-containerL2, #f1f5f9);
+    background: var(--colors-container-containerL2, #f6f4ef);
     border-color: var(--border-default);
   }
 }
@@ -2463,7 +2463,7 @@ body {
 }
 
 .action-info h3 {
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-heading, "Besley", serif);
   font-weight: 600;
   font-size: 15px;
   color: var(--colors-text-textHigh);
@@ -2471,7 +2471,7 @@ body {
 }
 
 .action-info p {
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-body, "Plus Jakarta Sans", sans-serif);
   font-weight: 400;
   font-size: 13px;
   color: var(--colors-text-textMid);
@@ -2516,7 +2516,7 @@ body {
 }
 
 .notification-option .option-info h3 {
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-heading, "Besley", serif);
   font-weight: 600;
   font-size: 15px;
   color: var(--colors-text-textHigh);
@@ -2524,7 +2524,7 @@ body {
 }
 
 .notification-option .option-info p {
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-body, "Plus Jakarta Sans", sans-serif);
   font-weight: 400;
   font-size: 13px;
   color: var(--colors-text-textMid);
@@ -2536,7 +2536,7 @@ body {
 }
 
 .notification-option .option-description p {
-  font-family: "Rubik", sans-serif;
+  font-family: var(--font-family-body, "Plus Jakarta Sans", sans-serif);
   font-weight: 400;
   font-size: 13px;
   line-height: 1.6;

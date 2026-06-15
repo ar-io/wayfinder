@@ -11,9 +11,9 @@
 
 html,
 body {
-  font-family: var(--font-family-base, "Rubik", sans-serif);
-  background: var(--colors-container-containerL0, #050505);
-  color: var(--colors-text-textHigh, #cacad6);
+  font-family: var(--font-family-body, "Plus Jakarta Sans", sans-serif);
+  background: var(--colors-container-containerL0, #0e0a1c);
+  color: var(--colors-text-textHigh, #d4c6ff);
   width: var(--extension-width, 420px);
   min-height: var(--extension-height, 600px);
   overflow: hidden;
@@ -26,7 +26,7 @@ body {
   flex-direction: column;
   width: 100%;
   min-height: 100vh;
-  background: var(--colors-container-containerL0, #050505);
+  background: var(--colors-container-containerL0, #0e0a1c);
   border-radius: 0 0 8px 8px;
   overflow: hidden;
 }
@@ -35,8 +35,8 @@ body {
 .performance-header {
   width: 100%;
   height: 95.832px;
-  background: #000;
-  border-bottom: 1px solid rgba(202, 202, 214, 0.1);
+  background: var(--colors-container-containerL0, #0e0a1c);
+  border-bottom: 1px solid rgba(212, 198, 255, 0.1);
   display: flex;
   align-items: center;
   position: fixed;
@@ -64,7 +64,7 @@ body {
 .back-button {
   width: 54.88px;
   height: 54.879px;
-  background: var(--colors-container-containerL0, #050505);
+  background: var(--colors-container-containerL0, #0e0a1c);
   border: none;
   border-radius: 10px;
   display: flex;
@@ -75,7 +75,7 @@ body {
 }
 
 .back-button:hover {
-  background: var(--colors-container-containerL0, #050505);
+  background: var(--colors-container-containerL0, #0e0a1c);
 }
 
 .back-button svg {
@@ -84,7 +84,7 @@ body {
 }
 
 .header-title h1 {
-  font-family: "Rubik", sans-serif;
+  font-family: "Besley", serif;
   font-weight: 700;
   font-size: 16px;
   line-height: 1.5;
@@ -93,11 +93,11 @@ body {
 }
 
 .header-title p {
-  font-family: "Rubik", sans-serif;
+  font-family: "Plus Jakarta Sans", sans-serif;
   font-weight: 400;
   font-size: 16px;
   line-height: 1.5;
-  color: var(--colors-text-textHigh, #cacad6);
+  color: var(--colors-text-textHigh, #d4c6ff);
   margin: 0;
 }
 
@@ -137,9 +137,9 @@ body {
   justify-content: center;
   width: 32px;
   height: 32px;
-  background: var(--colors-container-containerL0, #050505);
+  background: var(--colors-container-containerL0, #0e0a1c);
   border-radius: 8px;
-  border: 1px solid rgba(202, 202, 214, 0.08);
+  border: 1px solid rgba(212, 198, 255, 0.10);
   cursor: pointer;
   position: relative;
 }
@@ -148,7 +148,7 @@ body {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: var(--accent-primary, #349fa8);
+  background: var(--accent-primary, #5427C8);
   animation: pulse 2s infinite;
 }
 
@@ -162,11 +162,11 @@ body {
   bottom: -35px;
   left: 50%;
   transform: translateX(-50%);
-  background: var(--colors-container-containerL0, #050505);
-  color: var(--colors-text-textHigh, #cacad6);
+  background: var(--colors-container-containerL0, #0e0a1c);
+  color: var(--colors-text-textHigh, #D4C6FF);
   padding: 6px 12px;
   border-radius: 6px;
-  font-family: 'Rubik', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 12px;
   font-weight: 500;
   white-space: nowrap;
@@ -174,7 +174,7 @@ body {
   visibility: hidden;
   transition: opacity 0.2s ease, visibility 0.2s ease;
   z-index: 1000;
-  border: 1px solid rgba(202, 202, 214, 0.08);
+  border: 1px solid rgba(212, 198, 255, 0.10);
 }
 
 .status-indicator:hover::after {
@@ -211,9 +211,9 @@ body {
 /* Filter section */
 .filter-section {
   width: 384px;
-  background: var(--colors-container-containerL0, #050505);
+  background: var(--colors-container-containerL0, #0e0a1c);
   border-radius: 12px;
-  border: 1px solid rgba(202, 202, 214, 0.08);
+  border: 1px solid rgba(212, 198, 255, 0.1);
   padding: 18px;
   position: relative;
   overflow: hidden;
@@ -233,10 +233,10 @@ body {
 .filter-btn {
   flex: 1;
   padding: 8px 6px;
-  background: var(--colors-container-containerL0, #050505);
-  border: 1px solid rgba(202, 202, 214, 0.08);
+  background: var(--colors-container-containerL0, #0e0a1c);
+  border: 1px solid rgba(212, 198, 255, 0.1);
   border-radius: 6px;
-  color: var(--colors-text-textHigh, #cacad6);
+  color: var(--colors-text-textHigh, #d4c6ff);
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
@@ -246,11 +246,11 @@ body {
 }
 
 .filter-btn:hover {
-  background: var(--colors-container-containerL0, #050505);
+  background: var(--colors-container-containerL0, #0e0a1c);
 }
 
 .filter-btn.active {
-  background: var(--colors-container-containerL1, #0e0e0f);
+  background: var(--colors-container-containerL1, #1a1527);
   color: var(--colors-solid-neutrals-100, #ffffff);
   border: 1px solid transparent;
   position: relative;
@@ -261,7 +261,7 @@ body {
   position: absolute;
   inset: 0;
   padding: 1px;
-  background: linear-gradient(135deg, #f7c3a1, #df9be8);
+  background: linear-gradient(135deg, #5427c8, #dfd6f7);
   border-radius: inherit;
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask-composite: xor;
@@ -282,18 +282,18 @@ body {
 .sort-options label {
   font-size: 12px;
   font-weight: 600;
-  color: var(--colors-text-textHigh, #cacad6);
+  color: var(--colors-text-textHigh, #d4c6ff);
   white-space: nowrap;
 }
 
 .sort-select {
   padding: 8px 12px;
-  background: var(--colors-container-containerL0, #050505);
-  border: 1px solid rgba(202, 202, 214, 0.08);
+  background: var(--colors-container-containerL0, #0e0a1c);
+  border: 1px solid rgba(212, 198, 255, 0.1);
   border-radius: 6px;
-  color: var(--colors-text-textHigh, #cacad6);
+  color: var(--colors-text-textHigh, #d4c6ff);
   font-size: 12px;
-  font-family: "Rubik", sans-serif;
+  font-family: "Plus Jakarta Sans", sans-serif;
   min-width: 140px;
 }
 
@@ -333,7 +333,7 @@ body {
   position: absolute;
   inset: 0;
   padding: 1px;
-  background: linear-gradient(135deg, #f7c3a1, #df9be8);
+  background: linear-gradient(135deg, #5427c8, #dfd6f7);
   border-radius: inherit;
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask-composite: xor;
@@ -349,7 +349,7 @@ body {
 }
 
 .stat-value {
-  font-family: var(--font-family-base);
+  font-family: var(--font-family-body);
   font-weight: 700;
   font-size: var(--font-size-base);
   line-height: var(--line-height-normal);
@@ -357,7 +357,7 @@ body {
 }
 
 .stat-label {
-  font-family: var(--font-family-base);
+  font-family: var(--font-family-body);
   font-weight: 400;
   font-size: var(--font-size-xs);
   line-height: var(--line-height-normal);
@@ -381,8 +381,8 @@ body {
 
 .perf-card {
   width: 100%;
-  background: var(--colors-container-containerL1, #0e0e0f);
-  border: 1px solid rgba(202, 202, 214, 0.08);
+  background: var(--colors-container-containerL1, #1a1527);
+  border: 1px solid rgba(212, 198, 255, 0.1);
   border-radius: 12px;
   padding: 20px;
   position: relative;
@@ -391,8 +391,8 @@ body {
 }
 
 .perf-card:hover {
-  background: #1c1c1f; /* containerL2 */
-  border-color: rgba(202, 202, 214, 0.1);
+  background: #26203a; /* containerL2 */
+  border-color: rgba(212, 198, 255, 0.1);
   transform: translateY(-2px);
   box-shadow: 0px 8px 25px rgba(0, 0, 0, 0.15), 0px 4px 10px rgba(0, 0, 0, 0.1);
 }
@@ -402,7 +402,7 @@ body {
   position: absolute;
   inset: 0;
   padding: 1px;
-  background: linear-gradient(135deg, #f7c3a1, #df9be8);
+  background: linear-gradient(135deg, #5427c8, #dfd6f7);
   border-radius: inherit;
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask-composite: xor;
@@ -433,11 +433,11 @@ body {
 .perf-icon svg {
   width: 24px;
   height: 24px;
-  color: var(--colors-icons-iconHigh, #cacad6);
+  color: var(--colors-icons-iconHigh, #d4c6ff);
 }
 
 .perf-header h3 {
-  font-family: var(--font-family-base);
+  font-family: var(--font-family-heading);
   font-weight: 700;
   font-size: 16px;
   line-height: 1.4;
@@ -458,32 +458,32 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  background: rgba(202, 202, 214, 0.03);
+  background: rgba(212, 198, 255, 0.03);
   border-radius: 8px;
-  border: 1px solid rgba(202, 202, 214, 0.06);
+  border: 1px solid rgba(212, 198, 255, 0.06);
   transition: all 0.2s ease;
 }
 
 .stat:hover {
-  background: rgba(202, 202, 214, 0.05);
-  border-color: rgba(202, 202, 214, 0.1);
+  background: rgba(212, 198, 255, 0.05);
+  border-color: rgba(212, 198, 255, 0.1);
 }
 
 .stat .stat-label {
-  font-family: var(--font-family-base);
+  font-family: var(--font-family-body);
   font-weight: 500;
   font-size: 13px;
   line-height: 1.4;
-  color: var(--colors-text-textHigh, #cacad6);
+  color: var(--colors-text-textHigh, #d4c6ff);
 }
 
 .stat .stat-value {
-  font-family: var(--font-family-base);
+  font-family: var(--font-family-body);
   font-weight: 700;
   font-size: 16px;
   line-height: 1.2;
   color: var(--colors-solid-neutrals-100, #ffffff);
-  background: linear-gradient(135deg, #f7c3a1, #df9be8);
+  background: linear-gradient(135deg, #5427c8, #dfd6f7);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -500,7 +500,7 @@ body {
 /* Danger zone styling matching settings page */
 .action-card {
   width: 384px;
-  background: var(--colors-container-containerL0, #050505);
+  background: var(--colors-container-containerL0, #0e0a1c);
   border: 1px solid var(--error, #ef4444);
   border-radius: 12px;
   padding: 18px;
@@ -535,7 +535,7 @@ body {
 }
 
 .action-info h3 {
-  font-family: "Rubik", sans-serif;
+  font-family: "Besley", serif;
   font-weight: 700;
   font-size: 17px;
   line-height: 1.4;
@@ -544,11 +544,11 @@ body {
 }
 
 .action-info p {
-  font-family: "Rubik", sans-serif;
+  font-family: "Plus Jakarta Sans", sans-serif;
   font-weight: 400;
   font-size: 12px;
   line-height: 1.4;
-  color: var(--colors-text-textHigh, #cacad6);
+  color: var(--colors-text-textHigh, #d4c6ff);
   margin: 0;
 }
 
@@ -561,10 +561,10 @@ body {
 .secondary-button {
   padding: 10px 18px;
   background: var(--bg-secondary);
-  border: 1px solid rgba(202, 202, 214, 0.08);
+  border: 1px solid rgba(212, 198, 255, 0.1);
   border-radius: 8px;
   color: var(--text-high);
-  font-family: var(--font-family-base);
+  font-family: var(--font-family-body);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -572,7 +572,7 @@ body {
 }
 
 .secondary-button:hover {
-  background: var(--colors-container-containerL0, #050505);
+  background: var(--colors-container-containerL0, #0e0a1c);
   color: var(--colors-solid-neutrals-100, #ffffff);
 }
 
@@ -582,7 +582,7 @@ body {
   border: none;
   border-radius: 8px;
   color: var(--colors-solid-neutrals-100, #ffffff);
-  font-family: var(--font-family-base);
+  font-family: var(--font-family-body);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -596,9 +596,9 @@ body {
 /* Usage section */
 .usage-section {
   width: 384px;
-  background: var(--colors-container-containerL0, #050505);
+  background: var(--colors-container-containerL0, #0e0a1c);
   border-radius: 12px;
-  border: 1px solid rgba(202, 202, 214, 0.08);
+  border: 1px solid rgba(212, 198, 255, 0.1);
   position: relative;
   overflow: hidden;
   flex: 1;
@@ -608,13 +608,13 @@ body {
 
 .section-header {
   padding: 18px 18px 12px 18px;
-  border-bottom: 1px solid rgba(202, 202, 214, 0.1);
+  border-bottom: 1px solid rgba(212, 198, 255, 0.1);
   z-index: 1;
   position: relative;
 }
 
 .section-header h2 {
-  font-family: "Rubik", sans-serif;
+  font-family: "Besley", serif;
   font-weight: 700;
   font-size: 17px;
   line-height: 1.4;
@@ -623,11 +623,11 @@ body {
 }
 
 .section-header p {
-  font-family: "Rubik", sans-serif;
+  font-family: "Plus Jakarta Sans", sans-serif;
   font-weight: 400;
   font-size: 12px;
   line-height: 1.4;
-  color: var(--colors-text-textHigh, #cacad6);
+  color: var(--colors-text-textHigh, #d4c6ff);
   margin: 0;
 }
 
@@ -642,8 +642,8 @@ body {
 }
 
 .usage-card {
-  background: var(--colors-container-containerL0, #050505);
-  border: 1px solid rgba(202, 202, 214, 0.08);
+  background: var(--colors-container-containerL0, #0e0a1c);
+  border: 1px solid rgba(212, 198, 255, 0.1);
   border-radius: 8px;
   padding: 16px;
   display: flex;
@@ -652,7 +652,7 @@ body {
 }
 
 .usage-info h4 {
-  font-family: "Rubik", sans-serif;
+  font-family: "Besley", serif;
   font-weight: 700;
   font-size: 14px;
   line-height: 1.4;
@@ -661,11 +661,11 @@ body {
 }
 
 .usage-info p {
-  font-family: "Rubik", sans-serif;
+  font-family: "Plus Jakarta Sans", sans-serif;
   font-weight: 400;
   font-size: 12px;
   line-height: 1.4;
-  color: var(--colors-text-textHigh, #cacad6);
+  color: var(--colors-text-textHigh, #d4c6ff);
   margin: 0;
 }
 
@@ -683,7 +683,7 @@ body {
 }
 
 .usage-metric-value {
-  font-family: "Rubik", sans-serif;
+  font-family: "Plus Jakarta Sans", sans-serif;
   font-weight: 700;
   font-size: 14px;
   line-height: 1.2;
@@ -691,19 +691,19 @@ body {
 }
 
 .usage-metric-label {
-  font-family: "Rubik", sans-serif;
+  font-family: "Plus Jakarta Sans", sans-serif;
   font-weight: 400;
   font-size: 10px;
   line-height: 1.4;
-  color: var(--colors-text-textHigh, #cacad6);
+  color: var(--colors-text-textHigh, #d4c6ff);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 /* Gateway Usage Cards */
 .gateway-usage-card {
-  background: var(--colors-container-containerL1, #0e0e0f);
-  border: 1px solid rgba(202, 202, 214, 0.08);
+  background: var(--colors-container-containerL1, #1a1527);
+  border: 1px solid rgba(212, 198, 255, 0.1);
   border-radius: 12px;
   padding: 20px;
   cursor: pointer;
@@ -714,8 +714,8 @@ body {
 }
 
 .gateway-usage-card:hover {
-  background: #1c1c1f; /* containerL2 */
-  border-color: rgba(202, 202, 214, 0.1);
+  background: #26203a; /* containerL2 */
+  border-color: rgba(212, 198, 255, 0.1);
   transform: translateY(-1px);
 }
 
@@ -724,7 +724,7 @@ body {
   position: absolute;
   inset: 0;
   padding: 1px;
-  background: linear-gradient(135deg, #f7c3a1, #df9be8);
+  background: linear-gradient(135deg, #5427c8, #dfd6f7);
   border-radius: inherit;
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask-composite: xor;
@@ -752,7 +752,7 @@ body {
 }
 
 .gateway-name {
-  font-family: "Rubik", sans-serif;
+  font-family: "Plus Jakarta Sans", sans-serif;
   font-weight: 700;
   font-size: 16px;
   line-height: 1.4;
@@ -764,25 +764,25 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-family: "Rubik", sans-serif;
+  font-family: "Plus Jakarta Sans", sans-serif;
   font-weight: 400;
   font-size: 12px;
   line-height: 1.4;
-  color: var(--colors-text-textHigh, #cacad6);
+  color: var(--colors-text-textHigh, #d4c6ff);
 }
 
 .last-used svg {
   width: 12px;
   height: 12px;
-  color: var(--colors-icons-iconMid, #7f7f87);
+  color: var(--colors-icons-iconMid, #9b93b4);
 }
 
 .request-count {
-  font-family: "Rubik", sans-serif;
+  font-family: "Plus Jakarta Sans", sans-serif;
   font-weight: 700;
   font-size: 24px;
   line-height: 1.2;
-  color: var(--accent-primary, #349fa8);
+  color: var(--accent-primary, #5427c8);
   text-align: right;
 }
 
@@ -803,27 +803,27 @@ body {
 }
 
 .stat-label {
-  font-family: "Rubik", sans-serif;
+  font-family: "Plus Jakarta Sans", sans-serif;
   font-weight: 400;
   font-size: 10px;
   line-height: 1.4;
-  color: var(--colors-text-textHigh, #cacad6);
+  color: var(--colors-text-textHigh, #d4c6ff);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .stat-sublabel {
-  font-family: "Rubik", sans-serif;
+  font-family: "Plus Jakarta Sans", sans-serif;
   font-weight: 400;
   font-size: 9px;
   line-height: 1.2;
-  color: var(--colors-text-textLow, #7f7f87);
+  color: var(--colors-text-textLow, #9b93b4);
   margin-top: 2px;
   opacity: 0.8;
 }
 
 .stat-value {
-  font-family: "Rubik", sans-serif;
+  font-family: "Plus Jakarta Sans", sans-serif;
   font-weight: 600;
   font-size: 14px;
   line-height: 1.2;
@@ -852,17 +852,17 @@ body {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 8px;
-  font-family: "Rubik", sans-serif;
+  font-family: "Plus Jakarta Sans", sans-serif;
   font-weight: 500;
   font-size: 12px;
   line-height: 1.4;
-  color: var(--colors-text-textHigh, #cacad6);
+  color: var(--colors-text-textHigh, #d4c6ff);
 }
 
 .usage-bar-background {
   width: 100%;
   height: 6px;
-  background: var(--colors-container-containerL0, #050505);
+  background: var(--colors-container-containerL0, #0e0a1c);
   border-radius: 3px;
   overflow: hidden;
 }
@@ -871,7 +871,7 @@ body {
   height: 100%;
   background: linear-gradient(
     90deg,
-    var(--accent-primary, #349fa8),
+    var(--accent-primary, #5427c8),
     var(--accent-secondary, #22c55e)
   );
   border-radius: 3px;
@@ -897,7 +897,7 @@ body {
 }
 
 .empty-state h3 {
-  font-family: "Rubik", sans-serif;
+  font-family: "Besley", serif;
   font-weight: 700;
   font-size: 17px;
   line-height: 1.4;
@@ -906,11 +906,11 @@ body {
 }
 
 .empty-state p {
-  font-family: "Rubik", sans-serif;
+  font-family: "Plus Jakarta Sans", sans-serif;
   font-weight: 400;
   font-size: 14px;
   line-height: 1.4;
-  color: var(--colors-text-textHigh, #cacad6);
+  color: var(--colors-text-textHigh, #d4c6ff);
   margin: 0;
 }
 
@@ -929,8 +929,8 @@ body {
 .loading-spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid rgba(202, 202, 214, 0.1);
-  border-top-color: var(--accent-primary, #349fa8);
+  border: 3px solid rgba(212, 198, 255, 0.1);
+  border-top-color: var(--accent-primary, #5427c8);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -945,19 +945,19 @@ body {
 }
 
 .loading-state p {
-  font-family: "Rubik", sans-serif;
+  font-family: "Plus Jakarta Sans", sans-serif;
   font-weight: 400;
   font-size: 14px;
   line-height: 1.4;
-  color: var(--colors-text-textHigh, #cacad6);
+  color: var(--colors-text-textHigh, #d4c6ff);
   margin: 0;
 }
 
 /* Footer */
 .performance-footer {
   width: 100%;
-  background: #000;
-  border-top: 1px solid rgba(202, 202, 214, 0.1);
+  background: var(--colors-container-containerL0, #0e0a1c);
+  border-top: 1px solid rgba(212, 198, 255, 0.1);
   padding: 18px;
   position: fixed;
   bottom: 0;
@@ -1009,7 +1009,7 @@ body {
 }
 
 .version-info {
-  font-family: var(--font-family-base);
+  font-family: var(--font-family-body);
   font-weight: 700;
   font-size: 11px;
   line-height: 1.4;
@@ -1061,7 +1061,7 @@ body {
 }
 
 .toast-text {
-  font-family: "Rubik", sans-serif;
+  font-family: "Plus Jakarta Sans", sans-serif;
   font-weight: 400;
   font-size: 14px;
   line-height: 1.4;
@@ -1099,9 +1099,9 @@ body {
 
 /* Light Mode Support for Performance */
 [data-theme="light"] {
-  /* Update outer card border colors to CACAD6 */
+  /* Update outer card border colors */
   .perf-card {
-    border: 1px solid #cacad6;
+    border: 1px solid #e6e4ef;
   }
 
   .performance-header {
@@ -1117,22 +1117,22 @@ body {
   }
 
   .stat-card:hover {
-    background: var(--colors-container-containerL2, #f1f5f9);
+    background: var(--colors-container-containerL2, #f6f4ef);
     border-color: var(--border-default);
   }
 
   .perf-card:hover {
-    background: var(--colors-container-containerL2, #f1f5f9);
+    background: var(--colors-container-containerL2, #f6f4ef);
     border-color: var(--border-default);
   }
 
   .filter-btn:hover {
-    background: var(--colors-container-containerL2, #f1f5f9);
+    background: var(--colors-container-containerL2, #f6f4ef);
     border-color: var(--border-default);
   }
 
   .clear-button:hover {
-    background: var(--colors-container-containerL2, #f1f5f9);
+    background: var(--colors-container-containerL2, #f6f4ef);
     border-color: var(--border-default);
   }
 
@@ -1142,25 +1142,25 @@ body {
   }
 
   .secondary-button:hover {
-    background: var(--colors-container-containerL1, #f8fafc);
+    background: var(--colors-container-containerL1, #f1ecff);
   }
 
   .usage-card:hover {
-    background: var(--colors-container-containerL1, #f8fafc);
+    background: var(--colors-container-containerL1, #f1ecff);
   }
 
   .gateway-usage-card {
-    background: var(--colors-container-containerL1, #f8fafc);
+    background: var(--colors-container-containerL1, #f1ecff);
     border: 1px solid var(--colors-stroke-strokeLow);
   }
 
   .gateway-usage-card:hover {
-    background: var(--colors-container-containerL2, #f1f5f9);
+    background: var(--colors-container-containerL2, #f6f4ef);
     border-color: var(--colors-stroke-strokeHigh);
   }
 
   .usage-bar-background {
-    background: var(--colors-container-containerL0, #e2e8f0);
+    background: var(--colors-container-containerL0, #e6e4ef);
   }
 }
 
@@ -1178,13 +1178,13 @@ body {
 }
 
 .modal-content {
-  background: var(--colors-container-containerL0, #050505);
+  background: var(--colors-container-containerL0, #0e0a1c);
   margin: 5% auto;
   padding: 0;
   border-radius: 12px;
   width: 90%;
   max-width: 500px;
-  border: 1px solid rgba(202, 202, 214, 0.08);
+  border: 1px solid rgba(212, 198, 255, 0.1);
   box-shadow: 0px 20px 60px rgba(0, 0, 0, 0.3);
   animation: modalSlideIn 0.3s ease-out;
 }
@@ -1205,11 +1205,11 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
-  border-bottom: 1px solid rgba(202, 202, 214, 0.08);
+  border-bottom: 1px solid rgba(212, 198, 255, 0.1);
 }
 
 .modal-header h2 {
-  font-family: "Rubik", sans-serif;
+  font-family: "Besley", serif;
   font-weight: 700;
   font-size: 18px;
   color: var(--colors-solid-neutrals-100, #ffffff);
@@ -1219,7 +1219,7 @@ body {
 .close-button {
   background: none;
   border: none;
-  color: var(--colors-icons-iconMid, #7f7f87);
+  color: var(--colors-icons-iconMid, #9b93b4);
   cursor: pointer;
   padding: 4px;
   border-radius: 4px;
@@ -1227,8 +1227,8 @@ body {
 }
 
 .close-button:hover {
-  color: var(--colors-icons-iconHigh, #cacad6);
-  background: var(--colors-container-containerL1, #0e0e0f);
+  color: var(--colors-icons-iconHigh, #d4c6ff);
+  background: var(--colors-container-containerL1, #1a1527);
 }
 
 .modal-body {
@@ -1248,14 +1248,14 @@ body {
 }
 
 .detail-label {
-  font-family: "Rubik", sans-serif;
+  font-family: "Plus Jakarta Sans", sans-serif;
   font-weight: 500;
   font-size: 14px;
-  color: var(--colors-text-textHigh, #cacad6);
+  color: var(--colors-text-textHigh, #d4c6ff);
 }
 
 .detail-value {
-  font-family: "Rubik", sans-serif;
+  font-family: "Plus Jakarta Sans", sans-serif;
   font-weight: 600;
   font-size: 14px;
   color: var(--colors-solid-neutrals-100, #ffffff);
@@ -1263,7 +1263,7 @@ body {
 }
 
 .detail-value:hover {
-  color: var(--accent-primary, #349fa8);
+  color: var(--accent-primary, #5427c8);
 }
 
 .gateway-status-badge {
