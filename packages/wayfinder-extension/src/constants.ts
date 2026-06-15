@@ -85,7 +85,8 @@ export const AR_IO_SOLANA_DEVNET: SolanaNetworkConfig = {
  * `@ar.io/sdk` MAINNET_PROGRAM_IDS (clusters.ts).
  */
 export const AR_IO_SOLANA_MAINNET: SolanaNetworkConfig = {
-  rpcUrl: 'https://api.mainnet-beta.solana.com',
+  rpcUrl:
+    'https://hardworking-restless-sea.solana-mainnet.quiknode.pro/44d938fae3eb6735ec30d8979551827ff70227f5/',
   coreProgramId: '73YoECm6NKXpVRoe5f1Q9BcP5DJGPFUjnFy6AxBE5Nvh',
   garProgramId: '89fNiiwgpFSPHKuqfNUkgYTYjtAJAhyqHjXmgXeppGpf',
   arnsProgramId: '2yCUx5edFvUrkibYaUa2ZXWyx9kuJkS8CwyzsgHPWdZZ',
