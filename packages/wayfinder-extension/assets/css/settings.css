@@ -2248,6 +2248,87 @@ body {
   cursor: not-allowed;
 }
 
+/* Advanced: AR.IO Program IDs (collapsible <details>) */
+.network-option-advanced {
+  cursor: default;
+}
+
+.network-option-advanced summary {
+  font-family: "Rubik", sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--colors-solid-neutrals-100, #ffffff);
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.network-option-advanced summary::before {
+  content: "▸";
+  font-size: 12px;
+  transition: transform 0.2s ease;
+}
+
+.network-option-advanced[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.network-option-advanced summary::-webkit-details-marker {
+  display: none;
+}
+
+.network-option-advanced .advanced-description {
+  font-family: "Rubik", sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--colors-text-textMid, #8a8a8a);
+  margin: 8px 0 16px 0;
+}
+
+.program-id-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.program-id-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.program-id-field label {
+  font-family: "Rubik", sans-serif;
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--colors-text-textHigh, #cacad6);
+}
+
+.program-id-field input[type="text"] {
+  width: 100%;
+  background: var(--colors-container-containerL3, #2a2a2d);
+  border: 1px solid rgba(202, 202, 214, 0.1);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: var(--colors-solid-neutrals-100, #ffffff);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12px;
+}
+
+.program-id-field input[type="text"]:focus {
+  outline: none;
+  border-color: var(--accent-primary, #349fa8);
+}
+
+.program-id-field input[type="text"]::placeholder {
+  color: var(--colors-text-textMid, #8a8a8a);
+  font-family: "Rubik", sans-serif;
+}
+
 /* Light Mode Support for Settings */
 [data-theme="light"] {
   /* Update outer card border colors to CACAD6 */

@@ -15,18 +15,22 @@
  * limitations under the License.
  */
 
-import { AR_IO_SOLANA_DEVNET, FALLBACK_GATEWAY } from '../constants';
+import {
+  AR_IO_SOLANA_DEVNET,
+  AR_IO_SOLANA_MAINNET,
+  FALLBACK_GATEWAY,
+} from '../constants';
 import type { NetworkPreset } from '../types';
 
 /**
  * AR.IO Solana network configuration defaults applied on first install.
- * Active preset is `devnet`; users can switch to `mainnet` in settings.
- * Stored as flat keys in `chrome.storage.local` for easy diffing and
- * incremental updates from the settings UI.
+ * Active preset is `mainnet`. Stored as flat keys in
+ * `chrome.storage.local` for easy diffing and incremental updates from
+ * the settings UI.
  */
 export const SOLANA_NETWORK_DEFAULTS = {
-  network: 'devnet' satisfies NetworkPreset as NetworkPreset,
-  ...AR_IO_SOLANA_DEVNET,
+  network: 'mainnet' satisfies NetworkPreset as NetworkPreset,
+  ...AR_IO_SOLANA_MAINNET,
 } as const;
 
 /**
@@ -34,12 +38,12 @@ export const SOLANA_NETWORK_DEFAULTS = {
  */
 export const EXTENSION_DEFAULTS = {
   // AR.IO Network Configuration (Solana)
-  network: 'devnet' satisfies NetworkPreset as NetworkPreset,
-  rpcUrl: AR_IO_SOLANA_DEVNET.rpcUrl,
-  coreProgramId: AR_IO_SOLANA_DEVNET.coreProgramId,
-  garProgramId: AR_IO_SOLANA_DEVNET.garProgramId,
-  arnsProgramId: AR_IO_SOLANA_DEVNET.arnsProgramId,
-  antProgramId: AR_IO_SOLANA_DEVNET.antProgramId,
+  network: 'mainnet' satisfies NetworkPreset as NetworkPreset,
+  rpcUrl: AR_IO_SOLANA_MAINNET.rpcUrl,
+  coreProgramId: AR_IO_SOLANA_MAINNET.coreProgramId,
+  garProgramId: AR_IO_SOLANA_MAINNET.garProgramId,
+  arnsProgramId: AR_IO_SOLANA_MAINNET.arnsProgramId,
+  antProgramId: AR_IO_SOLANA_MAINNET.antProgramId,
 
   // Verification Configuration
   showVerificationToasts: false,
