@@ -1047,6 +1047,48 @@ async function updateSyncStatus(
 }
 
 /**
+ * Retry helper with exponential backoff + jitter for Solana RPC calls.
+ * The public RPC endpoints rate-limit aggressively (HTTP 403 / SolanaError
+ * #8100002). This retries on transport-level failures while letting
+ * application errors (bad address, deserialization) bubble immediately.
+ */
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  { maxAttempts = 5, baseDelayMs = 2_000, maxDelayMs = 15_000 } = {},
+): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      lastError = error;
+      const msg = String(error?.message ?? '');
+      const code = error?.context?.__code ?? error?.code;
+      const statusCode = error?.context?.statusCode;
+
+      // Retry on: rate-limit (403/429), server errors (5xx), network failures
+      const isRetryable =
+        statusCode === 403 ||
+        statusCode === 429 ||
+        (typeof statusCode === 'number' && statusCode >= 500) ||
+        code === 8100002 ||
+        /fetch failed|ECONNRESET|ETIMEDOUT|timed out/i.test(msg);
+
+      if (!isRetryable || attempt === maxAttempts - 1) throw error;
+
+      const delay =
+        Math.min(baseDelayMs * 2 ** attempt, maxDelayMs) *
+        (0.5 + Math.random() * 0.5);
+      logger.warn(
+        `[SYNC] RPC call failed (attempt ${attempt + 1}/${maxAttempts}), retrying in ${Math.round(delay)}ms`,
+      );
+      await new Promise((r) => setTimeout(r, delay));
+    }
+  }
+  throw lastError;
+}
+
+/**
  * Sync gateway address registry from AR.IO network
  */
 async function syncGatewayAddressRegistry(): Promise<void> {
@@ -1065,10 +1107,12 @@ async function syncGatewayAddressRegistry(): Promise<void> {
     let totalFetched = 0;
 
     do {
-      const response = await arIO.getGateways({
-        limit: 1000,
-        cursor,
-      });
+      const response = await retryWithBackoff(() =>
+        arIO!.getGateways({
+          limit: 1000,
+          cursor,
+        }),
+      );
 
       if (!response?.items || response.items.length === 0) {
         logger.warn('No gateways found in this batch.');
