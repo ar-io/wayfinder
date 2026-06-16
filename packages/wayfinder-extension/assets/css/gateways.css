@@ -1811,10 +1811,30 @@ body {
   background: var(--border-emphasis);
 }
 
-/* Light Mode Support for Gateway Modal */
+/* Light Mode Support */
 [data-theme="light"] {
+  .gateways-container {
+    background: var(--colors-container-containerL0, #ffffff);
+  }
+
   .gateways-header {
+    background: var(--colors-container-containerL0, #ffffff);
     border-bottom: 1px solid var(--colors-stroke-strokeLow);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+
+  .gateways-footer {
+    background: var(--colors-container-containerL0, #ffffff);
+    border-top: 1px solid var(--colors-stroke-strokeLow);
+    box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.05);
+  }
+
+  .stat-card {
+    background: var(--colors-container-containerL1, #f1ecff);
+  }
+
+  .stat-card:hover {
+    background: var(--colors-container-containerL2, #f6f4ef);
   }
 
   .filter-section {

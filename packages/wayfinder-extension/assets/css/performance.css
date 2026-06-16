@@ -1106,7 +1106,10 @@ body {
 
 /* Light Mode Support for Performance */
 [data-theme="light"] {
-  /* Update outer card border colors */
+  .performance-container {
+    background: var(--colors-container-containerL0, #ffffff);
+  }
+
   .perf-card {
     border: 1px solid #e6e4ef;
   }
