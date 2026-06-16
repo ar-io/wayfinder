@@ -39,7 +39,11 @@ body {
   border-bottom: 1px solid rgba(212, 198, 255, 0.1);
   display: flex;
   align-items: center;
-  position: relative;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
   flex-shrink: 0;
 }
 
@@ -205,7 +209,7 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 18px;
-  padding: 18px; /* Simple padding since header is now relative */
+  padding: calc(95.832px + 24px) 18px calc(57px + 24px) 18px;
   overflow-y: auto;
   overflow-x: hidden;
   box-sizing: border-box;
@@ -748,7 +752,11 @@ body {
   background: var(--colors-container-containerL0, #0e0a1c);
   border-top: 1px solid rgba(212, 198, 255, 0.1);
   padding: 18px;
-  position: relative;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
   flex-shrink: 0;
 }
 

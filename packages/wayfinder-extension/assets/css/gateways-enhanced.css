@@ -649,3 +649,19 @@
     opacity: 0;
   }
 }
+
+/* Light theme support */
+[data-theme="light"] {
+  .modal-stat-card {
+    background: var(--colors-container-containerL1, #f1ecff);
+    border-color: var(--colors-stroke-strokeLow);
+  }
+
+  .modal-stat-card:hover {
+    background: var(--colors-container-containerL2, #f6f4ef);
+  }
+
+  .section-title h3 {
+    color: var(--colors-solid-neutrals-100, #23232d);
+  }
+}

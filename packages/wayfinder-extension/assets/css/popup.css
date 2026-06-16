@@ -284,8 +284,9 @@ body {
 
 .stat-card {
   width: 116px;
-  height: 72px;
+  height: 76px;
   background: var(--colors-container-containerL1, #1a1527);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   box-shadow:
     0px 1726px 483px 0px rgba(0, 0, 0, 0.01),

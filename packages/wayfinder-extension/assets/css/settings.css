@@ -66,7 +66,7 @@ body {
   height: 54.879px;
   background: var(--colors-container-containerL0, #0e0a1c);
   border: none;
-  border-radius: 10px;
+  border-radius: var(--radius-md, 12px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -110,7 +110,7 @@ body {
   height: 32px;
   background: var(--colors-container-containerL0, #0e0a1c);
   border-radius: 8px;
-  border: 1px solid rgba(212, 198, 255, 0.08);
+  border: 1px solid rgba(212, 198, 255, 0.10);
   cursor: pointer;
   position: relative;
 }
@@ -145,7 +145,7 @@ body {
   visibility: hidden;
   transition: opacity 0.2s ease, visibility 0.2s ease;
   z-index: 1000;
-  border: 1px solid rgba(212, 198, 255, 0.08);
+  border: 1px solid rgba(212, 198, 255, 0.10);
 }
 
 .status-indicator:hover::after {
@@ -183,7 +183,7 @@ body {
   width: 384px;
   background: var(--colors-container-containerL1, #1a1527);
   border-radius: 12px;
-  border: 1px solid rgba(212, 198, 255, 0.08);
+  border: 1px solid rgba(212, 198, 255, 0.1);
   position: relative;
   overflow: hidden;
   cursor: pointer;
@@ -230,7 +230,7 @@ body {
 
 .strategy-option {
   margin-bottom: 18px;
-  border: 1px solid rgba(212, 198, 255, 0.08);
+  border: 1px solid rgba(212, 198, 255, 0.1);
   border-radius: 8px;
   background: var(--colors-container-containerL1, #1a1527);
   overflow: hidden;
@@ -419,7 +419,7 @@ body {
   width: 100%;
   padding: 12px 16px;
   background: var(--colors-container-containerL3, #342d4d);
-  border: 1px solid rgba(212, 198, 255, 0.08);
+  border: 1px solid rgba(212, 198, 255, 0.1);
   border-radius: 8px;
   color: var(--colors-text-textHigh, #d4c6ff);
   font-size: 14px;
@@ -501,7 +501,7 @@ body {
 .apply-static-gateway {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid rgba(212, 198, 255, 0.08);
+  border-top: 1px solid rgba(212, 198, 255, 0.1);
   text-align: center;
 }
 
@@ -537,7 +537,7 @@ body {
 
 .verification-strategy-config .strategy-option {
   margin-bottom: 18px;
-  border: 1px solid rgba(212, 198, 255, 0.08);
+  border: 1px solid rgba(212, 198, 255, 0.1);
   border-radius: 8px;
   background: var(--colors-container-containerL1, #1a1527);
   overflow: hidden;
@@ -760,7 +760,7 @@ body {
 
 .theme-option {
   margin-bottom: 18px;
-  border: 1px solid rgba(212, 198, 255, 0.08);
+  border: 1px solid rgba(212, 198, 255, 0.1);
   border-radius: 8px;
   background: var(--colors-container-containerL1, #1a1527);
   overflow: hidden;
@@ -880,7 +880,7 @@ body {
 
 .advanced-option {
   margin-bottom: 18px;
-  border: 1px solid rgba(212, 198, 255, 0.08);
+  border: 1px solid rgba(212, 198, 255, 0.1);
   border-radius: 8px;
   background: var(--colors-container-containerL1, #1a1527);
   overflow: hidden;
@@ -1032,7 +1032,7 @@ body {
 
 .verification-strategy-selector .strategy-option {
   margin-bottom: 12px;
-  border: 1px solid rgba(212, 198, 255, 0.08);
+  border: 1px solid rgba(212, 198, 255, 0.1);
   border-radius: 8px;
   background: var(--colors-container-containerL1, #1a1527);
   overflow: hidden;
@@ -1128,7 +1128,7 @@ body {
 }
 
 .mode-option {
-  border: 1px solid rgba(212, 198, 255, 0.08);
+  border: 1px solid rgba(212, 198, 255, 0.1);
   border-radius: 8px;
   background: var(--colors-container-containerL1, #1a1527);
   padding: 12px;
@@ -1261,7 +1261,7 @@ body {
   gap: 12px;
   cursor: pointer;
   padding: 12px;
-  border: 1px solid rgba(212, 198, 255, 0.08);
+  border: 1px solid rgba(212, 198, 255, 0.1);
   border-radius: 8px;
   background: var(--colors-container-containerL1, #1a1527);
   transition: all 0.2s ease;
@@ -1312,7 +1312,7 @@ body {
 
 .option-card {
   background: var(--colors-container-containerL1, #1a1527);
-  border: 1px solid rgba(212, 198, 255, 0.08);
+  border: 1px solid rgba(212, 198, 255, 0.1);
   border-radius: 12px;
   padding: 16px;
   position: relative;
@@ -1342,7 +1342,7 @@ body {
 /* Verified browsing card when toggled off */
 .verified-browsing-config:has(#verifiedBrowsingToggle:not(:checked))
   .option-card:first-child {
-  border: 1px solid rgba(212, 198, 255, 0.08);
+  border: 1px solid rgba(212, 198, 255, 0.1);
 }
 
 .verified-browsing-config:has(#verifiedBrowsingToggle:not(:checked))
@@ -1574,7 +1574,7 @@ body {
 .secondary-button {
   padding: 8px 16px;
   background: var(--colors-container-containerL0, #0e0a1c);
-  border: 1px solid rgba(212, 198, 255, 0.08);
+  border: 1px solid rgba(212, 198, 255, 0.1);
   border-radius: var(--radius-sm, 8px);
   color: var(--colors-text-textHigh, #d4c6ff);
   font-size: 12px;
@@ -1822,7 +1822,7 @@ body {
 
 .provider-option {
   margin-bottom: 18px;
-  border: 1px solid rgba(212, 198, 255, 0.08);
+  border: 1px solid rgba(212, 198, 255, 0.1);
   border-radius: 8px;
   background: var(--colors-container-containerL1, #1a1527);
   overflow: hidden;
@@ -1908,7 +1908,7 @@ body {
 
 .trusted-gateways-config .mode-option {
   margin-bottom: 18px;
-  border: 1px solid rgba(212, 198, 255, 0.08);
+  border: 1px solid rgba(212, 198, 255, 0.1);
   border-radius: 8px;
   background: var(--colors-container-containerL1, #1a1527);
   overflow: hidden;
@@ -1995,7 +1995,7 @@ body {
 
 .gateway-count-config {
   background: var(--colors-container-containerL0, #0e0a1c);
-  border: 1px solid rgba(212, 198, 255, 0.08);
+  border: 1px solid rgba(212, 198, 255, 0.1);
   border-radius: 8px;
   padding: 16px;
   margin-bottom: 18px;
@@ -2020,7 +2020,7 @@ body {
 
 .gateway-selection-section {
   background: var(--colors-container-containerL0, #0e0a1c);
-  border: 1px solid rgba(212, 198, 255, 0.08);
+  border: 1px solid rgba(212, 198, 255, 0.1);
   border-radius: 8px;
   padding: 16px;
   margin-bottom: 18px;
@@ -2114,7 +2114,7 @@ body {
 
 .trusted-gateways-preview {
   background: var(--colors-container-containerL0, #0e0a1c);
-  border: 1px solid rgba(212, 198, 255, 0.08);
+  border: 1px solid rgba(212, 198, 255, 0.1);
   border-radius: 8px;
   padding: 16px;
 }
@@ -2233,6 +2233,12 @@ body {
 
 .option-input input[type="text"]:focus,
 .option-input input[type="url"]:focus {
+  outline: none;
+  border-color: var(--accent-primary, #5427c8);
+  box-shadow: 0 0 0 3px rgba(84, 39, 200, 0.2);
+}
+
+.option-input select:focus {
   outline: none;
   border-color: var(--accent-primary, #5427c8);
   box-shadow: 0 0 0 3px rgba(84, 39, 200, 0.2);
