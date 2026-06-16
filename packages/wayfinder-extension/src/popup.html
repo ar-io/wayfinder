@@ -13,6 +13,13 @@
     />
     <link rel="stylesheet" href="assets/css/variables.css" />
     <link rel="stylesheet" href="assets/css/popup.css" />
+    <script>
+      // Sync theme before first paint to prevent flash of wrong theme
+      chrome.storage.local.get(['theme']).then(({theme = 'dark'}) => {
+        if (theme === 'light') document.documentElement.setAttribute('data-theme', 'light');
+        else if (theme === 'auto' && !window.matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.setAttribute('data-theme', 'light');
+      });
+    </script>
     <script type="module" src="popup.js"></script>
   </head>
   <body>
