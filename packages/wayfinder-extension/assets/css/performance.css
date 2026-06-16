@@ -75,7 +75,7 @@ body {
 }
 
 .back-button:hover {
-  background: var(--colors-container-containerL0, #0e0a1c);
+  background: var(--colors-container-containerL2, #26203a);
 }
 
 .back-button svg {
@@ -316,7 +316,7 @@ body {
 .stat-card {
   width: 100%;
   height: 89.7px;
-  background: var(--bg-secondary);
+  background: var(--colors-container-containerL1, #1a1527);
   border-radius: var(--radius-lg);
   box-shadow:
     0px 1726px 483px 0px rgba(0, 0, 0, 0.01),
@@ -355,7 +355,7 @@ body {
   font-weight: 700;
   font-size: var(--font-size-base);
   line-height: var(--line-height-normal);
-  color: var(--text-high);
+  color: var(--colors-solid-neutrals-100, #ffffff);
 }
 
 .stat-label {
@@ -363,7 +363,7 @@ body {
   font-weight: 400;
   font-size: var(--font-size-xs);
   line-height: var(--line-height-normal);
-  color: var(--text-high);
+  color: var(--colors-text-textMid, #9b93b4);
 }
 
 /* Verification section */
@@ -1123,9 +1123,52 @@ body {
     box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.05);
   }
 
+  .filter-section {
+    background: var(--colors-container-containerL1, #f1ecff);
+    border-color: var(--colors-stroke-strokeLow);
+  }
+
+  .filter-btn {
+    background: var(--colors-container-containerL0, #ffffff);
+    border-color: var(--colors-stroke-strokeLow);
+    color: var(--colors-text-textHigh);
+  }
+
+  .filter-btn.active {
+    background: var(--colors-container-containerL1, #f1ecff);
+    color: var(--colors-solid-neutrals-100);
+  }
+
+  .sort-select {
+    background: var(--colors-container-containerL0, #ffffff);
+    border-color: var(--colors-stroke-strokeLow);
+    color: var(--colors-text-textHigh);
+  }
+
+  .stat-card {
+    background: var(--colors-container-containerL1, #f1ecff);
+  }
+
   .stat-card:hover {
     background: var(--colors-container-containerL2, #f6f4ef);
     border-color: var(--border-default);
+  }
+
+  .stat-value {
+    color: var(--colors-solid-neutrals-100, #23232d);
+  }
+
+  .stat-label {
+    color: var(--colors-text-textMid, #4a4a58);
+  }
+
+  .usage-section {
+    background: var(--colors-container-containerL1, #f1ecff);
+    border-color: var(--colors-stroke-strokeLow);
+  }
+
+  .section-header {
+    border-bottom-color: var(--colors-stroke-strokeLow);
   }
 
   .perf-card:hover {

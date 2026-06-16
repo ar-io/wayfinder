@@ -75,7 +75,7 @@ body {
 }
 
 .back-button:hover {
-  background: var(--colors-container-containerL0, #0e0a1c);
+  background: var(--colors-container-containerL2, #26203a);
 }
 
 .back-button svg {
@@ -418,7 +418,7 @@ body {
 .input-with-button input {
   width: 100%;
   padding: 12px 16px;
-  background: var(--colors-container-containerL0, #0e0a1c);
+  background: var(--colors-container-containerL3, #342d4d);
   border: 1px solid rgba(212, 198, 255, 0.08);
   border-radius: 8px;
   color: var(--colors-text-textHigh, #d4c6ff);

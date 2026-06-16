@@ -338,7 +338,7 @@ body {
   font-weight: 400;
   font-size: var(--font-size-xs);
   line-height: var(--line-height-normal);
-  color: var(--text-high);
+  color: var(--colors-text-textMid, #9b93b4);
 }
 
 /* Feature cards (verified browsing, strategy) */
@@ -517,7 +517,7 @@ body {
   font-weight: 400;
   font-size: var(--font-size-sm);
   line-height: var(--line-height-normal);
-  color: var(--text-high);
+  color: var(--colors-text-textMid, #9b93b4);
   margin: 0;
 }
 
@@ -580,7 +580,7 @@ body {
   font-weight: 400;
   font-size: var(--font-size-sm);
   line-height: var(--line-height-normal);
-  color: var(--text-high);
+  color: var(--colors-text-textMid, #9b93b4);
   margin: 0;
 }
 

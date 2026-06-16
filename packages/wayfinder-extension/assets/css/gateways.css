@@ -230,7 +230,7 @@ body {
 .stat-card {
   min-width: 0; /* Allow cards to shrink to fit */
   height: 89.7px;
-  background: var(--bg-secondary);
+  background: var(--colors-container-containerL1, #1a1527);
   border-radius: var(--radius-lg);
   box-shadow:
     0px 1726px 483px 0px rgba(0, 0, 0, 0.01),
