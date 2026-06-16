@@ -285,7 +285,7 @@ body {
 .stat-card {
   width: 116px;
   height: 72px;
-  background: var(--bg-secondary);
+  background: var(--colors-container-containerL1, #1a1527);
   border-radius: var(--radius-lg);
   box-shadow:
     0px 1726px 483px 0px rgba(0, 0, 0, 0.01),
@@ -352,7 +352,7 @@ body {
 .feature-card,
 .strategy-card {
   width: 384px;
-  background: var(--bg-secondary);
+  background: var(--colors-container-containerL1, #1a1527);
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-subtle);
   display: flex;
@@ -478,13 +478,13 @@ body {
 }
 
 .strategy-card {
-  background: var(--bg-secondary);
+  background: var(--colors-container-containerL1, #1a1527);
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;
-  gap: 18px;
-  padding: var(--spacing-md);
+  gap: 14px;
+  padding: 12px 16px;
   cursor: pointer;
   transition: all 0.2s ease;
   width: 384px;
@@ -536,7 +536,7 @@ body {
 }
 
 .nav-card {
-  background: var(--bg-secondary);
+  background: var(--colors-container-containerL1, #1a1527);
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-subtle);
   display: flex;

@@ -2176,8 +2176,8 @@ body {
 }
 
 .network-option {
-  background: var(--colors-container-containerL0, #0e0a1c);
-  border: 1px solid rgba(212, 198, 255, 0.08);
+  background: var(--colors-container-containerL1, #1a1527);
+  border: 1px solid rgba(212, 198, 255, 0.1);
   border-radius: 8px;
   padding: 16px;
   cursor: pointer;
