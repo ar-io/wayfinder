@@ -192,11 +192,9 @@ body {
 
 .settings-section:hover:not(.routing-config):not(
     .verification-strategy-config
-  ):not(.theme-config):not(.advanced-options):not(
-    .verified-browsing-config
-  ):not(.gateway-provider-config):not(.trusted-gateways-config):not(
-    .network-config
-  ):not(.data-management) {
+  ):not(.theme-config):not(.advanced-config):not(.verified-browsing-config):not(
+    .gateway-provider-config
+  ):not(.trusted-gateways-config):not(.network-config):not(.data-management) {
   background: var(--colors-container-containerL2, #26203a);
   border-color: rgba(212, 198, 255, 0.1);
 }
@@ -1508,8 +1506,8 @@ body {
 
 .toggle-switch input:not(:checked) + .toggle-slider,
 .switch input:not(:checked) + .switch-slider {
-  background: var(--colors-container-containerL2, #26203a);
-  border: 1.14286px solid rgba(212, 198, 255, 0.01);
+  background: var(--colors-container-containerL3, #342d4d);
+  border: 1.14286px solid rgba(212, 198, 255, 0.1);
   box-shadow: none;
   justify-content: flex-start;
 }

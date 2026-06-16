@@ -1805,7 +1805,32 @@ body {
 
 /* Light Mode Support for Gateway Modal */
 [data-theme="light"] {
-  /* Update outer card border colors */
+  .gateways-header {
+    border-bottom: 1px solid var(--colors-stroke-strokeLow);
+  }
+
+  .filter-section {
+    background: var(--colors-container-containerL1, #f1ecff);
+    border: 1px solid var(--colors-stroke-strokeLow);
+  }
+
+  .filter-btn {
+    background: var(--colors-container-containerL0, #ffffff);
+    border-color: var(--colors-stroke-strokeLow);
+    color: var(--colors-text-textHigh);
+  }
+
+  .filter-btn.active {
+    background: var(--colors-container-containerL1, #f1ecff);
+    color: var(--colors-solid-neutrals-100);
+  }
+
+  .search-box input {
+    background: var(--colors-container-containerL0, #ffffff);
+    border-color: var(--colors-stroke-strokeLow);
+    color: var(--colors-text-textHigh);
+  }
+
   .gateway-card {
     border: 1px solid #e6e4ef;
   }
