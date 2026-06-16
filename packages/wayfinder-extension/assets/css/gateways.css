@@ -26,7 +26,7 @@ body {
   flex-direction: column;
   width: 100%;
   min-height: 100vh;
-  background: var(--colors-container-containerL1, #1a1527);
+  background: var(--colors-container-containerL0, #0e0a1c);
   border-radius: 0 0 8px 8px;
   overflow: hidden;
 }
@@ -60,7 +60,7 @@ body {
 .back-button {
   width: 54.88px;
   height: 54.879px;
-  background: var(--colors-container-containerL1, #1a1527);
+  background: var(--colors-container-containerL0, #0e0a1c);
   border: none;
   border-radius: var(--radius-md, 12px);
   display: flex;
@@ -71,7 +71,7 @@ body {
 }
 
 .back-button:hover {
-  background: var(--colors-container-containerL1, #1a1527);
+  background: var(--colors-container-containerL2, #26203a);
 }
 
 .back-button svg {
@@ -248,7 +248,7 @@ body {
 }
 
 .stat-card:hover {
-  background: #26203a; /* containerL2 */
+  background: var(--colors-container-containerL2, #26203a);
   border-color: rgba(212, 198, 255, 0.1);
 }
 
@@ -497,7 +497,7 @@ body {
 }
 
 .gateway-card:hover {
-  background: #26203a; /* containerL2 */
+  background: var(--colors-container-containerL2, #26203a);
   border-color: rgba(212, 198, 255, 0.1);
   transform: translateY(-1px);
   box-shadow: var(--shadow-lg);
@@ -1049,7 +1049,7 @@ body {
 }
 
 .modal-section:hover {
-  background: #26203a; /* containerL2 */
+  background: var(--colors-container-containerL2, #26203a);
   border-color: rgba(212, 198, 255, 0.1);
 }
 
@@ -1208,7 +1208,7 @@ body {
 }
 
 .modal-stat-card:hover {
-  background: #26203a; /* containerL2 */
+  background: var(--colors-container-containerL2, #26203a);
   border-color: rgba(212, 198, 255, 0.1);
   transform: translateY(-2px);
   box-shadow: 0px 8px 25px rgba(0, 0, 0, 0.15), 0px 4px 10px rgba(0, 0, 0, 0.1);
