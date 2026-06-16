@@ -28,7 +28,6 @@ body {
   min-height: 100vh;
   background: var(--colors-container-containerL0, #0e0a1c);
   border-radius: 0 0 8px 8px;
-  overflow: hidden;
 }
 
 /* Header */
