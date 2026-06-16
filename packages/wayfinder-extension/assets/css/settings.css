@@ -136,7 +136,7 @@ body {
   background: var(--colors-container-containerL0, #0e0a1c);
   color: var(--colors-text-textHigh, #D4C6FF);
   padding: 6px 12px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm, 8px);
   font-family: var(--font-family-body, 'Plus Jakarta Sans', sans-serif);
   font-size: 12px;
   font-weight: 500;
@@ -711,7 +711,7 @@ body {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm, 8px);
   margin-left: 8px;
 }
 
@@ -1577,7 +1577,7 @@ body {
   padding: 8px 16px;
   background: var(--colors-container-containerL0, #0e0a1c);
   border: 1px solid rgba(212, 198, 255, 0.08);
-  border-radius: 6px;
+  border-radius: var(--radius-sm, 8px);
   color: var(--colors-text-textHigh, #d4c6ff);
   font-size: 12px;
   font-weight: 600;
@@ -1593,7 +1593,7 @@ body {
   padding: 8px 16px;
   background: var(--error, #ef4444);
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-sm, 8px);
   color: var(--colors-solid-neutrals-100, #ffffff);
   font-size: 12px;
   font-weight: 600;
@@ -1698,7 +1698,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
+  border-radius: var(--radius-sm, 8px);
   transition: all var(--transition-fast);
   flex-shrink: 0;
 }
@@ -2058,7 +2058,7 @@ body {
   align-items: center;
   gap: 8px;
   padding: 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm, 8px);
   transition: background-color 0.2s ease;
 }
 
