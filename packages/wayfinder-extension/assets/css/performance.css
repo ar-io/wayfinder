@@ -212,7 +212,7 @@ body {
 /* Filter section */
 .filter-section {
   width: 384px;
-  background: var(--colors-container-containerL0, #0e0a1c);
+  background: var(--colors-container-containerL1, #1a1527);
   border-radius: 12px;
   border: 1px solid rgba(212, 198, 255, 0.1);
   padding: 18px;
@@ -235,6 +235,7 @@ body {
   flex: 1;
   padding: 8px 6px;
   background: var(--colors-container-containerL0, #0e0a1c);
+  /* Intentionally L0 to contrast against the L1 filter-section background */
   border: 1px solid rgba(212, 198, 255, 0.1);
   border-radius: var(--radius-sm, 8px);
   color: var(--colors-text-textHigh, #d4c6ff);
@@ -502,7 +503,7 @@ body {
 /* Danger zone styling matching settings page */
 .action-card {
   width: 384px;
-  background: var(--colors-container-containerL0, #0e0a1c);
+  background: var(--colors-container-containerL1, #1a1527);
   border: 1px solid var(--error, #ef4444);
   border-radius: 12px;
   padding: 18px;
@@ -599,7 +600,7 @@ body {
 /* Usage section */
 .usage-section {
   width: 384px;
-  background: var(--colors-container-containerL0, #0e0a1c);
+  background: var(--colors-container-containerL1, #1a1527);
   border-radius: 12px;
   border: 1px solid rgba(212, 198, 255, 0.1);
   position: relative;

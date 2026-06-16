@@ -764,7 +764,7 @@ body {
   margin-bottom: 18px;
   border: 1px solid rgba(212, 198, 255, 0.08);
   border-radius: 8px;
-  background: var(--colors-container-containerL0, #0e0a1c);
+  background: var(--colors-container-containerL1, #1a1527);
   overflow: hidden;
   position: relative;
 }
@@ -884,7 +884,7 @@ body {
   margin-bottom: 18px;
   border: 1px solid rgba(212, 198, 255, 0.08);
   border-radius: 8px;
-  background: var(--colors-container-containerL0, #0e0a1c);
+  background: var(--colors-container-containerL1, #1a1527);
   overflow: hidden;
   padding: 16px;
 }
@@ -1036,7 +1036,7 @@ body {
   margin-bottom: 12px;
   border: 1px solid rgba(212, 198, 255, 0.08);
   border-radius: 8px;
-  background: var(--colors-container-containerL0, #0e0a1c);
+  background: var(--colors-container-containerL1, #1a1527);
   overflow: hidden;
   position: relative;
   padding: 20px;
@@ -1132,14 +1132,14 @@ body {
 .mode-option {
   border: 1px solid rgba(212, 198, 255, 0.08);
   border-radius: 8px;
-  background: var(--colors-container-containerL0, #0e0a1c);
+  background: var(--colors-container-containerL1, #1a1527);
   padding: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .mode-option:hover {
-  background: var(--colors-container-containerL0, #0e0a1c);
+  background: var(--colors-container-containerL2, #26203a);
 }
 
 .mode-option input[type="radio"] {
@@ -1148,7 +1148,7 @@ body {
 
 .mode-option:has(input[type="radio"]:checked) {
   border-color: var(--accent-primary, #5427c8);
-  background: var(--colors-container-containerL0, #0e0a1c);
+  background: var(--colors-container-containerL1, #1a1527);
 }
 
 .mode-option label {
@@ -1265,12 +1265,12 @@ body {
   padding: 12px;
   border: 1px solid rgba(212, 198, 255, 0.08);
   border-radius: 8px;
-  background: var(--colors-container-containerL0, #0e0a1c);
+  background: var(--colors-container-containerL1, #1a1527);
   transition: all 0.2s ease;
 }
 
 .mode-option:hover {
-  background: var(--colors-container-containerL0, #0e0a1c);
+  background: var(--colors-container-containerL2, #26203a);
 }
 
 .mode-option input[type="radio"] {
@@ -1289,7 +1289,7 @@ body {
 }
 
 .mode-option:has(input[type="radio"]:checked) {
-  background: var(--colors-container-containerL0, #0e0a1c);
+  background: var(--colors-container-containerL1, #1a1527);
   border-color: var(--accent-primary, #5427c8);
 }
 
@@ -1313,7 +1313,7 @@ body {
 }
 
 .option-card {
-  background: var(--colors-container-containerL0, #0e0a1c);
+  background: var(--colors-container-containerL1, #1a1527);
   border: 1px solid rgba(212, 198, 255, 0.08);
   border-radius: 12px;
   padding: 16px;
@@ -1826,7 +1826,7 @@ body {
   margin-bottom: 18px;
   border: 1px solid rgba(212, 198, 255, 0.08);
   border-radius: 8px;
-  background: var(--colors-container-containerL0, #0e0a1c);
+  background: var(--colors-container-containerL1, #1a1527);
   overflow: hidden;
   padding: 16px;
   cursor: pointer;
@@ -1912,7 +1912,7 @@ body {
   margin-bottom: 18px;
   border: 1px solid rgba(212, 198, 255, 0.08);
   border-radius: 8px;
-  background: var(--colors-container-containerL0, #0e0a1c);
+  background: var(--colors-container-containerL1, #1a1527);
   overflow: hidden;
   position: relative;
   padding: 16px;
