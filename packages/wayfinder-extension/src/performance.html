@@ -14,10 +14,12 @@
     <link rel="stylesheet" href="assets/css/variables.css" />
     <link rel="stylesheet" href="assets/css/performance.css" />
     <link rel="stylesheet" href="assets/css/gateways-enhanced.css" />
+    <style>html:not([data-theme-ready]) { opacity: 0; }</style>
     <script>
       chrome.storage.local.get(['theme']).then(({theme = 'dark'}) => {
         if (theme === 'light') document.documentElement.setAttribute('data-theme', 'light');
         else if (theme === 'auto' && !window.matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.setAttribute('data-theme', 'light');
+        document.documentElement.setAttribute('data-theme-ready', '');
       });
     </script>
     <script type="module" src="performance.js"></script>
