@@ -107,6 +107,10 @@ export default defineConfig({
           dest: '.',
         },
         {
+          src: 'src/theme-init.js',
+          dest: '.',
+        },
+        {
           src: 'manifest.json',
           dest: '.',
         },
