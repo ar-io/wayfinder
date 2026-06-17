@@ -1106,8 +1106,10 @@ body {
 
 /* Light Mode Support for Performance */
 [data-theme="light"] {
+  &,
+  body,
   .performance-container {
-    background: var(--colors-container-containerL0, #ffffff);
+    background: #ffffff;
   }
 
   .perf-card {

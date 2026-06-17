@@ -1812,8 +1812,10 @@ body {
 
 /* Light Mode Support */
 [data-theme="light"] {
+  &,
+  body,
   .gateways-container {
-    background: var(--colors-container-containerL0, #ffffff);
+    background: #ffffff;
   }
 
   .gateways-header {
