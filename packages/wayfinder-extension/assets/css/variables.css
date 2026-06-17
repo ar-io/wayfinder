@@ -24,12 +24,12 @@
   --colors-container-containerL3: #342d4d;
 
   /* ── Text Colors ────────────────────────────────────────────────────── */
-  --colors-text-textHigh: #d4c6ff; /* Lavender - high emphasis on dark */
+  --colors-text-textHigh: #ffffff; /* White - high emphasis on dark */
   --colors-text-textLow: #9b93b4;
-  --colors-text-textMid: #9b93b4;
+  --colors-text-textMid: #d4c6ff; /* Lavender - secondary text */
 
   /* ── Icon Colors ────────────────────────────────────────────────────── */
-  --colors-icons-iconHigh: #d4c6ff;
+  --colors-icons-iconHigh: #ffffff;
   --colors-icons-iconMid: #9b93b4;
   --colors-icons-iconLow: #7a7295;
 

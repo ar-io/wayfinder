@@ -13,7 +13,7 @@ html,
 body {
   font-family: var(--font-family-body, "Plus Jakarta Sans", sans-serif);
   background: var(--colors-container-containerL0, #0e0a1c);
-  color: var(--colors-text-textHigh, #d4c6ff);
+  color: var(--colors-text-textHigh, #ffffff);
   width: var(--extension-width, 420px);
   min-height: var(--extension-height, 600px);
   overflow: hidden;
@@ -25,9 +25,10 @@ body {
   display: flex;
   flex-direction: column;
   width: 100%;
-  min-height: 100vh;
+  height: 100vh;
   background: var(--colors-container-containerL0, #0e0a1c);
   border-radius: 0 0 8px 8px;
+  overflow: hidden;
 }
 
 /* Header */
