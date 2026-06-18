@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Wayfinder is a client-side routing and verification protocol for accessing data on Arweave through the AR.IO Network. It provides decentralized, cryptographically verified access to `ar://` URLs.
 
-The AR.IO on-chain registry has migrated from AO (Arweave) to **Solana**. The extension routes through Solana exclusively (`@ar.io/sdk@4.x`). The core library remains chain-agnostic (strategy pattern), but SDK examples use Solana backend. Both Solana mainnet and devnet are supported — the extension defaults to `devnet`.
+The AR.IO on-chain registry has migrated from AO (Arweave) to **Solana**. The extension routes through Solana exclusively (`@ar.io/sdk@4.x`). The core library remains chain-agnostic (strategy pattern), but SDK examples use Solana backend. Both Solana mainnet and devnet are supported — the extension defaults to mainnet.
 
 ## Monorepo Structure
 

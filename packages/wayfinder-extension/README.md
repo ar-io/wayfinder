@@ -10,6 +10,7 @@ The WayFinder Chrome extension intelligently routes users to optimal AR.IO gatew
 - **ENS Integration**: Optional support for Ethereum Name Service (ENS) names pointing to Arweave content
 - **DNS TXT Record Support**: Resolves gasless ArNS names via DNS TXT records
 - **Multiple Routing Strategies**:
+  - Top Staked (default): Round-robin across the top 20 highest-staked gateways
   - Fastest Ping: Routes to the gateway with the lowest latency
   - Balanced (Random): Distributes load across all available gateways
   - Static: Use a specific gateway of your choice
@@ -80,7 +81,7 @@ npm run build -w packages/wayfinder-extension
 Click the settings icon in the popup to access:
 
 #### Routing Configuration
-- **Routing Strategy**: Choose between Fastest Ping, Balanced, or Static gateway
+- **Routing Strategy**: Choose between Top Staked (default), Fastest Ping, Balanced, or Static gateway
 - **Static Gateway**: Configure and test a specific gateway URL
 - **Gateway Sorting**: Order gateways by operator stake or total delegated stake
 
