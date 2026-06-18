@@ -20,6 +20,7 @@ import {
   PingRoutingStrategy,
   RandomRoutingStrategy,
   RemoteVerificationStrategy,
+  RoundRobinRoutingStrategy,
   SimpleCacheRoutingStrategy,
   StaticRoutingStrategy,
   Wayfinder,
@@ -129,7 +130,20 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
         timeoutMs: ROUTING_STRATEGY_DEFAULTS.random.timeoutMs,
         logger,
       });
-      // Log handled at end of function
+      break;
+    case 'topStaked':
+      routingStrategy = new PingRoutingStrategy({
+        routingStrategy: new RoundRobinRoutingStrategy({
+          gatewaysProvider: new ChromeStorageGatewayProvider({
+            sortBy: 'totalDelegatedStake',
+            sortOrder: 'desc',
+            limit: 20,
+          }),
+          logger,
+        }),
+        timeoutMs: ROUTING_STRATEGY_DEFAULTS.random.timeoutMs,
+        logger,
+      });
       break;
     default:
       // default to random (balanced) strategy

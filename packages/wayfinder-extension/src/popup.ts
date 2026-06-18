@@ -207,6 +207,7 @@ async function loadCurrentStrategy() {
     const strategyNames = {
       fastestPing: 'Fastest Ping',
       random: 'Balanced',
+      topStaked: 'Top Staked',
       static: 'Static Gateway',
       // Legacy method fallbacks
       optimalGateway: 'Fastest Ping',

@@ -25,15 +25,18 @@ import { GatewayRegistry } from '../types';
 export class ChromeStorageGatewayProvider {
   private sortBy: 'operatorStake' | 'totalDelegatedStake';
   private sortOrder: 'asc' | 'desc';
+  private limit?: number;
 
   constructor(
     options: {
       sortBy?: 'operatorStake' | 'totalDelegatedStake';
       sortOrder?: 'asc' | 'desc';
+      limit?: number;
     } = {},
   ) {
     this.sortBy = options.sortBy || 'operatorStake';
     this.sortOrder = options.sortOrder || 'desc';
+    this.limit = options.limit;
   }
 
   /**
@@ -110,8 +113,13 @@ export class ChromeStorageGatewayProvider {
       }
     });
 
+    // Apply limit if configured
+    const limitedGateways = this.limit
+      ? sortedGateways.slice(0, this.limit)
+      : sortedGateways;
+
     // Convert to URL format expected by core library
-    const gateways = sortedGateways.map((gateway) => {
+    const gateways = limitedGateways.map((gateway) => {
       const { protocol, fqdn, port } = gateway.settings;
       const portSuffix =
         port && port !== (protocol === 'https' ? 443 : 80) ? `:${port}` : '';

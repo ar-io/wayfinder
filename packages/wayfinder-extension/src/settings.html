@@ -102,6 +102,30 @@
             </div>
 
 
+            <div class="strategy-option" data-strategy="topStaked">
+              <div class="strategy-header">
+                <input type="radio" name="routingStrategy" value="topStaked" id="topStaked">
+                <label for="topStaked">
+                  <div class="strategy-icon">
+                    <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+                      <path d="M18 3L22.5 12L33 13.5L25.5 21L27 31.5L18 27L9 31.5L10.5 21L3 13.5L13.5 12L18 3Z" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </div>
+                  <div class="strategy-info">
+                    <h3>Top Staked</h3>
+                    <p>Round-robin across the top 20 highest-staked gateways</p>
+                  </div>
+                </label>
+              </div>
+              <div class="strategy-details">
+                <div class="feature-list">
+                  <div class="feature">Routes to highest-staked operators</div>
+                  <div class="feature">Round-robin for even distribution</div>
+                  <div class="feature">Prioritizes network commitment</div>
+                </div>
+              </div>
+            </div>
+
             <div class="strategy-option" data-strategy="static">
               <div class="strategy-header">
                 <input type="radio" name="routingStrategy" value="static" id="static">
