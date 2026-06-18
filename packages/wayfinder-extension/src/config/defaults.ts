@@ -49,7 +49,7 @@ export const EXTENSION_DEFAULTS = {
   showVerificationToasts: false,
 
   // Basic Extension Settings
-  routingMethod: 'random',
+  routingMethod: 'topStaked',
   blacklistedGateways: [],
   ensResolutionEnabled: true,
 
@@ -70,7 +70,7 @@ export const EXTENSION_DEFAULTS = {
  */
 export const WAYFINDER_DEFAULTS = {
   // Routing Configuration
-  routingMethod: 'random',
+  routingMethod: 'topStaked',
   staticGateway: null,
 
   // Gateway Management
