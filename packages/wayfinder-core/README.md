@@ -38,11 +38,18 @@ import {
   NetworkGatewaysProvider,
 } from '@ar.io/wayfinder-core';
 import { ARIO } from '@ar.io/sdk';
+import { createSolanaRpc } from '@solana/kit';
+
+// AR.IO Solana mainnet — program-id overrides are not needed on mainnet
+// (the SDK ships defaults). For devnet, pass explicit program IDs.
+const ario = ARIO.init({
+  rpc: createSolanaRpc('https://api.mainnet-beta.solana.com'),
+});
 
 const wayfinder = createWayfinderClient({
   routingStrategy: new FastestPingRoutingStrategy({
     gatewaysProvider: new NetworkGatewaysProvider({
-      ario: ARIO.mainnet(),
+      ario,
       sortBy: 'operatorStake',
       sortOrder: 'desc',
       limit: 10,
@@ -176,14 +183,19 @@ Gateway providers supply the list of gateways for routing. **By default, `create
 
 #### NetworkGatewaysProvider
 
-Returns a list of gateways from the ARIO Network based on on-chain [Gateway Address Registry](https://docs.ar.io/learn/gateways/gateway-registry). You can specify on-chain metrics for gateways to prioritize the highest quality gateways. This requires installing the `@ar.io/sdk` package and importing the `ARIO` object.
+Returns a list of gateways from the ARIO Network based on on-chain [Gateway Address Registry](https://docs.ar.io/learn/gateways/gateway-registry). You can specify on-chain metrics for gateways to prioritize the highest quality gateways. Requires `@ar.io/sdk` and `@solana/kit`.
 
 ```javascript
 import { NetworkGatewaysProvider } from '@ar.io/wayfinder-core';
 import { ARIO } from '@ar.io/sdk';
+import { createSolanaRpc } from '@solana/kit';
+
+const ario = ARIO.init({
+  rpc: createSolanaRpc('https://api.mainnet-beta.solana.com'),
+});
 
 const gatewayProvider = new NetworkGatewaysProvider({
-  ario: ARIO.mainnet(),
+  ario,
   sortBy: 'operatorStake',
   sortOrder: 'desc',
   limit: 10,
@@ -222,13 +234,18 @@ import {
   TrustedPeersGatewaysProvider,
 } from '@ar.io/wayfinder-core';
 import { ARIO } from '@ar.io/sdk';
+import { createSolanaRpc } from '@solana/kit';
+
+const ario = ARIO.init({
+  rpc: createSolanaRpc('https://api.mainnet-beta.solana.com'),
+});
 
 // Example: Network-first with static fallback
 const gatewayProvider = new CompositeGatewaysProvider({
   providers: [
     // Try fetching from AR.IO network first
     new NetworkGatewaysProvider({
-      ario: ARIO.mainnet(),
+      ario,
       sortBy: 'operatorStake',
       limit: 10,
     }),
@@ -325,6 +342,11 @@ import {
   NetworkGatewaysProvider,
 } from '@ar.io/wayfinder-core';
 import { ARIO } from '@ar.io/sdk';
+import { createSolanaRpc } from '@solana/kit';
+
+const ario = ARIO.init({
+  rpc: createSolanaRpc('https://api.mainnet-beta.solana.com'),
+});
 
 // Example 1: Performance-first with resilience fallback
 const performanceWayfinder = createWayfinderClient({
@@ -334,7 +356,7 @@ const performanceWayfinder = createWayfinderClient({
       new FastestPingRoutingStrategy({
         timeoutMs: 500,
         gatewaysProvider: new NetworkGatewaysProvider({
-          ario: ARIO.mainnet(),
+          ario,
           sortBy: 'operatorStake',
           limit: 10,
         }),
@@ -342,7 +364,7 @@ const performanceWayfinder = createWayfinderClient({
       // Fallback to random selection (guaranteed to work if gateways exist)
       new RandomRoutingStrategy({
         gatewaysProvider: new NetworkGatewaysProvider({
-          ario: ARIO.mainnet(),
+          ario,
           sortBy: 'operatorStake', 
           limit: 20, // Use more gateways for fallback
         }),
@@ -363,7 +385,7 @@ const preferredWayfinder = createWayfinderClient({
       new FastestPingRoutingStrategy({
         timeoutMs: 1000,
         gatewaysProvider: new NetworkGatewaysProvider({
-          ario: ARIO.mainnet(),
+          ario,
           sortBy: 'operatorStake',
           limit: 5, // Only top 5 gateways
         }),
@@ -371,7 +393,7 @@ const preferredWayfinder = createWayfinderClient({
       // Final fallback: any random gateway from a larger pool
       new RandomRoutingStrategy({
         gatewaysProvider: new NetworkGatewaysProvider({
-          ario: ARIO.mainnet(),
+          ario,
           limit: 50, // Larger pool for maximum availability
         }),
       }),

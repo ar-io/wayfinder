@@ -20,6 +20,8 @@ import {
   PingRoutingStrategy,
   RandomRoutingStrategy,
   RemoteVerificationStrategy,
+  RoundRobinRoutingStrategy,
+  SimpleCacheRoutingStrategy,
   StaticRoutingStrategy,
   Wayfinder,
 } from '@ar.io/wayfinder-core';
@@ -108,10 +110,14 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
       });
       break;
     case 'fastestPing':
-      routingStrategy = new FastestPingRoutingStrategy({
-        timeoutMs: ROUTING_STRATEGY_DEFAULTS.fastestPing.timeoutMs,
-        maxConcurrency: ROUTING_STRATEGY_DEFAULTS.fastestPing.maxConcurrency,
-        gatewaysProvider,
+      routingStrategy = new SimpleCacheRoutingStrategy({
+        routingStrategy: new FastestPingRoutingStrategy({
+          timeoutMs: ROUTING_STRATEGY_DEFAULTS.fastestPing.timeoutMs,
+          maxConcurrency: ROUTING_STRATEGY_DEFAULTS.fastestPing.maxConcurrency,
+          gatewaysProvider,
+          logger,
+        }),
+        ttlSeconds: 120,
         logger,
       });
       break;
@@ -124,7 +130,20 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
         timeoutMs: ROUTING_STRATEGY_DEFAULTS.random.timeoutMs,
         logger,
       });
-      // Log handled at end of function
+      break;
+    case 'topStaked':
+      routingStrategy = new PingRoutingStrategy({
+        routingStrategy: new RoundRobinRoutingStrategy({
+          gatewaysProvider: new ChromeStorageGatewayProvider({
+            sortBy: 'totalDelegatedStake',
+            sortOrder: 'desc',
+            limit: 20,
+          }),
+          logger,
+        }),
+        timeoutMs: ROUTING_STRATEGY_DEFAULTS.random.timeoutMs,
+        logger,
+      });
       break;
     default:
       // default to random (balanced) strategy
@@ -295,7 +314,20 @@ export async function getRoutableGatewayUrl(arUrl: string): Promise<{
       logger.error('[ROUTING] Non-Error thrown:', error);
     }
 
-    // Try fallback gateway as last resort
+    // Try fallback gateway as last resort — but only on the mainnet
+    // preset. FALLBACK_GATEWAY is hardcoded to a mainnet gateway
+    // (turbo-gateway.com); using it on devnet or a custom network would
+    // silently serve mainnet content as if it were the user's chosen
+    // network. Refuse the fallback in that case and propagate the
+    // original error so the user can resync their gateway registry.
+    const { network } = await chrome.storage.local.get(['network']);
+    if (network !== 'mainnet') {
+      logger.warn(
+        `[ROUTING] Skipping mainnet fallback gateway on network=${network ?? 'unset'}; refusing to cross-contaminate networks.`,
+      );
+      throw new Error(userFriendlyMessage);
+    }
+
     try {
       const fallbackGateway = FALLBACK_GATEWAY;
       const { protocol, fqdn, port } = fallbackGateway.settings;
@@ -367,7 +399,9 @@ async function lookupArweaveTxIdForDomain(
 
     // Perform DNS lookup
     logger.debug('Checking DNS TXT record for:', domain);
-    const response = await fetch(`${DNS_LOOKUP_API}?name=${domain}&type=TXT`);
+    const response = await fetch(`${DNS_LOOKUP_API}?name=${domain}&type=TXT`, {
+      signal: AbortSignal.timeout(5_000),
+    });
 
     if (!response.ok) {
       logger.error(`DNS lookup failed: ${response.statusText}`);

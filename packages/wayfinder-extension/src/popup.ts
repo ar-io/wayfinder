@@ -200,13 +200,14 @@ async function loadStats() {
 
 async function loadCurrentStrategy() {
   try {
-    const { routingMethod = 'fastestPing' } = await chrome.storage.local.get([
+    const { routingMethod = 'topStaked' } = await chrome.storage.local.get([
       'routingMethod',
     ]);
 
     const strategyNames = {
       fastestPing: 'Fastest Ping',
       random: 'Balanced',
+      topStaked: 'Top Staked',
       static: 'Static Gateway',
       // Legacy method fallbacks
       optimalGateway: 'Fastest Ping',
@@ -220,7 +221,7 @@ async function loadCurrentStrategy() {
 
     const strategyName =
       strategyNames[routingMethod as keyof typeof strategyNames] ||
-      'Fastest Ping';
+      'Top Staked';
     const currentStrategyElement = document.getElementById('currentStrategy');
     if (currentStrategyElement) {
       currentStrategyElement.textContent = strategyName;

@@ -26,13 +26,16 @@ import type { GatewaysProvider, Logger } from '../types.js';
 export class TrustedPeersGatewaysProvider implements GatewaysProvider {
   private trustedGateway: URL;
   private logger: Logger;
+  private timeoutMs: number;
 
   constructor({
     trustedGateway,
     logger = defaultLogger,
-  }: { trustedGateway: string | URL; logger?: Logger }) {
+    timeoutMs = 10_000,
+  }: { trustedGateway: string | URL; logger?: Logger; timeoutMs?: number }) {
     this.trustedGateway = new URL(trustedGateway.toString());
     this.logger = logger;
+    this.timeoutMs = timeoutMs;
   }
 
   async getGateways(): Promise<URL[]> {
@@ -40,7 +43,10 @@ export class TrustedPeersGatewaysProvider implements GatewaysProvider {
 
     this.logger.debug('Fetching trusted peer list from', { endpoint });
 
-    const response = await fetch(endpoint, { method: 'GET' });
+    const response = await fetch(endpoint, {
+      method: 'GET',
+      signal: AbortSignal.timeout(this.timeoutMs),
+    });
 
     if (!response.ok) {
       throw new Error(

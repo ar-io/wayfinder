@@ -21,7 +21,7 @@ import { WayfinderProvider } from '@ar.io/wayfinder-react';
 
 function App() {
   return (
-    // Provide custom configuration if needed - https://github.com/ar-io/wayfinder/tree/alpha/packages/wayfinder-core#custom-configuration
+    // Provide custom configuration if needed - https://github.com/ar-io/wayfinder/tree/develop/packages/wayfinder-core
     <WayfinderProvider>
       <YourApp />
     </WayfinderProvider>

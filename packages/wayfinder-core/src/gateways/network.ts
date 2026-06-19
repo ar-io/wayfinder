@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import type { AoARIORead } from '@ar.io/sdk';
+import type { ARIORead } from '@ar.io/sdk';
 import { defaultLogger } from '../logger.js';
 import type { GatewaysProvider, Logger, SortBy, SortOrder } from '../types.js';
 
 export class NetworkGatewaysProvider implements GatewaysProvider {
-  private ario: AoARIORead;
+  private ario: ARIORead;
   private sortBy: SortBy;
   private sortOrder: SortOrder;
   private limit: number;
@@ -34,7 +34,7 @@ export class NetworkGatewaysProvider implements GatewaysProvider {
     filter = (g) => g.status === 'joined',
     logger = defaultLogger,
   }: {
-    ario: AoARIORead;
+    ario: ARIORead;
     sortBy?: SortBy;
     sortOrder?: SortOrder;
     limit?: number;
