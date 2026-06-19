@@ -1,5 +1,111 @@
 # @ar.io/wayfinder-extension
 
+## 3.0.0
+
+### Major Changes
+
+- a5fb586: BREAKING: Wayfinder extension is now Solana-only. AO support has been
+  removed.
+
+  **Storage schema (breaking for AO-era users):**
+
+  - The `processId` and `aoCuUrl` keys in `chrome.storage.local` are no
+    longer used. On first run after upgrade, the extension detects them,
+    silently deletes them, drops the cached `localGatewayAddressRegistry`
+    (the AO gateway snapshot is irrelevant on Solana), and writes Solana
+    devnet defaults: `network`, `rpcUrl`, `coreProgramId`, `garProgramId`,
+    `arnsProgramId`, `antProgramId`. The next gateway sync repopulates the
+    registry from the Solana network.
+  - A single info-level log line is emitted on migration so the migration
+    is visible in devtools.
+
+  **Settings UI:**
+
+  - "AR.IO Process ID" and "AO Compute Unit URL" fields removed.
+  - Replaced with: a Network preset selector
+    (`mainnet | devnet | custom`), a Solana RPC URL input, and a
+    collapsible "Advanced: AR.IO Program IDs" panel exposing the four
+    per-program addresses (core / GAR / ArNS / ANT). Preset modes auto-
+    fill the RPC + program IDs and disable those inputs; Custom mode
+    re-enables them for advanced operators (e.g., localnet developers).
+  - All three presets are now selectable (`mainnet`, `devnet`, `custom`);
+    the default preset on a fresh install is `devnet`.
+
+  **Dependencies:**
+
+  - Bumped `@ar.io/sdk` from `^3.21.0` to `^4.0.2`.
+  - Bumped `@solana/kit` to `^6.8.0` (matches SDK v4.0.2 requirement).
+  - Removed `@permaweb/aoconnect` (no longer needed).
+
+  **Code:**
+
+  - `src/background.ts`: dropped `AOProcess` / `connect` / AO process
+    constants imports; added `arioFromStorage()` helper that constructs
+    a Solana-backed `ARIO.init({rpc, ...programIds})`
+    from `chrome.storage.local`; rewrote the four `ARIO.init` call sites
+    to use the helper; added `migrateStorageFromAOEra()` to handle the
+    storage schema bump.
+  - `src/settings.ts`: replaced `handleProcessIdChange` /
+    `handleAoCuUrlChange` with a single `handleNetworkConfigChange`
+    routed to all six new field IDs; preset selection auto-fills RPC and
+    program IDs; per-field edits validate the input
+    (URL parsing for RPC, base58 Solana address parsing for program IDs).
+  - `src/constants.ts`: removed `ARIO_MAINNET_PROCESS_ID`,
+    `DEFAULT_AO_CU_URL`.
+  - `src/config/defaults.ts`: replaced AO defaults
+    (`processId`, `aoCuUrl`) with Solana devnet defaults
+    (`network`, `rpcUrl`, four program IDs).
+
+### Patch Changes
+
+- a5fb586: Follow-up fixes after the Solana migration:
+
+  - **Stop falling back to a mainnet gateway when the user is on a
+    non-mainnet network.** `FALLBACK_GATEWAY` is hardcoded to a mainnet
+    gateway (turbo-gateway.com); using it from a devnet or custom-network
+    install would silently serve mainnet content under the user's
+    chosen network. `routing.ts` now reads the `network` preset from
+    storage and only triggers the mainnet fallback when
+    `network === 'mainnet'`. On devnet or custom, the original routing
+    error is propagated instead.
+
+  - **Tolerate invalid stored network config on startup.** The IIFE that
+    initializes the read-only `ARIO` instance on service-worker boot
+    now wraps `arioFromStorage()` in a try/catch and falls back to the
+    bundled devnet defaults if the user previously persisted a bad RPC
+    URL or program ID via the custom-network preset. Previously, a
+    single bad value could brick `debouncedInitializeWayfinder()` and
+    leave routing inoperable until manual settings reset.
+
+  - **Drop two orphan message-handler allowlist entries**
+    (`resetAdvancedSettings`, `updateVerificationMode`) plus the
+    unreachable `resetAdvancedSettings` handler body. Neither was wired
+    to a UI control after the AO → Solana migration and the latter's
+    responsibilities are covered by the existing
+    `updateAdvancedSettings` flow.
+
+- a5fb586: Internal: add Solana-network type definitions, constants, and defaults
+  in preparation for the AO → Solana migration.
+
+  - New `NetworkPreset` type (`'mainnet' | 'devnet' | 'custom'`) and
+    `SolanaNetworkConfig` shape in `src/types.ts`.
+  - `AR_IO_SOLANA_DEVNET` preset constant in `src/constants.ts` carrying
+    the public devnet RPC URL and the four AR.IO program addresses (core,
+    GAR, ArNS, ANT). `AR_IO_SOLANA_MAINNET` placeholder is `null` until
+    AR.IO Solana mainnet deploys (now populated with live values).
+  - `SOLANA_NETWORK_DEFAULTS` export in `src/config/defaults.ts` for use
+    by the upcoming migration commit.
+
+  This commit is purely additive — no existing code consumes the new
+  exports yet, so there is no runtime behavior change. The subsequent
+  PR will switch the extension's initialization and settings paths from
+  AO to Solana, removing the AO-era constants, dropping
+  `@permaweb/aoconnect`, and bumping `@ar.io/sdk` to `^4.0.0-solana.8`.
+
+- Updated dependencies [a5fb586]
+- Updated dependencies [a5fb586]
+  - @ar.io/wayfinder-core@3.0.0
+
 ## 1.0.23
 
 ### Patch Changes

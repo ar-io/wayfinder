@@ -1,5 +1,27 @@
 # @ar.io/wayfinder-core
 
+## 3.0.0
+
+### Major Changes
+
+- a5fb586: BREAKING: Upgrade to `@ar.io/sdk` v4.0.2 stable (Solana-only).
+
+  - Bump `peerDependency` from `>=3.12.0` → `>=4.0.0`. SDK v3.x (AO-backed) is no longer supported.
+  - Bump `devDependency` from `^4.0.0-solana.8` → `^4.0.2`.
+  - Rename `AoARIORead` → `ARIORead` in `NetworkGatewaysProvider` to match the SDK's v4 type names.
+  - No runtime behavior changes — the `getGateways()` API shape is unchanged.
+
+### Patch Changes
+
+- a5fb586: Docs: update README examples to SDK v4.0.2 stable syntax.
+
+  Remove `backend: 'solana'` parameter (Solana is now the only backend),
+  switch examples to mainnet (no program-ID overrides needed), and
+  remove stale devnet program IDs. The `address()` import from
+  `@solana/kit` is no longer needed in mainnet examples.
+
+  No code changes; this is docs-only.
+
 ## 1.9.2
 
 ### Patch Changes
