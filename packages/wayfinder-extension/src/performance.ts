@@ -23,8 +23,39 @@ let currentPeriod = 'today';
 let currentSort = 'requests';
 const gatewayUsageData = new Map();
 
+// Theme support
+async function applyTheme() {
+  try {
+    const { theme = 'dark' } = await chrome.storage.local.get(['theme']);
+    const body = document.body;
+
+    body.classList.remove('light-mode', 'dark-mode');
+
+    if (theme === 'light') {
+      body.setAttribute('data-theme', 'light');
+    } else if (theme === 'auto') {
+      const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      body.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    } else {
+      body.setAttribute('data-theme', 'dark');
+    }
+  } catch (error) {
+    console.error('Error applying theme:', error);
+  }
+}
+
+window
+  .matchMedia('(prefers-color-scheme: dark)')
+  .addEventListener('change', async () => {
+    const { theme } = await chrome.storage.local.get(['theme']);
+    if (theme === 'auto') {
+      applyTheme();
+    }
+  });
+
 // Initialize on DOM load
 document.addEventListener('DOMContentLoaded', async () => {
+  await applyTheme();
   setupEventHandlers();
   await loadGatewayUsage();
   await updatePerformanceStats();

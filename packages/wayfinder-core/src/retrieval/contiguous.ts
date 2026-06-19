@@ -25,16 +25,20 @@ import type { DataRetrievalStrategy, Logger } from '../types.js';
 export class ContiguousDataRetrievalStrategy implements DataRetrievalStrategy {
   private logger: Logger;
   private fetch: typeof globalThis.fetch;
+  private timeoutMs: number;
 
   constructor({
     logger = defaultLogger,
     fetch = globalThis.fetch,
+    timeoutMs = 30_000,
   }: {
     logger?: Logger;
     fetch?: typeof globalThis.fetch;
+    timeoutMs?: number;
   } = {}) {
     this.logger = logger;
     this.fetch = fetch;
+    this.timeoutMs = timeoutMs;
   }
 
   async getData({
@@ -51,6 +55,7 @@ export class ContiguousDataRetrievalStrategy implements DataRetrievalStrategy {
 
     return this.fetch(requestUrl.toString(), {
       method: 'GET',
+      signal: AbortSignal.timeout(this.timeoutMs),
       headers: {
         ...headers,
         'x-wayfinder-data-retrieval-strategy': 'contiguous',

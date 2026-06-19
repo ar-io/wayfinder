@@ -24,7 +24,7 @@ if (!txId) {
   process.exit(1);
 }
 
-const gatewayUrlString = process.argv[3] || 'https://permagate.io';
+const gatewayUrlString = process.argv[3] || 'https://turbo-gateway.com';
 
 if (!gatewayUrlString) {
   console.error('Usage: node fetch-data.ts <transaction-id> [gateway-url]');

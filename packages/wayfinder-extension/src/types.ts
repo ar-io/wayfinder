@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { AoGatewayWithAddress } from '@ar.io/sdk/web';
+import { GatewayWithAddress } from '@ar.io/sdk/web';
 
 export type RedirectedTabInfo = {
   originalGateway: string; // The original gateway FQDN (e.g., "permagate.io")
@@ -30,7 +30,28 @@ export type RedirectedTabInfo = {
   };
 };
 
-export type GatewayRegistry = Record<string, AoGatewayWithAddress>;
+export type GatewayRegistry = Record<string, GatewayWithAddress>;
+
+/**
+ * Identifier for an AR.IO Solana network deployment. `mainnet` is reserved
+ * for the eventual AR.IO Solana mainnet deployment (not yet live as of
+ * 2026-05); `devnet` targets the currently-live AR.IO devnet contracts;
+ * `custom` lets advanced users plug in their own RPC + program IDs (e.g.,
+ * for localnet development).
+ */
+export type NetworkPreset = 'mainnet' | 'devnet' | 'custom';
+
+/**
+ * Solana endpoint + AR.IO program addresses for a single network. All
+ * program IDs are base58-encoded Solana pubkeys.
+ */
+export type SolanaNetworkConfig = {
+  rpcUrl: string;
+  coreProgramId: string;
+  garProgramId: string;
+  arnsProgramId: string;
+  antProgramId: string;
+};
 
 export type VerificationCacheEntry = {
   txId: string;

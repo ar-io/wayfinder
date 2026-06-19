@@ -43,7 +43,7 @@ import { HashVerificationStrategy } from './verification/hash-verification.js';
 import { RemoteVerificationStrategy } from './verification/remote-verification.js';
 import { Wayfinder } from './wayfinder.js';
 
-const DEFAULT_TRUSTED_GATEWAY = 'https://permagate.io';
+const DEFAULT_TRUSTED_GATEWAY = 'https://turbo-gateway.com';
 
 /**
  * Helper function to construct a routing strategy
@@ -71,7 +71,7 @@ export const createRoutingStrategy = ({
 
     case 'preferred':
       return new PreferredWithFallbackRoutingStrategy({
-        preferredGateway: 'https://arweave.net',
+        preferredGateway: 'https://turbo-gateway.com',
         fallbackStrategy: createRoutingStrategy({
           strategy: 'fastest',
           gatewaysProvider,
@@ -87,7 +87,7 @@ export const createRoutingStrategy = ({
 export const createVerificationStrategy = ({
   strategy,
   logger,
-  trustedGateways = [new URL('https://permagate.io')],
+  trustedGateways = [new URL('https://turbo-gateway.com')],
 }: {
   strategy: VerificationOption;
   logger?: Logger;

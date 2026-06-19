@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { AoGatewayWithAddress } from '@ar.io/sdk/web';
+import { GatewayWithAddress } from '@ar.io/sdk/web';
 import { GatewayRegistry } from '../types';
 
 /**
@@ -25,15 +25,18 @@ import { GatewayRegistry } from '../types';
 export class ChromeStorageGatewayProvider {
   private sortBy: 'operatorStake' | 'totalDelegatedStake';
   private sortOrder: 'asc' | 'desc';
+  private limit?: number;
 
   constructor(
     options: {
       sortBy?: 'operatorStake' | 'totalDelegatedStake';
       sortOrder?: 'asc' | 'desc';
+      limit?: number;
     } = {},
   ) {
     this.sortBy = options.sortBy || 'operatorStake';
     this.sortOrder = options.sortOrder || 'desc';
+    this.limit = options.limit;
   }
 
   /**
@@ -110,8 +113,13 @@ export class ChromeStorageGatewayProvider {
       }
     });
 
+    // Apply limit if configured
+    const limitedGateways = this.limit
+      ? sortedGateways.slice(0, this.limit)
+      : sortedGateways;
+
     // Convert to URL format expected by core library
-    const gateways = sortedGateways.map((gateway) => {
+    const gateways = limitedGateways.map((gateway) => {
       const { protocol, fqdn, port } = gateway.settings;
       const portSuffix =
         port && port !== (protocol === 'https' ? 443 : 80) ? `:${port}` : '';
@@ -121,9 +129,9 @@ export class ChromeStorageGatewayProvider {
     // If no gateways are available (registry not synced or empty), use fallback
     if (gateways.length === 0) {
       console.warn(
-        '[ChromeStorageGatewayProvider] No gateways in local registry, using arweave.net as fallback',
+        '[ChromeStorageGatewayProvider] No gateways in local registry, using turbo-gateway.com as fallback',
       );
-      return [new URL('https://arweave.net')];
+      return [new URL('https://turbo-gateway.com')];
     }
 
     return gateways;
@@ -135,7 +143,7 @@ export class ChromeStorageGatewayProvider {
   async getGatewaysWithMetadata(): Promise<
     Array<{
       url: URL;
-      gateway: AoGatewayWithAddress;
+      gateway: GatewayWithAddress;
       performance?: {
         avgResponseTime: number;
         failures: number;

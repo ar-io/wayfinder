@@ -77,8 +77,9 @@ Background script accepts these message types:
 ## Configuration
 
 ### Routing Strategies
-- `fastestPing` - Tests gateways and picks lowest latency (cached 15 min)
-- `random` - Balanced load distribution
+- `topStaked` - Round-robin across top 20 highest-staked gateways with ping checks (default)
+- `fastestPing` - Tests gateways and picks lowest latency (cached 2 min)
+- `random` - Balanced load distribution with ping checks
 - `static` - User-specified gateway only
 
 ### Build Configuration

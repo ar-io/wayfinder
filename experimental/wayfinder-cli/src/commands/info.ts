@@ -57,7 +57,7 @@ export const infoCommand = new Command('info')
 
         // Fetch gateways using trusted peers provider
         const gatewaysProvider = new TrustedPeersGatewaysProvider({
-          trustedGateway: 'https://permagate.io',
+          trustedGateway: 'https://turbo-gateway.com',
           logger: coreLogger,
         });
 

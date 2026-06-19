@@ -45,8 +45,39 @@ function showToast(message: string, type = 'success') {
   }, 3000);
 }
 
+// Theme support
+async function applyTheme() {
+  try {
+    const { theme = 'dark' } = await chrome.storage.local.get(['theme']);
+    const body = document.body;
+
+    body.classList.remove('light-mode', 'dark-mode');
+
+    if (theme === 'light') {
+      body.setAttribute('data-theme', 'light');
+    } else if (theme === 'auto') {
+      const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      body.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    } else {
+      body.setAttribute('data-theme', 'dark');
+    }
+  } catch (error) {
+    console.error('Error applying theme:', error);
+  }
+}
+
+window
+  .matchMedia('(prefers-color-scheme: dark)')
+  .addEventListener('change', async () => {
+    const { theme } = await chrome.storage.local.get(['theme']);
+    if (theme === 'auto') {
+      applyTheme();
+    }
+  });
+
 // Initialize gateways page
 document.addEventListener('DOMContentLoaded', async () => {
+  await applyTheme();
   setupEventHandlers();
   await loadGateways();
   updateStats();
@@ -850,10 +881,12 @@ async function runPingTest(gateway: any) {
       try {
         const info = await response.json();
 
-        // Check for required fields based on actual ar-io/info response
+        // Check for required fields based on actual /ar-io/info response.
+        // AR.IO Solana gateways expose `programIds` (object) instead of the
+        // AO-era `processId` (string), so the check moved with the migration.
         const hasWallet = info.wallet && typeof info.wallet === 'string';
-        const hasProcessId =
-          info.processId && typeof info.processId === 'string';
+        const hasProgramIds =
+          info.programIds && typeof info.programIds === 'object';
         const hasRelease = info.release && typeof info.release === 'string';
 
         // Check for manifest support
@@ -864,10 +897,10 @@ async function runPingTest(gateway: any) {
         // Check for ANS-104 configuration
         // const hasANS104Config = 'ans104UnbundleFilter' in info && 'ans104IndexFilter' in info;
 
-        if (hasWallet && hasProcessId && hasRelease && hasManifests) {
+        if (hasWallet && hasProgramIds && hasRelease && hasManifests) {
           healthStatus = 'Healthy';
           healthClass = 'ping-result-value good';
-        } else if (hasWallet && hasProcessId) {
+        } else if (hasWallet && hasProgramIds) {
           healthStatus = 'Partial';
           healthClass = 'ping-result-value warning';
         } else {

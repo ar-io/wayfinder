@@ -27,16 +27,24 @@ import type { DataRetrievalStrategy, Logger } from '../types.js';
 export class ChunkDataRetrievalStrategy implements DataRetrievalStrategy {
   private logger: Logger;
   private fetch: typeof globalThis.fetch;
+  private metadataTimeoutMs: number;
+  private chunkTimeoutMs: number;
 
   constructor({
     logger = defaultLogger,
     fetch = globalThis.fetch,
+    metadataTimeoutMs = 10_000,
+    chunkTimeoutMs = 30_000,
   }: {
     logger?: Logger;
     fetch?: typeof globalThis.fetch;
+    metadataTimeoutMs?: number;
+    chunkTimeoutMs?: number;
   } = {}) {
     this.logger = logger;
     this.fetch = fetch;
+    this.metadataTimeoutMs = metadataTimeoutMs;
+    this.chunkTimeoutMs = chunkTimeoutMs;
   }
 
   async getData({
@@ -58,6 +66,7 @@ export class ChunkDataRetrievalStrategy implements DataRetrievalStrategy {
 
     const headResponse = await this.fetch(requestUrl.toString(), {
       method: 'HEAD',
+      signal: AbortSignal.timeout(this.metadataTimeoutMs),
       headers,
     });
 
@@ -102,6 +111,7 @@ export class ChunkDataRetrievalStrategy implements DataRetrievalStrategy {
       {
         method: 'GET',
         redirect: 'follow',
+        signal: AbortSignal.timeout(this.metadataTimeoutMs),
         headers,
       },
     );
@@ -155,6 +165,7 @@ export class ChunkDataRetrievalStrategy implements DataRetrievalStrategy {
     const logger = this.logger;
     const fetchFn = this.fetch;
     const chunkGateway = gateway;
+    const chunkTimeoutMs = this.chunkTimeoutMs;
 
     // Create a readable stream that fetches chunks on demand
     const stream = new ReadableStream<Uint8Array>({
@@ -179,6 +190,7 @@ export class ChunkDataRetrievalStrategy implements DataRetrievalStrategy {
             const chunkResponse = await fetchFn(chunkUrl.toString(), {
               method: 'GET',
               redirect: 'follow',
+              signal: AbortSignal.timeout(chunkTimeoutMs),
               headers,
             });
 

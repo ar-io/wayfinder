@@ -1,6 +1,6 @@
 {
   "name": "@ar.io/wayfinder-monorepo",
-  "version": "0.0.14",
+  "version": "1.0.0",
   "description": "WayFinder monorepo containing the Chrome extension, core library, and React components",
   "private": true,
   "type": "module",

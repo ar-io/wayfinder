@@ -2,14 +2,14 @@ name: Chrome Extension
 
 on:
   push:
-    branches: [main, alpha]
+    branches: [main, alpha, solana]
     paths:
       - "packages/wayfinder-extension/**"
       - "packages/wayfinder-core/**"
       - ".github/workflows/extension.yml"
       - "package.json"
   pull_request:
-    branches: [main, alpha]
+    branches: [main, alpha, solana]
     paths:
       - "packages/wayfinder-extension/**"
       - "packages/wayfinder-core/**"

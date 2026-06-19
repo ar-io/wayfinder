@@ -10,6 +10,7 @@ The WayFinder Chrome extension intelligently routes users to optimal AR.IO gatew
 - **ENS Integration**: Optional support for Ethereum Name Service (ENS) names pointing to Arweave content
 - **DNS TXT Record Support**: Resolves gasless ArNS names via DNS TXT records
 - **Multiple Routing Strategies**:
+  - Top Staked (default): Round-robin across the top 20 highest-staked gateways
   - Fastest Ping: Routes to the gateway with the lowest latency
   - Balanced (Random): Distributes load across all available gateways
   - Static: Use a specific gateway of your choice
@@ -25,13 +26,13 @@ The WayFinder Chrome extension intelligently routes users to optimal AR.IO gatew
 ## Installation
 
 ### From Chrome Web Store
-(Coming soon)
+Install from the [Chrome Web Store](https://chromewebstore.google.com/) (search "AR.IO Wayfinder").
 
 ### Development Build
 
 #### Requirements
 - Node.js v22+
-- npm v10.9.2+
+- Yarn v1.22+
 
 #### Build Instructions
 
@@ -41,7 +42,10 @@ git clone https://github.com/ar-io/wayfinder.git
 cd wayfinder
 
 # Install dependencies
-npm install
+yarn install
+
+# Build core library (required first)
+npm run build -w packages/wayfinder-core
 
 # Build the extension
 npm run build -w packages/wayfinder-extension
@@ -77,15 +81,16 @@ npm run build -w packages/wayfinder-extension
 Click the settings icon in the popup to access:
 
 #### Routing Configuration
-- **Routing Strategy**: Choose between Fastest Ping, Balanced, or Static gateway
+- **Routing Strategy**: Choose between Top Staked (default), Fastest Ping, Balanced, or Static gateway
 - **Static Gateway**: Configure and test a specific gateway URL
 - **Gateway Sorting**: Order gateways by operator stake or total delegated stake
 
 #### Network Configuration
 - **Gateway Registry Sync**: Manually refresh the gateway list from AR.IO network
 - **ENS Resolution**: Enable/disable Ethereum Name Service support
-- **Process ID**: Configure custom AR.IO process ID (advanced)
-- **AO CU URL**: Set custom AO Compute Unit URL (advanced)
+- **Network**: Select an AR.IO Solana network preset (Mainnet, Devnet, or Custom). Defaults to Mainnet.
+- **Solana RPC URL**: Endpoint for Solana JSON-RPC calls (editable only in Custom mode). Mainnet ships with a bundled RPC; Devnet uses the public Solana devnet endpoint.
+- **Advanced — AR.IO Program IDs**: Override the per-program Solana addresses (core / GAR / ArNS / ANT) for localnet or custom deployments (editable only in Custom mode)
 
 #### Performance Settings
 - **Gateway Cache TTL**: Set how long to cache gateway information
@@ -131,19 +136,24 @@ src/
 ├── background.ts      # Service worker handling ar:// navigation
 ├── content.ts         # Content script for in-page ar:// links
 ├── routing.ts         # WayFinder core integration
-├── popup.js          # Extension popup UI
-├── settings.js       # Settings page
-├── gateways.js       # Gateway list management
-├── performance.js    # Performance analytics
+├── popup.ts           # Extension popup UI
+├── settings.ts        # Settings page
+├── gateways.ts        # Gateway list management
+├── performance.ts     # Performance analytics
+├── constants.ts       # Solana network presets and program IDs
+├── types.ts           # Extension-specific types
+├── adapters/
+│   └── chrome-storage-gateway-provider.ts
 └── config/
-    └── defaults.ts   # Default configuration values
+    └── defaults.ts    # Default configuration values
 ```
 
 ### Key Technologies
 
 - **Build System**: Vite with Chrome extension support
 - **Core Library**: @ar.io/wayfinder-core for routing logic
-- **Gateway Discovery**: @ar.io/sdk for AR.IO network integration
+- **Gateway Discovery**: @ar.io/sdk v4.x (Solana backend) for AR.IO on-chain registry
+- **Solana RPC**: @solana/kit for Solana JSON-RPC communication
 - **Storage**: Chrome storage API for persistence
 - **Networking**: WebRequest API for request interception
 

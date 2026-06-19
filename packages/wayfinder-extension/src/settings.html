@@ -8,12 +8,14 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&family=Albert+Sans:wght@400;600&family=DM+Sans:wght@400;500&family=JetBrains+Mono:wght@400;500&family=Rubik:wght@300;400;500;600;700;800;900&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Besley:wght@800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="assets/css/variables.css" />
     <link rel="stylesheet" href="assets/css/settings.css" />
     <link rel="stylesheet" href="assets/css/gateways-enhanced.css" />
+    <style>html:not([data-theme-ready]) { opacity: 0; }</style>
+    <script src="theme-init.js"></script>
     <script type="module" src="settings.js"></script>
   </head>
   <body>
@@ -100,6 +102,30 @@
             </div>
 
 
+            <div class="strategy-option" data-strategy="topStaked">
+              <div class="strategy-header">
+                <input type="radio" name="routingStrategy" value="topStaked" id="topStaked">
+                <label for="topStaked">
+                  <div class="strategy-icon">
+                    <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+                      <path d="M18 3L22.5 12L33 13.5L25.5 21L27 31.5L18 27L9 31.5L10.5 21L3 13.5L13.5 12L18 3Z" stroke="var(--colors-icons-iconHigh)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </div>
+                  <div class="strategy-info">
+                    <h3>Top Staked</h3>
+                    <p>Round-robin across the top 20 highest-staked gateways</p>
+                  </div>
+                </label>
+              </div>
+              <div class="strategy-details">
+                <div class="feature-list">
+                  <div class="feature">Routes to highest-staked operators</div>
+                  <div class="feature">Round-robin for even distribution</div>
+                  <div class="feature">Prioritizes network commitment</div>
+                </div>
+              </div>
+            </div>
+
             <div class="strategy-option" data-strategy="static">
               <div class="strategy-header">
                 <input type="radio" name="routingStrategy" value="static" id="static">
@@ -161,6 +187,23 @@
           </div>
           
           <div class="theme-selector">
+            <div class="theme-option" data-theme="dark">
+              <div class="theme-header">
+                <input type="radio" name="theme" value="dark" id="darkTheme" checked>
+                <label for="darkTheme">
+                  <div class="theme-icon">
+                    <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+                      <path d="M31.5 18.795A13.5 13.5 0 1 1 16.815 4.5 10.5 10.5 0 0 0 31.5 18.795z" stroke="var(--colors-icons-iconHigh)" stroke-width="2"/>
+                    </svg>
+                  </div>
+                  <div class="theme-info">
+                    <h3>Dark</h3>
+                    <p>Reduced eye strain for low-light</p>
+                  </div>
+                </label>
+              </div>
+            </div>
+
             <div class="theme-option" data-theme="light">
               <div class="theme-header">
                 <input type="radio" name="theme" value="light" id="lightTheme">
@@ -174,23 +217,6 @@
                   <div class="theme-info">
                     <h3>Light</h3>
                     <p>Bright and clean interface</p>
-                  </div>
-                </label>
-              </div>
-            </div>
-
-            <div class="theme-option" data-theme="dark">
-              <div class="theme-header">
-                <input type="radio" name="theme" value="dark" id="darkTheme" checked>
-                <label for="darkTheme">
-                  <div class="theme-icon">
-                    <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-                      <path d="M31.5 18.795A13.5 13.5 0 1 1 16.815 4.5 10.5 10.5 0 0 0 31.5 18.795z" stroke="var(--colors-icons-iconHigh)" stroke-width="2"/>
-                    </svg>
-                  </div>
-                  <div class="theme-info">
-                    <h3>Dark</h3>
-                    <p>Reduced eye strain for low-light</p>
                   </div>
                 </label>
               </div>
@@ -226,33 +252,59 @@
           </div>
           
           <div class="network-options">
-            <!-- AR.IO Process ID -->
+            <!-- Network Preset -->
             <div class="network-option">
               <div class="option-header">
                 <div class="option-info">
-                  <h3>AR.IO Process ID</h3>
-                  <p>Process identifier for AR.IO network interactions</p>
+                  <h3>Network</h3>
+                  <p>AR.IO Solana network to connect to.</p>
                 </div>
               </div>
               <div class="option-input">
-                <input type="text" id="processId" placeholder="Enter AR.IO Process ID..." />
-                <button class="test-button" id="testProcessId" disabled>Test</button>
+                <select id="network">
+                  <option value="mainnet">AR.IO Solana Mainnet</option>
+                  <option value="devnet">AR.IO Solana Devnet</option>
+                  <option value="custom">Custom</option>
+                </select>
               </div>
             </div>
 
-            <!-- AO Compute Unit URL -->
+            <!-- Solana RPC URL -->
             <div class="network-option">
               <div class="option-header">
                 <div class="option-info">
-                  <h3>AO Compute Unit URL</h3>
-                  <p>URL for AO compute unit interactions</p>
+                  <h3>Solana RPC URL</h3>
+                  <p>Endpoint for Solana JSON-RPC calls. Editable only when Network is set to Custom.</p>
                 </div>
               </div>
               <div class="option-input">
-                <input type="url" id="aoCuUrl" placeholder="Enter AO Compute Unit URL..." />
-                <button class="test-button" id="testAoCuUrl" disabled>Test</button>
+                <input type="url" id="rpcUrl" placeholder="https://..." />
               </div>
             </div>
+
+            <!-- Advanced: AR.IO Program IDs -->
+            <details class="network-option network-option-advanced">
+              <summary>Advanced: AR.IO Program IDs</summary>
+              <p class="advanced-description">Per-program Solana addresses. Auto-filled from the selected preset; editable only in Custom mode.</p>
+              <div class="program-id-fields">
+                <div class="program-id-field">
+                  <label for="coreProgramId">Core</label>
+                  <input type="text" id="coreProgramId" placeholder="Solana pubkey..." />
+                </div>
+                <div class="program-id-field">
+                  <label for="garProgramId">GAR (Gateway Address Registry)</label>
+                  <input type="text" id="garProgramId" placeholder="Solana pubkey..." />
+                </div>
+                <div class="program-id-field">
+                  <label for="arnsProgramId">ArNS</label>
+                  <input type="text" id="arnsProgramId" placeholder="Solana pubkey..." />
+                </div>
+                <div class="program-id-field">
+                  <label for="antProgramId">ANT</label>
+                  <input type="text" id="antProgramId" placeholder="Solana pubkey..." />
+                </div>
+              </div>
+            </details>
           </div>
         </section>
 

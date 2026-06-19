@@ -16,24 +16,40 @@
  */
 
 import {
-  ARIO_MAINNET_PROCESS_ID,
-  DEFAULT_AO_CU_URL,
+  AR_IO_SOLANA_DEVNET,
+  AR_IO_SOLANA_MAINNET,
   FALLBACK_GATEWAY,
 } from '../constants';
+import type { NetworkPreset } from '../types';
+
+/**
+ * AR.IO Solana network configuration defaults applied on first install.
+ * Active preset is `mainnet`. Stored as flat keys in
+ * `chrome.storage.local` for easy diffing and incremental updates from
+ * the settings UI.
+ */
+export const SOLANA_NETWORK_DEFAULTS = {
+  network: 'mainnet' satisfies NetworkPreset as NetworkPreset,
+  ...AR_IO_SOLANA_MAINNET,
+} as const;
 
 /**
  * Core extension defaults
  */
 export const EXTENSION_DEFAULTS = {
-  // AR.IO Network Configuration
-  processId: ARIO_MAINNET_PROCESS_ID,
-  aoCuUrl: DEFAULT_AO_CU_URL,
+  // AR.IO Network Configuration (Solana)
+  network: 'mainnet' satisfies NetworkPreset as NetworkPreset,
+  rpcUrl: AR_IO_SOLANA_MAINNET.rpcUrl,
+  coreProgramId: AR_IO_SOLANA_MAINNET.coreProgramId,
+  garProgramId: AR_IO_SOLANA_MAINNET.garProgramId,
+  arnsProgramId: AR_IO_SOLANA_MAINNET.arnsProgramId,
+  antProgramId: AR_IO_SOLANA_MAINNET.antProgramId,
 
   // Verification Configuration
   showVerificationToasts: false,
 
   // Basic Extension Settings
-  routingMethod: 'random',
+  routingMethod: 'topStaked',
   blacklistedGateways: [],
   ensResolutionEnabled: true,
 
@@ -54,7 +70,7 @@ export const EXTENSION_DEFAULTS = {
  */
 export const WAYFINDER_DEFAULTS = {
   // Routing Configuration
-  routingMethod: 'random',
+  routingMethod: 'topStaked',
   staticGateway: null,
 
   // Gateway Management
