@@ -61,28 +61,42 @@ export class NetworkGatewaysProvider implements GatewaysProvider {
       limit: this.limit,
     });
 
+    // Fetch enough gateways to satisfy the limit after filtering.
+    // Request up to limit per page (capped at 1000 by the SDK) and
+    // stop paginating once we have enough filtered results.
+    const pageSize = Math.min(this.limit, 1000);
+
     do {
       try {
         this.logger.debug('Fetching gateways batch', { cursor, attempts });
 
         const { items: newGateways = [], nextCursor } =
           await this.ario.getGateways({
-            limit: 1000,
+            limit: pageSize,
             cursor,
             sortBy: this.sortBy,
             sortOrder: this.sortOrder,
-            // TODO: support filters on gateways
           });
 
         gateways.push(...newGateways);
         cursor = nextCursor;
-        attempts = 0; // reset attempts if we get a new cursor
+        attempts = 0;
 
         this.logger.debug('Fetched gateways batch', {
           batchSize: newGateways.length,
           totalFetched: gateways.length,
           nextCursor: cursor,
         });
+
+        // Stop early if we already have enough gateways that pass the filter
+        const filteredSoFar = gateways.filter(this.filter);
+        if (filteredSoFar.length >= this.limit) {
+          this.logger.debug('Reached gateway limit, stopping pagination', {
+            filteredCount: filteredSoFar.length,
+            limit: this.limit,
+          });
+          break;
+        }
       } catch (error: any) {
         this.logger.error('Error fetching gateways', {
           cursor,
@@ -94,7 +108,6 @@ export class NetworkGatewaysProvider implements GatewaysProvider {
       }
     } while (cursor !== undefined && attempts < 3);
 
-    // filter out any gateways that are not joined
     const filteredGateways = gateways.filter(this.filter).slice(0, this.limit);
 
     this.logger.debug('Finished fetching gateways', {

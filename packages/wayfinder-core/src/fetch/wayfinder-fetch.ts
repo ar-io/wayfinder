@@ -131,52 +131,98 @@ export const createWayfinderFetch = ({
         path,
       });
 
-      // Select gateway using routing strategy
-      const selectedGateway = await routingStrategy.selectGateway({
-        path,
-        subdomain,
-      });
+      // Attempt data retrieval with gateway retry. If the selected gateway
+      // fails (network error, 5xx, timeout), re-select and try again up to
+      // maxAttempts times. 4xx responses are NOT retried (client error).
+      const maxAttempts = 3;
+      let dataResponse: Response | undefined;
+      let selectedGateway: URL | undefined;
+      let redirectUrl: URL | undefined;
+      let lastError: Error | undefined;
 
-      // it's just a non data specific request, construct the gateway URL and fetch directly
-      const redirectUrl = constructGatewayUrl({
-        selectedGateway,
-        subdomain,
-        path,
-      });
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        try {
+          selectedGateway = await routingStrategy.selectGateway({
+            path,
+            subdomain,
+          });
 
-      // Emit routing succeeded event
-      requestEmitter.emit('routing-succeeded', {
-        originalUrl: requestUri,
-        selectedGateway: selectedGateway.toString(),
-        redirectUrl: redirectUrl.toString(),
-      });
+          redirectUrl = constructGatewayUrl({
+            selectedGateway,
+            subdomain,
+            path,
+          });
 
-      // if its a txId or arnsName use the dataRetrievalStrategy to fetch the data; otherwise just call internal fetch
-      if (!txId && !arnsName) {
-        logger.debug(
-          'No transaction ID or ARNS name found, performing direct fetch',
-          {
-            uri: requestUri,
-          },
-        );
-        return fetch(redirectUrl.toString(), init);
+          // Emit routing succeeded event
+          requestEmitter.emit('routing-succeeded', {
+            originalUrl: requestUri,
+            selectedGateway: selectedGateway.toString(),
+            redirectUrl: redirectUrl.toString(),
+          });
+
+          // Non-data requests (e.g. /ar-io/info) don't need retry
+          if (!txId && !arnsName) {
+            logger.debug(
+              'No transaction ID or ARNS name found, performing direct fetch',
+              { uri: requestUri },
+            );
+            return fetch(redirectUrl.toString(), init);
+          }
+
+          const requestHeaders = {
+            ...Object.fromEntries(new Headers(init?.headers || {}) as any),
+            ...createWayfinderRequestHeaders({
+              traceId: requestSpan?.spanContext().traceId,
+            }),
+          };
+
+          dataResponse = await dataRetrievalStrategy.getData({
+            gateway: selectedGateway,
+            requestUrl: redirectUrl,
+            headers: requestHeaders,
+          });
+
+          // 4xx = client error, don't retry; 2xx/3xx = success
+          if (
+            dataResponse.ok ||
+            (dataResponse.status >= 400 && dataResponse.status < 500)
+          ) {
+            break;
+          }
+
+          // 5xx = server error, retry with different gateway
+          logger.warn(
+            'Gateway returned server error, retrying with different gateway',
+            {
+              uri: requestUri,
+              gateway: selectedGateway.toString(),
+              status: dataResponse.status,
+              attempt: attempt + 1,
+              maxAttempts,
+            },
+          );
+        } catch (error: any) {
+          lastError = error;
+          if (attempt < maxAttempts - 1) {
+            logger.warn(
+              'Gateway request failed, retrying with different gateway',
+              {
+                uri: requestUri,
+                gateway: selectedGateway?.toString(),
+                error: error.message,
+                attempt: attempt + 1,
+                maxAttempts,
+              },
+            );
+          }
+        }
       }
 
-      const requestHeaders = {
-        ...Object.fromEntries(new Headers(init?.headers || {}) as any),
-        ...createWayfinderRequestHeaders({
-          traceId: requestSpan?.spanContext().traceId,
-        }),
-      };
+      // All attempts exhausted
+      if (!dataResponse) {
+        throw lastError ?? new Error('All gateway attempts failed');
+      }
 
-      // Use data retrieval strategy to fetch the actual data
-      const dataResponse = await dataRetrievalStrategy.getData({
-        gateway: selectedGateway,
-        requestUrl: redirectUrl,
-        headers: requestHeaders,
-      });
-
-      // If the response is not successful (e.g., 404, 500), return it directly
       if (!dataResponse.ok) {
         logger.debug('Gateway returned error response', {
           uri: requestUri,
