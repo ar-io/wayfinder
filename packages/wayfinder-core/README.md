@@ -715,6 +715,14 @@ const wayfinder = createWayfinderClient({
 });
 ```
 
+## Resiliency
+
+Wayfinder includes built-in resiliency features:
+
+- **Gateway retry**: If a gateway returns a 5xx error or a network failure occurs, Wayfinder automatically re-selects a different gateway and retries (up to 3 attempts). Client errors (4xx) are returned immediately without retry.
+- **Fetch timeouts**: All outbound requests include configurable timeouts — 10s for metadata (HEAD, peer list), 30s for data retrieval — to prevent indefinite hangs on slow or dead gateways.
+- **Smart pagination**: `NetworkGatewaysProvider` stops fetching from the on-chain registry once enough gateways pass the filter, avoiding unnecessary RPC calls.
+
 ## Request Flow
 
 ```mermaid
