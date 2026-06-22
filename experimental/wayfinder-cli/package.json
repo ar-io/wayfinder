@@ -1,6 +1,7 @@
 {
   "name": "@ar.io/wayfinder-cli",
   "version": "0.0.5",
+  "private": true,
   "description": "Fast and user-friendly CLI for fetching files via AR.IO Wayfinder",
   "type": "module",
   "bin": {
