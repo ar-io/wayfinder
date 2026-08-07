@@ -90,10 +90,44 @@ describe('createWayfinderClient', () => {
       telemetrySettings: {
         enabled: true,
         sampleRate: 0.5,
+        apiKey: 'test-api-key',
       },
     });
 
     assert.strictEqual(wayfinder.telemetrySettings.enabled, true);
     assert.strictEqual(wayfinder.telemetrySettings.sampleRate, 0.5);
+  });
+
+  it('should throw when telemetry is enabled for Honeycomb without an api key', () => {
+    assert.throws(
+      () =>
+        createWayfinderClient({
+          telemetrySettings: {
+            enabled: true,
+          },
+        }),
+      /telemetrySettings\.apiKey is required/,
+    );
+  });
+
+  it('should not require an api key when telemetry is disabled', () => {
+    const wayfinder = createWayfinderClient({
+      telemetrySettings: {
+        enabled: false,
+      },
+    });
+
+    assert.strictEqual(wayfinder.telemetrySettings.enabled, false);
+  });
+
+  it('should not require an api key for a non-Honeycomb exporter', () => {
+    const wayfinder = createWayfinderClient({
+      telemetrySettings: {
+        enabled: true,
+        exporterUrl: 'https://otel.example.com/v1/traces',
+      },
+    });
+
+    assert.strictEqual(wayfinder.telemetrySettings.enabled, true);
   });
 });

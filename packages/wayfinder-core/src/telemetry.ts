@@ -57,11 +57,25 @@ if (isBrowser()) {
   loadZonePolyfill();
 }
 
+const HONEYCOMB_EXPORTER_URL = 'https://api.honeycomb.io/v1/traces';
+
+// Honeycomb requires an API key on every OTLP request, but a self-hosted
+// collector may not, so the key is only mandatory when traces are actually
+// bound for Honeycomb (api.honeycomb.io, api.eu1.honeycomb.io, ...).
+const isHoneycombExporterUrl = (url: string): boolean => {
+  try {
+    const { hostname } = new URL(url);
+    return hostname === 'honeycomb.io' || hostname.endsWith('.honeycomb.io');
+  } catch {
+    return false;
+  }
+};
+
 export const initTelemetry = ({
   enabled = false,
   sampleRate = 0.1, // 10% sample rate by default
-  exporterUrl = 'https://api.honeycomb.io/v1/traces',
-  apiKey = 'c8gU8dHlu6V7e5k2Gn9LaG', // intentionally left here - if it gets abused we'll disable it
+  exporterUrl = HONEYCOMB_EXPORTER_URL,
+  apiKey,
   clientName,
   clientVersion,
 }: TelemetrySettings):
@@ -75,6 +89,16 @@ export const initTelemetry = ({
   | undefined => {
   if (enabled === false) return undefined;
 
+  // validated before the cached-provider check so the failure is deterministic
+  // regardless of whether this is the first call
+  if (!apiKey && isHoneycombExporterUrl(exporterUrl)) {
+    throw new Error(
+      'telemetrySettings.apiKey is required when telemetry is enabled and traces are exported to Honeycomb. ' +
+        'wayfinder-core no longer provides a default API key. Either set telemetrySettings.apiKey to a ' +
+        'Honeycomb ingest key you control, or point telemetrySettings.exporterUrl at your own OTLP collector.',
+    );
+  }
+
   // if the tracer provider and tracer are already initialized, return the tracer
   if (tracerProvider) {
     return {
@@ -87,10 +111,13 @@ export const initTelemetry = ({
 
   const exporter = new OTLPTraceExporter({
     url: exporterUrl,
-    headers: {
-      'x-honeycomb-team': apiKey,
-      'x-honeycomb-dataset': 'wayfinder-core',
-    },
+    // collectors other than Honeycomb may not need (or accept) an API key
+    headers: apiKey
+      ? {
+          'x-honeycomb-team': apiKey,
+          'x-honeycomb-dataset': 'wayfinder-core',
+        }
+      : {},
   });
 
   const sampler = new TraceIdRatioBasedSampler(sampleRate);
