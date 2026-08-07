@@ -187,11 +187,6 @@ function setupEventHandlers() {
   document
     .getElementById('gatewayCacheTTL')
     ?.addEventListener('input', handleGatewayCacheTTLChange);
-
-  // Telemetry toggle
-  document
-    .getElementById('telemetryToggle')
-    ?.addEventListener('change', handleTelemetryToggle);
 }
 
 function setupExpandableSections() {
@@ -248,7 +243,6 @@ async function loadCurrentSettings() {
       'gatewaySortOrder',
       'gatewayCacheTTL',
       'advancedSettingsExpanded',
-      'telemetryEnabled',
       'showVerificationToasts',
     ]);
 
@@ -377,20 +371,6 @@ async function loadCurrentSettings() {
     ) as HTMLInputElement;
     if (gatewayCacheTTLValueEl) {
       gatewayCacheTTLValueEl.textContent = gatewayCacheTTL;
-    }
-
-    // Load telemetry settings
-    const telemetryEnabled = settings.telemetryEnabled || false;
-    const telemetryToggle = document.getElementById(
-      'telemetryToggle',
-    ) as HTMLInputElement;
-    if (telemetryToggle) {
-      telemetryToggle.checked = telemetryEnabled;
-      // Update details visibility
-      const telemetryDetails = document.getElementById('telemetryDetails');
-      if (telemetryDetails) {
-        telemetryDetails.style.display = telemetryEnabled ? 'block' : 'none';
-      }
     }
   } catch (error) {
     console.error('Error loading settings:', error);
@@ -1167,29 +1147,6 @@ async function handleGatewayCacheTTLChange(event: any) {
 }
 
 // Removed: Verified Browsing handlers - verification features removed
-
-// Telemetry handler
-async function handleTelemetryToggle(event: any) {
-  const enabled = event.target.checked;
-
-  await chrome.storage.local.set({ telemetryEnabled: enabled });
-
-  // Reset wayfinder to apply telemetry changes
-  chrome.runtime.sendMessage({ message: 'resetWayfinder' });
-
-  // Update telemetry details visibility
-  const details = document.getElementById('telemetryDetails');
-  if (details) {
-    details.style.display = enabled ? 'block' : 'none';
-  }
-
-  showToast(
-    enabled
-      ? 'Telemetry enabled - Reload extension to apply changes'
-      : 'Telemetry disabled - Reload extension to apply changes',
-    'info',
-  );
-}
 
 // Data Management Functions
 async function clearAllCache() {

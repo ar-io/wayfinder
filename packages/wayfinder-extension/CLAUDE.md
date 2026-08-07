@@ -102,4 +102,7 @@ Background script accepts these message types:
 - Background script restarts can lose state (use chrome.storage)
 - WebRequest API needed for performance tracking
 - Some gateways may have CORS issues with HEAD requests
-- Telemetry may fail due to AsyncLocalStorage browser compatibility
+- The extension does not initialize telemetry. `wayfinder-core` requires a
+  `telemetrySettings.apiKey` when telemetry is enabled, and a client-side
+  extension has nowhere to keep one — so the toggle was removed rather than
+  shipping a bundled key.

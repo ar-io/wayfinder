@@ -356,6 +356,26 @@ async function migrateStaleDevnetProgramIds(): Promise<void> {
   ]);
 }
 
+/**
+ * Drop the `telemetryEnabled` key left behind by installs that predate the
+ * removal of the telemetry toggle. The extension no longer initializes
+ * telemetry at all, so the stored preference has no reader.
+ * No-op once removed, and on fresh installs.
+ */
+async function migrateStorageFromTelemetryEra(): Promise<void> {
+  const { telemetryEnabled } = await chrome.storage.local.get([
+    'telemetryEnabled',
+  ]);
+
+  if (telemetryEnabled === undefined) return;
+
+  logger.info(
+    '[migration] Removing orphaned telemetryEnabled preference; the telemetry toggle no longer exists.',
+  );
+
+  await chrome.storage.local.remove(['telemetryEnabled']);
+}
+
 // Solana-backed AR.IO read instance; initialized at startup inside the
 // async IIFE below after storage defaults are applied.
 let arIO: ARIORead | undefined;
@@ -364,6 +384,7 @@ let arIO: ARIORead | undefined;
 (async () => {
   await migrateStorageFromAOEra();
   await migrateStaleDevnetProgramIds();
+  await migrateStorageFromTelemetryEra();
 
   const { dailyStats, localGatewayAddressRegistry } =
     await chrome.storage.local.get([

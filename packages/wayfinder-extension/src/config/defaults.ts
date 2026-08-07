@@ -77,9 +77,6 @@ export const WAYFINDER_DEFAULTS = {
   gatewayCacheTTL: 3600, // 1 hour in seconds
   gatewaySortBy: 'totalDelegatedStake',
   gatewaySortOrder: 'desc',
-
-  // Telemetry Configuration (opt-in, default disabled)
-  telemetryEnabled: false,
 } as const;
 
 /**
