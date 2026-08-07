@@ -19,5 +19,15 @@
     "**/coverage": true,
     "**/cache": true
   },
+  // Applies to every project the TS server loads. The package tsconfigs are
+  // standalone (they do not extend the root), so watchOptions set in any single
+  // tsconfig only covers that one project. Without this, each project registers
+  // its own ~1600 "file location affecting resolution" watchers over
+  // node_modules -- viem alone ships ~700 per-chain .d.ts files and is
+  // installed three times -- and any build or install then invalidates module
+  // resolution across every project at once.
+  "typescript.tsserver.watchOptions": {
+    "excludeDirectories": ["**/node_modules"]
+  },
   "cSpell.words": ["ARIO", "wayfinder"]
 }
