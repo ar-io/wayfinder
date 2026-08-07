@@ -130,4 +130,30 @@ describe('createWayfinderClient', () => {
 
     assert.strictEqual(wayfinder.telemetrySettings.enabled, true);
   });
+
+  it('should refuse to send an api key over plaintext http', () => {
+    assert.throws(
+      () =>
+        createWayfinderClient({
+          telemetrySettings: {
+            enabled: true,
+            apiKey: 'test-api-key',
+            exporterUrl: 'http://otel.example.com/v1/traces',
+          },
+        }),
+      /must use https when telemetrySettings\.apiKey is set/,
+    );
+  });
+
+  it('should allow an api key over http for a loopback collector', () => {
+    const wayfinder = createWayfinderClient({
+      telemetrySettings: {
+        enabled: true,
+        apiKey: 'test-api-key',
+        exporterUrl: 'http://localhost:4318/v1/traces',
+      },
+    });
+
+    assert.strictEqual(wayfinder.telemetrySettings.enabled, true);
+  });
 });
