@@ -103,6 +103,9 @@ Background script accepts these message types:
 - WebRequest API needed for performance tracking
 - Some gateways may have CORS issues with HEAD requests
 - The extension does not initialize telemetry. `wayfinder-core` requires a
-  `telemetrySettings.apiKey` when telemetry is enabled, and a client-side
-  extension has nowhere to keep one — so the toggle was removed rather than
-  shipping a bundled key.
+  `telemetrySettings.apiKey` when telemetry is enabled *and* the exporter
+  targets Honeycomb, and a client-side extension has nowhere to keep a
+  credential — so the toggle was removed rather than shipping a bundled key.
+  Telemetry could be restored without one by pointing
+  `telemetrySettings.exporterUrl` at an OTLP collector we operate, which holds
+  the Honeycomb key server-side.
