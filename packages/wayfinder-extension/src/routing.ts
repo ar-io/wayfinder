@@ -37,7 +37,6 @@ import {
 } from './constants';
 import { fetchEnsArweaveTxId } from './ens';
 import { logger } from './utils/logger';
-import { getExtensionVersion } from './utils/version';
 
 /**
  * Global Wayfinder instance for the extension with thread-safe initialization
@@ -83,14 +82,12 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
     staticGateway = WAYFINDER_DEFAULTS.staticGateway,
     gatewaySortBy = WAYFINDER_DEFAULTS.gatewaySortBy,
     gatewaySortOrder = WAYFINDER_DEFAULTS.gatewaySortOrder,
-    telemetryEnabled = WAYFINDER_DEFAULTS.telemetryEnabled,
   } = await chrome.storage.local.get([
     'routingMethod',
     'staticGateway',
     'gatewayCacheTTL',
     'gatewaySortBy',
     'gatewaySortOrder',
-    'telemetryEnabled',
   ]);
 
   // Create the base gateway provider with configurable sorting
@@ -169,19 +166,13 @@ async function createWayfinderInstance(): Promise<Wayfinder> {
         },
       },
     },
-    verificationSettings: {
-      strategy: new RemoteVerificationStrategy(),
-    },
     /**
      * NOTE: because we don't get access to the first bytes of the response, we can't verify the data directly here.
      *
      * Instead, we set up a chrome listener for response headers, and check the 'x-ar-io-verified' header using the RemoteVerificationStrategy provided by Wayfinder Core.
      */
-    telemetrySettings: {
-      enabled: telemetryEnabled,
-      sampleRate: 1, // send all ar:// requests
-      clientName: 'wayfinder-extension',
-      clientVersion: await getExtensionVersion(),
+    verificationSettings: {
+      strategy: new RemoteVerificationStrategy(),
     },
   });
 

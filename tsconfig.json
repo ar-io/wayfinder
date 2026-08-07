@@ -8,6 +8,16 @@
     "jsx": "preserve",
     "sourceMap": true
   },
-  "include": ["packages/**/*.ts", "packages/**/*.tsx", "scripts/**/*.ts"],
-  "exclude": ["node_modules", "dist"]
+  // scripts/ is deliberately excluded: scripts/x402-fetch.ts imports viem and
+  // the x402 wallet stack, which pulls ~1700 extra declaration files into this
+  // project. Those scripts are standalone examples and are typechecked under
+  // experimental/wayfinder-x402-fetch instead.
+  "include": ["packages/**/*.ts", "packages/**/*.tsx"],
+  "exclude": ["**/node_modules", "**/dist"],
+  // Watching node_modules registers ~1600 "file location affecting resolution"
+  // watchers (mostly viem's per-chain .d.ts files, installed in triplicate),
+  // which makes any filesystem activity invalidate resolution across projects.
+  "watchOptions": {
+    "excludeDirectories": ["**/node_modules", "**/dist"]
+  }
 }

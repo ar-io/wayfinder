@@ -293,9 +293,16 @@ export interface TelemetrySettings {
   enabled: boolean;
   /** Sampling ratio between 0 and 1 */
   sampleRate?: number;
-  /** Honeycomb API key */
+  /**
+   * API key for the OTLP exporter, sent as the `x-honeycomb-team` header.
+   *
+   * Required when `enabled` is true and `exporterUrl` targets Honeycomb;
+   * `initTelemetry` throws otherwise. wayfinder-core does not provide a
+   * default — supply your own key, or point `exporterUrl` at a collector
+   * that does not require one.
+   */
   apiKey?: string;
-  /** Optional custom OTLP exporter URL */
+  /** Optional custom OTLP exporter URL. Defaults to Honeycomb's US endpoint. */
   exporterUrl?: string;
   /** Client name (e.g. "wayfinder-extension") */
   clientName?: string;

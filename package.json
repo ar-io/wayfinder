@@ -36,6 +36,7 @@
     "format:fix": "biome format --write",
     "format:check": "biome format",
     "verify": "tsx scripts/verify.ts",
+    "typecheck:scripts": "tsc --noEmit -p scripts/tsconfig.json",
     "prepare": "husky"
   },
   "repository": {

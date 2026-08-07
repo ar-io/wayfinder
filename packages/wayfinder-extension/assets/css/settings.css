@@ -993,31 +993,6 @@ body {
   border-top: 1px solid rgba(212, 198, 255, 0.1);
 }
 
-/* Telemetry Info */
-.telemetry-info {
-  margin-top: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.telemetry-info .info-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-family: var(--font-family-body, "Plus Jakarta Sans", sans-serif);
-  font-weight: 400;
-  font-size: 12px;
-  line-height: 1.4;
-  color: var(--colors-text-textMid, #9b93b4);
-}
-
-.telemetry-info .info-item svg {
-  width: 14px;
-  height: 14px;
-  flex-shrink: 0;
-}
-
 /* Verification Strategy Section */
 .verification-strategy-section {
   margin-top: 16px;
