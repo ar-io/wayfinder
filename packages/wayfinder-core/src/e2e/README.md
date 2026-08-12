@@ -40,6 +40,38 @@ Each of the four extension points, exercised against the live network:
 - **`retrieval.e2e.test.ts`** — contiguous and chunk, including each chunk
   prerequisite as its own assertion so a failure names the layer that broke.
 
+## Coverage against developer stories
+
+What a consumer of `@ar.io/wayfinder-core` can actually do, and whether the live
+suite proves it. This is the scope statement — treat anything marked ✗ as
+unverified against a real network, not as known-broken.
+
+| Developer story | Covered | Where |
+| --- | :-: | --- |
+| `npm i` the package and import it | ✓ | `npm run test:package` |
+| Zero-config `createWayfinderClient()` / `new Wayfinder()` fetches data | ✓ | `routing.e2e` |
+| Keep working when peer discovery returns nothing | ✓ | `gateways.e2e` |
+| Fetch by transaction ID | ✓ | all four files |
+| Fetch by ArNS name, and resolve one to a URL | ✓ | `routing.e2e` |
+| Source gateways from the on-chain (Solana) registry | ✓ | `gateways.e2e` |
+| Rank gateways by stake / weights and take the top N | ✓ | `gateways.e2e` |
+| Pick any of the 8 routing strategies | ✓ | `routing.e2e` |
+| Verify data (hash, data-root, signature, remote) | ✓ | `verification.e2e` |
+| Have verification fail closed in strict mode | ✓ | `verification.e2e` |
+| Retrieve via chunks | ✓ | `retrieval.e2e` (fails; see above) |
+| Subscribe to routing/verification events | ✗ | mocked only, in `wayfinder.test.ts` |
+| Call gateway endpoints (`ar:///info`, GraphQL POST) | ✗ | live but in `wayfinder.test.ts`, not here |
+| ArNS undernames and deep paths | ✗ | URL-shape assertions only, in `wayfinder.test.ts` |
+| Enable telemetry and see spans exported | ✗ | — |
+| Run in a browser (`LocalStorageGatewaysProvider`) | ✗ | suite is Node-only |
+| Pay for data via x402 | ✗ | — |
+
+Other packages have **no test suite at all** — `wayfinder-react` (hooks and
+provider), `wayfinder-extension`, and `wayfinder-cli` are all untested, so no
+user-facing story for the extension (ar:// navigation, link rewriting, ENS,
+settings) or for the React hooks is verified anywhere. Those are the largest
+gaps in the repo; this suite deliberately scopes to `wayfinder-core`.
+
 ## Fixtures matter
 
 Transaction shape determines which strategies can apply, and picking the wrong
