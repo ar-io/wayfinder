@@ -7,6 +7,13 @@
 - Fix defects that only reproduce outside the monorepo, under strict verification,
   or via the zero-argument constructor:
 
+  - Exposed `createCachedGatewaysProvider()`, which wraps a provider in
+    `LocalStorageGatewaysProvider` in the browser and `SimpleCacheGatewaysProvider`
+    elsewhere. That branch previously lived privately inside
+    `createWayfinderClient`, so anything building a client another way had to
+    reproduce it — and getting it wrong throws under server-side rendering,
+    since the localStorage provider is browser-only.
+
   - **`RoundRobinRoutingStrategy` never re-read its gateways provider.** It
     loaded the list once and cycled it for the lifetime of the instance, which
     made any `SimpleCacheGatewaysProvider` / `LocalStorageGatewaysProvider` TTL
@@ -16,6 +23,9 @@
     (caching belongs to the provider layer) and honours a caller-supplied list
     when provider-backed, as the `RoutingStrategy` interface advertises. A list
     pinned at construction still wins, which is long-standing behaviour.
+    Rotation now resumes from the gateway last served rather than a numeric
+    index, so a pool that changes between selections no longer causes gateways
+    to be skipped or re-served early.
 
   - **A wrapper strategy overrode a nested strategy's configured provider.**
     `Wayfinder` injected its default gateways provider into any strategy without

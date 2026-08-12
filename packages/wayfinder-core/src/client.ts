@@ -17,10 +17,8 @@
 
 import {
   DEFAULT_TRUSTED_GATEWAY,
-  createDefaultGatewaysProvider,
+  createCachedGatewaysProvider,
 } from './gateways/default.js';
-import { LocalStorageGatewaysProvider } from './gateways/local-storage-cache.js';
-import { SimpleCacheGatewaysProvider } from './gateways/simple-cache.js';
 import { defaultLogger } from './logger.js';
 import { FastestPingRoutingStrategy } from './routing/ping.js';
 import { PreferredWithFallbackRoutingStrategy } from './routing/preferred-with-fallback.js';
@@ -36,7 +34,6 @@ import type {
   WayfinderFetchOptions,
   WayfinderOptions,
 } from './types.js';
-import { isBrowser } from './utils/browser.js';
 import {
   convertFetchOptionsToSettings,
   isWayfinderFetchOptions,
@@ -101,37 +98,6 @@ export const createVerificationStrategy = ({
     disabled: undefined as unknown as VerificationStrategy,
   };
   return verificationMap[strategy];
-};
-
-/**
- * Helper function to create a cached gateways provider
- */
-const createCachedGatewaysProvider = ({
-  logger,
-  ttlSeconds = 300,
-  gatewaysProvider,
-}: {
-  logger: Logger;
-  ttlSeconds?: number;
-  gatewaysProvider?: GatewaysProvider;
-}): GatewaysProvider => {
-  const baseProvider =
-    gatewaysProvider ?? createDefaultGatewaysProvider({ logger });
-
-  // Use localStorage cache in browser, simple cache in Node.js
-  if (isBrowser()) {
-    return new LocalStorageGatewaysProvider({
-      gatewaysProvider: baseProvider,
-      ttlSeconds,
-      logger,
-    });
-  } else {
-    return new SimpleCacheGatewaysProvider({
-      gatewaysProvider: baseProvider,
-      ttlSeconds,
-      logger,
-    });
-  }
 };
 
 /**

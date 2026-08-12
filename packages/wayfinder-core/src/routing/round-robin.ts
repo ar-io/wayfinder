@@ -20,7 +20,8 @@ import type { GatewaysProvider, Logger, RoutingStrategy } from '../types.js';
 export class RoundRobinRoutingStrategy implements RoutingStrategy {
   public readonly name = 'round-robin';
   private gateways: URL[];
-  private currentIndex: number;
+  /** Href of the gateway returned last, used to resume the rotation. */
+  private lastSelected?: string;
   private logger: Logger;
   private gatewaysProvider?: GatewaysProvider;
 
@@ -44,7 +45,6 @@ export class RoundRobinRoutingStrategy implements RoutingStrategy {
     }
 
     this.gateways = gateways || [];
-    this.currentIndex = 0;
     this.logger = logger;
     this.gatewaysProvider = gatewaysProvider;
   }
@@ -90,15 +90,31 @@ export class RoundRobinRoutingStrategy implements RoutingStrategy {
       throw new Error('No gateways available');
     }
 
-    // Modulo the current pool length so the cursor stays valid even when the
-    // pool changes size between selections.
-    const gateway = pool[this.currentIndex % pool.length];
+    /**
+     * Continue from the gateway *after* the one last served, tracking it by
+     * identity rather than by index.
+     *
+     * Now that the pool is re-read on every selection it can change shape
+     * between calls — a gateway gets blacklisted, or starts failing epochs. A
+     * numeric cursor into a list that changed points somewhere arbitrary: it
+     * re-serves gateways early and skips others, which defeats the point of
+     * round-robin. Resuming from the previous gateway keeps the rotation fair
+     * across those changes, and falls back to the start when that gateway is
+     * gone from the pool.
+     */
+    const previousIndex =
+      this.lastSelected !== undefined
+        ? pool.findIndex((gateway) => gateway.toString() === this.lastSelected)
+        : -1;
+    const index = (previousIndex + 1) % pool.length;
+
+    const gateway = pool[index];
     this.logger.debug('Selecting gateway', {
       gateway: gateway.toString(),
-      currentIndex: this.currentIndex % pool.length,
+      currentIndex: index,
       totalGateways: pool.length,
     });
-    this.currentIndex = (this.currentIndex + 1) % pool.length;
+    this.lastSelected = gateway.toString();
     return gateway;
   }
 }

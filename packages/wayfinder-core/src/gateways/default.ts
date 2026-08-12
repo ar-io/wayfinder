@@ -17,7 +17,10 @@
 
 import { defaultLogger } from '../logger.js';
 import type { GatewaysProvider, Logger } from '../types.js';
+import { isBrowser } from '../utils/browser.js';
 import { CompositeGatewaysProvider } from './composite.js';
+import { LocalStorageGatewaysProvider } from './local-storage-cache.js';
+import { SimpleCacheGatewaysProvider } from './simple-cache.js';
 import { StaticGatewaysProvider } from './static.js';
 import { TrustedPeersGatewaysProvider } from './trusted-peers.js';
 
@@ -53,4 +56,37 @@ export function createDefaultGatewaysProvider({
     ],
     logger,
   });
+}
+
+/**
+ * Wraps a gateways provider in the caching layer appropriate to the runtime.
+ *
+ * `LocalStorageGatewaysProvider` throws outside a browser, so picking the
+ * wrapper has to be conditional — doing it unconditionally breaks server-side
+ * rendering. Centralised here so callers (including `createWayfinderClient` and
+ * the React provider) don't each have to get that branch right.
+ */
+export function createCachedGatewaysProvider({
+  gatewaysProvider,
+  ttlSeconds = 300,
+  logger = defaultLogger,
+}: {
+  gatewaysProvider?: GatewaysProvider;
+  ttlSeconds?: number;
+  logger?: Logger;
+} = {}): GatewaysProvider {
+  const baseProvider =
+    gatewaysProvider ?? createDefaultGatewaysProvider({ logger });
+
+  return isBrowser()
+    ? new LocalStorageGatewaysProvider({
+        gatewaysProvider: baseProvider,
+        ttlSeconds,
+        logger,
+      })
+    : new SimpleCacheGatewaysProvider({
+        gatewaysProvider: baseProvider,
+        ttlSeconds,
+        logger,
+      });
 }

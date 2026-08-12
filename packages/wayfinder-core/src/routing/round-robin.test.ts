@@ -184,3 +184,48 @@ describe('RoundRobinRoutingStrategy contract', () => {
     );
   });
 });
+
+describe('RoundRobinRoutingStrategy rotation across a changing pool', () => {
+  it('resumes after the previously served gateway when the pool changes', async () => {
+    let pool = ['a', 'b', 'c', 'd', 'e'].map(
+      (h) => new URL(`https://${h}.example`),
+    );
+    const strategy = new RoundRobinRoutingStrategy({
+      gatewaysProvider: { getGateways: async () => pool },
+    });
+
+    const picks: string[] = [];
+    for (let i = 0; i < 4; i++) {
+      picks.push((await strategy.selectGateway()).hostname[0]);
+    }
+    assert.deepStrictEqual(picks, ['a', 'b', 'c', 'd']);
+
+    // 'b' drops out — blacklisted, or failing epochs
+    pool = ['a', 'c', 'd', 'e'].map((h) => new URL(`https://${h}.example`));
+
+    // Rotation must continue after 'd' rather than restarting: a numeric
+    // cursor would land arbitrarily once the list shifted.
+    assert.strictEqual((await strategy.selectGateway()).hostname[0], 'e');
+    assert.strictEqual((await strategy.selectGateway()).hostname[0], 'a');
+    assert.strictEqual((await strategy.selectGateway()).hostname[0], 'c');
+  });
+
+  it('restarts from the top when the last served gateway is gone', async () => {
+    let pool = [new URL('https://only.example')];
+    const strategy = new RoundRobinRoutingStrategy({
+      gatewaysProvider: { getGateways: async () => pool },
+    });
+
+    assert.strictEqual(
+      (await strategy.selectGateway()).hostname,
+      'only.example',
+    );
+
+    pool = [new URL('https://fresh.example'), new URL('https://other.example')];
+
+    assert.strictEqual(
+      (await strategy.selectGateway()).hostname,
+      'fresh.example',
+    );
+  });
+});

@@ -29,7 +29,7 @@
     "build": "npm run clean && npm run update-version && tsc",
     "update-version": "node scripts/update-version.mjs",
     "clean": "rimraf dist",
-    "test": "tsx --test 'src/**/*.test.ts'",
+    "test": "tsx --test 'src/**/*.test.ts' 'src/**/*.test.tsx'",
     "lint:fix": "biome check --write --unsafe --config-path=../../biome.json",
     "lint:check": "biome check --unsafe --config-path=../../biome.json",
     "format:fix": "biome format --write --config-path=../../biome.json",
@@ -42,7 +42,10 @@
   },
   "devDependencies": {
     "@types/react": "^18.2.0",
-    "@types/react-dom": "^18.2.0"
+    "@types/react-dom": "^18.2.0",
+    "@types/react-test-renderer": "^18.3.0",
+    "react-test-renderer": "^18.3.1",
+    "tsx": "^4.20.3"
   },
   "peerDependencies": {
     "react": "^18.0.0",

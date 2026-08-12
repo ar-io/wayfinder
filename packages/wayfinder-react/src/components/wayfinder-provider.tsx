@@ -18,7 +18,7 @@ import {
   LocalStorageGatewaysProvider,
   Wayfinder,
   type WayfinderOptions,
-  createDefaultGatewaysProvider,
+  createCachedGatewaysProvider,
 } from '@ar.io/wayfinder-core';
 import React, { createContext, useMemo } from 'react';
 import { WAYFINDER_REACT_VERSION } from '../version.js';
@@ -59,11 +59,16 @@ export const WayfinderProvider: React.FC<WayfinderProviderProps> = ({
    * only a caller-supplied one.
    */
   const gatewaysProvider = useMemo(() => {
-    const base =
-      suppliedGatewaysProvider ?? createDefaultGatewaysProvider({ logger });
-    return base instanceof LocalStorageGatewaysProvider
-      ? base
-      : new LocalStorageGatewaysProvider({ gatewaysProvider: base });
+    // Already cached — don't double-wrap.
+    if (suppliedGatewaysProvider instanceof LocalStorageGatewaysProvider) {
+      return suppliedGatewaysProvider;
+    }
+    // Picks localStorage in the browser and an in-memory cache elsewhere, so
+    // this stays safe under server-side rendering.
+    return createCachedGatewaysProvider({
+      gatewaysProvider: suppliedGatewaysProvider,
+      logger,
+    });
   }, [suppliedGatewaysProvider, logger]);
 
   /**

@@ -66,11 +66,12 @@ unverified against a real network, not as known-broken.
 | Run in a browser (`LocalStorageGatewaysProvider`) | ✗ | suite is Node-only |
 | Pay for data via x402 | ✗ | — |
 
-Other packages have **no test suite at all** — `wayfinder-react` (hooks and
-provider), `wayfinder-extension`, and `wayfinder-cli` are all untested, so no
-user-facing story for the extension (ar:// navigation, link rewriting, ENS,
-settings) or for the React hooks is verified anywhere. Those are the largest
-gaps in the repo; this suite deliberately scopes to `wayfinder-core`.
+`wayfinder-react` now covers its provider (memoisation and the
+server-side-rendering path), but not the three hooks. `wayfinder-extension` and
+`wayfinder-cli` still have **no test suite at all**, so no user-facing extension
+story — ar:// navigation, link rewriting, ENS, settings — is verified anywhere.
+Those remain the largest gaps in the repo; this suite scopes to
+`wayfinder-core`.
 
 ## Fixtures matter
 

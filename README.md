@@ -144,12 +144,14 @@ npx changeset pre exit
 
 ## Testing
 
-`@ar.io/wayfinder-core` holds the test suites; the other packages have none yet.
-Run them per package rather than across the monorepo:
+`@ar.io/wayfinder-core` holds most of the test suites, and `@ar.io/wayfinder-react`
+has one for its provider. The extension and CLI have none yet. Run them per
+package rather than across the monorepo:
 
 - `npm run test:unit -w @ar.io/wayfinder-core` — offline unit tests; this is what CI runs
 - `npm run test:integration -w @ar.io/wayfinder-core` — hits live gateways, not run in CI
 - `npm run test:e2e -w @ar.io/wayfinder-core` — exercises every routing, verification, retrieval and gateway-discovery strategy against the live AR.IO Solana network. Point it at a dedicated RPC with `SOLANA_RPC_URL=...`; see [`src/e2e/README.md`](./packages/wayfinder-core/src/e2e/README.md)
+- `npm test -w @ar.io/wayfinder-react` — provider tests, run under `react-test-renderer` (no DOM needed)
 - `npm run test:package -w @ar.io/wayfinder-core` — packs the tarball, installs it into a clean project and imports it. Run this before publishing: it is the only check that catches a dependency the package fails to declare, because anything a transitive package imports without declaring still resolves inside the monorepo
 
 `yarn test` (`npm run test --workspaces`) currently fails: `experimental/wayfinder-cli`
