@@ -117,3 +117,70 @@ describe('RoundRobinRoutingStrategy', () => {
     );
   });
 });
+
+describe('RoundRobinRoutingStrategy contract', () => {
+  it('cycles over a caller-supplied list when provider-backed', async () => {
+    // A list pinned at construction keeps winning (asserted above). A
+    // provider-backed strategy honours a supplied list, per the interface.
+    const strategy = new RoundRobinRoutingStrategy({
+      gatewaysProvider: {
+        getGateways: async () => [new URL('https://from-provider.example')],
+      },
+    });
+    const supplied = [
+      new URL('https://a.example'),
+      new URL('https://b.example'),
+    ];
+
+    const picks = [
+      await strategy.selectGateway({ gateways: supplied }),
+      await strategy.selectGateway({ gateways: supplied }),
+      await strategy.selectGateway({ gateways: supplied }),
+    ].map((u) => u.host);
+
+    assert.deepStrictEqual(picks, ['a.example', 'b.example', 'a.example']);
+  });
+
+  /**
+   * Caching belongs to the provider layer. Holding the first result forever
+   * would make a `SimpleCacheGatewaysProvider` TTL meaningless and would never
+   * pick up a list that narrows — which is how a blacklisted gateway stayed in
+   * rotation in the Chrome extension.
+   */
+  it('re-reads the provider on every selection', async () => {
+    let calls = 0;
+    let pool = [
+      new URL('https://first.example'),
+      new URL('https://second.example'),
+    ];
+    const strategy = new RoundRobinRoutingStrategy({
+      gatewaysProvider: {
+        getGateways: async () => {
+          calls++;
+          return pool;
+        },
+      },
+    });
+
+    await strategy.selectGateway();
+    assert.strictEqual(calls, 1);
+
+    // the list narrows, as it would when a gateway is blacklisted
+    pool = [new URL('https://second.example')];
+
+    const picked = await strategy.selectGateway();
+    assert.strictEqual(calls, 2);
+    assert.strictEqual(picked.host, 'second.example');
+  });
+
+  it('throws when neither a supplied list nor a provider yields gateways', async () => {
+    const strategy = new RoundRobinRoutingStrategy({
+      gatewaysProvider: { getGateways: async () => [] },
+    });
+
+    await assert.rejects(
+      () => strategy.selectGateway(),
+      /No gateways available/,
+    );
+  });
+});

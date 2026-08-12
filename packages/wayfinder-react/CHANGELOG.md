@@ -4,6 +4,20 @@
 
 ### Patch Changes
 
+- Stop rebuilding the Wayfinder client on every render, and cache gateway reads.
+
+  `WayfinderProvider` collects its props with a rest spread, so `options` was a
+  new object on every render and the `useMemo` keyed on it never memoised
+  anything — a fresh `Wayfinder`, gateways provider, emitter and telemetry setup
+  were constructed each time the component rendered. It now depends on the
+  individual options rather than the rest object, and memoises the context value
+  so consumers stop re-rendering on every parent render.
+
+  The gateways provider is also always wrapped in
+  `LocalStorageGatewaysProvider` now, including the default one. Previously only
+  a caller-supplied provider was wrapped, so an app that passed none (or passed
+  `routingSettings`) got no gateway caching at all in the browser.
+
 - Updated dependencies
   - @ar.io/wayfinder-core@2.0.2
 

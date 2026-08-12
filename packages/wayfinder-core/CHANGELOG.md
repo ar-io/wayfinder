@@ -7,6 +7,16 @@
 - Fix defects that only reproduce outside the monorepo, under strict verification,
   or via the zero-argument constructor:
 
+  - **`RoundRobinRoutingStrategy` never re-read its gateways provider.** It
+    loaded the list once and cycled it for the lifetime of the instance, which
+    made any `SimpleCacheGatewaysProvider` / `LocalStorageGatewaysProvider` TTL
+    wrapped around it meaningless and meant a list that narrows was never picked
+    up. In the Chrome extension that is why blacklisting a gateway had no effect
+    until the service worker restarted. It now asks the provider per selection
+    (caching belongs to the provider layer) and honours a caller-supplied list
+    when provider-backed, as the `RoutingStrategy` interface advertises. A list
+    pinned at construction still wins, which is long-standing behaviour.
+
   - **A wrapper strategy overrode a nested strategy's configured provider.**
     `Wayfinder` injected its default gateways provider into any strategy without
     one, including wrappers like `PingRoutingStrategy`. Because a wrapper passes

@@ -18,6 +18,7 @@ import {
   LocalStorageGatewaysProvider,
   Wayfinder,
   type WayfinderOptions,
+  createDefaultGatewaysProvider,
 } from '@ar.io/wayfinder-core';
 import React, { createContext, useMemo } from 'react';
 import { WAYFINDER_REACT_VERSION } from '../version.js';
@@ -38,19 +39,41 @@ export const WayfinderProvider: React.FC<WayfinderProviderProps> = ({
   children,
   ...options
 }) => {
-  // wrap the gateways provider in a local storage provider if it is not already
-  const gatewaysProvider = useMemo(() => {
-    if (
-      options.gatewaysProvider &&
-      !(options.gatewaysProvider instanceof LocalStorageGatewaysProvider)
-    ) {
-      return new LocalStorageGatewaysProvider({
-        gatewaysProvider: options.gatewaysProvider,
-      });
-    }
-    return options.gatewaysProvider;
-  }, [options.gatewaysProvider]);
+  const {
+    gatewaysProvider: suppliedGatewaysProvider,
+    routingSettings,
+    verificationSettings,
+    telemetrySettings,
+    dataRetrievalStrategy,
+    logger,
+    fetch: fetchImplementation,
+  } = options;
 
+  /**
+   * Always hand Wayfinder a cached provider.
+   *
+   * Wayfinder's own default is uncached — only `createWayfinderClient()` adds
+   * caching, and even there only when no `routingSettings` are supplied. In a
+   * browser that means re-reading the gateway list far more often than the
+   * 5-minute TTL implies, so the default source is wrapped here too rather than
+   * only a caller-supplied one.
+   */
+  const gatewaysProvider = useMemo(() => {
+    const base =
+      suppliedGatewaysProvider ?? createDefaultGatewaysProvider({ logger });
+    return base instanceof LocalStorageGatewaysProvider
+      ? base
+      : new LocalStorageGatewaysProvider({ gatewaysProvider: base });
+  }, [suppliedGatewaysProvider, logger]);
+
+  /**
+   * Depend on the individual options, never on the rest object.
+   *
+   * `options` comes from a rest spread, so it is a fresh object on every single
+   * render — memoising on it rebuilt the client (and its providers, emitter and
+   * telemetry) every time this component rendered, no matter what the caller
+   * passed.
+   */
   const wayfinder = useMemo(
     () =>
       new Wayfinder({
@@ -60,13 +83,27 @@ export const WayfinderProvider: React.FC<WayfinderProviderProps> = ({
           enabled: false,
           clientName: 'wayfinder-react',
           clientVersion: WAYFINDER_REACT_VERSION,
-          ...options.telemetrySettings,
+          ...telemetrySettings,
         },
       }),
-    [options],
+    // `options` is intentionally absent from these dependencies: it is a new
+    // object each render, so the fields it carries are the real dependencies.
+    [
+      gatewaysProvider,
+      routingSettings,
+      verificationSettings,
+      telemetrySettings,
+      dataRetrievalStrategy,
+      logger,
+      fetchImplementation,
+    ],
   );
+
+  // Stable context value, so consumers don't re-render on every parent render.
+  const value = useMemo(() => ({ wayfinder }), [wayfinder]);
+
   return (
-    <WayfinderContext.Provider value={{ wayfinder }}>
+    <WayfinderContext.Provider value={value}>
       {children}
     </WayfinderContext.Provider>
   );
