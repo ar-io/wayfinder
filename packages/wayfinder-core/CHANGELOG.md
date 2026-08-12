@@ -7,6 +7,21 @@
 - Fix defects that only reproduce outside the monorepo, under strict verification,
   or via the zero-argument constructor:
 
+  - **The default gateway source had no fallback.** Peer discovery is a single
+    point of failure: `turbo-gateway.com/ar-io/peers` has been observed
+    answering `200` with an empty `gateways` map for sustained periods, which
+    left `createWayfinderClient()` and `new Wayfinder()` unable to serve any
+    request. Both now default to a `CompositeGatewaysProvider` that falls back
+    to the trusted gateway itself, turning that outage into a degradation.
+    Exposed as `createDefaultGatewaysProvider()`.
+
+  - **`NetworkGatewaysProvider` could return a partial registry.** A failed page
+    exited the pagination loop and the remaining gateways were sorted and
+    returned as if complete. Because `limit` is applied after sorting, that
+    returned the *wrong* gateways rather than merely fewer. It now retries the
+    failed page and throws once retries are exhausted, so a composite provider
+    can fall through.
+
   - **`new Wayfinder()` could not serve a single request.** The default routing
     strategy is a `PingRoutingStrategy` wrapping a `RandomRoutingStrategy`. The
     gateways provider was passed only to the inner strategy, and the provider

@@ -19,6 +19,7 @@ import { address, createSolanaRpc } from '@solana/kit';
 import pDebounce from 'p-debounce';
 import { ChromeStorageGatewayProvider } from './adapters/chrome-storage-gateway-provider';
 import { EXTENSION_DEFAULTS } from './config/defaults';
+import { AR_IO_SOLANA_DEVNET, AR_IO_SOLANA_MAINNET } from './constants';
 import { getCachedGatewayRegistry } from './helpers';
 import {
   getRoutableGatewayUrl,
@@ -365,7 +366,9 @@ async function migrateStaleDevnetProgramIds(): Promise<void> {
  * installs only. Anyone still holding a retired URL silently loses gateway
  * registry sync and falls back to a single hardcoded gateway.
  *
- * Matches on the exact retired URLs, so a user-supplied RPC is never touched.
+ * Matches on the exact retired URLs, so a user-supplied RPC is never touched,
+ * and skips the `custom` preset entirely — a custom RPC is the user's setting
+ * to keep even when it happens to match a URL we once shipped.
  */
 async function migrateRetiredMainnetRpcUrls(): Promise<void> {
   /**
@@ -377,24 +380,53 @@ async function migrateRetiredMainnetRpcUrls(): Promise<void> {
     'https://hardworking-restless-sea.solana-mainnet.quiknode.pro/44d938fae3eb6735ec30d8979551827ff70227f5/',
   ];
 
-  const { rpcUrl } = await chrome.storage.local.get(['rpcUrl']);
+  const { rpcUrl, network } = await chrome.storage.local.get([
+    'rpcUrl',
+    'network',
+  ]);
 
   if (!RETIRED_MAINNET_RPC_URLS.includes(rpcUrl)) return;
+  if (network === 'custom') return;
+
+  // Replace with the preset matching the user's network. Writing the mainnet
+  // default onto a devnet install would point it at the wrong cluster.
+  const replacement =
+    network === 'devnet'
+      ? AR_IO_SOLANA_DEVNET.rpcUrl
+      : AR_IO_SOLANA_MAINNET.rpcUrl;
 
   logger.info(
-    '[migration] Retired mainnet RPC endpoint detected; switching to the current default and invalidating the cached gateway registry.',
-    { retired: rpcUrl, replacement: EXTENSION_DEFAULTS.rpcUrl },
+    '[migration] Retired RPC endpoint detected; switching to the current default and invalidating the cached gateway registry.',
+    // The retired URL embeds an access token, so log only its origin.
+    {
+      retiredOrigin: safeOrigin(rpcUrl),
+      network: network ?? 'unset',
+      replacement,
+    },
   );
 
-  await chrome.storage.local.set({ rpcUrl: EXTENSION_DEFAULTS.rpcUrl });
-
-  // Force a resync — the registry cached under the dead endpoint is stale
-  // (or was never populated at all).
+  /**
+   * Clear the cached registry *before* rewriting `rpcUrl`, so the two writes
+   * are safe to interleave with a crash. If the remove fails, `rpcUrl` is still
+   * the retired value and this migration runs again on the next startup; doing
+   * it the other way round would leave a stale registry that nothing re-checks.
+   */
   await chrome.storage.local.remove([
     'localGatewayAddressRegistry',
     'lastSyncTime',
     'lastKnownGatewayCount',
   ]);
+
+  await chrome.storage.local.set({ rpcUrl: replacement });
+}
+
+/** Origin of a URL, for logging endpoints that may carry access tokens. */
+function safeOrigin(url: string): string {
+  try {
+    return new URL(url).origin;
+  } catch {
+    return '<unparseable url>';
+  }
 }
 
 // Solana-backed AR.IO read instance; initialized at startup inside the

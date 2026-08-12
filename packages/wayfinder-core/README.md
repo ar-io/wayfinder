@@ -170,7 +170,7 @@ const redirectUrl = await wayfinder.resolveUrl({
 
 ## Gateway Providers
 
-Gateway providers supply the list of gateways for routing. **By default, `createWayfinderClient` uses a cached `TrustedPeersGatewaysProvider`**.
+Gateway providers supply the list of gateways for routing. **By default, `createWayfinderClient` and `new Wayfinder()` use a cached `CompositeGatewaysProvider` that tries `TrustedPeersGatewaysProvider` first and falls back to the trusted gateway itself.** Peer discovery is a single point of failure — a gateway can answer `/ar-io/peers` with `200` and an empty list — and the fallback keeps requests working (routed through the one gateway already trusted) instead of failing outright. Call `createDefaultGatewaysProvider()` to build the same thing yourself.
 
 | Provider                       | Description                                    | Use Case                                |
 | ------------------------------ | ---------------------------------------------- | --------------------------------------- |
@@ -770,7 +770,8 @@ Wayfinder includes built-in resiliency features:
 - **Gateway retry**: If a gateway returns a 5xx error or a network failure occurs, Wayfinder automatically re-selects a different gateway and retries (up to 3 attempts). Client errors (4xx) are returned immediately without retry.
 - **Fetch timeouts**: All outbound requests include configurable timeouts — 10s for metadata (HEAD, peer list), 30s for data retrieval — to prevent indefinite hangs on slow or dead gateways.
 - **Gateway health checks**: `PingRoutingStrategy` verifies the selected gateway responds before routing to it, and retries with a different one if not.
-- **Peer list retries**: `TrustedPeersGatewaysProvider` retries when a gateway returns an empty peer list, then fails loudly rather than silently yielding no gateways.
+- **Peer list retries**: `TrustedPeersGatewaysProvider` retries when a gateway returns an empty peer list, then fails loudly rather than silently yielding no gateways — and the default provider falls back to the trusted gateway so that failure degrades routing instead of stopping it.
+- **Registry pagination failures are fatal**: `NetworkGatewaysProvider` retries a failed page and throws once retries are exhausted, rather than returning a partial registry. Because `limit` is applied after sorting, a partial read would return the wrong gateways rather than merely fewer.
 - **Full-registry pagination**: `NetworkGatewaysProvider` reads the whole on-chain registry before applying `limit`, so `limit` selects the top-ranked gateways rather than whichever ones happened to come back first. It pages at the SDK maximum, so this is a single request for a registry of the current size.
 
 ## Request Flow

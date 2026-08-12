@@ -18,7 +18,7 @@ import assert from 'node:assert';
 import { before, describe, it } from 'node:test';
 
 import { WayfinderEmitter } from './emitter.js';
-import { TrustedPeersGatewaysProvider } from './gateways/trusted-peers.js';
+import { CompositeGatewaysProvider } from './gateways/composite.js';
 import { RandomRoutingStrategy } from './routing/random.js';
 import { StaticRoutingStrategy } from './routing/static.js';
 import { GatewaysProvider, RoutingStrategy, WayfinderEvent } from './types.js';
@@ -36,16 +36,24 @@ describe('Wayfinder', () => {
     it('should use the default configuration', () => {
       const wayfinder = new Wayfinder();
 
-      // gatewaysProvider is deprecated but maintained for backwards compatibility
+      // gatewaysProvider is deprecated but maintained for backwards
+      // compatibility. It is a composite so that a failure of peer discovery
+      // degrades to the trusted gateway rather than leaving the client unable
+      // to route at all.
       assert.ok(
-        wayfinder.gatewaysProvider instanceof TrustedPeersGatewaysProvider,
+        wayfinder.gatewaysProvider instanceof CompositeGatewaysProvider,
       );
-      // Check that the nested RandomRoutingStrategy has a gatewaysProvider
+
+      // The ping wrapper needs the provider too — without it the default
+      // constructor cannot resolve any candidate gateways.
       const pingStrategy = wayfinder.routingSettings.strategy as any;
+      assert.ok(
+        pingStrategy.gatewaysProvider instanceof CompositeGatewaysProvider,
+      );
       assert.ok(pingStrategy.routingStrategy instanceof RandomRoutingStrategy);
       assert.ok(
         pingStrategy.routingStrategy.gatewaysProvider instanceof
-          TrustedPeersGatewaysProvider,
+          CompositeGatewaysProvider,
       );
 
       // check the routing settings structure (without deep equality due to gatewaysProvider injection)

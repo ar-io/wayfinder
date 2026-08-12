@@ -18,6 +18,9 @@ import type { ARIORead } from '@ar.io/sdk';
 import { defaultLogger } from '../logger.js';
 import type { GatewaysProvider, Logger, SortBy, SortOrder } from '../types.js';
 
+/** Attempts made on a single registry page before giving up. */
+const MAX_PAGE_ATTEMPTS = 3;
+
 export class NetworkGatewaysProvider implements GatewaysProvider {
   private ario: ARIORead;
   private sortBy: SortBy;
@@ -120,15 +123,31 @@ export class NetworkGatewaysProvider implements GatewaysProvider {
           nextCursor: cursor,
         });
       } catch (error: any) {
+        attempts++;
+
         this.logger.error('Error fetching gateways', {
           cursor,
           attempts,
           error: error.message,
           stack: error.stack,
         });
-        attempts++;
+
+        /**
+         * Retry the page that failed rather than advancing, and give up loudly.
+         *
+         * Returning what we have would silently drop gateways, and because
+         * `limit` is applied after a client-side sort, a partial registry does
+         * not merely return fewer gateways — it returns the wrong ones. Failing
+         * lets `CompositeGatewaysProvider` fall through to another source.
+         */
+        if (attempts >= MAX_PAGE_ATTEMPTS) {
+          throw new Error(
+            `Failed to fetch the AR.IO gateway registry after ${MAX_PAGE_ATTEMPTS} attempts`,
+            { cause: error },
+          );
+        }
       }
-    } while (cursor !== undefined && attempts < 3);
+    } while (cursor !== undefined);
 
     const filteredGateways = this.sortGateways(
       gateways.filter(this.filter),

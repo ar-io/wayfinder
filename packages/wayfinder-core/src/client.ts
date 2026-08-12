@@ -15,9 +15,12 @@
  * limitations under the License.
  */
 
+import {
+  DEFAULT_TRUSTED_GATEWAY,
+  createDefaultGatewaysProvider,
+} from './gateways/default.js';
 import { LocalStorageGatewaysProvider } from './gateways/local-storage-cache.js';
 import { SimpleCacheGatewaysProvider } from './gateways/simple-cache.js';
-import { TrustedPeersGatewaysProvider } from './gateways/trusted-peers.js';
 import { defaultLogger } from './logger.js';
 import { FastestPingRoutingStrategy } from './routing/ping.js';
 import { PreferredWithFallbackRoutingStrategy } from './routing/preferred-with-fallback.js';
@@ -42,8 +45,6 @@ import { DataRootVerificationStrategy } from './verification/data-root-verificat
 import { HashVerificationStrategy } from './verification/hash-verification.js';
 import { RemoteVerificationStrategy } from './verification/remote-verification.js';
 import { Wayfinder } from './wayfinder.js';
-
-const DEFAULT_TRUSTED_GATEWAY = 'https://turbo-gateway.com';
 
 /**
  * Helper function to construct a routing strategy
@@ -71,7 +72,7 @@ export const createRoutingStrategy = ({
 
     case 'preferred':
       return new PreferredWithFallbackRoutingStrategy({
-        preferredGateway: 'https://turbo-gateway.com',
+        preferredGateway: DEFAULT_TRUSTED_GATEWAY,
         fallbackStrategy: createRoutingStrategy({
           strategy: 'fastest',
           gatewaysProvider,
@@ -87,7 +88,7 @@ export const createRoutingStrategy = ({
 export const createVerificationStrategy = ({
   strategy,
   logger,
-  trustedGateways = [new URL('https://turbo-gateway.com')],
+  trustedGateways = [new URL(DEFAULT_TRUSTED_GATEWAY)],
 }: {
   strategy: VerificationOption;
   logger?: Logger;
@@ -115,11 +116,7 @@ const createCachedGatewaysProvider = ({
   gatewaysProvider?: GatewaysProvider;
 }): GatewaysProvider => {
   const baseProvider =
-    gatewaysProvider ??
-    new TrustedPeersGatewaysProvider({
-      trustedGateway: DEFAULT_TRUSTED_GATEWAY,
-      logger,
-    });
+    gatewaysProvider ?? createDefaultGatewaysProvider({ logger });
 
   // Use localStorage cache in browser, simple cache in Node.js
   if (isBrowser()) {

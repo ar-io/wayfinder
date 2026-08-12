@@ -23,6 +23,9 @@
 import { defaultLogger } from '../logger.js';
 import type { GatewaysProvider, Logger } from '../types.js';
 
+/** Attempts made when the endpoint returns an empty gateway list. */
+const DEFAULT_RETRIES = 3;
+
 export class TrustedPeersGatewaysProvider implements GatewaysProvider {
   private trustedGateway: URL;
   private logger: Logger;
@@ -33,7 +36,7 @@ export class TrustedPeersGatewaysProvider implements GatewaysProvider {
     trustedGateway,
     logger = defaultLogger,
     timeoutMs = 10_000,
-    retries = 3,
+    retries = DEFAULT_RETRIES,
   }: {
     trustedGateway: string | URL;
     logger?: Logger;
@@ -49,7 +52,10 @@ export class TrustedPeersGatewaysProvider implements GatewaysProvider {
     this.trustedGateway = new URL(trustedGateway.toString());
     this.logger = logger;
     this.timeoutMs = timeoutMs;
-    this.retries = Math.max(1, retries);
+    // `Math.max` would pass `NaN` and `Infinity` straight through, which would
+    // respectively skip every attempt and retry forever.
+    this.retries =
+      Number.isSafeInteger(retries) && retries > 0 ? retries : DEFAULT_RETRIES;
   }
 
   async getGateways(): Promise<URL[]> {

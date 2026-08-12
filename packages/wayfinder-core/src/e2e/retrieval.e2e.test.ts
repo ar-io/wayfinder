@@ -40,10 +40,13 @@ import {
   quietLogger,
 } from './fixtures.js';
 
-async function fetchWith(
-  dataRetrievalStrategy: DataRetrievalStrategy,
+async function fetchWith({
+  dataRetrievalStrategy,
   gateway = TRUSTED_GATEWAY,
-): Promise<Uint8Array> {
+}: {
+  dataRetrievalStrategy: DataRetrievalStrategy;
+  gateway?: string;
+}): Promise<Uint8Array> {
   const wayfinder = new Wayfinder({
     logger: quietLogger,
     routingSettings: {
@@ -61,9 +64,11 @@ async function fetchWith(
 
 describe('e2e: data retrieval strategies', { timeout: E2E_TIMEOUT_MS }, () => {
   it('ContiguousDataRetrievalStrategy fetches the full payload', async () => {
-    const data = await fetchWith(
-      new ContiguousDataRetrievalStrategy({ logger: quietLogger }),
-    );
+    const data = await fetchWith({
+      dataRetrievalStrategy: new ContiguousDataRetrievalStrategy({
+        logger: quietLogger,
+      }),
+    });
 
     assert.strictEqual(data.byteLength, FIXTURES.bundledDataItem.size);
   });
@@ -142,8 +147,16 @@ describe('e2e: data retrieval strategies', { timeout: E2E_TIMEOUT_MS }, () => {
 
   it('ChunkDataRetrievalStrategy returns bytes identical to contiguous retrieval', async () => {
     const [contiguous, chunked] = await Promise.all([
-      fetchWith(new ContiguousDataRetrievalStrategy({ logger: quietLogger })),
-      fetchWith(new ChunkDataRetrievalStrategy({ logger: quietLogger })),
+      fetchWith({
+        dataRetrievalStrategy: new ContiguousDataRetrievalStrategy({
+          logger: quietLogger,
+        }),
+      }),
+      fetchWith({
+        dataRetrievalStrategy: new ChunkDataRetrievalStrategy({
+          logger: quietLogger,
+        }),
+      }),
     ]);
 
     assert.strictEqual(chunked.byteLength, contiguous.byteLength);

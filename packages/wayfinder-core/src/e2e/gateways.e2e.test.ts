@@ -28,6 +28,7 @@ import { describe, it } from 'node:test';
 import { ARIO } from '@ar.io/sdk';
 import { createSolanaRpc } from '@solana/kit';
 import { CompositeGatewaysProvider } from '../gateways/composite.js';
+import { createDefaultGatewaysProvider } from '../gateways/default.js';
 import { NetworkGatewaysProvider } from '../gateways/network.js';
 import { SimpleCacheGatewaysProvider } from '../gateways/simple-cache.js';
 import { StaticGatewaysProvider } from '../gateways/static.js';
@@ -49,11 +50,23 @@ const ario = ARIO.init({ rpc: createSolanaRpc(SOLANA_RPC_URL) });
  */
 let registrySnapshot: Promise<any[]> | undefined;
 const joinedGateways = () => {
-  registrySnapshot ??= withRpcRetry(() =>
-    ario.getGateways({ limit: 1000 }),
-  ).then(({ items }) =>
-    items.filter((gateway: any) => gateway.status === 'joined'),
-  );
+  registrySnapshot ??= (async () => {
+    // Page to the end rather than assuming one request covers the registry:
+    // a truncated snapshot would make the ranking assertions below fail even
+    // when the provider ranks correctly.
+    const items: any[] = [];
+    let cursor: string | undefined;
+
+    do {
+      const page = await withRpcRetry(() =>
+        ario.getGateways({ limit: 1000, cursor }),
+      );
+      items.push(...page.items);
+      cursor = page.nextCursor;
+    } while (cursor !== undefined);
+
+    return items.filter((gateway: any) => gateway.status === 'joined');
+  })();
   return registrySnapshot;
 };
 
@@ -148,12 +161,15 @@ describe('e2e: gateway discovery', { timeout: E2E_TIMEOUT_MS }, () => {
     }
   });
 
+  /**
+   * These two are health checks on an external service rather than on this
+   * library. `turbo-gateway.com/ar-io/peers` has been observed answering 200
+   * with an empty `gateways` map for sustained periods. The default client now
+   * survives that (see "default gateway source" above), so a failure here means
+   * peer discovery is degraded on whichever gateway `TRUSTED_GATEWAY` names —
+   * worth reporting to that operator, not a regression in wayfinder.
+   */
   describe('TrustedPeersGatewaysProvider', () => {
-    /**
-     * The default gateway source for `createWayfinderClient()`. An empty
-     * result here is not cosmetic: routing strategies throw
-     * "No gateways available" and the default client cannot serve a request.
-     */
     it('returns a non-empty peer list from the trusted gateway', async () => {
       const gateways = await new TrustedPeersGatewaysProvider({
         trustedGateway: TRUSTED_GATEWAY,
@@ -163,7 +179,8 @@ describe('e2e: gateway discovery', { timeout: E2E_TIMEOUT_MS }, () => {
       assert.ok(
         gateways.length > 0,
         `${TRUSTED_GATEWAY}/ar-io/peers returned an empty "gateways" map. ` +
-          'The default wayfinder client cannot route with an empty peer list.',
+          'Peer discovery is degraded on that gateway; the default client ' +
+          'still works but is reduced to routing through the trusted gateway.',
       );
     });
 
@@ -185,6 +202,35 @@ describe('e2e: gateway discovery', { timeout: E2E_TIMEOUT_MS }, () => {
           'gateways. Peer discovery is non-deterministic, so the default ' +
           'client fails intermittently.',
       );
+    });
+  });
+
+  describe('default gateway source', () => {
+    /**
+     * Peer discovery is a single point of failure and has been observed
+     * returning an empty list for sustained periods. The default provider must
+     * degrade to the trusted gateway rather than leaving the client unable to
+     * route at all — this is deterministic, so it holds regardless of whether
+     * peer discovery happens to be healthy when the suite runs.
+     */
+    it('falls back to the trusted gateway when peer discovery fails', async () => {
+      const gateways = await createDefaultGatewaysProvider({
+        trustedGateway: 'https://gateway.invalid',
+        logger: quietLogger,
+      }).getGateways();
+
+      assert.deepStrictEqual(gateways.map(String), [
+        new URL('https://gateway.invalid').toString(),
+      ]);
+    });
+
+    it('returns gateways against the real trusted gateway', async () => {
+      const gateways = await createDefaultGatewaysProvider({
+        trustedGateway: TRUSTED_GATEWAY,
+        logger: quietLogger,
+      }).getGateways();
+
+      assert.ok(gateways.length > 0);
     });
   });
 

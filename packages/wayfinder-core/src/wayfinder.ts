@@ -26,7 +26,7 @@ import { WebTracerProvider } from '@opentelemetry/sdk-trace-web';
 import { arnsRegex, txIdRegex } from './constants.js';
 import { WayfinderEmitter } from './emitter.js';
 import { createWayfinderFetch } from './fetch/wayfinder-fetch.js';
-import { TrustedPeersGatewaysProvider } from './gateways/trusted-peers.js';
+import { createDefaultGatewaysProvider } from './gateways/default.js';
 import { ContiguousDataRetrievalStrategy } from './retrieval/contiguous.js';
 import { PingRoutingStrategy } from './routing/ping.js';
 import { RandomRoutingStrategy } from './routing/random.js';
@@ -223,7 +223,9 @@ export class Wayfinder {
   /**
    * The routing settings to use when routing requests.
    * This includes the routing strategy and event handlers for routing events.
-   * If not provided, the default FastestPingRoutingStrategy will be used.
+   * If not provided, the default is a `PingRoutingStrategy` wrapping a
+   * `RandomRoutingStrategy` — a gateway is chosen at random and health-checked
+   * before use, retrying with a different one if the check fails.
    */
   public readonly routingSettings: Required<
     NonNullable<WayfinderOptions['routingSettings']>
@@ -352,10 +354,7 @@ export class Wayfinder {
     // deprecated - kept for backwards compatibility
     this.gatewaysProvider =
       gatewaysProvider ??
-      new TrustedPeersGatewaysProvider({
-        trustedGateway: 'https://turbo-gateway.com',
-        logger: this.logger,
-      });
+      createDefaultGatewaysProvider({ logger: this.logger });
 
     // default verification settings
     this.verificationSettings = {

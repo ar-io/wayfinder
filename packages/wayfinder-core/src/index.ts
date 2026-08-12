@@ -29,6 +29,7 @@ export * from './routing/composite.js';
 
 // gateways providers
 export * from './gateways/composite.js';
+export * from './gateways/default.js';
 export * from './gateways/network.js';
 export * from './gateways/simple-cache.js';
 export * from './gateways/static.js';
