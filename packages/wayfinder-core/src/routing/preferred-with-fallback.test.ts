@@ -197,7 +197,11 @@ describe('PreferredWithFallbackRoutingStrategy', () => {
     });
 
     it('should handle case where both preferred and fallback fail', async () => {
-      const preferredGateway = 'https://preferred.com';
+      // Reserved TLD (RFC 2606) so the preferred gateway's HEAD check really
+      // fails without a network round trip. A resolvable host would answer
+      // 200 and the preferred path would succeed, which is not what this test
+      // is about.
+      const preferredGateway = 'https://preferred.invalid';
       const mockFallback = createMockStrategy(
         'fallback',
         'reject',

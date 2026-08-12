@@ -1,5 +1,34 @@
 # @ar.io/wayfinder-extension
 
+## 2.0.1
+
+### Patch Changes
+
+- Replace the mainnet Solana RPC default, which had stopped working.
+
+  The endpoint shipped as the mainnet default in v2.0.0 was a provider URL with an
+  embedded access token. It now returns `UNAUTHORIZED`, which silently broke
+  gateway registry sync: with no registry, routing fell back to a single hardcoded
+  gateway, quietly removing the decentralized routing the extension exists to
+  provide.
+
+  The mainnet preset now uses the SDK's own `MAINNET_RPC_URL`, and devnet uses
+  `DEVNET_RPC_URL`, so the endpoints track the SDK rather than a copy that can
+  rot. No credential ships in the bundle any more — an extension bundle is public
+  by definition, so an embedded token was never a secret, only something to
+  rotate. The registry syncs once every 24 hours from each user's own IP, which
+  sits well within the public endpoint's per-IP limits; users who want a dedicated
+  provider can still set one through the `custom` network preset.
+
+  Because `rpcUrl` is only written to storage when absent, existing installs would
+  have kept the dead endpoint indefinitely. A migration
+  (`migrateRetiredMainnetRpcUrls`) rewrites the retired URL on startup and
+  invalidates the cached registry so it resyncs. It matches the retired URL
+  exactly, so a user-supplied RPC is left alone.
+
+- Updated dependencies
+  - @ar.io/wayfinder-core@2.0.2
+
 ## 1.0.23
 
 ### Patch Changes

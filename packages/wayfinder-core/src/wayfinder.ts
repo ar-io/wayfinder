@@ -381,6 +381,10 @@ export class Wayfinder {
       events: {},
       strategy: new PingRoutingStrategy({
         logger,
+        // the wrapper resolves the candidate list before delegating, so it
+        // needs the provider too — without it, the zero-argument constructor
+        // cannot route at all
+        gatewaysProvider: this.gatewaysProvider,
         routingStrategy: new RandomRoutingStrategy({
           logger,
           // use the gateways provider given, or fallback to the default if non provided

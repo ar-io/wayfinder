@@ -14,7 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { GatewayWithAddress } from '@ar.io/sdk/web';
+import {
+  DEVNET_RPC_URL,
+  GatewayWithAddress,
+  MAINNET_RPC_URL,
+} from '@ar.io/sdk/web';
 import { SolanaNetworkConfig } from './types';
 
 // Last resort fallback gateway - only used when AR.IO network is unreachable
@@ -73,7 +77,7 @@ export const GASLESS_ARNS_DNS_EXPIRATION_TIME = 15 * 60 * 1000; // 15 minutes
  * supply their own RPC (QuickNode, Helius, etc.).
  */
 export const AR_IO_SOLANA_DEVNET: SolanaNetworkConfig = {
-  rpcUrl: 'https://api.devnet.solana.com',
+  rpcUrl: DEVNET_RPC_URL,
   coreProgramId: '8Njx9wPkXiNzDCgjwVsJFRjpAEV34gGW3n8DzX3V23m1',
   garProgramId: '7WsDTrtZBsfKtnP33XkjuqXCY69JE7n4QVYpynqJCFxz',
   arnsProgramId: '6EZNezcg4rc5hnh8HG34vGquT3WpW5xXypzPb24uyEpp',
@@ -83,10 +87,17 @@ export const AR_IO_SOLANA_DEVNET: SolanaNetworkConfig = {
 /**
  * AR.IO Solana mainnet program addresses. Mirrors
  * `@ar.io/sdk` MAINNET_PROGRAM_IDS (clusters.ts).
+ *
+ * The RPC URL is the SDK's own `MAINNET_RPC_URL` (Solana Labs' public
+ * endpoint) rather than a provider endpoint with an embedded token. Anything
+ * shipped in an extension bundle is public by definition, so a token here
+ * cannot be kept secret and only creates a credential to rotate. The registry
+ * sync runs once every 24 hours from each user's own IP, which sits far below
+ * this endpoint's per-IP limits. Users who want a dedicated provider can set
+ * one via the `custom` network preset in settings.
  */
 export const AR_IO_SOLANA_MAINNET: SolanaNetworkConfig = {
-  rpcUrl:
-    'https://hardworking-restless-sea.solana-mainnet.quiknode.pro/44d938fae3eb6735ec30d8979551827ff70227f5/',
+  rpcUrl: MAINNET_RPC_URL,
   coreProgramId: '73YoECm6NKXpVRoe5f1Q9BcP5DJGPFUjnFy6AxBE5Nvh',
   garProgramId: '89fNiiwgpFSPHKuqfNUkgYTYjtAJAhyqHjXmgXeppGpf',
   arnsProgramId: '2yCUx5edFvUrkibYaUa2ZXWyx9kuJkS8CwyzsgHPWdZZ',

@@ -203,6 +203,14 @@ const gatewayProvider = new NetworkGatewaysProvider({
 });
 ```
 
+> **Note on sorting.** The Solana backend of `@ar.io/sdk` accepts `sortBy` and
+> `sortOrder` but does not apply them — its pagination helper slices the account
+> list in on-chain order. This provider therefore sorts client-side, which means
+> it reads the whole registry before applying `limit`. That is what makes
+> `limit: 10` actually return the ten highest-staked gateways rather than ten
+> arbitrary ones. `sortBy` also accepts dotted paths such as
+> `weights.stakeWeight`; a gateway missing the field sorts as `0`.
+
 #### TrustedPeersGatewaysProvider
 
 Fetches a dynamic list of trusted peer gateways from an AR.IO gateway's `/ar-io/peers` endpoint. This provider is useful for discovering available gateways from a trusted source.
@@ -212,8 +220,18 @@ import { TrustedPeersGatewaysProvider } from '@ar.io/wayfinder-core';
 
 const gatewayProvider = new TrustedPeersGatewaysProvider({
   trustedGateway: 'https://turbo-gateway.com',
+  retries: 3, // optional, defaults to 3
 });
 ```
+
+A gateway can answer `/ar-io/peers` with `200` and an empty `gateways` map — in
+practice this happens when an instance hasn't synced its view of the registry.
+The provider retries in that case and, if the list is still empty, throws an
+error naming the endpoint rather than returning `[]` (which would surface much
+later as an opaque "No gateways available" from whichever routing strategy
+consumed it). Both `CompositeGatewaysProvider` and `SimpleCacheGatewaysProvider`
+treat that throw as a signal to fall back, so wrapping this provider in either
+one gives you a clean degradation path.
 
 #### CompositeGatewaysProvider
 
@@ -271,7 +289,9 @@ Wayfinder supports multiple routing strategies to select target gateways for you
 | `StaticRoutingStrategy`      | Always uses a single gateway                   | When you need to use a specific gateway |
 | `RoundRobinRoutingStrategy`  | Selects gateways in round-robin order          | Good for load balancing and resilience  |
 | `FastestPingRoutingStrategy` | Selects the fastest gateway based on ping time | Good for performance and latency        |
+| `PingRoutingStrategy`        | Wraps another strategy and health-checks its choice, retrying with a different gateway on failure | Filtering out unresponsive gateways. Used by default by `new Wayfinder()` |
 | `PreferredWithFallbackRoutingStrategy` | Uses a preferred gateway, with a fallback strategy if the preferred gateway is not available | Good for performance and resilience. Ideal for builders who run their own gateways. |
+| `SimpleCacheRoutingStrategy` | Caches the gateway chosen by another strategy for a TTL | Avoids re-running selection on every request |
 | `CompositeRoutingStrategy` | Chains multiple routing strategies together, trying each sequentially until one succeeds | Good for complex fallback scenarios and maximum resilience |
 
 #### RandomRoutingStrategy
@@ -296,8 +316,36 @@ import { FastestPingRoutingStrategy } from '@ar.io/wayfinder-core';
 const strategy = new FastestPingRoutingStrategy({
   timeoutMs: 1000,
   gatewaysProvider: myGatewaysProvider,
+  probePath: '/', // optional, defaults to '/'
 });
 ```
+
+#### PingRoutingStrategy
+
+Wraps another strategy, health-checks the gateway it picked, and retries with a
+different one if the check fails. This is the default strategy used by
+`new Wayfinder()` (wrapping a `RandomRoutingStrategy`).
+
+```javascript
+import { PingRoutingStrategy, RandomRoutingStrategy } from '@ar.io/wayfinder-core';
+
+const strategy = new PingRoutingStrategy({
+  routingStrategy: new RandomRoutingStrategy({ gatewaysProvider: myGatewaysProvider }),
+  retries: 5, // optional
+  timeoutMs: 1000, // optional
+  probePath: '/', // optional
+});
+```
+
+**What gets probed.** Both ping strategies send a `HEAD` to `probePath` on the
+gateway's own host — not to the sandboxed URL of the request being routed.
+Probing the content URL makes the gateway resolve the data before it can answer,
+so a short timeout ends up measuring "is this object already cached here" rather
+than "is this gateway up". Against the live network with a 1s budget, a `HEAD` of
+the gateway root succeeded for ~85% of peers versus ~23% for the sandboxed
+content URL — and the difference is latency rather than breakage, since the
+sandboxed URL reaches ~78% once given 10s. Set `probePath` to
+`/ar-io/healthcheck`, or to any path you prefer, to override.
 
 #### PreferredWithFallbackRoutingStrategy
 
@@ -721,7 +769,9 @@ Wayfinder includes built-in resiliency features:
 
 - **Gateway retry**: If a gateway returns a 5xx error or a network failure occurs, Wayfinder automatically re-selects a different gateway and retries (up to 3 attempts). Client errors (4xx) are returned immediately without retry.
 - **Fetch timeouts**: All outbound requests include configurable timeouts — 10s for metadata (HEAD, peer list), 30s for data retrieval — to prevent indefinite hangs on slow or dead gateways.
-- **Smart pagination**: `NetworkGatewaysProvider` stops fetching from the on-chain registry once enough gateways pass the filter, avoiding unnecessary RPC calls.
+- **Gateway health checks**: `PingRoutingStrategy` verifies the selected gateway responds before routing to it, and retries with a different one if not.
+- **Peer list retries**: `TrustedPeersGatewaysProvider` retries when a gateway returns an empty peer list, then fails loudly rather than silently yielding no gateways.
+- **Full-registry pagination**: `NetworkGatewaysProvider` reads the whole on-chain registry before applying `limit`, so `limit` selects the top-ranked gateways rather than whichever ones happened to come back first. It pages at the SDK maximum, so this is a single request for a registry of the current size.
 
 ## Request Flow
 

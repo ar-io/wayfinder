@@ -50,6 +50,28 @@ export class NetworkGatewaysProvider implements GatewaysProvider {
     this.logger = logger;
   }
 
+  /**
+   * Orders gateways by the configured `sortBy` / `sortOrder`.
+   *
+   * `SortBy` values may be dotted paths (e.g. `weights.stakeWeight`), and a
+   * gateway missing the field sorts as 0 rather than disappearing.
+   */
+  private sortGateways(gateways: any[]): any[] {
+    const sortValue = (gateway: any): number => {
+      const raw = this.sortBy
+        .split('.')
+        .reduce((acc: any, key) => acc?.[key], gateway);
+      const value = Number(raw);
+      return Number.isFinite(value) ? value : 0;
+    };
+
+    return [...gateways].sort((a, b) =>
+      this.sortOrder === 'asc'
+        ? sortValue(a) - sortValue(b)
+        : sortValue(b) - sortValue(a),
+    );
+  }
+
   async getGateways(): Promise<URL[]> {
     let cursor: string | undefined;
     let attempts = 0;
@@ -61,10 +83,20 @@ export class NetworkGatewaysProvider implements GatewaysProvider {
       limit: this.limit,
     });
 
-    // Fetch enough gateways to satisfy the limit after filtering.
-    // Request up to limit per page (capped at 1000 by the SDK) and
-    // stop paginating once we have enough filtered results.
-    const pageSize = Math.min(this.limit, 1000);
+    /**
+     * Always page at the SDK maximum rather than at `limit`.
+     *
+     * The Solana backend of @ar.io/sdk accepts `sortBy` / `sortOrder` but its
+     * `paginate()` helper slices the account list without applying either, so
+     * results arrive in on-chain account order. Sorting therefore has to
+     * happen here, which in turn means the whole registry must be collected
+     * before `limit` is applied — stopping early would make `limit` select an
+     * arbitrary subset instead of the top-ranked gateways.
+     *
+     * Paging at 1000 keeps this to a single request for a registry of the
+     * current size, so a small `limit` no longer costs many round trips.
+     */
+    const pageSize = 1000;
 
     do {
       try {
@@ -87,16 +119,6 @@ export class NetworkGatewaysProvider implements GatewaysProvider {
           totalFetched: gateways.length,
           nextCursor: cursor,
         });
-
-        // Stop early if we already have enough gateways that pass the filter
-        const filteredSoFar = gateways.filter(this.filter);
-        if (filteredSoFar.length >= this.limit) {
-          this.logger.debug('Reached gateway limit, stopping pagination', {
-            filteredCount: filteredSoFar.length,
-            limit: this.limit,
-          });
-          break;
-        }
       } catch (error: any) {
         this.logger.error('Error fetching gateways', {
           cursor,
@@ -108,7 +130,9 @@ export class NetworkGatewaysProvider implements GatewaysProvider {
       }
     } while (cursor !== undefined && attempts < 3);
 
-    const filteredGateways = gateways.filter(this.filter).slice(0, this.limit);
+    const filteredGateways = this.sortGateways(
+      gateways.filter(this.filter),
+    ).slice(0, this.limit);
 
     this.logger.debug('Finished fetching gateways', {
       totalFetched: gateways.length,

@@ -27,20 +27,59 @@ export class TrustedPeersGatewaysProvider implements GatewaysProvider {
   private trustedGateway: URL;
   private logger: Logger;
   private timeoutMs: number;
+  private retries: number;
 
   constructor({
     trustedGateway,
     logger = defaultLogger,
     timeoutMs = 10_000,
-  }: { trustedGateway: string | URL; logger?: Logger; timeoutMs?: number }) {
+    retries = 3,
+  }: {
+    trustedGateway: string | URL;
+    logger?: Logger;
+    timeoutMs?: number;
+    /**
+     * Attempts made when the endpoint responds successfully but with no
+     * gateways. Gateways serving this endpoint have been observed returning
+     * an empty `gateways` map from some instances while others return a full
+     * list, so a retry usually lands on a healthy one.
+     */
+    retries?: number;
+  }) {
     this.trustedGateway = new URL(trustedGateway.toString());
     this.logger = logger;
     this.timeoutMs = timeoutMs;
+    this.retries = Math.max(1, retries);
   }
 
   async getGateways(): Promise<URL[]> {
     const endpoint = new URL('/ar-io/peers', this.trustedGateway).toString();
 
+    for (let attempt = 1; attempt <= this.retries; attempt++) {
+      const gateways = await this.fetchPeers(endpoint);
+
+      if (gateways.length > 0) return gateways;
+
+      this.logger.warn('Trusted peer list came back empty', {
+        endpoint,
+        attempt,
+        retries: this.retries,
+      });
+    }
+
+    /**
+     * Returning an empty list here would surface much later as an opaque
+     * "No gateways available" from whichever routing strategy consumed it.
+     * Failing loudly names the endpoint that let us down instead — and both
+     * `CompositeGatewaysProvider` and `SimpleCacheGatewaysProvider` treat a
+     * throw as a signal to fall back rather than propagating it.
+     */
+    throw new Error(
+      `Trusted peer list at ${endpoint} returned no gateways after ${this.retries} attempts`,
+    );
+  }
+
+  private async fetchPeers(endpoint: string): Promise<URL[]> {
     this.logger.debug('Fetching trusted peer list from', { endpoint });
 
     const response = await fetch(endpoint, {

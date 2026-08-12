@@ -356,6 +356,47 @@ async function migrateStaleDevnetProgramIds(): Promise<void> {
   ]);
 }
 
+/**
+ * Retire mainnet RPC endpoints that no longer work.
+ *
+ * `rpcUrl` is only written to storage when it is absent, so a user who
+ * installed while a now-dead endpoint was the shipped default keeps that
+ * endpoint forever — changing `EXTENSION_DEFAULTS` alone reaches fresh
+ * installs only. Anyone still holding a retired URL silently loses gateway
+ * registry sync and falls back to a single hardcoded gateway.
+ *
+ * Matches on the exact retired URLs, so a user-supplied RPC is never touched.
+ */
+async function migrateRetiredMainnetRpcUrls(): Promise<void> {
+  /**
+   * Provider endpoint shipped as the mainnet default in v2.0.0. It embedded
+   * an access token (public by definition in an extension bundle) and now
+   * returns UNAUTHORIZED.
+   */
+  const RETIRED_MAINNET_RPC_URLS = [
+    'https://hardworking-restless-sea.solana-mainnet.quiknode.pro/44d938fae3eb6735ec30d8979551827ff70227f5/',
+  ];
+
+  const { rpcUrl } = await chrome.storage.local.get(['rpcUrl']);
+
+  if (!RETIRED_MAINNET_RPC_URLS.includes(rpcUrl)) return;
+
+  logger.info(
+    '[migration] Retired mainnet RPC endpoint detected; switching to the current default and invalidating the cached gateway registry.',
+    { retired: rpcUrl, replacement: EXTENSION_DEFAULTS.rpcUrl },
+  );
+
+  await chrome.storage.local.set({ rpcUrl: EXTENSION_DEFAULTS.rpcUrl });
+
+  // Force a resync — the registry cached under the dead endpoint is stale
+  // (or was never populated at all).
+  await chrome.storage.local.remove([
+    'localGatewayAddressRegistry',
+    'lastSyncTime',
+    'lastKnownGatewayCount',
+  ]);
+}
+
 // Solana-backed AR.IO read instance; initialized at startup inside the
 // async IIFE below after storage defaults are applied.
 let arIO: ARIORead | undefined;
@@ -364,6 +405,7 @@ let arIO: ARIORead | undefined;
 (async () => {
   await migrateStorageFromAOEra();
   await migrateStaleDevnetProgramIds();
+  await migrateRetiredMainnetRpcUrls();
 
   const { dailyStats, localGatewayAddressRegistry } =
     await chrome.storage.local.get([
