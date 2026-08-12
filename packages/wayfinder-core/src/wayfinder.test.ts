@@ -19,6 +19,7 @@ import { before, describe, it } from 'node:test';
 
 import { WayfinderEmitter } from './emitter.js';
 import { CompositeGatewaysProvider } from './gateways/composite.js';
+import { PingRoutingStrategy } from './routing/ping.js';
 import { RandomRoutingStrategy } from './routing/random.js';
 import { StaticRoutingStrategy } from './routing/static.js';
 import { GatewaysProvider, RoutingStrategy, WayfinderEvent } from './types.js';
@@ -79,6 +80,61 @@ describe('Wayfinder', () => {
         clientName: undefined,
         clientVersion: undefined,
       });
+    });
+  });
+
+  describe('gateways provider injection', () => {
+    /**
+     * A wrapper strategy resolves a candidate list and passes it down, and
+     * strategies like `RandomRoutingStrategy` prefer a supplied list over their
+     * own provider. Injecting the default provider into the wrapper therefore
+     * used to override whichever provider the caller configured on the inner
+     * strategy — silently discarding its filtering. The extension hit this: its
+     * blacklist- and health-filtered gateway list was bypassed entirely.
+     */
+    it('does not override a provider configured on a nested strategy', async () => {
+      let innerCalls = 0;
+      const configuredProvider: GatewaysProvider = {
+        getGateways: async () => {
+          innerCalls++;
+          return [new URL('https://configured.example')];
+        },
+      };
+
+      const wayfinder = new Wayfinder({
+        routingSettings: {
+          strategy: new PingRoutingStrategy({
+            routingStrategy: new RandomRoutingStrategy({
+              gatewaysProvider: configuredProvider,
+            }),
+          }),
+        },
+      });
+
+      const wrapper = wayfinder.routingSettings.strategy as any;
+      assert.strictEqual(
+        wrapper.gatewaysProvider,
+        undefined,
+        'the wrapper should not be given its own provider',
+      );
+      assert.strictEqual(
+        wrapper.routingStrategy.gatewaysProvider,
+        configuredProvider,
+        'the configured provider on the nested strategy must be preserved',
+      );
+
+      // and it is the provider actually consulted when routing
+      await wrapper.routingStrategy.selectGateway({ path: '/' });
+      assert.strictEqual(innerCalls, 1);
+    });
+
+    it('still injects into a strategy that selects gateways itself', () => {
+      const wayfinder = new Wayfinder({
+        routingSettings: { strategy: new RandomRoutingStrategy() },
+      });
+
+      const strategy = wayfinder.routingSettings.strategy as any;
+      assert.ok(strategy.gatewaysProvider !== undefined);
     });
   });
 

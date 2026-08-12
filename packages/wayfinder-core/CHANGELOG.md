@@ -7,6 +7,17 @@
 - Fix defects that only reproduce outside the monorepo, under strict verification,
   or via the zero-argument constructor:
 
+  - **A wrapper strategy overrode a nested strategy's configured provider.**
+    `Wayfinder` injected its default gateways provider into any strategy without
+    one, including wrappers like `PingRoutingStrategy`. Because a wrapper passes
+    its resolved list down, and `RandomRoutingStrategy` prefers a supplied list
+    over its own provider, this silently discarded the provider the caller had
+    configured on the inner strategy. The Chrome extension hit this: in its
+    "Balanced (Random)" routing mode its blacklist-, joined- and health-filtered
+    gateway list was bypassed entirely, so a blacklisted gateway could still be
+    routed to. Injection is now limited to strategies that select gateways
+    themselves; nested strategies are still reached by the recursion.
+
   - **The default gateway source had no fallback.** Peer discovery is a single
     point of failure: `turbo-gateway.com/ar-io/peers` has been observed
     answering `200` with an empty `gateways` map for sustained periods, which

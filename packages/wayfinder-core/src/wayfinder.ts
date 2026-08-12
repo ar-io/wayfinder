@@ -473,10 +473,24 @@ export class Wayfinder {
     strategy: RoutingStrategy,
     gatewaysProvider: GatewaysProvider,
   ): void {
-    // Check if the strategy has a gatewaysProvider property that can be set
+    /**
+     * Only give a provider to strategies that select gateways themselves.
+     *
+     * A wrapper such as `PingRoutingStrategy` resolves a candidate list and
+     * passes it down, and strategies like `RandomRoutingStrategy` prefer a
+     * supplied list over their own provider. Injecting here would therefore
+     * override a provider the caller deliberately configured on the inner
+     * strategy — silently discarding its filtering. The nested strategy is
+     * still reached by the recursion below, which is where the provider
+     * belongs.
+     */
+    const delegatesToNestedStrategy =
+      'routingStrategy' in strategy && Boolean(strategy.routingStrategy);
+
     if (
       'gatewaysProvider' in strategy &&
-      strategy.gatewaysProvider === undefined
+      strategy.gatewaysProvider === undefined &&
+      !delegatesToNestedStrategy
     ) {
       (strategy as any).gatewaysProvider = gatewaysProvider;
     }
