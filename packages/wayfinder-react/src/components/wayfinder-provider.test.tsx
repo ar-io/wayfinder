@@ -22,9 +22,9 @@
  * browser-only API, which is the server-side-rendering case.
  */
 
-import { StaticGatewaysProvider } from '@ar.io/wayfinder-core';
 import assert from 'node:assert';
 import { describe, it } from 'node:test';
+import { StaticGatewaysProvider } from '@ar.io/wayfinder-core';
 import React, { useContext } from 'react';
 import TestRenderer, { act } from 'react-test-renderer';
 import { WayfinderContext } from './wayfinder-provider.js';
@@ -106,7 +106,9 @@ describe('WayfinderProvider', () => {
       );
     });
 
-    const wayfinder = seen[0] as { gatewaysProvider: { getGateways(): Promise<URL[]> } };
+    const wayfinder = seen[0] as {
+      gatewaysProvider: { getGateways(): Promise<URL[]> };
+    };
     const gateways = await wayfinder.gatewaysProvider.getGateways();
 
     assert.deepStrictEqual(
