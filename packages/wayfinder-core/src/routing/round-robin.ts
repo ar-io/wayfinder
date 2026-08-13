@@ -20,7 +20,8 @@ import type { GatewaysProvider, Logger, RoutingStrategy } from '../types.js';
 export class RoundRobinRoutingStrategy implements RoutingStrategy {
   public readonly name = 'round-robin';
   private gateways: URL[];
-  private currentIndex: number;
+  /** Href of the gateway returned last, used to resume the rotation. */
+  private lastSelected?: string;
   private logger: Logger;
   private gatewaysProvider?: GatewaysProvider;
 
@@ -44,30 +45,76 @@ export class RoundRobinRoutingStrategy implements RoutingStrategy {
     }
 
     this.gateways = gateways || [];
-    this.currentIndex = 0;
     this.logger = logger;
     this.gatewaysProvider = gatewaysProvider;
   }
 
-  async selectGateway(): Promise<URL> {
-    // Lazy load gateways from provider if not already loaded
-    if (this.gateways.length === 0 && this.gatewaysProvider) {
-      this.logger.debug('Loading gateways from provider');
-      this.gateways = await this.gatewaysProvider.getGateways();
-      this.currentIndex = 0;
+  /**
+   * Resolves the pool to cycle over.
+   *
+   * A provider is consulted on every selection rather than once. Caching is the
+   * provider layer's job — `SimpleCacheGatewaysProvider` and
+   * `LocalStorageGatewaysProvider` exist for exactly that, and their TTL is
+   * meaningless if this strategy never asks again. Holding the first result
+   * forever also means a list that narrows (a gateway blacklisted, or one that
+   * starts failing epochs) is never picked up for the life of the instance.
+   */
+  private async resolvePool(): Promise<URL[]> {
+    if (this.gatewaysProvider) {
+      return this.gatewaysProvider.getGateways();
     }
+    return this.gateways;
+  }
 
-    if (this.gateways.length === 0) {
+  async selectGateway({
+    gateways,
+  }: {
+    gateways?: URL[];
+  } = {}): Promise<URL> {
+    /**
+     * Precedence: a list pinned at construction, then a list supplied by the
+     * caller, then the provider.
+     *
+     * Pinning a list at construction is a hard configuration and keeps winning
+     * — that is long-standing behaviour and is asserted by the tests below.
+     * When this strategy is provider-backed, though, a caller-supplied list is
+     * honoured, as the `RoutingStrategy` interface advertises. Ignoring it
+     * outright is what made this strategy behave differently from
+     * `RandomRoutingStrategy` under the same wrapper.
+     */
+    const pool = this.gatewaysProvider
+      ? (gateways ?? (await this.resolvePool()))
+      : await this.resolvePool();
+
+    if (pool.length === 0) {
       throw new Error('No gateways available');
     }
 
-    const gateway = this.gateways[this.currentIndex];
+    /**
+     * Continue from the gateway *after* the one last served, tracking it by
+     * identity rather than by index.
+     *
+     * Now that the pool is re-read on every selection it can change shape
+     * between calls — a gateway gets blacklisted, or starts failing epochs. A
+     * numeric cursor into a list that changed points somewhere arbitrary: it
+     * re-serves gateways early and skips others, which defeats the point of
+     * round-robin. Resuming from the previous gateway keeps the rotation fair
+     * across those changes, and falls back to the start when that gateway is
+     * gone from the pool.
+     */
+    const previousIndex =
+      this.lastSelected !== undefined
+        ? pool.findIndex((gateway) => gateway.toString() === this.lastSelected)
+        : -1;
+    const index = (previousIndex + 1) % pool.length;
+
+    const gateway = pool[index];
     this.logger.debug('Selecting gateway', {
       gateway: gateway.toString(),
-      currentIndex: this.currentIndex,
-      totalGateways: this.gateways.length,
+      currentIndex: index,
+      totalGateways: pool.length,
     });
-    this.currentIndex = (this.currentIndex + 1) % this.gateways.length;
+    this.lastSelected = gateway.toString();
     return gateway;
   }
 }

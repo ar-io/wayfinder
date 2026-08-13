@@ -71,6 +71,19 @@ export const tapAndVerifyReadableStream = ({
       raw,
     });
 
+    /**
+     * The promise above is only awaited once the client branch has drained,
+     * but a header-based strategy (e.g. RemoteVerificationStrategy) rejects
+     * immediately. Without a handler attached now, that rejection is reported
+     * as an unhandledRejection before the await below is reached, which
+     * terminates a Node process running under the default
+     * `--unhandled-rejections=throw`. Marking it handled here is safe: the
+     * awaits below still observe the rejection and surface it to the caller.
+     */
+    verificationPromise.catch(() => {
+      // no-op: the real handling happens in the awaits below
+    });
+
     let bytesProcessed = 0;
     const reader = clientBranch.getReader();
     const clientStreamWithVerification = new ReadableStream({

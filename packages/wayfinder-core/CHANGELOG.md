@@ -1,5 +1,117 @@
 # @ar.io/wayfinder-core
 
+## 2.0.2
+
+### Patch Changes
+
+- Fix defects that only reproduce outside the monorepo, under strict verification,
+  or via the zero-argument constructor:
+
+  - Exposed `createCachedGatewaysProvider()`, which wraps a provider in
+    `LocalStorageGatewaysProvider` in the browser and `SimpleCacheGatewaysProvider`
+    elsewhere. That branch previously lived privately inside
+    `createWayfinderClient`, so anything building a client another way had to
+    reproduce it — and getting it wrong throws under server-side rendering,
+    since the localStorage provider is browser-only.
+
+  - **`RoundRobinRoutingStrategy` never re-read its gateways provider.** It
+    loaded the list once and cycled it for the lifetime of the instance, which
+    made any `SimpleCacheGatewaysProvider` / `LocalStorageGatewaysProvider` TTL
+    wrapped around it meaningless and meant a list that narrows was never picked
+    up. In the Chrome extension that is why blacklisting a gateway had no effect
+    until the service worker restarted. It now asks the provider per selection
+    (caching belongs to the provider layer) and honours a caller-supplied list
+    when provider-backed, as the `RoutingStrategy` interface advertises. A list
+    pinned at construction still wins, which is long-standing behaviour.
+    Rotation now resumes from the gateway last served rather than a numeric
+    index, so a pool that changes between selections no longer causes gateways
+    to be skipped or re-served early.
+
+  - **A wrapper strategy overrode a nested strategy's configured provider.**
+    `Wayfinder` injected its default gateways provider into any strategy without
+    one, including wrappers like `PingRoutingStrategy`. Because a wrapper passes
+    its resolved list down, and `RandomRoutingStrategy` prefers a supplied list
+    over its own provider, this silently discarded the provider the caller had
+    configured on the inner strategy. The Chrome extension hit this: in its
+    "Balanced (Random)" routing mode its blacklist-, joined- and health-filtered
+    gateway list was bypassed entirely, so a blacklisted gateway could still be
+    routed to. Injection is now limited to strategies that select gateways
+    themselves; nested strategies are still reached by the recursion.
+
+  - **The default gateway source had no fallback.** Peer discovery is a single
+    point of failure: `turbo-gateway.com/ar-io/peers` has been observed
+    answering `200` with an empty `gateways` map for sustained periods, which
+    left `createWayfinderClient()` and `new Wayfinder()` unable to serve any
+    request. Both now default to a `CompositeGatewaysProvider` that falls back
+    to the trusted gateway itself, turning that outage into a degradation.
+    Exposed as `createDefaultGatewaysProvider()`.
+
+  - **`NetworkGatewaysProvider` could return a partial registry.** A failed page
+    exited the pagination loop and the remaining gateways were sorted and
+    returned as if complete. Because `limit` is applied after sorting, that
+    returned the *wrong* gateways rather than merely fewer. It now retries the
+    failed page and throws once retries are exhausted, so a composite provider
+    can fall through.
+
+  - **`new Wayfinder()` could not serve a single request.** The default routing
+    strategy is a `PingRoutingStrategy` wrapping a `RandomRoutingStrategy`. The
+    gateways provider was passed only to the inner strategy, and the provider
+    injection in the constructor runs solely when the caller supplies their own
+    strategy — so the wrapper resolved an empty candidate list and threw
+    "No gateways available" on every call. The default now receives the provider,
+    and `PingRoutingStrategy` falls back to its wrapped strategy when it has no
+    candidate list of its own instead of failing (an explicitly empty `gateways`
+    array still throws). `createWayfinderClient()` was unaffected.
+
+  - **The published package could not be imported in Node.** `@dha-team/arbundles`
+    imports `axios` without declaring it as a dependency, and its Node ESM entry is
+    reached from `src/index.ts` via the signature verification strategy. A clean
+    `npm i @ar.io/wayfinder-core` followed by `import '@ar.io/wayfinder-core'`
+    failed with `ERR_MODULE_NOT_FOUND: Cannot find package 'axios'`. This was masked
+    in-repo because another dependency hoists axios into the monorepo's
+    `node_modules`. `axios` is now declared explicitly.
+
+  - **`NetworkGatewaysProvider` ignored `sortBy` / `sortOrder`.** The Solana
+    backend of `@ar.io/sdk` accepts both parameters but its `paginate()` helper
+    slices the account list without applying either, so gateways arrived in
+    on-chain account order. Combined with an early exit from pagination, any
+    `limit` smaller than the registry returned an arbitrary subset rather than the
+    top-ranked gateways — `limit: 20` with the default `operatorStake` / `desc`
+    did not give you the 20 highest-staked gateways. Sorting is now applied
+    client-side over the full registry (including dotted paths such as
+    `weights.stakeWeight`), and paging is done at the SDK maximum so a small
+    `limit` still costs a single request.
+
+  - **Ping strategies probed the sandboxed content URL instead of the gateway.**
+    `PingRoutingStrategy` and `FastestPingRoutingStrategy` HEAD-checked
+    `<sandbox>.<gateway>/<txid>`, which forces the gateway to resolve the data
+    before it can answer and requires wildcard DNS/TLS on the sandbox host. With
+    the default 1s budget that succeeded for ~23% of peers, against ~85% for a
+    HEAD of the gateway root — and the gap is latency, not breakage, since the
+    sandboxed URL reaches ~78% given 10s. The probe now targets the gateway root,
+    configurable via a new `probePath` option on both strategies.
+
+  - **`TrustedPeersGatewaysProvider` returned an empty list silently.** A gateway
+    serving `/ar-io/peers` can respond 200 with an empty `gateways` map, which
+    surfaced much later as an opaque "No gateways available" from whichever
+    routing strategy consumed it. It now retries (configurable via `retries`,
+    default 3) and then throws an error naming the endpoint. `CompositeGatewaysProvider`
+    and `SimpleCacheGatewaysProvider` both treat that as a signal to fall back.
+
+  - **Chunk retrieval blamed the data for an unsupported endpoint.** A gateway
+    that doesn't implement `/chunk/<offset>/data` may still answer 200 without
+    the `X-Arweave-Chunk-*` headers; that produced a confusing
+    "Chunk transaction ID mismatch … Got: null". It now reports that the gateway
+    did not return a chunk response.
+
+  - **Strict-mode verification failures emitted an unhandled promise rejection.**
+    The verification promise is created eagerly but only awaited once the client
+    stream drains, so a strategy that rejects immediately (such as
+    `RemoteVerificationStrategy`, which inspects response headers) left the
+    rejection unhandled — terminating Node processes running under the default
+    `--unhandled-rejections=throw`. The rejection is now marked handled at creation;
+    callers still observe the failure exactly as before.
+
 ## 2.0.1
 
 ### Patch Changes

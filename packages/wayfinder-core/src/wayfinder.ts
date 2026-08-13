@@ -26,7 +26,7 @@ import { WebTracerProvider } from '@opentelemetry/sdk-trace-web';
 import { arnsRegex, txIdRegex } from './constants.js';
 import { WayfinderEmitter } from './emitter.js';
 import { createWayfinderFetch } from './fetch/wayfinder-fetch.js';
-import { TrustedPeersGatewaysProvider } from './gateways/trusted-peers.js';
+import { createDefaultGatewaysProvider } from './gateways/default.js';
 import { ContiguousDataRetrievalStrategy } from './retrieval/contiguous.js';
 import { PingRoutingStrategy } from './routing/ping.js';
 import { RandomRoutingStrategy } from './routing/random.js';
@@ -223,7 +223,9 @@ export class Wayfinder {
   /**
    * The routing settings to use when routing requests.
    * This includes the routing strategy and event handlers for routing events.
-   * If not provided, the default FastestPingRoutingStrategy will be used.
+   * If not provided, the default is a `PingRoutingStrategy` wrapping a
+   * `RandomRoutingStrategy` — a gateway is chosen at random and health-checked
+   * before use, retrying with a different one if the check fails.
    */
   public readonly routingSettings: Required<
     NonNullable<WayfinderOptions['routingSettings']>
@@ -352,10 +354,7 @@ export class Wayfinder {
     // deprecated - kept for backwards compatibility
     this.gatewaysProvider =
       gatewaysProvider ??
-      new TrustedPeersGatewaysProvider({
-        trustedGateway: 'https://turbo-gateway.com',
-        logger: this.logger,
-      });
+      createDefaultGatewaysProvider({ logger: this.logger });
 
     // default verification settings
     this.verificationSettings = {
@@ -381,6 +380,10 @@ export class Wayfinder {
       events: {},
       strategy: new PingRoutingStrategy({
         logger,
+        // the wrapper resolves the candidate list before delegating, so it
+        // needs the provider too — without it, the zero-argument constructor
+        // cannot route at all
+        gatewaysProvider: this.gatewaysProvider,
         routingStrategy: new RandomRoutingStrategy({
           logger,
           // use the gateways provider given, or fallback to the default if non provided
@@ -470,10 +473,24 @@ export class Wayfinder {
     strategy: RoutingStrategy,
     gatewaysProvider: GatewaysProvider,
   ): void {
-    // Check if the strategy has a gatewaysProvider property that can be set
+    /**
+     * Only give a provider to strategies that select gateways themselves.
+     *
+     * A wrapper such as `PingRoutingStrategy` resolves a candidate list and
+     * passes it down, and strategies like `RandomRoutingStrategy` prefer a
+     * supplied list over their own provider. Injecting here would therefore
+     * override a provider the caller deliberately configured on the inner
+     * strategy — silently discarding its filtering. The nested strategy is
+     * still reached by the recursion below, which is where the provider
+     * belongs.
+     */
+    const delegatesToNestedStrategy =
+      'routingStrategy' in strategy && Boolean(strategy.routingStrategy);
+
     if (
       'gatewaysProvider' in strategy &&
-      strategy.gatewaysProvider === undefined
+      strategy.gatewaysProvider === undefined &&
+      !delegatesToNestedStrategy
     ) {
       (strategy as any).gatewaysProvider = gatewaysProvider;
     }

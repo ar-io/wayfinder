@@ -18,7 +18,8 @@ import assert from 'node:assert';
 import { before, describe, it } from 'node:test';
 
 import { WayfinderEmitter } from './emitter.js';
-import { TrustedPeersGatewaysProvider } from './gateways/trusted-peers.js';
+import { CompositeGatewaysProvider } from './gateways/composite.js';
+import { PingRoutingStrategy } from './routing/ping.js';
 import { RandomRoutingStrategy } from './routing/random.js';
 import { StaticRoutingStrategy } from './routing/static.js';
 import { GatewaysProvider, RoutingStrategy, WayfinderEvent } from './types.js';
@@ -36,16 +37,24 @@ describe('Wayfinder', () => {
     it('should use the default configuration', () => {
       const wayfinder = new Wayfinder();
 
-      // gatewaysProvider is deprecated but maintained for backwards compatibility
+      // gatewaysProvider is deprecated but maintained for backwards
+      // compatibility. It is a composite so that a failure of peer discovery
+      // degrades to the trusted gateway rather than leaving the client unable
+      // to route at all.
       assert.ok(
-        wayfinder.gatewaysProvider instanceof TrustedPeersGatewaysProvider,
+        wayfinder.gatewaysProvider instanceof CompositeGatewaysProvider,
       );
-      // Check that the nested RandomRoutingStrategy has a gatewaysProvider
+
+      // The ping wrapper needs the provider too — without it the default
+      // constructor cannot resolve any candidate gateways.
       const pingStrategy = wayfinder.routingSettings.strategy as any;
+      assert.ok(
+        pingStrategy.gatewaysProvider instanceof CompositeGatewaysProvider,
+      );
       assert.ok(pingStrategy.routingStrategy instanceof RandomRoutingStrategy);
       assert.ok(
         pingStrategy.routingStrategy.gatewaysProvider instanceof
-          TrustedPeersGatewaysProvider,
+          CompositeGatewaysProvider,
       );
 
       // check the routing settings structure (without deep equality due to gatewaysProvider injection)
@@ -74,6 +83,61 @@ describe('Wayfinder', () => {
     });
   });
 
+  describe('gateways provider injection', () => {
+    /**
+     * A wrapper strategy resolves a candidate list and passes it down, and
+     * strategies like `RandomRoutingStrategy` prefer a supplied list over their
+     * own provider. Injecting the default provider into the wrapper therefore
+     * used to override whichever provider the caller configured on the inner
+     * strategy — silently discarding its filtering. The extension hit this: its
+     * blacklist- and health-filtered gateway list was bypassed entirely.
+     */
+    it('does not override a provider configured on a nested strategy', async () => {
+      let innerCalls = 0;
+      const configuredProvider: GatewaysProvider = {
+        getGateways: async () => {
+          innerCalls++;
+          return [new URL('https://configured.example')];
+        },
+      };
+
+      const wayfinder = new Wayfinder({
+        routingSettings: {
+          strategy: new PingRoutingStrategy({
+            routingStrategy: new RandomRoutingStrategy({
+              gatewaysProvider: configuredProvider,
+            }),
+          }),
+        },
+      });
+
+      const wrapper = wayfinder.routingSettings.strategy as any;
+      assert.strictEqual(
+        wrapper.gatewaysProvider,
+        undefined,
+        'the wrapper should not be given its own provider',
+      );
+      assert.strictEqual(
+        wrapper.routingStrategy.gatewaysProvider,
+        configuredProvider,
+        'the configured provider on the nested strategy must be preserved',
+      );
+
+      // and it is the provider actually consulted when routing
+      await wrapper.routingStrategy.selectGateway({ path: '/' });
+      assert.strictEqual(innerCalls, 1);
+    });
+
+    it('still injects into a strategy that selects gateways itself', () => {
+      const wayfinder = new Wayfinder({
+        routingSettings: { strategy: new RandomRoutingStrategy() },
+      });
+
+      const strategy = wayfinder.routingSettings.strategy as any;
+      assert.ok(strategy.gatewaysProvider !== undefined);
+    });
+  });
+
   describe('request', () => {
     let wayfinder: Wayfinder;
     before(() => {
@@ -93,15 +157,17 @@ describe('Wayfinder', () => {
       ]);
       assert.strictEqual(response.status, 200);
       assert.strictEqual(response.status, nativeFetch.status);
-      // assert the arns headers are the same (excluding timestamp which varies)
-      const arnsHeaders = Array.from(response.headers.entries()).filter(
-        ([key]) => key.startsWith('x-arns-') && key !== 'x-arns-resolved-at',
-      );
-      const nativeFetchHeaders = Array.from(
-        nativeFetch.headers.entries(),
-      ).filter(
-        ([key]) => key.startsWith('x-arns-') && key !== 'x-arns-resolved-at',
-      );
+      // assert the arns headers are the same, excluding headers that vary
+      // between two resolutions of the same name (the resolution timestamp,
+      // and the record index, which differs per resolving gateway instance)
+      const volatileArnsHeaders = ['x-arns-resolved-at', 'x-arns-record-index'];
+      const stableArnsHeaders = (headers: Headers) =>
+        Array.from(headers.entries()).filter(
+          ([key]) =>
+            key.startsWith('x-arns-') && !volatileArnsHeaders.includes(key),
+        );
+      const arnsHeaders = stableArnsHeaders(response.headers);
+      const nativeFetchHeaders = stableArnsHeaders(nativeFetch.headers);
       assert.deepStrictEqual(arnsHeaders, nativeFetchHeaders);
       // verify timestamp header exists but don't compare exact values
       assert.ok(response.headers.has('x-arns-resolved-at'));

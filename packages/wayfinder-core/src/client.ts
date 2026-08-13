@@ -15,9 +15,10 @@
  * limitations under the License.
  */
 
-import { LocalStorageGatewaysProvider } from './gateways/local-storage-cache.js';
-import { SimpleCacheGatewaysProvider } from './gateways/simple-cache.js';
-import { TrustedPeersGatewaysProvider } from './gateways/trusted-peers.js';
+import {
+  DEFAULT_TRUSTED_GATEWAY,
+  createCachedGatewaysProvider,
+} from './gateways/default.js';
 import { defaultLogger } from './logger.js';
 import { FastestPingRoutingStrategy } from './routing/ping.js';
 import { PreferredWithFallbackRoutingStrategy } from './routing/preferred-with-fallback.js';
@@ -33,7 +34,6 @@ import type {
   WayfinderFetchOptions,
   WayfinderOptions,
 } from './types.js';
-import { isBrowser } from './utils/browser.js';
 import {
   convertFetchOptionsToSettings,
   isWayfinderFetchOptions,
@@ -42,8 +42,6 @@ import { DataRootVerificationStrategy } from './verification/data-root-verificat
 import { HashVerificationStrategy } from './verification/hash-verification.js';
 import { RemoteVerificationStrategy } from './verification/remote-verification.js';
 import { Wayfinder } from './wayfinder.js';
-
-const DEFAULT_TRUSTED_GATEWAY = 'https://turbo-gateway.com';
 
 /**
  * Helper function to construct a routing strategy
@@ -71,7 +69,7 @@ export const createRoutingStrategy = ({
 
     case 'preferred':
       return new PreferredWithFallbackRoutingStrategy({
-        preferredGateway: 'https://turbo-gateway.com',
+        preferredGateway: DEFAULT_TRUSTED_GATEWAY,
         fallbackStrategy: createRoutingStrategy({
           strategy: 'fastest',
           gatewaysProvider,
@@ -87,7 +85,7 @@ export const createRoutingStrategy = ({
 export const createVerificationStrategy = ({
   strategy,
   logger,
-  trustedGateways = [new URL('https://turbo-gateway.com')],
+  trustedGateways = [new URL(DEFAULT_TRUSTED_GATEWAY)],
 }: {
   strategy: VerificationOption;
   logger?: Logger;
@@ -100,41 +98,6 @@ export const createVerificationStrategy = ({
     disabled: undefined as unknown as VerificationStrategy,
   };
   return verificationMap[strategy];
-};
-
-/**
- * Helper function to create a cached gateways provider
- */
-const createCachedGatewaysProvider = ({
-  logger,
-  ttlSeconds = 300,
-  gatewaysProvider,
-}: {
-  logger: Logger;
-  ttlSeconds?: number;
-  gatewaysProvider?: GatewaysProvider;
-}): GatewaysProvider => {
-  const baseProvider =
-    gatewaysProvider ??
-    new TrustedPeersGatewaysProvider({
-      trustedGateway: DEFAULT_TRUSTED_GATEWAY,
-      logger,
-    });
-
-  // Use localStorage cache in browser, simple cache in Node.js
-  if (isBrowser()) {
-    return new LocalStorageGatewaysProvider({
-      gatewaysProvider: baseProvider,
-      ttlSeconds,
-      logger,
-    });
-  } else {
-    return new SimpleCacheGatewaysProvider({
-      gatewaysProvider: baseProvider,
-      ttlSeconds,
-      logger,
-    });
-  }
 };
 
 /**

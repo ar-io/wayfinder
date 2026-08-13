@@ -89,7 +89,7 @@ Click the settings icon in the popup to access:
 - **Gateway Registry Sync**: Manually refresh the gateway list from AR.IO network
 - **ENS Resolution**: Enable/disable Ethereum Name Service support
 - **Network**: Select an AR.IO Solana network preset (Mainnet, Devnet, or Custom). Defaults to Mainnet.
-- **Solana RPC URL**: Endpoint for Solana JSON-RPC calls (editable only in Custom mode). Mainnet ships with a bundled RPC; Devnet uses the public Solana devnet endpoint.
+- **Solana RPC URL**: Endpoint for Solana JSON-RPC calls (editable only in Custom mode). Both presets use the public Solana endpoints (`api.mainnet-beta.solana.com` / `api.devnet.solana.com`). The extension reads the gateway registry once every 24 hours from your own IP, which sits well inside those endpoints' per-IP limits — but if you hit rate limiting, or want a dedicated provider, switch to the **Custom** preset and supply your own RPC URL.
 - **Advanced — AR.IO Program IDs**: Override the per-program Solana addresses (core / GAR / ArNS / ANT) for localnet or custom deployments (editable only in Custom mode)
 
 #### Performance Settings

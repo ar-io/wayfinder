@@ -117,3 +117,115 @@ describe('RoundRobinRoutingStrategy', () => {
     );
   });
 });
+
+describe('RoundRobinRoutingStrategy contract', () => {
+  it('cycles over a caller-supplied list when provider-backed', async () => {
+    // A list pinned at construction keeps winning (asserted above). A
+    // provider-backed strategy honours a supplied list, per the interface.
+    const strategy = new RoundRobinRoutingStrategy({
+      gatewaysProvider: {
+        getGateways: async () => [new URL('https://from-provider.example')],
+      },
+    });
+    const supplied = [
+      new URL('https://a.example'),
+      new URL('https://b.example'),
+    ];
+
+    const picks = [
+      await strategy.selectGateway({ gateways: supplied }),
+      await strategy.selectGateway({ gateways: supplied }),
+      await strategy.selectGateway({ gateways: supplied }),
+    ].map((u) => u.host);
+
+    assert.deepStrictEqual(picks, ['a.example', 'b.example', 'a.example']);
+  });
+
+  /**
+   * Caching belongs to the provider layer. Holding the first result forever
+   * would make a `SimpleCacheGatewaysProvider` TTL meaningless and would never
+   * pick up a list that narrows — which is how a blacklisted gateway stayed in
+   * rotation in the Chrome extension.
+   */
+  it('re-reads the provider on every selection', async () => {
+    let calls = 0;
+    let pool = [
+      new URL('https://first.example'),
+      new URL('https://second.example'),
+    ];
+    const strategy = new RoundRobinRoutingStrategy({
+      gatewaysProvider: {
+        getGateways: async () => {
+          calls++;
+          return pool;
+        },
+      },
+    });
+
+    await strategy.selectGateway();
+    assert.strictEqual(calls, 1);
+
+    // the list narrows, as it would when a gateway is blacklisted
+    pool = [new URL('https://second.example')];
+
+    const picked = await strategy.selectGateway();
+    assert.strictEqual(calls, 2);
+    assert.strictEqual(picked.host, 'second.example');
+  });
+
+  it('throws when neither a supplied list nor a provider yields gateways', async () => {
+    const strategy = new RoundRobinRoutingStrategy({
+      gatewaysProvider: { getGateways: async () => [] },
+    });
+
+    await assert.rejects(
+      () => strategy.selectGateway(),
+      /No gateways available/,
+    );
+  });
+});
+
+describe('RoundRobinRoutingStrategy rotation across a changing pool', () => {
+  it('resumes after the previously served gateway when the pool changes', async () => {
+    let pool = ['a', 'b', 'c', 'd', 'e'].map(
+      (h) => new URL(`https://${h}.example`),
+    );
+    const strategy = new RoundRobinRoutingStrategy({
+      gatewaysProvider: { getGateways: async () => pool },
+    });
+
+    const picks: string[] = [];
+    for (let i = 0; i < 4; i++) {
+      picks.push((await strategy.selectGateway()).hostname[0]);
+    }
+    assert.deepStrictEqual(picks, ['a', 'b', 'c', 'd']);
+
+    // 'b' drops out — blacklisted, or failing epochs
+    pool = ['a', 'c', 'd', 'e'].map((h) => new URL(`https://${h}.example`));
+
+    // Rotation must continue after 'd' rather than restarting: a numeric
+    // cursor would land arbitrarily once the list shifted.
+    assert.strictEqual((await strategy.selectGateway()).hostname[0], 'e');
+    assert.strictEqual((await strategy.selectGateway()).hostname[0], 'a');
+    assert.strictEqual((await strategy.selectGateway()).hostname[0], 'c');
+  });
+
+  it('restarts from the top when the last served gateway is gone', async () => {
+    let pool = [new URL('https://only.example')];
+    const strategy = new RoundRobinRoutingStrategy({
+      gatewaysProvider: { getGateways: async () => pool },
+    });
+
+    assert.strictEqual(
+      (await strategy.selectGateway()).hostname,
+      'only.example',
+    );
+
+    pool = [new URL('https://fresh.example'), new URL('https://other.example')];
+
+    assert.strictEqual(
+      (await strategy.selectGateway()).hostname,
+      'fresh.example',
+    );
+  });
+});

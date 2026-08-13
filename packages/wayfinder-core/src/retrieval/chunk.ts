@@ -211,6 +211,24 @@ export class ChunkDataRetrievalStrategy implements DataRetrievalStrategy {
               arioHeaderNames.chunkTxId,
             );
 
+            /**
+             * A gateway that doesn't implement this endpoint may still answer
+             * 200 — with an error page, or with the payload but none of the
+             * chunk metadata. Without these headers there is no way to confirm
+             * the bytes belong to the expected transaction, so treat it as an
+             * unsupported endpoint rather than letting it fall through to the
+             * transaction-mismatch check below, which would blame the data for
+             * what is really a missing-capability problem.
+             */
+            if (chunkReadOffsetHeader === null && chunkTxId === null) {
+              throw new Error(
+                `Gateway did not return a chunk response at offset ${currentOffset}: ` +
+                  `status ${chunkResponse.status} with no ${arioHeaderNames.chunkTxId} or ` +
+                  `${arioHeaderNames.chunkReadOffset} headers. The gateway likely does not ` +
+                  'support the /chunk/<offset>/data endpoint.',
+              );
+            }
+
             if (!chunkReadOffsetHeader) {
               throw new Error(
                 'Missing chunk read offset header from chunk response',

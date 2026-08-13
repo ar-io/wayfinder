@@ -91,31 +91,23 @@ describe('FastestPingRoutingStrategy', () => {
     );
   });
 
-  // test for subdomain
-  it('selects the gateway with the lowest latency for a subdomain', async () => {
+  // The probe targets the gateway itself, not the sandboxed content URL, so a
+  // request carrying a subdomain is still measured against the gateway host.
+  it('probes the gateway host rather than the request subdomain', async () => {
     const gateways = [
       new URL('https://slow.com'),
       new URL('https://fast.com'),
       new URL('https://medium.com'),
     ];
 
-    // configure mock responses
-    mockResponses.set('https://subdomain.slow.com', {
-      status: 200,
-      delayMs: 300,
-    });
-    mockResponses.set('https://subdomain.fast.com', {
-      status: 200,
-      delayMs: 50,
-    });
-    mockResponses.set('https://subdomain.medium.com', {
-      status: 200,
-      delayMs: 150,
-    });
+    // only the bare gateway hosts are mocked — a probe sent to
+    // `subdomain.<host>` would find no mock and reject
+    mockResponses.set('https://slow.com', { status: 200, delayMs: 300 });
+    mockResponses.set('https://fast.com', { status: 200, delayMs: 50 });
+    mockResponses.set('https://medium.com', { status: 200, delayMs: 150 });
 
     const strategy = new FastestPingRoutingStrategy({ timeoutMs: 500 });
 
-    // select the gateway with the lowest latency
     const selectedGateway = await strategy.selectGateway({
       gateways,
       subdomain: 'subdomain',
@@ -128,21 +120,38 @@ describe('FastestPingRoutingStrategy', () => {
     );
   });
 
-  it('selects the gateway with the lowest latency for a path', async () => {
+  it('probes a custom probePath when configured', async () => {
+    const gateways = [new URL('https://gateway.com')];
+    mockResponses.set('https://gateway.com/ar-io/healthcheck', {
+      status: 200,
+      delayMs: 10,
+    });
+
+    const strategy = new FastestPingRoutingStrategy({
+      timeoutMs: 500,
+      probePath: '/ar-io/healthcheck',
+    });
+
+    const selectedGateway = await strategy.selectGateway({ gateways });
+
+    assert.equal(selectedGateway.toString(), 'https://gateway.com/');
+  });
+
+  it('selects the lowest-latency gateway regardless of the request path', async () => {
     const gateways = [
       new URL('https://slow.com'),
       new URL('https://fast.com'),
       new URL('https://medium.com'),
     ];
 
-    // configure mock responses
-    mockResponses.set('https://slow.com/path', { status: 200, delayMs: 300 });
-    mockResponses.set('https://fast.com/path', { status: 200, delayMs: 50 });
-    mockResponses.set('https://medium.com/path', { status: 200, delayMs: 150 });
+    // the request path does not influence the probe target, so the bare
+    // gateway hosts are what gets measured
+    mockResponses.set('https://slow.com/', { status: 200, delayMs: 300 });
+    mockResponses.set('https://fast.com/', { status: 200, delayMs: 50 });
+    mockResponses.set('https://medium.com/', { status: 200, delayMs: 150 });
 
     const strategy = new FastestPingRoutingStrategy({ timeoutMs: 500 });
 
-    // select the gateway with the lowest latency
     const selectedGateway = await strategy.selectGateway({
       gateways,
       path: '/path',
@@ -408,13 +417,13 @@ describe('PingRoutingStrategy', () => {
     assert.equal(result.toString(), 'https://good.com/');
   });
 
-  it('constructs proper URL with subdomain and path', async () => {
+  it('probes the gateway root, not the sandboxed request URL', async () => {
     const gateways = [new URL('https://gateway.com')];
 
-    mockResponses.set('https://sub.gateway.com/test/path', {
-      status: 200,
-      delayMs: 50,
-    });
+    // Only the gateway root is mocked. Probing `sub.gateway.com/test/path`
+    // would find no mock and reject, so this passing proves the probe targets
+    // the gateway itself.
+    mockResponses.set('https://gateway.com/', { status: 200, delayMs: 50 });
 
     const baseStrategy = new StaticRoutingStrategy({
       gateway: 'https://gateway.com',
@@ -428,6 +437,26 @@ describe('PingRoutingStrategy', () => {
       subdomain: 'sub',
       path: '/test/path',
     });
+
+    assert.equal(result.toString(), 'https://gateway.com/');
+  });
+
+  it('probes a custom probePath when configured', async () => {
+    const gateways = [new URL('https://gateway.com')];
+    mockResponses.set('https://gateway.com/ar-io/healthcheck', {
+      status: 200,
+      delayMs: 10,
+    });
+
+    const baseStrategy = new StaticRoutingStrategy({
+      gateway: 'https://gateway.com',
+    });
+    const strategy = new PingRoutingStrategy({
+      routingStrategy: baseStrategy,
+      probePath: '/ar-io/healthcheck',
+    });
+
+    const result = await strategy.selectGateway({ gateways });
 
     assert.equal(result.toString(), 'https://gateway.com/');
   });
