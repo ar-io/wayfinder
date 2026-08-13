@@ -43,8 +43,11 @@ Each of the four extension points, exercised against the live network:
 ## Coverage against developer stories
 
 What a consumer of `@ar.io/wayfinder-core` can actually do, and whether the live
-suite proves it. This is the scope statement — treat anything marked ✗ as
-unverified against a real network, not as known-broken.
+suite proves it. This is the scope statement.
+
+- ✓ — covered, and passing against the live network
+- ⚠ — covered, but currently failing for reasons outside this library
+- ✗ — not verified against a real network. Unverified, not known-broken
 
 | Developer story | Covered | Where |
 | --- | :-: | --- |
@@ -58,7 +61,7 @@ unverified against a real network, not as known-broken.
 | Pick any of the 8 routing strategies | ✓ | `routing.e2e` |
 | Verify data (hash, data-root, signature, remote) | ✓ | `verification.e2e` |
 | Have verification fail closed in strict mode | ✓ | `verification.e2e` |
-| Retrieve via chunks | ✓ | `retrieval.e2e` (fails; see above) |
+| Retrieve via chunks | ⚠ | `retrieval.e2e` — no gateway currently serves it; see below |
 | Subscribe to routing/verification events | ✗ | mocked only, in `wayfinder.test.ts` |
 | Call gateway endpoints (`ar:///info`, GraphQL POST) | ✗ | live but in `wayfinder.test.ts`, not here |
 | ArNS undernames and deep paths | ✗ | URL-shape assertions only, in `wayfinder.test.ts` |
