@@ -8,5 +8,9 @@
     "@ar.io/wayfinder-extension": "2.0.0",
     "@ar.io/wayfinder-react": "2.0.0"
   },
-  "changesets": []
+  "changesets": [
+    "core-resiliency",
+    "remove-default-telemetry-api-key",
+    "remove-extension-telemetry-toggle"
+  ]
 }
