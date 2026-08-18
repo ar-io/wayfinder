@@ -1,0 +1,12 @@
+{
+  "mode": "pre",
+  "tag": "alpha",
+  "initialVersions": {
+    "@ar.io/wayfinder-cli": "0.0.5",
+    "@ar.io/wayfinder-x402-fetch": "0.0.2",
+    "@ar.io/wayfinder-core": "2.0.0",
+    "@ar.io/wayfinder-extension": "2.0.0",
+    "@ar.io/wayfinder-react": "2.0.0"
+  },
+  "changesets": []
+}
