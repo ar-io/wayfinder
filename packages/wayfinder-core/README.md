@@ -604,7 +604,7 @@ const wayfinder = new Wayfinder({
 
 #### HashVerificationStrategy
 
-Verifies data integrity using SHA-256 hash comparison. This is the default verification strategy and is recommended for most users looking for a balance between security and performance.
+Verifies data integrity using SHA-256 hash comparison. Verification is off by default; if you enable it without choosing a strategy, Wayfinder uses this one, checking hashes against turbo-gateway.com. It is recommended for most users looking for a balance between security and performance.
 
 ```javascript
 import { Wayfinder, HashVerificationStrategy } from '@ar.io/wayfinder-core';
