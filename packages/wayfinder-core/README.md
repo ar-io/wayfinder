@@ -495,51 +495,11 @@ const wayfinder = new Wayfinder({
 
 **How it works:**
 
-1. Makes a HEAD request to get transaction metadata (root transaction ID, data offset, content length)
-2. Queries `/tx/{root-tx-id}/offset` to get the root transaction's absolute offset in the weave
-3. Calculates the absolute offset for the requested data item
-4. Fetches data in chunks using `/chunk/<offset>/data` and assembles the complete data stream
-5. Validates that chunks belong to the expected root transaction for security
-
-**Sequence Diagram:**
-
-```mermaid
-sequenceDiagram
-    participant Client
-    participant Wayfinder
-    participant Gateway as AR.IO Gateway
-    participant Arweave as Arweave Nodes
-
-    Client->>Wayfinder: request('ar://data-item-id')
-    activate Wayfinder
-
-    Wayfinder->>Gateway: HEAD /tx/{data-item-id}
-    Note over Gateway: Lookup data item metadata<br/>from indexed bundles
-    Gateway-->>Wayfinder: Headers:<br/>- x-root-tx-id (bundle ID)<br/>- x-data-offset<br/>- content-length
-
-    Wayfinder->>Gateway: GET /tx/{root-tx-id}/offset
-    Gateway->>Arweave: GET /tx/{root-tx-id}/offset
-    Note over Arweave: Lookup transaction offset<br/>in the weave
-    Arweave-->>Gateway: Root transaction offset
-    Gateway-->>Wayfinder: Root transaction offset in weave
-
-    Note over Wayfinder: Calculate absolute offset:<br/>absolute = root_offset + data_offset
-
-    loop For each chunk needed
-        Wayfinder->>Gateway: GET /chunk/{absolute-offset}/data
-        
-        Note over Gateway: Serve chunk data from<br/>indexed storage using<br/>root transaction ID
-        
-        Gateway-->>Wayfinder: Chunk data + validation headers<br/>(x-root-tx-id for security)
-        
-        Note over Wayfinder: Validate chunk belongs<br/>to expected root TX
-        
-        Wayfinder-->>Client: Stream chunk data
-    end
-
-    Wayfinder-->>Client: Complete response
-    deactivate Wayfinder
-```
+1. Makes a HEAD request for the requested URL and reads the `X-AR-IO-Root-Transaction-Id`, `X-AR-IO-Root-Data-Offset` and `Content-Length` headers
+2. Queries `/tx/{root-tx-id}/offset`, which returns the root transaction's end offset and size in the weave, and computes its start offset as `offset - size + 1`
+3. Adds the root data offset to that start offset to get the absolute offset of the requested data
+4. Fetches `/chunk/{offset}/data` in a loop, keeping the bytes from `X-Arweave-Chunk-Read-Offset` onward and moving to `X-Arweave-Chunk-Start-Offset` plus the chunk length, until `Content-Length` bytes have been streamed
+5. Rejects any chunk whose `X-Arweave-Chunk-Tx-Id` does not match the root transaction ID, and fails if the gateway returns no chunk headers at all
 
 **Example with createWayfinderClient:**
 
@@ -778,33 +738,29 @@ Wayfinder includes built-in resiliency features:
 
 ```mermaid
 sequenceDiagram
+    accTitle: Wayfinder routes each request, retries on failure, and can verify the response
+    accDescr: The client passes an ar URL to Wayfinder. Wayfinder asks the routing strategy for a gateway, and the routing strategy gets its candidates from its own gateways provider. Wayfinder fetches the data from the selected gateway and selects again after a 5xx response or network error, up to 3 attempts. If verification is enabled, the verification strategy checks the stream against data from trusted gateways as the client reads it.
+
     participant Client
     participant Wayfinder
-    participant Gateways Provider
-    participant Routing Strategy
-    participant Selected Gateway
-    participant Verification Strategy
-    participant Trusted Gateways
+    participant Routing as Routing strategy
+    participant Gateway as Selected gateway
+    participant Trusted as Trusted gateways
 
-    Client->>Wayfinder: request('ar://example')
-    activate Wayfinder
-
-    Wayfinder->>+Gateways Provider: getGateways()
-    Gateways Provider-->>-Wayfinder: List of gateway URLs
-
-    Wayfinder->>+Routing Strategy: selectGateway()
-    Routing Strategy-->>-Wayfinder: Selected gateway
-
-    Wayfinder->>+Selected Gateway: HTTP request
-    Selected Gateway-->>-Wayfinder: Response data
-
-    opt Verification enabled
-        Wayfinder->>+Verification Strategy: verifyData()
-        Verification Strategy->>Trusted Gateways: Get verification data
-        Trusted Gateways-->>Verification Strategy: Verification headers
-        Verification Strategy-->>-Wayfinder: Verification result
+    Client->>Wayfinder: request ar://example
+    loop Up to 3 attempts on 5xx or network error
+        Wayfinder->>Routing: Select a gateway
+        Note over Routing: Get candidates from its<br/>gateways provider, pick one
+        Routing-->>Wayfinder: Gateway URL
+        Wayfinder->>Gateway: Fetch data
+        Gateway-->>Wayfinder: Data stream and headers
     end
-
-    Wayfinder-->>Client: Response or error
-    deactivate Wayfinder
+    opt Verification enabled
+        Wayfinder->>Trusted: Request digest, data root or signature data
+        Trusted-->>Wayfinder: Verification data
+        Note over Wayfinder: Verify the stream as<br/>the client reads it
+    end
+    Wayfinder-->>Client: Response
 ```
+
+Retries cover only failures before the response is returned. A 4xx response is returned without a retry, except with `ChunkDataRetrievalStrategy`, whose metadata HEAD request throws on any error status, so a 404 there is retried and then thrown. An error while the response stream is being read, such as a failed chunk fetch, is not retried: it errors the stream. With `strict: true` in `verificationSettings`, a failed verification errors the response stream; otherwise the data is delivered and a `verification-failed` event is emitted.
