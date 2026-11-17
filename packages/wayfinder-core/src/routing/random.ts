@@ -17,6 +17,7 @@
 import { defaultLogger } from '../logger.js';
 import type { GatewaysProvider, Logger, RoutingStrategy } from '../types.js';
 import { randomInt } from '../utils/random.js';
+import { withoutExcluded } from './exclude.js';
 
 export class RandomRoutingStrategy implements RoutingStrategy {
   public readonly name = 'random';
@@ -36,8 +37,10 @@ export class RandomRoutingStrategy implements RoutingStrategy {
 
   async selectGateway({
     gateways,
+    exclude,
   }: {
     gateways?: URL[];
+    exclude?: URL[];
   } = {}): Promise<URL> {
     const resolvedGateways =
       gateways ??
@@ -46,9 +49,11 @@ export class RandomRoutingStrategy implements RoutingStrategy {
       this.logger.error('No gateways available');
       throw new Error('No gateways available');
     }
+    const pool = withoutExcluded(resolvedGateways, exclude);
     this.logger.debug('Selecting random gateway', {
-      gateways: resolvedGateways.map((g) => g.toString()),
+      gateways: pool.map((g) => g.toString()),
+      excluded: exclude?.map((g) => g.toString()),
     });
-    return resolvedGateways[randomInt(0, resolvedGateways.length)];
+    return pool[randomInt(0, pool.length)];
   }
 }

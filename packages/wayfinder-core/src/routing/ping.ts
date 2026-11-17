@@ -17,6 +17,7 @@
 import { pLimit } from 'plimit-lit';
 import { defaultLogger } from '../logger.js';
 import type { GatewaysProvider, Logger, RoutingStrategy } from '../types.js';
+import { isExcluded, withoutExcluded } from './exclude.js';
 
 /**
  * Path probed to decide whether a gateway is usable.
@@ -86,20 +87,26 @@ export class FastestPingRoutingStrategy implements RoutingStrategy {
     gateways,
     path = '',
     subdomain,
+    exclude,
   }: {
     gateways?: URL[];
     path?: string;
     subdomain?: string;
+    exclude?: URL[];
   }): Promise<URL> {
-    const resolvedGateways =
+    const providedGateways =
       gateways ??
       (this.gatewaysProvider ? await this.gatewaysProvider.getGateways() : []);
 
-    if (resolvedGateways.length === 0) {
+    if (providedGateways.length === 0) {
       const error = new Error('No gateways provided');
       this.logger.error('Failed to select gateway', { error: error.message });
       throw error;
     }
+
+    // Gateways that already failed this request are not pinged, unless that
+    // would leave none to ping.
+    const resolvedGateways = withoutExcluded(providedGateways, exclude);
 
     try {
       this.logger.debug(
@@ -178,8 +185,12 @@ export class FastestPingRoutingStrategy implements RoutingStrategy {
 
 /**
  * Wraps a base strategy and performs a HEAD check on the selected gateway.
- * If the HEAD check fails, it retries with a different gateway.
  * If the HEAD check succeeds, it returns the selected gateway.
+ * If the HEAD check fails, it asks the wrapped strategy again, passing every
+ * gateway that failed so far (plus any the caller excluded) as `exclude`.
+ * Whether the next pick is a different gateway depends on the wrapped
+ * strategy: the built-in list strategies honour `exclude`, while
+ * `StaticRoutingStrategy` has only one gateway to return.
  * If the HEAD check fails after all retries, it throws an error.
  */
 export class PingRoutingStrategy implements RoutingStrategy {
@@ -219,6 +230,7 @@ export class PingRoutingStrategy implements RoutingStrategy {
     gateways?: URL[];
     path?: string;
     subdomain?: string;
+    exclude?: URL[];
   }): Promise<URL> {
     const { gateways, path, subdomain } = params;
 
@@ -246,11 +258,17 @@ export class PingRoutingStrategy implements RoutingStrategy {
       ? { ...params, gateways: resolvedGateways }
       : params;
 
+    // Gateways the caller already ruled out, plus each one that fails its HEAD
+    // check below, so a retry does not probe the same gateway again.
+    const exclude: URL[] = [...(params.exclude ?? [])];
+
     for (let i = 0; i < this.retries; i++) {
       let selectedGateway: URL | undefined = undefined;
       try {
-        selectedGateway =
-          await this.routingStrategy.selectGateway(paramsWithGateways);
+        selectedGateway = await this.routingStrategy.selectGateway({
+          ...paramsWithGateways,
+          exclude: exclude.length > 0 ? [...exclude] : undefined,
+        });
 
         const pingUrl = buildProbeUrl({
           gateway: selectedGateway,
@@ -295,7 +313,10 @@ export class PingRoutingStrategy implements RoutingStrategy {
 
         return selectedGateway;
       } catch (error) {
-        this.logger.debug('HEAD check error, retrying with different gateway', {
+        if (selectedGateway && !isExcluded(selectedGateway, exclude)) {
+          exclude.push(selectedGateway);
+        }
+        this.logger.debug('HEAD check error, retrying', {
           gateway: selectedGateway?.toString(),
           error: error instanceof Error ? error.message : String(error),
           attempt: i + 1,

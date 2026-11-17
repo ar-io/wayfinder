@@ -18,6 +18,7 @@ import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 
 import { FastestPingRoutingStrategy, PingRoutingStrategy } from './ping.js';
+import { RandomRoutingStrategy } from './random.js';
 import { StaticRoutingStrategy } from './static.js';
 
 describe('FastestPingRoutingStrategy', () => {
@@ -493,5 +494,110 @@ describe('PingRoutingStrategy', () => {
       () => strategy.selectGateway({ gateways: [] }),
       /No gateways available/,
     );
+  });
+});
+
+describe('ping strategies exclude', () => {
+  const originalFetch = global.fetch;
+  let pinged: string[];
+
+  beforeEach(() => {
+    pinged = [];
+    // every gateway answers the HEAD check unless its host starts with "bad"
+    // @ts-expect-error - we're mocking the fetch function
+    global.fetch = async (url: string | URL) => {
+      const { host } = new URL(url.toString());
+      pinged.push(host);
+      return new Response(null, { status: host.startsWith('bad') ? 503 : 200 });
+    };
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
+
+  describe('FastestPingRoutingStrategy', () => {
+    it('does not ping or return excluded gateways', async () => {
+      const strategy = new FastestPingRoutingStrategy({ timeoutMs: 500 });
+      const result = await strategy.selectGateway({
+        gateways: [new URL('https://failed.com'), new URL('https://ok.com')],
+        exclude: [new URL('https://failed.com')],
+      });
+      assert.equal(result.toString(), 'https://ok.com/');
+      assert.ok(!pinged.includes('failed.com'));
+    });
+
+    it('falls back to the full list when every gateway is excluded', async () => {
+      const gateways = [new URL('https://failed.com')];
+      const strategy = new FastestPingRoutingStrategy({ timeoutMs: 500 });
+      const result = await strategy.selectGateway({
+        gateways,
+        exclude: gateways,
+      });
+      assert.equal(result.toString(), 'https://failed.com/');
+    });
+  });
+
+  describe('PingRoutingStrategy', () => {
+    it('passes the caller exclude list to the wrapped strategy', async () => {
+      const exclude = [new URL('https://failed.com')];
+      let received: URL[] | undefined;
+      const strategy = new PingRoutingStrategy({
+        routingStrategy: {
+          async selectGateway(params) {
+            received = params.exclude;
+            return new URL('https://ok.com');
+          },
+        },
+      });
+
+      await strategy.selectGateway({ exclude });
+      assert.deepEqual(
+        received?.map((g) => g.toString()),
+        ['https://failed.com/'],
+      );
+    });
+
+    it('excludes each gateway that fails its HEAD check on later retries', async () => {
+      const calls: string[][] = [];
+      const strategy = new PingRoutingStrategy({
+        routingStrategy: new RandomRoutingStrategy(),
+        retries: 3,
+      });
+      const wrapped = strategy.routingStrategy;
+      const originalSelect = wrapped.selectGateway.bind(wrapped);
+      wrapped.selectGateway = async (params) => {
+        calls.push((params.exclude ?? []).map((g) => g.toString()));
+        return originalSelect(params);
+      };
+
+      const result = await strategy.selectGateway({
+        gateways: [
+          new URL('https://bad1.com'),
+          new URL('https://bad2.com'),
+          new URL('https://ok.com'),
+        ],
+      });
+
+      assert.equal(result.toString(), 'https://ok.com/');
+      // each gateway is probed at most once
+      assert.equal(new Set(pinged).size, pinged.length);
+      // the exclude list grows by one per failed HEAD check
+      for (let i = 1; i < calls.length; i++) {
+        assert.equal(calls[i].length, i);
+      }
+    });
+
+    it('still returns a static gateway that the caller excluded', async () => {
+      const strategy = new PingRoutingStrategy({
+        routingStrategy: new StaticRoutingStrategy({
+          gateway: 'https://only.com',
+        }),
+      });
+      const result = await strategy.selectGateway({
+        exclude: [new URL('https://only.com')],
+      });
+      assert.equal(result.toString(), 'https://only.com/');
+    });
   });
 });

@@ -194,3 +194,92 @@ describe('CompositeRoutingStrategy', () => {
     assert.equal(result, gateway1);
   });
 });
+
+describe('CompositeRoutingStrategy exclude', () => {
+  const silentLogger: Logger = {
+    debug: () => {
+      /* no-op for testing */
+    },
+    info: () => {
+      /* no-op for testing */
+    },
+    warn: () => {
+      /* no-op for testing */
+    },
+    error: () => {
+      /* no-op for testing */
+    },
+  };
+
+  it('passes exclude to each strategy', async () => {
+    const exclude = [new URL('https://failed.com')];
+    let received: URL[] | undefined;
+    const composite = new CompositeRoutingStrategy({
+      strategies: [
+        {
+          selectGateway: async (params) => {
+            received = params.exclude;
+            return new URL('https://ok.com');
+          },
+        },
+      ],
+      logger: silentLogger,
+    });
+
+    await composite.selectGateway({ exclude });
+    assert.deepEqual(received, exclude);
+  });
+
+  it('moves to the next strategy when one returns an excluded gateway', async () => {
+    const composite = new CompositeRoutingStrategy({
+      strategies: [
+        { selectGateway: async () => new URL('https://failed.com') },
+        { selectGateway: async () => new URL('https://other.com') },
+      ],
+      logger: silentLogger,
+    });
+
+    const result = await composite.selectGateway({
+      exclude: [new URL('https://failed.com')],
+    });
+    assert.equal(result.toString(), 'https://other.com/');
+  });
+
+  it('returns the first excluded result when no strategy has an alternative', async () => {
+    const composite = new CompositeRoutingStrategy({
+      strategies: [
+        { selectGateway: async () => new URL('https://failed1.com') },
+        {
+          selectGateway: async () => {
+            throw new Error('no gateways');
+          },
+        },
+        { selectGateway: async () => new URL('https://failed2.com') },
+      ],
+      logger: silentLogger,
+    });
+
+    const result = await composite.selectGateway({
+      exclude: [new URL('https://failed1.com'), new URL('https://failed2.com')],
+    });
+    assert.equal(result.toString(), 'https://failed1.com/');
+  });
+
+  it('still throws when every strategy throws', async () => {
+    const composite = new CompositeRoutingStrategy({
+      strategies: [
+        {
+          selectGateway: async () => {
+            throw new Error('no gateways');
+          },
+        },
+      ],
+      logger: silentLogger,
+    });
+
+    await assert.rejects(
+      () => composite.selectGateway({ exclude: [new URL('https://x.com')] }),
+      /All routing strategies failed/,
+    );
+  });
+});

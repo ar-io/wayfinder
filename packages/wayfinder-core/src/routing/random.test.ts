@@ -82,3 +82,40 @@ describe('RandomRoutingStrategy', () => {
     }
   });
 });
+
+describe('RandomRoutingStrategy exclude', () => {
+  const gateways = [
+    new URL('https://a.com'),
+    new URL('https://b.com'),
+    new URL('https://c.com'),
+  ];
+
+  it('never returns an excluded gateway when another is available', async () => {
+    const strategy = new RandomRoutingStrategy();
+    const exclude = [new URL('https://a.com'), new URL('https://b.com')];
+    for (let i = 0; i < 50; i++) {
+      const gateway = await strategy.selectGateway({ gateways, exclude });
+      assert.equal(gateway.toString(), 'https://c.com/');
+    }
+  });
+
+  it('filters a provider-supplied list too', async () => {
+    const strategy = new RandomRoutingStrategy({
+      gatewaysProvider: { getGateways: async () => gateways },
+    });
+    const exclude = [new URL('https://b.com'), new URL('https://c.com')];
+    for (let i = 0; i < 20; i++) {
+      const gateway = await strategy.selectGateway({ exclude });
+      assert.equal(gateway.toString(), 'https://a.com/');
+    }
+  });
+
+  it('falls back to the full pool when every gateway is excluded', async () => {
+    const strategy = new RandomRoutingStrategy();
+    const gateway = await strategy.selectGateway({
+      gateways,
+      exclude: gateways,
+    });
+    assert.ok(gateways.some((g) => g.toString() === gateway.toString()));
+  });
+});

@@ -16,6 +16,7 @@
  */
 import { defaultLogger } from '../logger.js';
 import type { Logger, RoutingStrategy } from '../types.js';
+import { isExcluded } from './exclude.js';
 
 export class SimpleCacheRoutingStrategy implements RoutingStrategy {
   public readonly name = 'simple-cache';
@@ -52,10 +53,20 @@ export class SimpleCacheRoutingStrategy implements RoutingStrategy {
     gateways?: URL[];
     path?: string;
     subdomain?: string;
+    exclude?: URL[];
   }): Promise<URL> {
     const now = Date.now();
 
-    if (this.isCacheValid()) {
+    /**
+     * A cached gateway that already failed this request is bypassed: the
+     * wrapped strategy is asked again, with `exclude` passed through, and its
+     * pick replaces the cache entry.
+     */
+    const cachedIsExcluded =
+      this.cachedGateway !== undefined &&
+      isExcluded(this.cachedGateway, params.exclude);
+
+    if (this.isCacheValid() && !cachedIsExcluded) {
       this.logger.debug('Using cached gateway', {
         cacheAge: now - this.lastUpdated,
         ttlSeconds: this.ttlSeconds,
@@ -64,19 +75,39 @@ export class SimpleCacheRoutingStrategy implements RoutingStrategy {
       return this.cachedGateway!;
     }
 
+    /**
+     * Share an in-flight selection so concurrent callers do not each hit the
+     * wrapped strategy. A caller with an `exclude` list only shares it when
+     * the pending result is not one of its excluded gateways; otherwise it
+     * runs its own selection below.
+     */
     if (this.gatewayPromise) {
-      return this.gatewayPromise;
+      const pending = this.gatewayPromise;
+      if (!params.exclude || params.exclude.length === 0) {
+        return pending;
+      }
+      const pendingGateway = await pending.catch(() => undefined);
+      if (pendingGateway && !isExcluded(pendingGateway, params.exclude)) {
+        return pendingGateway;
+      }
     }
 
+    let selection: Promise<URL> | undefined;
     try {
-      this.logger.debug('Cache expired, selecting new gateway', {
-        cacheAge: now - this.lastUpdated,
-        ttlSeconds: this.ttlSeconds,
-      });
+      this.logger.debug(
+        cachedIsExcluded
+          ? 'Cached gateway is excluded, selecting new gateway'
+          : 'Cache expired, selecting new gateway',
+        {
+          cacheAge: now - this.lastUpdated,
+          ttlSeconds: this.ttlSeconds,
+        },
+      );
 
       // set the promise to prevent multiple requests to the routingStrategy
-      this.gatewayPromise = this.routingStrategy.selectGateway(params);
-      const selectedGateway = await this.gatewayPromise;
+      selection = this.routingStrategy.selectGateway(params);
+      this.gatewayPromise = selection;
+      const selectedGateway = await selection;
 
       // update the cache
       this.cachedGateway = selectedGateway;
@@ -102,7 +133,11 @@ export class SimpleCacheRoutingStrategy implements RoutingStrategy {
         'Returning expired cached gateway due to selection failure',
       );
     } finally {
-      this.gatewayPromise = undefined;
+      // only clear the promise this call set; a concurrent call may have
+      // replaced it with its own selection
+      if (this.gatewayPromise === selection) {
+        this.gatewayPromise = undefined;
+      }
     }
 
     return this.cachedGateway;

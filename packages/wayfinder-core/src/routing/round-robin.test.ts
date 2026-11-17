@@ -229,3 +229,41 @@ describe('RoundRobinRoutingStrategy rotation across a changing pool', () => {
     );
   });
 });
+
+describe('RoundRobinRoutingStrategy exclude', () => {
+  const gateways = [
+    new URL('https://a.com'),
+    new URL('https://b.com'),
+    new URL('https://c.com'),
+  ];
+
+  it('skips excluded gateways and keeps the rotation order', async () => {
+    const strategy = new RoundRobinRoutingStrategy({ gateways });
+
+    assert.equal((await strategy.selectGateway()).toString(), 'https://a.com/');
+    // b.com is next in the rotation but excluded, so c.com is served
+    assert.equal(
+      (
+        await strategy.selectGateway({ exclude: [new URL('https://b.com')] })
+      ).toString(),
+      'https://c.com/',
+    );
+    // the rotation resumes after c.com
+    assert.equal((await strategy.selectGateway()).toString(), 'https://a.com/');
+  });
+
+  it('moves past the gateway it just served when that one is excluded', async () => {
+    const strategy = new RoundRobinRoutingStrategy({ gateways });
+    const first = await strategy.selectGateway();
+    const second = await strategy.selectGateway({ exclude: [first] });
+    assert.notEqual(second.toString(), first.toString());
+    assert.equal(second.toString(), 'https://b.com/');
+  });
+
+  it('serves the next gateway in order when every gateway is excluded', async () => {
+    const strategy = new RoundRobinRoutingStrategy({ gateways });
+    await strategy.selectGateway(); // a.com
+    const next = await strategy.selectGateway({ exclude: gateways });
+    assert.equal(next.toString(), 'https://b.com/');
+  });
+});
