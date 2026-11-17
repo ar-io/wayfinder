@@ -160,3 +160,176 @@ describe('SimpleCacheRoutingStrategy', () => {
     );
   });
 });
+
+describe('SimpleCacheRoutingStrategy exclude', () => {
+  it('bypasses an excluded cached gateway and caches the new pick', async () => {
+    const received: (URL[] | undefined)[] = [];
+    const picks = [new URL('https://first.com'), new URL('https://second.com')];
+    let call = 0;
+    const cache = new SimpleCacheRoutingStrategy({
+      routingStrategy: {
+        async selectGateway(params) {
+          received.push(params.exclude);
+          return picks[call++];
+        },
+      },
+      ttlSeconds: 60,
+    });
+
+    assert.equal(
+      (await cache.selectGateway({})).toString(),
+      'https://first.com/',
+    );
+
+    const exclude = [new URL('https://first.com')];
+    assert.equal(
+      (await cache.selectGateway({ exclude })).toString(),
+      'https://second.com/',
+    );
+    assert.deepEqual(received[1], exclude);
+
+    // the new pick is cached
+    assert.equal(
+      (await cache.selectGateway({})).toString(),
+      'https://second.com/',
+    );
+    assert.equal(call, 2);
+  });
+
+  it('keeps serving the cache when the cached gateway is not excluded', async () => {
+    let call = 0;
+    const cache = new SimpleCacheRoutingStrategy({
+      routingStrategy: {
+        async selectGateway() {
+          call++;
+          return new URL('https://cached.com');
+        },
+      },
+    });
+    await cache.selectGateway({});
+    await cache.selectGateway({ exclude: [new URL('https://other.com')] });
+    assert.equal(call, 1);
+  });
+
+  it('does not hand back an excluded gateway from an in-flight selection', async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let call = 0;
+    const cache = new SimpleCacheRoutingStrategy({
+      routingStrategy: {
+        async selectGateway(params) {
+          call++;
+          if (call === 1) {
+            await gate;
+            return new URL('https://failed.com');
+          }
+          assert.deepEqual(
+            params.exclude?.map((g) => g.toString()),
+            ['https://failed.com/'],
+          );
+          return new URL('https://other.com');
+        },
+      },
+    });
+
+    const first = cache.selectGateway({});
+    const second = cache.selectGateway({
+      exclude: [new URL('https://failed.com')],
+    });
+    release();
+
+    assert.equal((await first).toString(), 'https://failed.com/');
+    assert.equal((await second).toString(), 'https://other.com/');
+    assert.equal(call, 2);
+  });
+
+  it('shares an in-flight selection that is not excluded', async () => {
+    let call = 0;
+    const cache = new SimpleCacheRoutingStrategy({
+      routingStrategy: {
+        async selectGateway() {
+          call++;
+          await new Promise((resolve) => setTimeout(resolve, 10));
+          return new URL('https://ok.com');
+        },
+      },
+    });
+
+    const [a, b] = await Promise.all([
+      cache.selectGateway({}),
+      cache.selectGateway({ exclude: [new URL('https://failed.com')] }),
+    ]);
+    assert.equal(a.toString(), 'https://ok.com/');
+    assert.equal(b.toString(), 'https://ok.com/');
+    assert.equal(call, 1);
+  });
+
+  it('starts one replacement for several callers excluding a pending gateway', async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let call = 0;
+    const cache = new SimpleCacheRoutingStrategy({
+      routingStrategy: {
+        async selectGateway() {
+          call++;
+          if (call === 1) {
+            await gate;
+            return new URL('https://failed.com');
+          }
+          await new Promise((resolve) => setTimeout(resolve, 10));
+          return new URL('https://other.com');
+        },
+      },
+    });
+
+    const exclude = [new URL('https://failed.com')];
+    const first = cache.selectGateway({});
+    const waiters = [
+      cache.selectGateway({ exclude }),
+      cache.selectGateway({ exclude }),
+      cache.selectGateway({ exclude }),
+    ];
+    release();
+
+    assert.equal((await first).toString(), 'https://failed.com/');
+    for (const waiter of waiters) {
+      assert.equal((await waiter).toString(), 'https://other.com/');
+    }
+    assert.equal(call, 2);
+  });
+
+  it('starts the TTL when the selection result arrives', async (t) => {
+    let clock = 1_000_000;
+    t.mock.method(Date, 'now', () => clock);
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let call = 0;
+    const cache = new SimpleCacheRoutingStrategy({
+      routingStrategy: {
+        async selectGateway() {
+          call++;
+          if (call === 1) {
+            await gate;
+          }
+          return new URL('https://slow.com');
+        },
+      },
+      ttlSeconds: 1,
+    });
+
+    const first = cache.selectGateway({});
+    // the selection takes 2s, longer than the TTL
+    clock += 2_000;
+    release();
+    await first;
+
+    await cache.selectGateway({});
+    assert.equal(call, 1, 'the fresh result should still be cached');
+  });
+});

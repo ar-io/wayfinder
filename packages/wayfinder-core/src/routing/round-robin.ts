@@ -16,6 +16,7 @@
  */
 import { defaultLogger } from '../logger.js';
 import type { GatewaysProvider, Logger, RoutingStrategy } from '../types.js';
+import { isExcluded } from './exclude.js';
 
 export class RoundRobinRoutingStrategy implements RoutingStrategy {
   public readonly name = 'round-robin';
@@ -68,8 +69,10 @@ export class RoundRobinRoutingStrategy implements RoutingStrategy {
 
   async selectGateway({
     gateways,
+    exclude,
   }: {
     gateways?: URL[];
+    exclude?: URL[];
   } = {}): Promise<URL> {
     /**
      * Precedence: a list pinned at construction, then a list supplied by the
@@ -106,7 +109,21 @@ export class RoundRobinRoutingStrategy implements RoutingStrategy {
       this.lastSelected !== undefined
         ? pool.findIndex((gateway) => gateway.toString() === this.lastSelected)
         : -1;
-    const index = (previousIndex + 1) % pool.length;
+
+    /**
+     * Gateways in `exclude` already failed this request, so the rotation
+     * skips past them to the next one that has not. When every gateway is
+     * excluded it serves the next one in order anyway, as it did before
+     * `exclude` existed.
+     */
+    let index = (previousIndex + 1) % pool.length;
+    for (let step = 1; step <= pool.length; step++) {
+      const candidate = (previousIndex + step) % pool.length;
+      if (!isExcluded(pool[candidate], exclude)) {
+        index = candidate;
+        break;
+      }
+    }
 
     const gateway = pool[index];
     this.logger.debug('Selecting gateway', {

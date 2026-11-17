@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 import assert from 'node:assert/strict';
-import { beforeEach, describe, it } from 'node:test';
+import { afterEach, beforeEach, describe, it } from 'node:test';
 import type { Logger, RoutingStrategy } from '../types.js';
 import { PreferredWithFallbackRoutingStrategy } from './preferred-with-fallback.js';
 
@@ -254,5 +254,57 @@ describe('PreferredWithFallbackRoutingStrategy', () => {
       assert.equal(pingStrategy.timeoutMs, 1000);
       assert.equal(pingStrategy.routingStrategy.name, 'static');
     });
+  });
+});
+
+describe('PreferredWithFallbackRoutingStrategy exclude', () => {
+  const originalFetch = global.fetch;
+
+  beforeEach(() => {
+    // the preferred gateway always passes its HEAD check
+    // @ts-expect-error - we're mocking the fetch function
+    global.fetch = async () => new Response(null, { status: 200 });
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
+
+  const fallbackStrategy: RoutingStrategy = {
+    selectGateway: async () => new URL('https://fallback.com'),
+  };
+
+  it('returns the preferred gateway when nothing is excluded', async () => {
+    const strategy = new PreferredWithFallbackRoutingStrategy({
+      preferredGateway: 'https://preferred.com',
+      fallbackStrategy,
+    });
+    const result = await strategy.selectGateway();
+    assert.equal(result.toString(), 'https://preferred.com/');
+  });
+
+  it('uses the fallback once the preferred gateway has failed the request', async () => {
+    const strategy = new PreferredWithFallbackRoutingStrategy({
+      preferredGateway: 'https://preferred.com',
+      fallbackStrategy,
+    });
+    const result = await strategy.selectGateway({
+      exclude: [new URL('https://preferred.com')],
+    });
+    assert.equal(result.toString(), 'https://fallback.com/');
+  });
+
+  it('returns the preferred gateway when the fallback also failed', async () => {
+    const strategy = new PreferredWithFallbackRoutingStrategy({
+      preferredGateway: 'https://preferred.com',
+      fallbackStrategy,
+    });
+    const result = await strategy.selectGateway({
+      exclude: [
+        new URL('https://preferred.com'),
+        new URL('https://fallback.com'),
+      ],
+    });
+    assert.equal(result.toString(), 'https://preferred.com/');
   });
 });

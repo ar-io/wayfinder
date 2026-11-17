@@ -44,7 +44,7 @@
     "clean": "rimraf dist",
     "update-version": "node scripts/update-version.mjs",
     "test": "npm run test:unit",
-    "test:unit": "c8 tsx --test 'src/client.test.ts' 'src/routing/*.test.ts' 'src/gateways/*.test.ts' 'src/retrieval/*.test.ts' 'src/verification/*.test.ts' 'src/utils/*.test.ts'",
+    "test:unit": "c8 tsx --test 'src/client.test.ts' 'src/fetch/*.test.ts' 'src/routing/*.test.ts' 'src/gateways/*.test.ts' 'src/retrieval/*.test.ts' 'src/verification/*.test.ts' 'src/utils/*.test.ts'",
     "test:integration": "c8 tsx --test 'src/wayfinder.test.ts'",
     "test:e2e": "tsx --test --test-concurrency=1 'src/e2e/*.e2e.test.ts'",
     "test:package": "npm run build && node scripts/verify-package.mjs",

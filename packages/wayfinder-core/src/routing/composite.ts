@@ -16,6 +16,7 @@
  */
 import { defaultLogger } from '../logger.js';
 import type { Logger, RoutingStrategy } from '../types.js';
+import { isExcluded } from './exclude.js';
 
 export class CompositeRoutingStrategy implements RoutingStrategy {
   public readonly name = 'composite';
@@ -40,16 +41,35 @@ export class CompositeRoutingStrategy implements RoutingStrategy {
     gateways?: URL[];
     path?: string;
     subdomain?: string;
+    exclude?: URL[];
   }): Promise<URL> {
     this.logger.debug('CompositeRoutingStrategy: starting gateway selection', {
       strategiesCount: this.strategies.length,
       gateways: params.gateways?.map((g) => g.toString()),
+      excluded: params.exclude?.map((g) => g.toString()),
     });
+
+    /**
+     * A strategy that returns a gateway in `params.exclude` has not found an
+     * alternative, so the next strategy gets a turn. If every strategy either
+     * throws or returns an excluded gateway, the first excluded result is
+     * returned: retrying a gateway that failed once beats having none, and it
+     * is what this strategy returned before `exclude` existed.
+     */
+    let firstExcluded: URL | undefined;
 
     for (const strategy of this.strategies) {
       try {
         this.logger.debug(`CompositeRoutingStrategy: trying strategy`);
         const gateway = await strategy.selectGateway(params);
+        if (isExcluded(gateway, params.exclude)) {
+          this.logger.debug(
+            `CompositeRoutingStrategy: strategy returned an excluded gateway, trying next`,
+            { selectedGateway: gateway.toString() },
+          );
+          firstExcluded ??= gateway;
+          continue;
+        }
         this.logger.debug(`CompositeRoutingStrategy: strategy succeeded`, {
           selectedGateway: gateway.toString(),
         });
@@ -59,6 +79,14 @@ export class CompositeRoutingStrategy implements RoutingStrategy {
           error: error instanceof Error ? error.message : String(error),
         });
       }
+    }
+
+    if (firstExcluded) {
+      this.logger.debug(
+        'CompositeRoutingStrategy: only excluded gateways available, returning the first',
+        { selectedGateway: firstExcluded.toString() },
+      );
+      return firstExcluded;
     }
 
     this.logger.error('CompositeRoutingStrategy: all strategies failed');

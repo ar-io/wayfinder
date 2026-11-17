@@ -62,15 +62,20 @@ export class PreferredWithFallbackRoutingStrategy implements RoutingStrategy {
     gateways,
     path,
     subdomain,
+    exclude,
   }: {
     gateways?: URL[];
     path?: string;
     subdomain?: string;
+    exclude?: URL[];
   } = {}): Promise<URL> {
+    // When the preferred gateway is in `exclude` (it already failed this
+    // request), the composite moves on to the fallback strategy.
     return this.compositeStrategy.selectGateway({
       gateways,
       path,
       subdomain,
+      exclude,
     });
   }
 }

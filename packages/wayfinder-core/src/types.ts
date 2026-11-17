@@ -317,6 +317,14 @@ export interface RoutingStrategy {
     gateways?: URL[];
     path?: string;
     subdomain?: string;
+    /**
+     * Gateways that already failed this request, for example with a 5xx
+     * response or a network error. A strategy should avoid returning one of
+     * them when it has an alternative. Strategies that cannot choose (a single
+     * static gateway) may ignore it, and a strategy that ignores it keeps
+     * working: the caller treats it as a hint, not a guarantee.
+     */
+    exclude?: URL[];
   }): Promise<URL>;
 }
 

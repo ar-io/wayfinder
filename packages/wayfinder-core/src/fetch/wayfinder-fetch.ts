@@ -133,18 +133,25 @@ export const createWayfinderFetch = ({
 
       // Attempt data retrieval with gateway retry. If the selected gateway
       // fails (network error, 5xx, timeout), re-select and try again up to
-      // maxAttempts times. 4xx responses are NOT retried (client error).
+      // maxAttempts times, passing every gateway that failed so far as
+      // `exclude` so the routing strategy can pick another one. 4xx responses
+      // are NOT retried (client error).
       const maxAttempts = 3;
       let dataResponse: Response | undefined;
       let selectedGateway: URL | undefined;
       let redirectUrl: URL | undefined;
       let lastError: Error | undefined;
+      const failed: URL[] = [];
 
       for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        // Reset so a failure in selectGateway itself is not blamed on the
+        // gateway picked by the previous attempt.
+        selectedGateway = undefined;
         try {
           selectedGateway = await routingStrategy.selectGateway({
             path,
             subdomain,
+            exclude: failed.length > 0 ? [...failed] : undefined,
           });
 
           redirectUrl = constructGatewayUrl({
@@ -190,12 +197,16 @@ export const createWayfinderFetch = ({
             break;
           }
 
-          // 5xx = server error, retry with different gateway
+          // 5xx = server error, retry and ask for a different gateway
+          failed.push(selectedGateway);
           logger.warn(
-            'Gateway returned server error, retrying with different gateway',
+            attempt < maxAttempts - 1
+              ? 'Gateway returned server error, retrying'
+              : 'Gateway returned server error, no attempts left',
             {
               uri: requestUri,
               gateway: selectedGateway.toString(),
+              excluded: failed.map((g) => g.toString()),
               status: dataResponse.status,
               attempt: attempt + 1,
               maxAttempts,
@@ -203,17 +214,18 @@ export const createWayfinderFetch = ({
           );
         } catch (error: any) {
           lastError = error;
+          if (selectedGateway) {
+            failed.push(selectedGateway);
+          }
           if (attempt < maxAttempts - 1) {
-            logger.warn(
-              'Gateway request failed, retrying with different gateway',
-              {
-                uri: requestUri,
-                gateway: selectedGateway?.toString(),
-                error: error.message,
-                attempt: attempt + 1,
-                maxAttempts,
-              },
-            );
+            logger.warn('Gateway request failed, retrying', {
+              uri: requestUri,
+              gateway: selectedGateway?.toString(),
+              excluded: failed.map((g) => g.toString()),
+              error: error.message,
+              attempt: attempt + 1,
+              maxAttempts,
+            });
           }
         }
       }

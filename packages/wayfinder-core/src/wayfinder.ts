@@ -224,8 +224,10 @@ export class Wayfinder {
    * The routing settings to use when routing requests.
    * This includes the routing strategy and event handlers for routing events.
    * If not provided, the default is a `PingRoutingStrategy` wrapping a
-   * `RandomRoutingStrategy` — a gateway is chosen at random and health-checked
-   * before use, retrying with a different one if the check fails.
+   * `RandomRoutingStrategy`: a gateway is chosen at random and health-checked
+   * before use. If the check fails, another random gateway is chosen from the
+   * ones that have not failed yet. A request that gets a 5xx response or a
+   * network error is retried the same way, with the failed gateway excluded.
    */
   public readonly routingSettings: Required<
     NonNullable<WayfinderOptions['routingSettings']>

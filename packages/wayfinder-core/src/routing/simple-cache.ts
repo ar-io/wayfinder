@@ -16,6 +16,7 @@
  */
 import { defaultLogger } from '../logger.js';
 import type { Logger, RoutingStrategy } from '../types.js';
+import { isExcluded } from './exclude.js';
 
 export class SimpleCacheRoutingStrategy implements RoutingStrategy {
   public readonly name = 'simple-cache';
@@ -52,10 +53,20 @@ export class SimpleCacheRoutingStrategy implements RoutingStrategy {
     gateways?: URL[];
     path?: string;
     subdomain?: string;
+    exclude?: URL[];
   }): Promise<URL> {
     const now = Date.now();
 
-    if (this.isCacheValid()) {
+    /**
+     * A cached gateway that already failed this request is bypassed: the
+     * wrapped strategy is asked again, with `exclude` passed through, and its
+     * pick replaces the cache entry.
+     */
+    const cachedIsExcluded =
+      this.cachedGateway !== undefined &&
+      isExcluded(this.cachedGateway, params.exclude);
+
+    if (this.isCacheValid() && !cachedIsExcluded) {
       this.logger.debug('Using cached gateway', {
         cacheAge: now - this.lastUpdated,
         ttlSeconds: this.ttlSeconds,
@@ -64,23 +75,56 @@ export class SimpleCacheRoutingStrategy implements RoutingStrategy {
       return this.cachedGateway!;
     }
 
-    if (this.gatewayPromise) {
-      return this.gatewayPromise;
+    /**
+     * Share an in-flight selection so concurrent callers do not each hit the
+     * wrapped strategy. A caller with an `exclude` list only shares it when
+     * the pending result is not one of its excluded gateways. While it
+     * waited, another excluding caller may have started a replacement
+     * selection, so it rechecks the shared promise (and the cache) before
+     * running its own selection below.
+     */
+    const awaited = new Set<Promise<URL>>();
+    let pending = this.gatewayPromise;
+    while (pending !== undefined && !awaited.has(pending)) {
+      awaited.add(pending);
+      if (!params.exclude || params.exclude.length === 0) {
+        return pending;
+      }
+      const pendingGateway = await pending.catch(() => undefined);
+      if (pendingGateway && !isExcluded(pendingGateway, params.exclude)) {
+        return pendingGateway;
+      }
+      pending = this.gatewayPromise;
+    }
+    if (
+      awaited.size > 0 &&
+      this.isCacheValid() &&
+      !isExcluded(this.cachedGateway!, params.exclude)
+    ) {
+      return this.cachedGateway!;
     }
 
+    let selection: Promise<URL> | undefined;
     try {
-      this.logger.debug('Cache expired, selecting new gateway', {
-        cacheAge: now - this.lastUpdated,
-        ttlSeconds: this.ttlSeconds,
-      });
+      this.logger.debug(
+        cachedIsExcluded
+          ? 'Cached gateway is excluded, selecting new gateway'
+          : 'Cache expired, selecting new gateway',
+        {
+          cacheAge: now - this.lastUpdated,
+          ttlSeconds: this.ttlSeconds,
+        },
+      );
 
       // set the promise to prevent multiple requests to the routingStrategy
-      this.gatewayPromise = this.routingStrategy.selectGateway(params);
-      const selectedGateway = await this.gatewayPromise;
+      selection = this.routingStrategy.selectGateway(params);
+      this.gatewayPromise = selection;
+      const selectedGateway = await selection;
 
-      // update the cache
+      // update the cache; the TTL starts when the result arrives, not when
+      // this call began, since the selection itself can take a while
       this.cachedGateway = selectedGateway;
-      this.lastUpdated = now;
+      this.lastUpdated = Date.now();
 
       this.logger.debug('Updated gateway cache', {
         selectedGateway: selectedGateway.toString(),
@@ -102,7 +146,11 @@ export class SimpleCacheRoutingStrategy implements RoutingStrategy {
         'Returning expired cached gateway due to selection failure',
       );
     } finally {
-      this.gatewayPromise = undefined;
+      // only clear the promise this call set; a concurrent call may have
+      // replaced it with its own selection
+      if (this.gatewayPromise === selection) {
+        this.gatewayPromise = undefined;
+      }
     }
 
     return this.cachedGateway;
