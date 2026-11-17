@@ -78,11 +78,15 @@ export class SimpleCacheRoutingStrategy implements RoutingStrategy {
     /**
      * Share an in-flight selection so concurrent callers do not each hit the
      * wrapped strategy. A caller with an `exclude` list only shares it when
-     * the pending result is not one of its excluded gateways; otherwise it
-     * runs its own selection below.
+     * the pending result is not one of its excluded gateways. While it
+     * waited, another excluding caller may have started a replacement
+     * selection, so it rechecks the shared promise (and the cache) before
+     * running its own selection below.
      */
-    if (this.gatewayPromise) {
-      const pending = this.gatewayPromise;
+    const awaited = new Set<Promise<URL>>();
+    let pending = this.gatewayPromise;
+    while (pending !== undefined && !awaited.has(pending)) {
+      awaited.add(pending);
       if (!params.exclude || params.exclude.length === 0) {
         return pending;
       }
@@ -90,6 +94,14 @@ export class SimpleCacheRoutingStrategy implements RoutingStrategy {
       if (pendingGateway && !isExcluded(pendingGateway, params.exclude)) {
         return pendingGateway;
       }
+      pending = this.gatewayPromise;
+    }
+    if (
+      awaited.size > 0 &&
+      this.isCacheValid() &&
+      !isExcluded(this.cachedGateway!, params.exclude)
+    ) {
+      return this.cachedGateway!;
     }
 
     let selection: Promise<URL> | undefined;
@@ -109,9 +121,10 @@ export class SimpleCacheRoutingStrategy implements RoutingStrategy {
       this.gatewayPromise = selection;
       const selectedGateway = await selection;
 
-      // update the cache
+      // update the cache; the TTL starts when the result arrives, not when
+      // this call began, since the selection itself can take a while
       this.cachedGateway = selectedGateway;
-      this.lastUpdated = now;
+      this.lastUpdated = Date.now();
 
       this.logger.debug('Updated gateway cache', {
         selectedGateway: selectedGateway.toString(),

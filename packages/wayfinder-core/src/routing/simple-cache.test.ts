@@ -265,4 +265,71 @@ describe('SimpleCacheRoutingStrategy exclude', () => {
     assert.equal(b.toString(), 'https://ok.com/');
     assert.equal(call, 1);
   });
+
+  it('starts one replacement for several callers excluding a pending gateway', async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let call = 0;
+    const cache = new SimpleCacheRoutingStrategy({
+      routingStrategy: {
+        async selectGateway() {
+          call++;
+          if (call === 1) {
+            await gate;
+            return new URL('https://failed.com');
+          }
+          await new Promise((resolve) => setTimeout(resolve, 10));
+          return new URL('https://other.com');
+        },
+      },
+    });
+
+    const exclude = [new URL('https://failed.com')];
+    const first = cache.selectGateway({});
+    const waiters = [
+      cache.selectGateway({ exclude }),
+      cache.selectGateway({ exclude }),
+      cache.selectGateway({ exclude }),
+    ];
+    release();
+
+    assert.equal((await first).toString(), 'https://failed.com/');
+    for (const waiter of waiters) {
+      assert.equal((await waiter).toString(), 'https://other.com/');
+    }
+    assert.equal(call, 2);
+  });
+
+  it('starts the TTL when the selection result arrives', async (t) => {
+    let clock = 1_000_000;
+    t.mock.method(Date, 'now', () => clock);
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let call = 0;
+    const cache = new SimpleCacheRoutingStrategy({
+      routingStrategy: {
+        async selectGateway() {
+          call++;
+          if (call === 1) {
+            await gate;
+          }
+          return new URL('https://slow.com');
+        },
+      },
+      ttlSeconds: 1,
+    });
+
+    const first = cache.selectGateway({});
+    // the selection takes 2s, longer than the TTL
+    clock += 2_000;
+    release();
+    await first;
+
+    await cache.selectGateway({});
+    assert.equal(call, 1, 'the fresh result should still be cached');
+  });
 });
