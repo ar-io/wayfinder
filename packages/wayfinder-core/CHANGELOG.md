@@ -1,5 +1,11 @@
 # @ar.io/wayfinder-core
 
+## 2.1.0
+
+### Minor Changes
+
+- 865c5ce: A request that gets a 5xx response or a network error now retries on a different gateway when one is available, instead of possibly drawing the same gateway again; with `PreferredWithFallbackRoutingStrategy`, the retry goes to the fallback once the preferred gateway has failed. `RoutingStrategy.selectGateway` takes a new optional `exclude` list of gateways that already failed the request, which the built-in strategies honour and custom strategies can ignore.
+
 ## 2.0.2
 
 ### Patch Changes
@@ -49,7 +55,7 @@
   - **`NetworkGatewaysProvider` could return a partial registry.** A failed page
     exited the pagination loop and the remaining gateways were sorted and
     returned as if complete. Because `limit` is applied after sorting, that
-    returned the *wrong* gateways rather than merely fewer. It now retries the
+    returned the _wrong_ gateways rather than merely fewer. It now retries the
     failed page and throws once retries are exhausted, so a composite provider
     can fall through.
 
