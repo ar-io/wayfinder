@@ -17,6 +17,7 @@
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 
+import { FastestPingRoutingStrategy } from '../routing/ping.js';
 import { PreferredWithFallbackRoutingStrategy } from '../routing/preferred-with-fallback.js';
 import { RandomRoutingStrategy } from '../routing/random.js';
 import type { Logger, RoutingStrategy } from '../types.js';
@@ -52,6 +53,10 @@ describe('createWayfinderFetch retry', () => {
   const originalFetch = global.fetch;
   let requests: string[];
   let behaviour: Record<string, number | 'throw'>;
+  // gateways whose HEAD check fails
+  let headFails: Set<string>;
+  // gateways that return 503 to their first N data requests, then 200
+  let transientFailures: Record<string, number>;
 
   const mockFetch = async (
     input: string | URL | Request,
@@ -61,9 +66,14 @@ describe('createWayfinderFetch retry', () => {
     // PingRoutingStrategy HEAD checks always pass: these gateways are up but
     // fail data requests, which is the case a HEAD check cannot catch
     if (init?.method === 'HEAD') {
-      return new Response(null, { status: 200 });
+      return new Response(null, { status: headFails.has(gateway) ? 503 : 200 });
     }
     requests.push(gateway);
+    const transient = transientFailures[gateway];
+    if (transient && transient > 0) {
+      transientFailures[gateway] = transient - 1;
+      return new Response('error', { status: 503 });
+    }
     const result = behaviour[gateway] ?? 200;
     if (result === 'throw') {
       throw new TypeError(`fetch failed for ${gateway}`);
@@ -74,6 +84,8 @@ describe('createWayfinderFetch retry', () => {
   beforeEach(() => {
     requests = [];
     behaviour = {};
+    headFails = new Set();
+    transientFailures = {};
     // PingRoutingStrategy HEAD checks go through the global fetch
     global.fetch = mockFetch as typeof fetch;
   });
@@ -154,6 +166,28 @@ describe('createWayfinderFetch retry', () => {
     const response = await wayfinderFetch(`ar://${TX_ID}`);
     assert.equal(response.status, 200);
     assert.deepEqual(requests, ['preferred.com', 'fallback.com']);
+  });
+
+  it('retries an excluded gateway when FastestPing finds no other gateway up', async () => {
+    // a.com fails one data request; b.com is down
+    transientFailures = { 'a.com': 1 };
+    headFails = new Set(['b.com']);
+    const wayfinderFetch = createFetch(
+      new FastestPingRoutingStrategy({
+        timeoutMs: 500,
+        logger: silentLogger,
+        gatewaysProvider: {
+          getGateways: async () => [
+            new URL('https://a.com'),
+            new URL('https://b.com'),
+          ],
+        },
+      }),
+    );
+
+    const response = await wayfinderFetch(`ar://${TX_ID}`);
+    assert.equal(response.status, 200);
+    assert.deepEqual(requests, ['a.com', 'a.com']);
   });
 
   it('does not retry a 4xx response', async () => {

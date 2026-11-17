@@ -18,7 +18,6 @@ import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 
 import { FastestPingRoutingStrategy, PingRoutingStrategy } from './ping.js';
-import { RandomRoutingStrategy } from './random.js';
 import { StaticRoutingStrategy } from './static.js';
 
 describe('FastestPingRoutingStrategy', () => {
@@ -536,56 +535,87 @@ describe('ping strategies exclude', () => {
       });
       assert.equal(result.toString(), 'https://failed.com/');
     });
+
+    it('pings excluded gateways when every other gateway fails its HEAD check', async () => {
+      const strategy = new FastestPingRoutingStrategy({ timeoutMs: 500 });
+      const result = await strategy.selectGateway({
+        gateways: [new URL('https://failed.com'), new URL('https://bad.com')],
+        exclude: [new URL('https://failed.com')],
+      });
+      assert.equal(result.toString(), 'https://failed.com/');
+      // the excluded gateway is pinged only after the others failed
+      assert.deepEqual(pinged, ['bad.com', 'failed.com']);
+    });
+
+    it('still throws when every gateway, excluded or not, fails', async () => {
+      const strategy = new FastestPingRoutingStrategy({ timeoutMs: 500 });
+      await assert.rejects(
+        () =>
+          strategy.selectGateway({
+            gateways: [
+              new URL('https://bad1.com'),
+              new URL('https://bad2.com'),
+            ],
+            exclude: [new URL('https://bad1.com')],
+          }),
+        /All gateways failed to respond/,
+      );
+    });
   });
 
   describe('PingRoutingStrategy', () => {
-    it('passes the caller exclude list to the wrapped strategy', async () => {
-      const exclude = [new URL('https://failed.com')];
-      let received: URL[] | undefined;
-      const strategy = new PingRoutingStrategy({
-        routingStrategy: {
-          async selectGateway(params) {
-            received = params.exclude;
-            return new URL('https://ok.com');
-          },
-        },
-      });
-
-      await strategy.selectGateway({ exclude });
-      assert.deepEqual(
-        received?.map((g) => g.toString()),
-        ['https://failed.com/'],
-      );
+    /**
+     * Returns the first gateway in the pool that is not excluded, or the first
+     * gateway when all are. Deterministic, so a test fails every time the
+     * exclude list is not passed through.
+     */
+    const firstNotExcluded = (pool: URL[]) => ({
+      calls: [] as string[][],
+      async selectGateway(params: { exclude?: URL[] }) {
+        const excluded = (params.exclude ?? []).map((g) => g.toString());
+        this.calls.push(excluded);
+        return pool.find((g) => !excluded.includes(g.toString())) ?? pool[0];
+      },
     });
-
-    it('excludes each gateway that fails its HEAD check on later retries', async () => {
-      const calls: string[][] = [];
-      const strategy = new PingRoutingStrategy({
-        routingStrategy: new RandomRoutingStrategy(),
-        retries: 3,
-      });
-      const wrapped = strategy.routingStrategy;
-      const originalSelect = wrapped.selectGateway.bind(wrapped);
-      wrapped.selectGateway = async (params) => {
-        calls.push((params.exclude ?? []).map((g) => g.toString()));
-        return originalSelect(params);
-      };
+    it('adds a gateway that fails its HEAD check to the caller exclude list', async () => {
+      const wrapped = firstNotExcluded([
+        new URL('https://failed.com'),
+        new URL('https://bad.com'),
+        new URL('https://ok.com'),
+      ]);
+      const strategy = new PingRoutingStrategy({ routingStrategy: wrapped });
 
       const result = await strategy.selectGateway({
-        gateways: [
-          new URL('https://bad1.com'),
-          new URL('https://bad2.com'),
-          new URL('https://ok.com'),
-        ],
+        exclude: [new URL('https://failed.com')],
       });
 
       assert.equal(result.toString(), 'https://ok.com/');
-      // each gateway is probed at most once
-      assert.equal(new Set(pinged).size, pinged.length);
-      // the exclude list grows by one per failed HEAD check
-      for (let i = 1; i < calls.length; i++) {
-        assert.equal(calls[i].length, i);
-      }
+      assert.deepEqual(wrapped.calls, [
+        ['https://failed.com/'],
+        ['https://failed.com/', 'https://bad.com/'],
+      ]);
+    });
+
+    it('excludes each gateway that fails its HEAD check on later retries', async () => {
+      const wrapped = firstNotExcluded([
+        new URL('https://bad1.com'),
+        new URL('https://bad2.com'),
+        new URL('https://ok.com'),
+      ]);
+      const strategy = new PingRoutingStrategy({
+        routingStrategy: wrapped,
+        retries: 3,
+      });
+
+      const result = await strategy.selectGateway({});
+
+      assert.equal(result.toString(), 'https://ok.com/');
+      assert.deepEqual(pinged, ['bad1.com', 'bad2.com', 'ok.com']);
+      assert.deepEqual(wrapped.calls, [
+        [],
+        ['https://bad1.com/'],
+        ['https://bad1.com/', 'https://bad2.com/'],
+      ]);
     });
 
     it('still returns a static gateway that the caller excluded', async () => {

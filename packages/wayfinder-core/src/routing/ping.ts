@@ -104,82 +104,113 @@ export class FastestPingRoutingStrategy implements RoutingStrategy {
       throw error;
     }
 
-    // Gateways that already failed this request are not pinged, unless that
-    // would leave none to ping.
-    const resolvedGateways = withoutExcluded(providedGateways, exclude);
+    /**
+     * Gateways that already failed this request are pinged only as a last
+     * resort: the rest are pinged first, and the excluded ones only if none of
+     * the rest answers. A gateway that returned one 5xx may well be up, and
+     * returning it beats throwing, which is what happened before `exclude`
+     * existed.
+     */
+    const preferred = withoutExcluded(providedGateways, exclude);
+    const lastResort = providedGateways.filter(
+      (gateway) => !preferred.includes(gateway),
+    );
+    const rounds =
+      lastResort.length > 0 ? [preferred, lastResort] : [preferred];
 
-    try {
-      this.logger.debug(
-        `Pinging ${resolvedGateways.length} gateways with timeout ${this.timeoutMs}ms`,
-        {
-          gateways: resolvedGateways.map((g) => g.toString()),
-          timeoutMs: this.timeoutMs,
-          probePath: this.probePath,
-          requestPath: path,
-        },
-      );
-
-      const throttle = pLimit(
-        Math.min(this.maxConcurrency, resolvedGateways.length),
-      );
-      const pingPromises = resolvedGateways.map(
-        async (gateway): Promise<{ gateway: URL; durationMs: number }> => {
-          return throttle(async () => {
-            const pingUrl = buildProbeUrl({
-              gateway,
-              probePath: this.probePath,
-            });
-
-            this.logger.debug(`Pinging gateway ${gateway.toString()}`, {
-              gateway: gateway.toString(),
-              pingUrl,
-            });
-
-            const startTime = Date.now();
-            const response = await fetch(pingUrl, {
-              method: 'HEAD',
-              signal: AbortSignal.timeout(this.timeoutMs),
-            });
-
-            if (response.ok) {
-              // clear the queue to prevent the next gateway from being pinged
-              throttle.clearQueue();
-              return { gateway, durationMs: Date.now() - startTime };
-            }
-
-            throw new Error('Failed to ping gateway', {
-              cause: {
-                gateway: gateway.toString(),
-                path: path,
-                status: response.status,
-              },
-            });
-          });
-        },
-      );
-
-      const { gateway, durationMs } = await Promise.any(pingPromises);
-
-      this.logger.debug('Successfully selected fastest gateway', {
-        gateway: gateway.toString(),
-        durationMs,
-      });
-
-      return gateway;
-    } catch {
-      this.logger.error('All gateways failed to respond', {
-        subdomain,
-        path,
-        gateways: resolvedGateways.map((g) => g.toString()),
-      });
-      throw new Error('All gateways failed to respond', {
-        cause: {
-          gateways: resolvedGateways.map((g) => g.toString()),
+    for (const round of rounds) {
+      try {
+        const { gateway, durationMs } = await this.pingFastest({
+          gateways: round,
           path,
-          subdomain,
-        },
-      });
+        });
+
+        this.logger.debug('Successfully selected fastest gateway', {
+          gateway: gateway.toString(),
+          durationMs,
+        });
+
+        return gateway;
+      } catch {
+        this.logger.debug('No gateway in this round responded', {
+          gateways: round.map((g) => g.toString()),
+        });
+      }
     }
+
+    this.logger.error('All gateways failed to respond', {
+      subdomain,
+      path,
+      gateways: providedGateways.map((g) => g.toString()),
+    });
+    throw new Error('All gateways failed to respond', {
+      cause: {
+        gateways: providedGateways.map((g) => g.toString()),
+        path,
+        subdomain,
+      },
+    });
+  }
+
+  /**
+   * Pings `gateways` concurrently and resolves with the first one to answer
+   * its HEAD check. Rejects when none does.
+   */
+  private async pingFastest({
+    gateways,
+    path,
+  }: {
+    gateways: URL[];
+    path: string;
+  }): Promise<{ gateway: URL; durationMs: number }> {
+    this.logger.debug(
+      `Pinging ${gateways.length} gateways with timeout ${this.timeoutMs}ms`,
+      {
+        gateways: gateways.map((g) => g.toString()),
+        timeoutMs: this.timeoutMs,
+        probePath: this.probePath,
+        requestPath: path,
+      },
+    );
+
+    const throttle = pLimit(Math.min(this.maxConcurrency, gateways.length));
+    const pingPromises = gateways.map(
+      async (gateway): Promise<{ gateway: URL; durationMs: number }> => {
+        return throttle(async () => {
+          const pingUrl = buildProbeUrl({
+            gateway,
+            probePath: this.probePath,
+          });
+
+          this.logger.debug(`Pinging gateway ${gateway.toString()}`, {
+            gateway: gateway.toString(),
+            pingUrl,
+          });
+
+          const startTime = Date.now();
+          const response = await fetch(pingUrl, {
+            method: 'HEAD',
+            signal: AbortSignal.timeout(this.timeoutMs),
+          });
+
+          if (response.ok) {
+            // clear the queue to prevent the next gateway from being pinged
+            throttle.clearQueue();
+            return { gateway, durationMs: Date.now() - startTime };
+          }
+
+          throw new Error('Failed to ping gateway', {
+            cause: {
+              gateway: gateway.toString(),
+              path: path,
+              status: response.status,
+            },
+          });
+        });
+      },
+    );
+
+    return Promise.any(pingPromises);
   }
 }
 

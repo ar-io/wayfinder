@@ -324,9 +324,10 @@ const strategy = new FastestPingRoutingStrategy({
 
 Wraps another strategy and health-checks the gateway it picked. If the check
 fails, it asks the wrapped strategy again and passes every gateway that failed
-so far as `exclude`. `RandomRoutingStrategy`, `RoundRobinRoutingStrategy` and
-`FastestPingRoutingStrategy` then pick a different gateway when one is left; a
-wrapped `StaticRoutingStrategy` returns its one gateway each time. This is the
+so far as `exclude`. `RandomRoutingStrategy` and `RoundRobinRoutingStrategy`
+then pick a different gateway when one is left, and
+`FastestPingRoutingStrategy` picks a different one when another answers its
+ping; a wrapped `StaticRoutingStrategy` returns its one gateway each time. This is the
 default strategy used by `new Wayfinder()` (wrapping a
 `RandomRoutingStrategy`).
 
@@ -732,7 +733,7 @@ const wayfinder = createWayfinderClient({
 
 Wayfinder includes built-in resiliency features:
 
-- **Gateway retry**: If a gateway returns a 5xx error or a network failure occurs, Wayfinder selects a gateway again and retries, up to 3 attempts in total. Each new selection passes the gateways that already failed as `exclude`, so the built-in strategies pick a different gateway when they have one: `RandomRoutingStrategy`, `RoundRobinRoutingStrategy` and `FastestPingRoutingStrategy` skip the failed gateways, `PreferredWithFallbackRoutingStrategy` moves to its fallback, and `SimpleCacheRoutingStrategy` replaces a cached gateway that failed. If every candidate has failed, a failed gateway is tried again. `StaticRoutingStrategy` has one gateway, so every attempt goes to it. A custom strategy that ignores `exclude` can return the same gateway again. Client errors (4xx) are returned immediately without retry.
+- **Gateway retry**: If a gateway returns a 5xx error or a network failure occurs, Wayfinder selects a gateway again and retries, up to 3 attempts in total. Each new selection passes the gateways that already failed as `exclude`, so the built-in strategies pick a different gateway when they have one: `RandomRoutingStrategy` and `RoundRobinRoutingStrategy` skip the failed gateways, `FastestPingRoutingStrategy` pings the failed gateways only when no other gateway answers, `PreferredWithFallbackRoutingStrategy` moves to its fallback, and `SimpleCacheRoutingStrategy` replaces a cached gateway that failed. When every gateway in the pool has already failed, these strategies return one of the failed gateways rather than throwing, so it is tried again. `StaticRoutingStrategy` has one gateway, so every attempt goes to it. A custom strategy that ignores `exclude` can return the same gateway again. Client errors (4xx) are returned immediately without retry.
 - **Fetch timeouts**: All outbound requests include configurable timeouts — 10s for metadata (HEAD, peer list), 30s for data retrieval — to prevent indefinite hangs on slow or dead gateways.
 - **Gateway health checks**: `PingRoutingStrategy` verifies the selected gateway responds before routing to it. If it does not, it selects again with that gateway excluded.
 - **Peer list retries**: `TrustedPeersGatewaysProvider` retries when a gateway returns an empty peer list, then fails loudly rather than silently yielding no gateways — and the default provider falls back to the trusted gateway so that failure degrades routing instead of stopping it.
