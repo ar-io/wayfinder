@@ -5,6 +5,9 @@ on:
     branches:
       - main
       - alpha
+  # Lets a maintainer re-run a release by hand, e.g. when a squash-merged
+  # release PR kept the bot's [skip ci] line and no run fired.
+  workflow_dispatch:
 
 jobs:
   # run the monorepo.yml to confirm all tests, linting and formatting is passing
